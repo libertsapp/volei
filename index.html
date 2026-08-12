@@ -965,7 +965,7 @@ function renderDashboard(){
   } else {
     const team = lastRound.times[lastRound.vencedor];
     const names = team.playerIds.map(id=> getPlayer(id));
-    const yearRounds = DATA.rounds.filter(r=> r.data.slice(0,4) === lastRound.data.slice(0,4));
+    const yearRounds = DATA.rounds.filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
     hero.innerHTML = `
       <div class="scoreboard">
         <div>
@@ -975,7 +975,7 @@ function renderDashboard(){
           <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}</span>`).join('')}</div>
         </div>
         <div class="sb-stats">
-          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${lastRound.data.slice(0,4)}</div></div>
+          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
           <div class="stat-card"><div class="stat-num">${DATA.players.length}</div><div class="stat-cap">Jogadores ativos</div></div>
         </div>
       </div>`;
@@ -1048,7 +1048,7 @@ function renderPhotoChart(){
 function computeRanking(year){
   const stats = {};
   DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, jogos:0, vitorias:0, titulos:0 }; });
-  DATA.rounds.filter(r=> r.data.slice(0,4)===year).forEach(r=>{
+  DATA.rounds.filter(r=> getYearOf(r.data)===year).forEach(r=>{
     r.times.forEach((team, idx)=>{
       const isWinner = idx === r.vencedor;
       team.playerIds.forEach(pid=>{
@@ -1081,7 +1081,7 @@ function rankingTableHtml(rows){
 
 function populateYearSelect(){
   const sel = document.getElementById('ranking-year');
-  const years = new Set(DATA.rounds.map(r=>r.data.slice(0,4)));
+  const years = new Set(DATA.rounds.map(r=>getYearOf(r.data)).filter(Boolean));
   years.add(new Date().getFullYear().toString());
   const sorted = Array.from(years).sort().reverse();
   const current = sel.value || new Date().getFullYear().toString();
@@ -1150,6 +1150,17 @@ function formatDate(iso){
   const d = new Date(iso);
   if(!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
   return 'Data indisponível';
+}
+function getYearOf(iso){
+  // mesma lógica defensiva do formatDate, mas devolvendo só o ano (usado para
+  // filtrar rodadas por ano no ranking, no seletor de ano e no card do dashboard).
+  if(typeof iso === 'string'){
+    const m = iso.match(/^(\d{4})-\d{2}-\d{2}/);
+    if(m) return m[1];
+  }
+  const d = new Date(iso);
+  if(!isNaN(d.getTime())) return String(d.getFullYear());
+  return null;
 }
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
