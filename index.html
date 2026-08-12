@@ -165,6 +165,90 @@
   .loading{text-align:center;padding:40px;color:var(--muted);}
   .yearpick{margin-left:auto;}
   .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+  /* estrelas / gênero */
+  .stars-picker{display:flex;gap:2px;align-items:center;}
+  .stars-picker button{background:transparent;border:none;font-size:20px;line-height:1;cursor:pointer;color:var(--line);padding:2px;}
+  .stars-picker button.filled{color:var(--ball-yellow);}
+  .stars-display{color:var(--ball-yellow);font-size:12px;letter-spacing:1px;}
+  .badge-gender{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted);}
+  .badge-gender.F{color:#ff8fc0;border-color:#ff8fc055;}
+  .badge-gender.M{color:var(--ball-blue);border-color:#4d7cff55;}
+  .meta-row{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;}
+
+  /* gráfico top 10 na foto */
+  .chart-wrap{display:flex;flex-direction:column;gap:10px;}
+  .chart-row{display:grid;grid-template-columns:140px 1fr 50px;align-items:center;gap:10px;}
+  .chart-name{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .chart-track{background:var(--court-navy-3);border-radius:6px;height:22px;overflow:hidden;}
+  .chart-fill{height:100%;width:0%;background:linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));border-radius:6px;transition:width 1s cubic-bezier(.22,.9,.3,1);}
+  .chart-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);text-align:right;}
+
+  /* sorteio */
+  .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
+  .field-group{display:flex;flex-direction:column;gap:4px;}
+  .field-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .select-list{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:16px;}
+  .select-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;}
+  .select-row:hover{background:var(--court-navy-3);}
+  .select-row .flex1{flex:1;}
+  .guest-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px;background:var(--court-navy-2);border:1px dashed var(--line);border-radius:10px;}
+  .draft-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px;}
+  .draft-team{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:160px;}
+  .draft-team.dragover{border-color:var(--ball-yellow);background:var(--court-navy-3);}
+  .draft-team-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .draft-team-head .tname{font-family:'Anton',sans-serif;font-size:15px;text-transform:uppercase;}
+  .draft-team-stats{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;}
+  .draft-chip{
+    display:flex;align-items:center;gap:8px;background:var(--court-navy-3);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;margin-bottom:6px;cursor:grab;font-size:13px;
+  }
+  .draft-chip:active{cursor:grabbing;}
+  .draft-chip.dragging{opacity:0.4;}
+  .draft-chip .badge-guest{font-size:9px;color:var(--muted);border:1px solid var(--line);padding:1px 5px;border-radius:8px;}
+
+  /* busca de jogadores */
+  .search-box{position:relative;margin-bottom:12px;}
+  .search-box input{width:100%;padding:10px 14px 10px 36px;}
+  .search-box::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:0.6;}
+  .search-count{font-size:11px;color:var(--muted);margin:-6px 0 12px;}
+  mark.picker-match{background:none;color:var(--ball-yellow);font-weight:700;}
+
+  /* combobox de jogador (Nova Rodada) */
+  .player-picker{position:relative;margin-bottom:8px;}
+  .picker-trigger{
+    width:100%;text-align:left;background:var(--court-navy-3);border:1px solid var(--line);color:var(--chalk);
+    padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;font-family:'Work Sans',sans-serif;
+  }
+  .picker-trigger:hover{border-color:var(--ball-yellow);}
+  .picker-placeholder{color:var(--muted);}
+  .picker-panel{
+    position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--court-navy-2);
+    border:1px solid var(--ball-yellow);border-radius:10px;padding:8px;z-index:30;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);
+  }
+  .picker-panel input.picker-search{width:100%;margin-bottom:8px;}
+  .picker-list{max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+  .picker-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .picker-item:hover{background:var(--court-navy-3);}
+  .picker-item.disabled{opacity:0.3;pointer-events:none;}
+  .picker-empty{color:var(--muted);font-size:12px;padding:8px;text-align:center;}
+
+  /* status de administrador */
+  .admin-status{
+    background:var(--court-navy-2);border:1px solid var(--line);color:var(--chalk-dim);
+    font-size:12px;font-weight:600;padding:8px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;
+  }
+  .admin-status.is-admin{background:var(--ball-yellow);color:var(--court-navy);border-color:var(--ball-yellow);}
+
+  /* contador de selecionados no sorteio */
+  .selected-counter{
+    display:flex;align-items:baseline;gap:8px;margin-bottom:10px;
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+  }
+  .selected-counter-num{font-family:'Space Mono',monospace;font-weight:700;font-size:22px;color:var(--ball-yellow);transition:transform .15s;}
+  .selected-counter-num.bump{transform:scale(1.25);}
+  .selected-counter-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 </style>
 </head>
 <body>
@@ -181,9 +265,11 @@
       <button data-view="dashboard" class="active">Dashboard</button>
       <button data-view="jogadores">Jogadores</button>
       <button data-view="rodada">Nova rodada</button>
+      <button data-view="sorteio">Sorteio</button>
       <button data-view="ranking">Ranking</button>
       <button data-view="historico">Histórico</button>
     </nav>
+    <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
   </header>
 
   <div id="loading" class="loading">Carregando dados…</div>
@@ -196,6 +282,9 @@
     <section id="view-dashboard" class="active">
       <div id="dash-hero"></div>
       <div class="netline"></div>
+      <h2 class="section-title">Top 10 — mais vezes na foto (campeões)</h2>
+      <div id="dash-chart"></div>
+      <div class="netline"></div>
       <h2 class="section-title">Ranking do ano — top 5</h2>
       <div id="dash-top5"></div>
     </section>
@@ -205,6 +294,21 @@
       <div class="add-row">
         <input id="new-player-name" placeholder="Nome do jogador" style="flex:1;min-width:180px;">
         <input id="new-player-nick" placeholder="Apelido (opcional)" style="width:160px;">
+        <select id="new-player-gender">
+          <option value="">Sexo (opcional)</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+        <div class="field-group">
+          <label>Nota (opcional)</label>
+          <div class="stars-picker" id="new-player-stars" data-value="0">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+        </div>
         <div class="photo-input-wrap">
           <img class="preview" id="new-player-preview">
           <input type="file" id="new-player-photo" accept="image/*">
@@ -228,8 +332,78 @@
           <option value="6">6</option>
         </select>
       </div>
+
+      <div class="guest-row">
+        <strong style="font-size:13px;">Adicionar convidado a esta rodada (não é salvo permanentemente):</strong>
+        <input id="rodada-guest-name" placeholder="Nome do convidado" style="width:160px;">
+        <button class="btn secondary" id="rodada-add-guest-btn">Adicionar convidado</button>
+      </div>
+      <div id="rodada-guest-chips" class="sb-players" style="margin-bottom:14px;"></div>
+
       <div class="teams-grid" id="teams-grid"></div>
       <button class="btn" id="save-round-btn">Salvar rodada</button>
+    </section>
+
+    <section id="view-sorteio">
+      <h2 class="section-title">Sorteio equilibrado</h2>
+
+      <div class="guest-row">
+        <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
+        <input id="guest-name" placeholder="Nome do convidado" style="width:160px;">
+        <select id="guest-gender">
+          <option value="">Sexo</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+        <div class="stars-picker" id="guest-stars" data-value="0">
+          <button type="button" data-star="1">★</button>
+          <button type="button" data-star="2">★</button>
+          <button type="button" data-star="3">★</button>
+          <button type="button" data-star="4">★</button>
+          <button type="button" data-star="5">★</button>
+        </div>
+        <button class="btn secondary" id="add-guest-btn">Adicionar convidado</button>
+      </div>
+
+      <div class="sorteio-controls">
+        <div class="field-group" style="flex:1;min-width:200px;">
+          <label>Buscar jogador</label>
+          <div class="search-box" style="margin-bottom:0;"><input type="text" id="sorteio-search" placeholder="Digite um nome..."></div>
+        </div>
+        <div class="field-group">
+          <label>Filtrar por nota mínima</label>
+          <select id="sorteio-min-star">
+            <option value="0">Todas</option>
+            <option value="1">1+ estrela</option>
+            <option value="2">2+ estrelas</option>
+            <option value="3">3+ estrelas</option>
+            <option value="4">4+ estrelas</option>
+            <option value="5">5 estrelas</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Quantidade de times</label>
+          <select id="sorteio-team-count">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+        <button class="btn secondary" id="select-all-btn">Selecionar todos</button>
+      </div>
+      <div class="search-count" id="sorteio-search-count"></div>
+      <div class="selected-counter" id="selected-counter">
+        <span class="selected-counter-num" id="selected-counter-num">0</span>
+        <span class="selected-counter-label">participante(s) selecionado(s)</span>
+      </div>
+
+      <div class="select-list" id="sorteio-select-list"></div>
+
+      <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
+
+      <div id="draft-result"></div>
     </section>
 
     <section id="view-ranking">
@@ -295,23 +469,100 @@ async function loadData(){
   renderAll();
 }
 
-async function saveData(){
-  if(!sheetReady) return;
+/* ---------- CONTROLE DE ADMINISTRADOR ---------- */
+function getCachedPassword(){ return sessionStorage.getItem('volei-admin-pwd') || ''; }
+function setCachedPassword(p){ sessionStorage.setItem('volei-admin-pwd', p); }
+function clearCachedPassword(){ sessionStorage.removeItem('volei-admin-pwd'); }
+
+function updateAdminStatusBtn(){
+  const btn = document.getElementById('admin-status-btn');
+  const isAdmin = !!getCachedPassword();
+  btn.textContent = isAdmin ? '🔓 Administrador' : '🔒 Visitante';
+  btn.classList.toggle('is-admin', isAdmin);
+}
+
+document.getElementById('admin-status-btn').addEventListener('click', ()=>{
+  if(getCachedPassword()){
+    if(confirm('Sair do modo administrador?')){
+      clearCachedPassword();
+      updateAdminStatusBtn();
+    }
+  } else {
+    requireAdminPassword();
+  }
+});
+
+/* Garante uma senha válida (pede e confirma com o servidor se ainda não tiver uma em cache).
+   Retorna a senha em caso de sucesso, ou null se o usuário cancelou / errou a senha. */
+async function requireAdminPassword(){
+  let pwd = getCachedPassword();
+  if(pwd) return pwd;
+  pwd = prompt('Digite a senha de administrador para salvar:');
+  if(!pwd) return null;
+  if(!sheetReady){ setCachedPassword(pwd); updateAdminStatusBtn(); return pwd; }
   try{
-    await fetch(SHEET_API_URL, {
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'ping', senha: pwd })
+    });
+    const json = await res.json();
+    if(json && json.error){
+      alert('Senha incorreta.');
+      return null;
+    }
+  }catch(e){
+    console.error('Falha ao validar senha', e);
+    alert('Não foi possível confirmar a senha agora. Verifique sua conexão e tente de novo.');
+    return null;
+  }
+  setCachedPassword(pwd);
+  updateAdminStatusBtn();
+  return pwd;
+}
+
+async function saveData(pwd){
+  if(!sheetReady) return true;
+  try{
+    const res = await fetch(SHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(DATA)
+      body: JSON.stringify({...DATA, senha: pwd})
     });
+    const json = await res.json();
+    if(json && json.error){
+      if(json.error.toLowerCase().includes('senha')){
+        clearCachedPassword();
+        updateAdminStatusBtn();
+        alert('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.');
+      } else {
+        alert('Não foi possível salvar: ' + json.error);
+      }
+      return false;
+    }
+    return true;
   }catch(e){
     console.error('Falha ao salvar na planilha', e);
     alert('Não foi possível salvar. Verifique sua conexão e a configuração da planilha.');
+    return false;
   }
 }
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-function getPlayer(id){ return DATA.players.find(p=>p.id===id); }
+let GUESTS = []; // jogadores visitantes — apenas na memória, nunca salvos na planilha
+let SELECTED_IDS = new Set(); // participantes marcados no Sorteio — persiste mesmo trocando o filtro de busca
+
+function getPlayer(id){
+  if(typeof id === 'string' && id.startsWith('convidado:')){
+    // marcador no formato "convidado:Nome#sufixo" — extrai o nome real do convidado
+    const rest = id.slice('convidado:'.length);
+    const hashIdx = rest.lastIndexOf('#');
+    const nomeConvidado = (hashIdx > -1 ? rest.slice(0, hashIdx) : rest) || 'Convidado';
+    return { id, nome: `${nomeConvidado} (Convidado(a))`, apelido:'', foto:'', estrelas:0, sexo:'', isGuestMarker:true };
+  }
+  return DATA.players.find(p=>p.id===id) || GUESTS.find(g=>g.id===id);
+}
 
 /* ---------- NAV ---------- */
 document.getElementById('nav').addEventListener('click', (e)=>{
@@ -321,11 +572,34 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   btn.classList.add('active');
   document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
   document.getElementById('view-'+btn.dataset.view).classList.add('active');
-  if(btn.dataset.view==='rodada') renderTeamsGrid();
+  if(btn.dataset.view==='rodada'){ renderTeamsGrid(); renderRodadaGuestChips(); }
   if(btn.dataset.view==='ranking') renderRanking();
   if(btn.dataset.view==='historico') renderHistory();
   if(btn.dataset.view==='dashboard') renderDashboard();
+  if(btn.dataset.view==='sorteio') renderSorteioList();
 });
+
+/* ---------- ESTRELAS (helper genérico) ---------- */
+function wireStarsPicker(containerId){
+  const el = document.getElementById(containerId);
+  el.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const val = parseInt(btn.dataset.star,10);
+      const current = parseInt(el.dataset.value,10) || 0;
+      const next = (current === val) ? 0 : val; // clicar na mesma estrela zera (não obrigatório)
+      el.dataset.value = next;
+      el.querySelectorAll('button').forEach(b=> b.classList.toggle('filled', parseInt(b.dataset.star,10) <= next));
+    });
+  });
+}
+wireStarsPicker('new-player-stars');
+wireStarsPicker('guest-stars');
+
+function starsDisplay(n){
+  n = parseInt(n,10) || 0;
+  if(n<=0) return '';
+  return '<span class="stars-display">' + '★'.repeat(n) + '</span>';
+}
 
 /* ---------- JOGADORES ---------- */
 document.getElementById('new-player-photo').addEventListener('change', (e)=>{
@@ -371,15 +645,16 @@ function resizeImageToBase64(file, maxSize, quality){
   });
 }
 
-async function uploadPhoto(file){
+async function uploadPhoto(file, pwd){
   if(!sheetReady) return '';
   const base64 = await resizeImageToBase64(file);
   const res = await fetch(SHEET_API_URL, {
     method:'POST',
     headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64 })
+    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, senha: pwd })
   });
   const json = await res.json();
+  if(json.error){ throw new Error(json.error); }
   return json.url || '';
 }
 
@@ -387,29 +662,44 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   const nameInput = document.getElementById('new-player-name');
   const nickInput = document.getElementById('new-player-nick');
   const photoInput = document.getElementById('new-player-photo');
+  const genderSelect = document.getElementById('new-player-gender');
+  const starsEl = document.getElementById('new-player-stars');
   const name = nameInput.value.trim();
   if(!name) return;
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
   const addBtn = document.getElementById('add-player-btn');
   addBtn.disabled = true;
   addBtn.textContent = 'Salvando...';
   let foto = '';
   try{
     if(photoInput.files[0]){
-      foto = await uploadPhoto(photoInput.files[0]);
+      foto = await uploadPhoto(photoInput.files[0], pwd);
     }
   }catch(e){
     console.error('Falha no upload da foto', e);
     const msg = (e && e.message && e.message.includes('fetch'))
       ? 'Não foi possível conectar ao Apps Script para enviar a foto (verifique sua internet e se a URL está correta). Jogador será salvo sem foto.'
-      : 'Jogador será salvo, mas a foto não pôde ser enviada. Tente adicionar a foto depois.';
+      : 'A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. Jogador será salvo sem foto.';
     alert(msg);
   }
-  DATA.players.push({ id: uid(), nome: name, apelido: nickInput.value.trim(), foto });
-  nameInput.value=''; nickInput.value=''; photoInput.value='';
-  document.getElementById('new-player-preview').style.display='none';
+  const newPlayer = {
+    id: uid(), nome: name, apelido: nickInput.value.trim(), foto,
+    estrelas: parseInt(starsEl.dataset.value,10) || 0,
+    sexo: genderSelect.value || ''
+  };
+  DATA.players.push(newPlayer);
+  const ok = await saveData(pwd);
   addBtn.disabled = false;
   addBtn.textContent = 'Adicionar';
-  await saveData();
+  if(!ok){
+    DATA.players = DATA.players.filter(p=>p.id!==newPlayer.id); // desfaz localmente, já que não foi salvo
+    return;
+  }
+  nameInput.value=''; nickInput.value=''; photoInput.value=''; genderSelect.value='';
+  starsEl.dataset.value = 0;
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled'));
+  document.getElementById('new-player-preview').style.display='none';
   renderPlayers();
 });
 
@@ -429,13 +719,18 @@ function renderPlayers(){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador cadastrado ainda. Adicione o primeiro acima.</div>';
     return;
   }
-  list.innerHTML = DATA.players.map(p=>`
+  const sorted = sortByName(DATA.players);
+  list.innerHTML = sorted.map(p=>`
     <div class="player-row">
       <div class="with-avatar">
         ${avatarHtml(p)}
         <div>
           <div class="name">${escapeHtml(p.nome)}</div>
           ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
+          <div class="meta-row">
+            ${starsDisplay(p.estrelas)}
+            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo==='F'?'Feminino':'Masculino'}</span>` : ''}
+          </div>
         </div>
       </div>
       <button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>
@@ -444,11 +739,30 @@ function renderPlayers(){
   list.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
+      const pwd = await requireAdminPassword();
+      if(!pwd) return;
+      const removed = DATA.players.find(p=>p.id===btn.dataset.remove);
       DATA.players = DATA.players.filter(p=>p.id!==btn.dataset.remove);
-      await saveData();
+      const ok = await saveData(pwd);
+      if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
       renderPlayers();
     });
   });
+}
+
+/* ---------- helpers de busca / ordenação ---------- */
+function normalizeStr(s){
+  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function sortByName(list){
+  return [...list].sort((a,b)=> (a.apelido||a.nome||'').localeCompare(b.apelido||b.nome||'', 'pt-BR', {sensitivity:'base'}));
+}
+function highlightMatch(label, term){
+  if(!term) return escapeHtml(label);
+  const norm = normalizeStr(label);
+  const idx = norm.indexOf(normalizeStr(term));
+  if(idx===-1) return escapeHtml(label);
+  return escapeHtml(label.slice(0,idx)) + '<mark class="picker-match">' + escapeHtml(label.slice(idx, idx+term.length)) + '</mark>' + escapeHtml(label.slice(idx+term.length));
 }
 
 /* ---------- NOVA RODADA ---------- */
@@ -465,9 +779,17 @@ function renderTeamsGrid(){
   let html = '';
   for(let t=0; t<count; t++){
     html += `<div class="team-card" data-team="${t}">
-      <div class="team-head"><span class="tname">Time ${t+1}</span><span class="leader-tag">Líder</span></div>
+      <div class="team-head"><span class="tname">Time ${t+1}</span><span class="leader-tag">Na Foto</span></div>
       <div class="slots">
-        ${[0,1,2,3].map(s=>`<div class="slot"><select data-team="${t}" data-slot="${s}"></select></div>`).join('')}
+        ${[0,1,2,3].map(s=>`<div class="slot">
+          <div class="player-picker" data-team="${t}" data-slot="${s}" data-value="">
+            <button type="button" class="picker-trigger"><span class="picker-placeholder">🔍 Escolher jogador…</span></button>
+            <div class="picker-panel" hidden>
+              <input type="text" class="picker-search" placeholder="Buscar por nome...">
+              <div class="picker-list"></div>
+            </div>
+          </div>
+        </div>`).join('')}
       </div>
       <div class="wins-row">
         <label for="wins-${t}">Vitórias de partidas</label>
@@ -476,14 +798,37 @@ function renderTeamsGrid(){
     </div>`;
   }
   grid.innerHTML = html;
-  populateTeamSelects();
   updateLeader();
+  wirePickers();
 
-  grid.querySelectorAll('select').forEach(sel=>{
-    sel.addEventListener('change', ()=>{ populateTeamSelects(); });
-  });
   grid.querySelectorAll('[data-wins]').forEach(inp=>{
     inp.addEventListener('input', updateLeader);
+  });
+}
+
+/* convidados adicionados diretamente na Nova Rodada (mesma lista GUESTS usada no Sorteio) */
+document.getElementById('rodada-add-guest-btn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('rodada-guest-name');
+  const name = nameInput.value.trim();
+  if(!name) return;
+  GUESTS.push({ id: uid(), nome: name, apelido:'', foto:'', estrelas:0, sexo:'', isGuest:true });
+  nameInput.value = '';
+  renderRodadaGuestChips();
+});
+
+function renderRodadaGuestChips(){
+  const container = document.getElementById('rodada-guest-chips');
+  if(!container) return;
+  if(GUESTS.length===0){ container.innerHTML=''; return; }
+  container.innerHTML = GUESTS.map(g=>`
+    <span class="chip with-avatar">${avatarHtml(g,'sm')}${escapeHtml(g.nome)}<span class="badge-guest" style="margin-left:6px;">convidado</span>
+      <button type="button" class="icon-btn" data-remove-guest="${g.id}" style="margin-left:4px;" title="Remover convidado">✕</button>
+    </span>`).join('');
+  container.querySelectorAll('[data-remove-guest]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      GUESTS = GUESTS.filter(g=>g.id!==btn.dataset.removeGuest);
+      renderRodadaGuestChips();
+    });
   });
 }
 
@@ -502,18 +847,62 @@ function updateLeader(){
   });
 }
 
-function populateTeamSelects(){
+/* combobox de jogador com busca, usado nos slots de Nova Rodada */
+function playerTriggerHtml(p){
+  if(!p) return '<span class="picker-placeholder">🔍 Escolher jogador…</span>';
+  return `${avatarHtml(p,'sm')}<span>${escapeHtml(p.apelido||p.nome)}</span>`;
+}
+
+function wirePickers(){
   const grid = document.getElementById('teams-grid');
-  const selects = Array.from(grid.querySelectorAll('select'));
-  const chosen = selects.map(s=>s.value).filter(v=>v);
-  selects.forEach(sel=>{
-    const current = sel.value;
-    const options = ['<option value="">— escolher —</option>']
-      .concat(DATA.players
-        .filter(p => !chosen.includes(p.id) || p.id===current)
-        .map(p=>`<option value="${p.id}" ${p.id===current?'selected':''}>${escapeHtml(p.nome)}</option>`));
-    sel.innerHTML = options.join('');
+  const pickers = Array.from(grid.querySelectorAll('.player-picker'));
+
+  function closeAllPanels(){
+    pickers.forEach(p=> p.querySelector('.picker-panel').hidden = true);
+  }
+
+  function renderList(picker, term){
+    const list = picker.querySelector('.picker-list');
+    const chosenIds = pickers.map(p=>p.dataset.value).filter(v=> v && v!==picker.dataset.value);
+    const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+    if(pool.length===0){
+      list.innerHTML = '<div class="picker-empty">Nenhum jogador encontrado</div>';
+      return;
+    }
+    list.innerHTML = pool.map(p=>{
+      const disabled = chosenIds.includes(p.id);
+      const label = highlightMatch(p.apelido||p.nome, term);
+      return `<div class="picker-item ${disabled?'disabled':''}" data-id="${p.id}">${avatarHtml(p,'sm')}<span>${label}</span>${p.isGuest?'<span class="badge-guest">convidado</span>':''}</div>`;
+    }).join('');
+    list.querySelectorAll('.picker-item:not(.disabled)').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        picker.dataset.value = item.dataset.id;
+        picker.querySelector('.picker-trigger').innerHTML = playerTriggerHtml(getPlayer(item.dataset.id));
+        picker.querySelector('.picker-panel').hidden = true;
+      });
+    });
+  }
+
+  pickers.forEach(picker=>{
+    const trigger = picker.querySelector('.picker-trigger');
+    const panel = picker.querySelector('.picker-panel');
+    const search = picker.querySelector('.picker-search');
+    trigger.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      closeAllPanels();
+      if(willOpen){
+        panel.hidden = false;
+        search.value = '';
+        renderList(picker, '');
+        search.focus();
+      }
+    });
+    search.addEventListener('click', e=> e.stopPropagation());
+    search.addEventListener('input', ()=> renderList(picker, search.value));
   });
+
+  document.addEventListener('click', closeAllPanels);
 }
 
 document.getElementById('save-round-btn').addEventListener('click', async ()=>{
@@ -521,7 +910,16 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   const teamCards = Array.from(grid.querySelectorAll('.team-card'));
   if(teamCards.length===0) return;
   const teams = teamCards.map((card, idx)=>{
-    const playerIds = Array.from(card.querySelectorAll('select')).map(s=>s.value).filter(v=>v);
+    const rawIds = Array.from(card.querySelectorAll('.player-picker')).map(p=>p.dataset.value).filter(v=>v);
+    // convidados não são salvos como jogadores reais — na hora de gravar, o nome vira parte de um
+    // marcador "convidado:Nome#sufixo" (o sufixo evita colisão entre convidados de mesmo nome)
+    // que a planilha guarda como texto simples e o app sempre exibe como "Nome (Convidado(a))"
+    const playerIds = rawIds.map(id => {
+      const guest = GUESTS.find(g=>g.id===id);
+      if(!guest) return id;
+      const nomeSeguro = guest.nome.replace(/[,#]/g,'').trim() || 'Convidado';
+      return 'convidado:' + nomeSeguro + '#' + Math.random().toString(36).slice(2,6);
+    });
     const winsInput = card.querySelector('[data-wins]');
     const vitorias = winsInput ? (parseInt(winsInput.value,10) || 0) : 0;
     return { nome: `Time ${idx+1}`, playerIds, vitorias };
@@ -540,9 +938,16 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   } else {
     winnerCard = teams.findIndex(t=>t.vitorias===maxWins);
   }
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
   const date = document.getElementById('round-date').value || new Date().toISOString().slice(0,10);
-  DATA.rounds.push({ id: uid(), data: date, times: teams, vencedor: winnerCard });
-  await saveData();
+  const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard };
+  DATA.rounds.push(newRound);
+  const ok = await saveData(pwd);
+  if(!ok){
+    DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id); // desfaz localmente, já que não foi salvo
+    return;
+  }
   alert('Rodada salva!');
   document.getElementById('round-team-count').value = '4';
   renderTeamsGrid();
@@ -570,7 +975,7 @@ function renderDashboard(){
           <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}</span>`).join('')}</div>
         </div>
         <div class="sb-stats">
-          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Rodadas em ${lastRound.data.slice(0,4)}</div></div>
+          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${lastRound.data.slice(0,4)}</div></div>
           <div class="stat-card"><div class="stat-num">${DATA.players.length}</div><div class="stat-cap">Jogadores ativos</div></div>
         </div>
       </div>`;
@@ -583,6 +988,60 @@ function renderDashboard(){
   } else {
     top5container.innerHTML = rankingTableHtml(top5);
   }
+
+  renderPhotoChart();
+}
+
+/* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
+function computePhotoCounts(){
+  const counts = {};
+  DATA.players.forEach(p=>{ counts[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, vezes:0 }; });
+  DATA.rounds.forEach(r=>{
+    r.times.forEach((team, idx)=>{
+      if(idx !== r.vencedor) return;
+      team.playerIds.forEach(pid=>{
+        if(!counts[pid]) return;
+        counts[pid].vezes++;
+      });
+    });
+  });
+  return Object.values(counts).filter(c=>c.vezes>0).sort((a,b)=> b.vezes - a.vezes).slice(0,10);
+}
+
+function renderPhotoChart(){
+  const container = document.getElementById('dash-chart');
+  const data = computePhotoCounts();
+  if(data.length===0){
+    container.innerHTML = '<div class="empty"><i class="ti ti-camera"></i>Ainda sem rodadas com vencedor definido para gerar o gráfico.</div>';
+    return;
+  }
+  const max = Math.max(...data.map(d=>d.vezes));
+  container.innerHTML = `<div class="chart-wrap">${data.map((d,i)=>`
+    <div class="chart-row">
+      <div class="chart-name">${avatarHtml({foto:d.foto, nome:d.nome},'sm')}${escapeHtml(d.nome)}</div>
+      <div class="chart-track"><div class="chart-fill" data-target="${d.vezes}" data-max="${max}" id="chart-fill-${i}"></div></div>
+      <div class="chart-count" id="chart-count-${i}">0</div>
+    </div>
+  `).join('')}</div>`;
+
+  // anima largura das barras + contagem dos números subindo
+  requestAnimationFrame(()=>{
+    data.forEach((d,i)=>{
+      const fill = document.getElementById('chart-fill-'+i);
+      const countEl = document.getElementById('chart-count-'+i);
+      const target = d.vezes;
+      fill.style.width = (target / max * 100) + '%';
+      const duration = 900;
+      const start = performance.now();
+      function step(now){
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        countEl.textContent = Math.round(eased * target);
+        if(progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  });
 }
 
 /* ---------- RANKING ---------- */
@@ -668,8 +1127,12 @@ function renderHistory(){
   list.querySelectorAll('[data-del-round]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Excluir esta rodada? Isso vai atualizar o ranking.')) return;
+      const pwd = await requireAdminPassword();
+      if(!pwd) return;
+      const removed = DATA.rounds.find(r=>r.id===btn.dataset.delRound);
       DATA.rounds = DATA.rounds.filter(r=>r.id!==btn.dataset.delRound);
-      await saveData();
+      const ok = await saveData(pwd);
+      if(!ok && removed){ DATA.rounds.push(removed); } // desfaz se não salvou
       renderHistory();
     });
   });
@@ -677,18 +1140,225 @@ function renderHistory(){
 
 /* ---------- utils ---------- */
 function formatDate(iso){
-  const [y,m,d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+  // formato limpo esperado: "aaaa-mm-dd". Se vier algo diferente (ex: um texto de
+  // Data bruto do Sheets, antes de reimplantar a correção), tenta recuperar mesmo assim
+  // em vez de mostrar um texto quebrado.
+  if(typeof iso === 'string'){
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+  }
+  const d = new Date(iso);
+  if(!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
+  return 'Data indisponível';
 }
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function renderAll(){
+  updateAdminStatusBtn();
   renderPlayers();
   renderTeamsGrid();
+  renderRodadaGuestChips();
   renderDashboard();
 }
+
+/* ---------- SORTEIO ---------- */
+document.getElementById('add-guest-btn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('guest-name');
+  const genderSelect = document.getElementById('guest-gender');
+  const starsEl = document.getElementById('guest-stars');
+  const name = nameInput.value.trim();
+  if(!name) return;
+  GUESTS.push({
+    id: uid(), nome: name, apelido:'', foto:'',
+    estrelas: parseInt(starsEl.dataset.value,10) || 0,
+    sexo: genderSelect.value || '',
+    isGuest: true
+  });
+  nameInput.value=''; genderSelect.value='';
+  starsEl.dataset.value = 0;
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled'));
+  renderSorteioList();
+});
+
+document.getElementById('select-all-btn').addEventListener('click', ()=>{
+  const minStar = parseInt(document.getElementById('sorteio-min-star').value, 10) || 0;
+  const term = document.getElementById('sorteio-search').value;
+  const visiblePool = sortByName(DATA.players.concat(GUESTS).filter(p => (p.estrelas||0) >= minStar))
+    .filter(p => normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+  visiblePool.forEach(p=> SELECTED_IDS.add(p.id));
+  renderSorteioList();
+});
+document.getElementById('sorteio-min-star').addEventListener('change', renderSorteioList);
+document.getElementById('sorteio-search').addEventListener('input', renderSorteioList);
+document.getElementById('sorteio-select-list').addEventListener('change', (e)=>{
+  if(!e.target.matches('input[type=checkbox]')) return;
+  const id = e.target.dataset.id;
+  if(e.target.checked) SELECTED_IDS.add(id); else SELECTED_IDS.delete(id);
+  updateSelectedCounter();
+});
+
+function updateSelectedCounter(){
+  // conta apenas participantes que ainda existem (jogador não removido / visitante não apagado)
+  const validIds = new Set(DATA.players.concat(GUESTS).map(p=>p.id));
+  let changed = false;
+  SELECTED_IDS.forEach(id=>{ if(!validIds.has(id)){ SELECTED_IDS.delete(id); changed = true; } });
+  const numEl = document.getElementById('selected-counter-num');
+  numEl.textContent = SELECTED_IDS.size;
+  numEl.classList.add('bump');
+  setTimeout(()=> numEl.classList.remove('bump'), 150);
+}
+
+function renderSorteioList(){
+  const minStar = parseInt(document.getElementById('sorteio-min-star').value, 10) || 0;
+  const term = document.getElementById('sorteio-search').value;
+  const list = document.getElementById('sorteio-select-list');
+  const countEl = document.getElementById('sorteio-search-count');
+  const fullPool = DATA.players.concat(GUESTS).filter(p => (p.estrelas||0) >= minStar);
+  const pool = sortByName(fullPool).filter(p => normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+  countEl.textContent = term ? `${pool.length} de ${fullPool.length} jogador(es) encontrado(s)` : '';
+  updateSelectedCounter();
+  if(fullPool.length===0){
+    list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador encontrado com esse filtro.</div>';
+    return;
+  }
+  if(pool.length===0){
+    list.innerHTML = '<div class="picker-empty">Nenhum nome bate com essa busca 🔎</div>';
+    return;
+  }
+  list.innerHTML = pool.map(p=>`
+    <label class="select-row">
+      <input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>
+      ${avatarHtml(p,'sm')}
+      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
+      ${starsDisplay(p.estrelas)}
+      ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
+    </label>
+  `).join('');
+}
+
+let DRAFT_TEAMS = []; // [[player, player...], [...], ...] — estado local do sorteio, ajustável por drag-and-drop
+
+function draftBalanced(players, numTeams){
+  const withDefault = players.map(p=> ({...p, _peso: p.estrelas>0 ? p.estrelas : 3}));
+  const female = withDefault.filter(p=>p.sexo==='F').sort((a,b)=> b._peso - a._peso);
+  const rest = withDefault.filter(p=>p.sexo!=='F').sort((a,b)=> b._peso - a._peso);
+  const teams = Array.from({length:numTeams}, ()=>[]);
+  function snake(list){
+    let idx=0, dir=1;
+    list.forEach(p=>{
+      teams[idx].push(p);
+      idx += dir;
+      if(idx===numTeams){ idx=numTeams-1; dir=-1; }
+      else if(idx<0){ idx=0; dir=1; }
+    });
+  }
+  snake(female);
+  snake(rest);
+  return teams;
+}
+
+document.getElementById('sortear-btn').addEventListener('click', ()=>{
+  if(SELECTED_IDS.size < 2){
+    alert('Selecione pelo menos 2 jogadores para sortear os times.');
+    return;
+  }
+  const pool = DATA.players.concat(GUESTS);
+  const players = Array.from(SELECTED_IDS).map(id=> pool.find(p=>p.id===id)).filter(Boolean);
+  const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
+  DRAFT_TEAMS = draftBalanced(players, numTeams);
+  renderDraftResult();
+});
+
+function renderDraftResult(){
+  const container = document.getElementById('draft-result');
+  container.innerHTML = `<button class="btn" id="send-to-rodada-btn" style="margin-bottom:16px;">Usar esses times na Nova Rodada</button><div class="draft-grid" id="draft-grid"></div>`;
+  const grid = document.getElementById('draft-grid');
+  grid.innerHTML = DRAFT_TEAMS.map((team, ti)=>{
+    const stars = team.reduce((s,p)=> s + (p.estrelas||3), 0);
+    const fem = team.filter(p=>p.sexo==='F').length;
+    return `<div class="draft-team" data-team-index="${ti}">
+      <div class="draft-team-head">
+        <span class="tname">Time ${ti+1}</span>
+        <span class="draft-team-stats">${team.length} jog · ${fem}F · ★${stars}</span>
+      </div>
+      <div class="draft-players" data-team-index="${ti}">
+        ${team.map(p=>`
+          <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
+            ${avatarHtml(p,'sm')}
+            <span class="flex1">${escapeHtml(p.nome)}</span>
+            ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
+            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  wireDragAndDrop();
+  document.getElementById('send-to-rodada-btn').addEventListener('click', sendDraftToRodada);
+}
+
+function sendDraftToRodada(){
+  if(DRAFT_TEAMS.length===0) return;
+  const maxTeamSize = Math.max(...DRAFT_TEAMS.map(t=>t.length));
+  if(maxTeamSize > 4){
+    if(!confirm('Um ou mais times sorteados têm mais de 4 jogadores. A tela de Nova Rodada só tem 4 vagas por time — apenas os 4 primeiros de cada time serão enviados. Continuar?')) return;
+  }
+  document.getElementById('round-team-count').value = String(DRAFT_TEAMS.length);
+  document.querySelector('#nav button[data-view="rodada"]').click();
+  const grid = document.getElementById('teams-grid');
+  DRAFT_TEAMS.forEach((team, ti)=>{
+    const card = grid.querySelector(`.team-card[data-team="${ti}"]`);
+    if(!card) return;
+    const pickers = card.querySelectorAll('.player-picker');
+    team.slice(0,4).forEach((p, si)=>{
+      if(!pickers[si]) return;
+      pickers[si].dataset.value = p.id;
+      pickers[si].querySelector('.picker-trigger').innerHTML = playerTriggerHtml(p);
+    });
+  });
+  updateLeader();
+}
+
+function wireDragAndDrop(){
+  const chips = document.querySelectorAll('.draft-chip');
+  const dropzones = document.querySelectorAll('.draft-players');
+
+  chips.forEach(chip=>{
+    chip.addEventListener('dragstart', (e)=>{
+      chip.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        playerId: chip.dataset.playerId,
+        fromTeam: parseInt(chip.dataset.fromTeam,10)
+      }));
+    });
+    chip.addEventListener('dragend', ()=> chip.classList.remove('dragging'));
+  });
+
+  dropzones.forEach(zone=>{
+    zone.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      zone.closest('.draft-team').classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', ()=> zone.closest('.draft-team').classList.remove('dragover'));
+    zone.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      zone.closest('.draft-team').classList.remove('dragover');
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const toTeam = parseInt(zone.dataset.teamIndex,10);
+      if(data.fromTeam === toTeam) return;
+      const fromList = DRAFT_TEAMS[data.fromTeam];
+      const idx = fromList.findIndex(p=>p.id===data.playerId);
+      if(idx === -1) return;
+      const [player] = fromList.splice(idx,1);
+      DRAFT_TEAMS[toTeam].push(player);
+      renderDraftResult();
+    });
+  });
+}
+
+renderSorteioList();
 
 loadData();
 </script>
