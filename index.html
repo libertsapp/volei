@@ -241,6 +241,12 @@
   .panela-players{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
   .panela-vs{font-size:12px;color:var(--muted);}
 
+  /* emblemas (ícones ao lado do nome) */
+  .badge-icon{
+    display:inline-block;font-size:12px;margin-left:3px;cursor:help;
+    filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));vertical-align:middle;
+  }
+
   /* sorteio */
   .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
   .field-group{display:flex;flex-direction:column;gap:4px;}
@@ -863,12 +869,13 @@ function renderPlayers(){
     return;
   }
   const sorted = sortByName(DATA.players);
+  const badges = computeBadges();
   list.innerHTML = sorted.map(p=>`
     <div class="player-row">
       <div class="with-avatar">
         ${avatarHtml(p)}
         <div>
-          <div class="name">${escapeHtml(p.nome)}</div>
+          <div class="name">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
           ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
           <div class="meta-row">
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
@@ -993,7 +1000,7 @@ function updateLeader(){
 /* combobox de jogador com busca, usado nos slots de Nova Rodada */
 function playerTriggerHtml(p){
   if(!p) return '<span class="picker-placeholder">🔍 Escolher jogador…</span>';
-  return `${avatarHtml(p,'sm')}<span>${escapeHtml(p.apelido||p.nome)}</span>`;
+  return `${avatarHtml(p,'sm')}<span>${escapeHtml(p.apelido||p.nome)}${badgeIconsHtml(p.id, computeBadges())}</span>`;
 }
 
 function wirePickers(){
@@ -1012,10 +1019,11 @@ function wirePickers(){
       list.innerHTML = '<div class="picker-empty">Nenhum jogador encontrado</div>';
       return;
     }
+    const badges = computeBadges();
     list.innerHTML = pool.map(p=>{
       const disabled = chosenIds.includes(p.id);
       const label = highlightMatch(p.apelido||p.nome, term);
-      return `<div class="picker-item ${disabled?'disabled':''}" data-id="${p.id}">${avatarHtml(p,'sm')}<span>${label}</span>${p.isGuest?'<span class="badge-guest">convidado</span>':''}</div>`;
+      return `<div class="picker-item ${disabled?'disabled':''}" data-id="${p.id}">${avatarHtml(p,'sm')}<span>${label}${badgeIconsHtml(p.id, badges)}</span>${p.isGuest?'<span class="badge-guest">convidado</span>':''}</div>`;
     }).join('');
     list.querySelectorAll('.picker-item:not(.disabled)').forEach(item=>{
       item.addEventListener('click', ()=>{
@@ -1115,7 +1123,7 @@ function renderDashboard(){
           <p class="sb-label">Campeão da semana</p>
           <p class="sb-team">${escapeHtml(team.nome)}</p>
           <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}</span>`).join('')}</div>
+          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}${badgeIconsHtml(p&&p.id, computeBadges())}</span>`).join('')}</div>
         </div>
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
@@ -1160,6 +1168,39 @@ function computeTopDuos(){
     .slice(0,10);
 }
 
+/* ---------- EMBLEMAS (ícones ao lado do nome, em todas as telas) ---------- */
+// Recalcula sempre a partir dos dados atuais — é uma conta leve (poucas dezenas de
+// jogadores/rodadas num app de time amador), então não pesa navegar entre as telas.
+function computeBadges(){
+  // TOP1 — quem mais saiu na foto de campeão (pode ter empate, todos ganham o ícone)
+  const photoCounts = computePhotoCounts();
+  const maxFoto = photoCounts.length ? photoCounts[0].vezes : 0;
+  const top1 = new Set(maxFoto > 0 ? photoCounts.filter(d=>d.vezes===maxFoto).map(d=>d.id) : []);
+
+  // PANELEIRO — quem mais vezes esteve num time "panela" (olhando TODAS as ocorrências, não só o top 3 exibido)
+  const paneleiroCounts = {};
+  computeAllPanelaEntries().filter(p=>p.diff>0).forEach(p=>{
+    p.playerIds.forEach(pid=> paneleiroCounts[pid] = (paneleiroCounts[pid]||0) + 1);
+  });
+  let paneleiro = null, maxPanelas = 0;
+  Object.entries(paneleiroCounts).forEach(([pid,c])=>{ if(c>maxPanelas){ maxPanelas=c; paneleiro=pid; } });
+
+  // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas"
+  const topDuo = computeTopDuos()[0];
+  const grudento = topDuo ? new Set([topDuo.id1, topDuo.id2]) : new Set();
+
+  return { top1, paneleiro, grudento };
+}
+
+function badgeIconsHtml(pid, badges){
+  if(!pid || !badges) return '';
+  let html = '';
+  if(badges.top1.has(pid)) html += `<span class="badge-icon" title="TOP1 — quem mais saiu na foto de campeão">📸</span>`;
+  if(badges.paneleiro === pid) html += `<span class="badge-icon" title="PANELEIRO — o time dele foi o mais desequilibrado a favor mais vezes">🍳</span>`;
+  if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
+  return html;
+}
+
 function renderDuos(){
   const container = document.getElementById('dash-duos');
   const duos = computeTopDuos();
@@ -1172,12 +1213,13 @@ function renderDuos(){
     const p2 = getPlayer(d.id2);
     const nome1 = p1 ? (p1.apelido||p1.nome) : '(removido)';
     const nome2 = p2 ? (p2.apelido||p2.nome) : '(removido)';
+    const badges = computeBadges();
     return `<div class="duo-row">
       <span class="duo-rank">${i+1}º</span>
       <span class="duo-pair">
-        ${avatarHtml(p1,'sm')}${escapeHtml(nome1)}
+        ${avatarHtml(p1,'sm')}${escapeHtml(nome1)}${badgeIconsHtml(d.id1, badges)}
         <span class="duo-plus">+</span>
-        ${avatarHtml(p2,'sm')}${escapeHtml(nome2)}
+        ${avatarHtml(p2,'sm')}${escapeHtml(nome2)}${badgeIconsHtml(d.id2, badges)}
       </span>
       <span class="duo-count">${d.count}×</span>
     </div>`;
@@ -1192,7 +1234,7 @@ function pesoEstrelas(pid){
   return (p && p.estrelas > 0) ? p.estrelas : 3; // jogador sem nota entra com peso neutro (3)
 }
 
-function computePanelas(){
+function computeAllPanelaEntries(){
   const results = [];
   DATA.rounds.forEach(r=>{
     const teams = r.times
@@ -1211,7 +1253,10 @@ function computePanelas(){
       });
     });
   });
-  return results.sort((a,b)=> b.diff - a.diff).slice(0,3);
+  return results.sort((a,b)=> b.diff - a.diff);
+}
+function computePanelas(){
+  return computeAllPanelaEntries().slice(0,3);
 }
 
 function renderPanelas(){
@@ -1223,12 +1268,13 @@ function renderPanelas(){
   }
   container.innerHTML = panelas.map((p,i)=>{
     const players = p.playerIds.map(pid=> getPlayer(pid));
+    const badges = computeBadges();
     return `<div class="panela-card">
       <div class="panela-head">
         <span class="panela-rank">${i+1}º — ${escapeHtml(p.teamNome)}</span>
         <span class="panela-date">${formatDate(p.data)}</span>
       </div>
-      <div class="panela-players">${players.map(pl=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}</span>`).join('')}</div>
+      <div class="panela-players">${players.map((pl,idx)=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}${badgeIconsHtml(p.playerIds[idx], badges)}</span>`).join('')}</div>
       <div class="panela-vs">Média do time: <span class="panela-gap">★${p.mediaTime.toFixed(1)}</span> · demais times: ★${p.mediaOutros.toFixed(1)} · diferença: <span class="panela-gap">+${p.diff.toFixed(1)}</span></div>
     </div>`;
   }).join('');
@@ -1258,9 +1304,10 @@ function renderPhotoChart(){
     return;
   }
   const max = Math.max(...data.map(d=>d.vezes));
+  const badges = computeBadges();
   container.innerHTML = `<div class="chart-wrap">${data.map((d,i)=>`
     <div class="chart-row">
-      <div class="chart-name">${avatarHtml({foto:d.foto, nome:d.nome},'sm')}${escapeHtml(d.nome)}</div>
+      <div class="chart-name">${avatarHtml({foto:d.foto, nome:d.nome},'sm')}${escapeHtml(d.nome)}${badgeIconsHtml(d.id, badges)}</div>
       <div class="chart-track"><div class="chart-fill" data-target="${d.vezes}" data-max="${max}" id="chart-fill-${i}"></div></div>
       <div class="chart-count" id="chart-count-${i}">0</div>
     </div>
@@ -1308,12 +1355,13 @@ function computeRanking(year){
 }
 
 function rankingTableHtml(rows){
+  const badges = computeBadges();
   return `<div style="overflow-x:auto;"><table>
     <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num">Vit. partidas</th><th class="num">%</th></tr></thead>
     <tbody>
       ${rows.map((r,i)=>`<tr>
         <td class="medal">${i+1}º</td>
-        <td><div class="with-avatar">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}</div></td>
+        <td><div class="with-avatar">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}${badgeIconsHtml(r.id, badges)}</div></td>
         <td class="num">${r.jogos}</td>
         <td class="num">${r.titulos}</td>
         <td class="num">${r.vitoriasPartidas}</td>
@@ -1351,6 +1399,7 @@ function renderHistory(){
     list.innerHTML = '<div class="empty"><i class="ti ti-history"></i>Nenhuma rodada lançada ainda.</div>';
     return;
   }
+  const badges = computeBadges();
   list.innerHTML = sorted.map(r=>`
     <div class="history-item">
       <div class="history-head">
@@ -1362,7 +1411,7 @@ function renderHistory(){
           <div class="history-team ${idx===r.vencedor?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${idx===r.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}${p?escapeHtml(p.apelido||p.nome):'(removido)'}</div>`; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}${p?escapeHtml(p.apelido||p.nome):'(removido)'}${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
           </div>
         `).join('')}
       </div>
@@ -1492,11 +1541,12 @@ function renderSorteioList(){
     list.innerHTML = '<div class="picker-empty">Nenhum nome bate com essa busca 🔎</div>';
     return;
   }
+  const badges = computeBadges();
   list.innerHTML = pool.map(p=>`
     <label class="select-row">
       <input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>
       ${avatarHtml(p,'sm')}
-      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
+      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
       ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
     </label>
@@ -1540,6 +1590,7 @@ function renderDraftResult(){
   const container = document.getElementById('draft-result');
   container.innerHTML = `<button class="btn" id="send-to-rodada-btn" style="margin-bottom:16px;">Usar esses times na Nova Rodada</button><div class="draft-grid" id="draft-grid"></div>`;
   const grid = document.getElementById('draft-grid');
+  const badges = computeBadges();
   grid.innerHTML = DRAFT_TEAMS.map((team, ti)=>{
     const stars = team.reduce((s,p)=> s + (p.estrelas||3), 0);
     const fem = team.filter(p=>p.sexo==='F').length;
@@ -1552,7 +1603,7 @@ function renderDraftResult(){
         ${team.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
             ${avatarHtml(p,'sm')}
-            <span class="flex1">${escapeHtml(p.nome)}</span>
+            <span class="flex1">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
             ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
           </div>
