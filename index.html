@@ -218,6 +218,29 @@
   .chart-fill{height:100%;width:0%;background:linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));border-radius:6px;transition:width 1s cubic-bezier(.22,.9,.3,1);}
   .chart-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);text-align:right;}
 
+  /* duplas mais sorteadas juntas */
+  .duo-list{display:flex;flex-direction:column;gap:8px;}
+  .duo-row{
+    display:flex;align-items:center;gap:12px;background:var(--court-navy-2);
+    border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+  }
+  .duo-rank{font-family:'Anton',sans-serif;font-size:16px;color:var(--muted);width:24px;flex-shrink:0;}
+  .duo-pair{display:flex;align-items:center;gap:6px;flex:1;font-size:13px;font-weight:600;flex-wrap:wrap;}
+  .duo-plus{color:var(--muted);font-weight:400;}
+  .duo-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);font-size:15px;}
+
+  /* maiores panelas já formadas */
+  .panela-card{
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .panela-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
+  .panela-rank{font-family:'Anton',sans-serif;font-size:16px;color:var(--ball-yellow);}
+  .panela-date{font-size:12px;color:var(--muted);}
+  .panela-gap{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);font-size:14px;}
+  .panela-players{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+  .panela-vs{font-size:12px;color:var(--muted);}
+
   /* sorteio */
   .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
   .field-group{display:flex;flex-direction:column;gap:4px;}
@@ -343,8 +366,14 @@
       <h2 class="section-title">Top 10 — mais vezes na foto (campeões)</h2>
       <div id="dash-chart"></div>
       <div class="netline"></div>
+      <h2 class="section-title">Duplas mais sorteadas juntas</h2>
+      <div id="dash-duos"></div>
+      <div class="netline"></div>
       <h2 class="section-title">Ranking do ano — top 5</h2>
       <div id="dash-top5"></div>
+      <div class="netline"></div>
+      <h2 class="section-title">Maiores panelas já formadas</h2>
+      <div id="dash-panelas"></div>
     </section>
 
     <section id="view-jogadores">
@@ -1104,6 +1133,105 @@ function renderDashboard(){
   }
 
   renderPhotoChart();
+  renderDuos();
+  renderPanelas();
+}
+
+/* ---------- DUPLAS MAIS SORTEADAS JUNTAS ---------- */
+function computeTopDuos(){
+  const counts = {}; // "id1|id2" (ordenado) -> quantidade de vezes juntos no mesmo time
+  DATA.rounds.forEach(r=>{
+    r.times.forEach(team=>{
+      const ids = (team.playerIds || []).filter(Boolean);
+      for(let i=0;i<ids.length;i++){
+        for(let j=i+1;j<ids.length;j++){
+          const key = [ids[i], ids[j]].sort().join('|');
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+    });
+  });
+  return Object.entries(counts)
+    .map(([key, count])=>{
+      const [id1, id2] = key.split('|');
+      return { id1, id2, count };
+    })
+    .sort((a,b)=> b.count - a.count)
+    .slice(0,10);
+}
+
+function renderDuos(){
+  const container = document.getElementById('dash-duos');
+  const duos = computeTopDuos();
+  if(duos.length===0){
+    container.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Ainda sem times suficientes lançados para calcular duplas.</div>';
+    return;
+  }
+  container.innerHTML = `<div class="duo-list">${duos.map((d,i)=>{
+    const p1 = getPlayer(d.id1);
+    const p2 = getPlayer(d.id2);
+    const nome1 = p1 ? (p1.apelido||p1.nome) : '(removido)';
+    const nome2 = p2 ? (p2.apelido||p2.nome) : '(removido)';
+    return `<div class="duo-row">
+      <span class="duo-rank">${i+1}º</span>
+      <span class="duo-pair">
+        ${avatarHtml(p1,'sm')}${escapeHtml(nome1)}
+        <span class="duo-plus">+</span>
+        ${avatarHtml(p2,'sm')}${escapeHtml(nome2)}
+      </span>
+      <span class="duo-count">${d.count}×</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- MAIORES PANELAS JÁ FORMADAS ---------- */
+// "panela" = time muito mais forte que os adversários da mesma rodada, medido pela
+// diferença entre a média de estrelas do time e a média de estrelas dos outros times daquele dia.
+function pesoEstrelas(pid){
+  const p = getPlayer(pid);
+  return (p && p.estrelas > 0) ? p.estrelas : 3; // jogador sem nota entra com peso neutro (3)
+}
+
+function computePanelas(){
+  const results = [];
+  DATA.rounds.forEach(r=>{
+    const teams = r.times
+      .filter(t => (t.playerIds||[]).length > 0)
+      .map(t=>{
+        const pesos = t.playerIds.map(pesoEstrelas);
+        return { nome: t.nome, playerIds: t.playerIds, avg: pesos.reduce((a,b)=>a+b,0) / pesos.length };
+      });
+    if(teams.length < 2) return;
+    teams.forEach((team, idx)=>{
+      const outros = teams.filter((_,i)=>i!==idx);
+      const mediaOutros = outros.reduce((s,t)=>s+t.avg,0) / outros.length;
+      results.push({
+        data: r.data, teamNome: team.nome, playerIds: team.playerIds,
+        mediaTime: team.avg, mediaOutros, diff: team.avg - mediaOutros
+      });
+    });
+  });
+  return results.sort((a,b)=> b.diff - a.diff).slice(0,3);
+}
+
+function renderPanelas(){
+  const container = document.getElementById('dash-panelas');
+  const panelas = computePanelas().filter(p=> p.diff > 0);
+  if(panelas.length===0){
+    container.innerHTML = '<div class="empty"><i class="ti ti-scale"></i>Ainda sem dados suficientes (times precisam ter jogadores com nota de estrelas para calcular isso).</div>';
+    return;
+  }
+  container.innerHTML = panelas.map((p,i)=>{
+    const players = p.playerIds.map(pid=> getPlayer(pid));
+    return `<div class="panela-card">
+      <div class="panela-head">
+        <span class="panela-rank">${i+1}º — ${escapeHtml(p.teamNome)}</span>
+        <span class="panela-date">${formatDate(p.data)}</span>
+      </div>
+      <div class="panela-players">${players.map(pl=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}</span>`).join('')}</div>
+      <div class="panela-vs">Média do time: <span class="panela-gap">★${p.mediaTime.toFixed(1)}</span> · demais times: ★${p.mediaOutros.toFixed(1)} · diferença: <span class="panela-gap">+${p.diff.toFixed(1)}</span></div>
+    </div>`;
+  }).join('');
 }
 
 /* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
@@ -1161,36 +1289,38 @@ function renderPhotoChart(){
 /* ---------- RANKING ---------- */
 function computeRanking(year){
   const stats = {};
-  DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, jogos:0, vitorias:0, titulos:0 }; });
+  DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0 }; });
   DATA.rounds.filter(r=> getYearOf(r.data)===year).forEach(r=>{
     r.times.forEach((team, idx)=>{
       const isWinner = idx === r.vencedor;
       team.playerIds.forEach(pid=>{
         if(!stats[pid]) return;
         stats[pid].jogos++;
-        if(isWinner){ stats[pid].vitorias++; }
+        if(isWinner){ stats[pid].titulos++; }
+        stats[pid].vitoriasPartidas += (team.vitorias || 0); // soma as vitórias de partidas lançadas em cada rodada
       });
     });
   });
   return Object.values(stats)
     .filter(s=>s.jogos>0)
-    .map(s=>({...s, pct: Math.round((s.vitorias/s.jogos)*100)}))
-    .sort((a,b)=> b.vitorias - a.vitorias || b.pct - a.pct);
+    .map(s=>({...s, pct: Math.round((s.titulos/s.jogos)*100)}))
+    .sort((a,b)=> b.titulos - a.titulos || b.vitoriasPartidas - a.vitoriasPartidas || b.pct - a.pct);
 }
 
 function rankingTableHtml(rows){
-  return `<table>
-    <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Vitórias</th><th class="num">%</th></tr></thead>
+  return `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num">Vit. partidas</th><th class="num">%</th></tr></thead>
     <tbody>
       ${rows.map((r,i)=>`<tr>
         <td class="medal">${i+1}º</td>
         <td><div class="with-avatar">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}</div></td>
         <td class="num">${r.jogos}</td>
-        <td class="num">${r.vitorias}</td>
+        <td class="num">${r.titulos}</td>
+        <td class="num">${r.vitoriasPartidas}</td>
         <td class="num">${r.pct}%</td>
       </tr>`).join('')}
     </tbody>
-  </table>`;
+  </table></div>`;
 }
 
 function populateYearSelect(){
