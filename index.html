@@ -30,7 +30,7 @@
   .wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
 
   /* header */
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;position:relative;}
   .brand{display:flex;align-items:center;gap:12px;}
   .brand .ball{
     width:38px;height:38px;border-radius:50%;
@@ -41,6 +41,8 @@
   .brand h1{font-family:'Anton', sans-serif; font-weight:400; letter-spacing:0.5px; font-size:24px; margin:0; text-transform:uppercase;}
   .brand p{margin:0;color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;}
 
+  .header-right{display:flex;align-items:center;gap:10px;}
+
   nav{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;flex-wrap:wrap;}
   nav button{
     background:transparent;border:none;color:var(--chalk-dim);
@@ -49,6 +51,38 @@
   }
   nav button.active{background:var(--ball-yellow);color:var(--court-navy);}
   nav button:not(.active):hover{background:var(--court-navy-3);color:var(--chalk);}
+
+  /* menu mobile — hambúrguer que vira X, dropdown com borda de "onda" */
+  .mobile-menu-btn{
+    display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;
+    width:40px;height:40px;background:var(--court-navy-2);border:1px solid var(--line);
+    border-radius:10px;cursor:pointer;flex-shrink:0;
+  }
+  .mobile-menu-btn span{
+    display:block;width:20px;height:2px;background:var(--ball-yellow);border-radius:2px;
+    transition:transform .2s ease, opacity .2s ease;
+  }
+  .mobile-menu-btn.open span:nth-child(1){ transform:translateY(7px) rotate(45deg); }
+  .mobile-menu-btn.open span:nth-child(2){ opacity:0; }
+  .mobile-menu-btn.open span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+
+  @media (max-width:640px){
+    .mobile-menu-btn{display:flex;}
+    nav{
+      display:none;position:absolute;top:calc(100% + 10px);left:0;right:0;
+      flex-direction:column;gap:2px;background:var(--court-navy-2);
+      border:1px solid var(--ball-yellow);border-radius:16px;
+      padding:14px 10px 26px;z-index:60;box-shadow:0 18px 40px rgba(0,0,0,0.5);
+      clip-path:polygon(
+        0% 0%, 100% 0%, 100% 90%,
+        91.6% 96%, 83.3% 90%, 75% 96%, 66.6% 90%, 58.3% 96%,
+        50% 90%, 41.6% 96%, 33.3% 90%, 25% 96%, 16.6% 90%, 8.3% 96%, 0% 90%
+      );
+    }
+    nav.mobile-open{display:flex;}
+    nav button{width:100%;text-align:left;padding:13px 16px;font-size:14px;}
+    .brand h1{font-size:20px;}
+  }
 
   .netline{
     height:1px;background-image:linear-gradient(90deg, var(--line) 50%, transparent 50%);
@@ -241,6 +275,25 @@
   }
   .admin-status.is-admin{background:var(--ball-yellow);color:var(--court-navy);border-color:var(--ball-yellow);}
 
+  /* interruptor de visibilidade das estrelas (somente admin) */
+  .star-toggle{
+    display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;margin-bottom:16px;width:fit-content;
+  }
+  .star-toggle input{position:absolute;opacity:0;width:0;height:0;}
+  .star-toggle-track{
+    width:36px;height:20px;border-radius:20px;background:var(--court-navy-3);border:1px solid var(--line);
+    position:relative;flex-shrink:0;transition:background .15s;
+  }
+  .star-toggle-thumb{
+    position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;
+    background:var(--chalk-dim);transition:transform .15s, background .15s;
+  }
+  .star-toggle input:checked + .star-toggle-track{background:var(--ball-yellow);border-color:var(--ball-yellow);}
+  .star-toggle input:checked + .star-toggle-track .star-toggle-thumb{transform:translateX(16px);background:var(--court-navy);}
+  .star-toggle-label{font-size:13px;color:var(--chalk-dim);}
+
   /* contador de selecionados no sorteio */
   .selected-counter{
     display:flex;align-items:baseline;gap:8px;margin-bottom:10px;
@@ -257,7 +310,7 @@
     <div class="brand">
       <div class="ball"></div>
       <div>
-        <h1>Vôlei da Quadra</h1>
+        <h1>Volei de Areia</h1>
         <p>dashboard do time</p>
       </div>
     </div>
@@ -269,7 +322,12 @@
       <button data-view="ranking">Ranking</button>
       <button data-view="historico">Histórico</button>
     </nav>
-    <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
+    <div class="header-right">
+      <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
+      <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </header>
 
   <div id="loading" class="loading">Carregando dados…</div>
@@ -291,6 +349,13 @@
 
     <section id="view-jogadores">
       <h2 class="section-title">Jogadores</h2>
+
+      <label class="star-toggle" id="star-visibility-toggle" style="display:none;">
+        <input type="checkbox" id="star-visibility-checkbox">
+        <span class="star-toggle-track"><span class="star-toggle-thumb"></span></span>
+        <span class="star-toggle-label">Exibir notas (estrelas) para todos os usuários</span>
+      </label>
+
       <div class="add-row">
         <input id="new-player-name" placeholder="Nome do jogador" style="flex:1;min-width:180px;">
         <input id="new-player-nick" placeholder="Apelido (opcional)" style="width:160px;">
@@ -424,6 +489,7 @@
 
 <script>
 let DATA = { players: [], rounds: [] };
+let SETTINGS = { estrelasVisiveis: true };
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
@@ -459,6 +525,7 @@ async function loadData(){
     const res = await fetch(SHEET_API_URL);
     const json = await res.json();
     DATA = { players: json.players || [], rounds: json.rounds || [] };
+    if(json.settings) SETTINGS = json.settings;
   }catch(e){
     console.error('Falha ao carregar da planilha', e);
     document.getElementById('config-warning').style.display = 'block';
@@ -479,8 +546,34 @@ function updateAdminStatusBtn(){
   const isAdmin = !!getCachedPassword();
   btn.textContent = isAdmin ? '🔓 Administrador' : '🔒 Visitante';
   btn.classList.toggle('is-admin', isAdmin);
+
+  const starToggle = document.getElementById('star-visibility-toggle');
+  const starCheckbox = document.getElementById('star-visibility-checkbox');
+  if(starToggle){
+    starToggle.style.display = isAdmin ? 'flex' : 'none';
+    if(starCheckbox) starCheckbox.checked = !!SETTINGS.estrelasVisiveis;
+  }
+  renderPlayers(); // reaplica a visibilidade das estrelas para o público certo
 }
 
+function starsVisibleNow(){
+  return !!SETTINGS.estrelasVisiveis || !!getCachedPassword(); // admin sempre vê, mesmo se estiver oculto pro público
+}
+
+document.getElementById('star-visibility-checkbox').addEventListener('change', async (e)=>{
+  const checkbox = e.target;
+  const pwd = await requireAdminPassword();
+  if(!pwd){ checkbox.checked = SETTINGS.estrelasVisiveis; return; } // cancelou/errou: mantém como estava
+  const previous = SETTINGS.estrelasVisiveis;
+  SETTINGS.estrelasVisiveis = checkbox.checked;
+  renderPlayers();
+  const ok = await saveData(pwd);
+  if(!ok){
+    SETTINGS.estrelasVisiveis = previous; // desfaz se não salvou
+    checkbox.checked = previous;
+    renderPlayers();
+  }
+});
 document.getElementById('admin-status-btn').addEventListener('click', ()=>{
   if(getCachedPassword()){
     if(confirm('Sair do modo administrador?')){
@@ -527,7 +620,7 @@ async function saveData(pwd){
     const res = await fetch(SHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({...DATA, senha: pwd})
+      body: JSON.stringify({...DATA, senha: pwd, settings: SETTINGS})
     });
     const json = await res.json();
     if(json && json.error){
@@ -577,6 +670,27 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='historico') renderHistory();
   if(btn.dataset.view==='dashboard') renderDashboard();
   if(btn.dataset.view==='sorteio') renderSorteioList();
+  closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
+});
+
+/* ---------- MENU MOBILE ---------- */
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+function closeMobileMenu(){
+  document.getElementById('nav').classList.remove('mobile-open');
+  mobileMenuBtn.classList.remove('open');
+  mobileMenuBtn.setAttribute('aria-expanded', 'false');
+}
+mobileMenuBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const isOpen = document.getElementById('nav').classList.toggle('mobile-open');
+  mobileMenuBtn.classList.toggle('open', isOpen);
+  mobileMenuBtn.setAttribute('aria-expanded', String(isOpen));
+});
+document.addEventListener('click', (e)=>{
+  const nav = document.getElementById('nav');
+  if(nav.classList.contains('mobile-open') && !nav.contains(e.target) && e.target!==mobileMenuBtn){
+    closeMobileMenu();
+  }
 });
 
 /* ---------- ESTRELAS (helper genérico) ---------- */
@@ -728,7 +842,7 @@ function renderPlayers(){
           <div class="name">${escapeHtml(p.nome)}</div>
           ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
           <div class="meta-row">
-            ${starsDisplay(p.estrelas)}
+            ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo==='F'?'Feminino':'Masculino'}</span>` : ''}
           </div>
         </div>
@@ -957,7 +1071,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
   const hero = document.getElementById('dash-hero');
-  const sorted = [...DATA.rounds].sort((a,b)=> b.data.localeCompare(a.data));
+  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
 
   if(!lastRound || lastRound.vencedor===-1 || lastRound.vencedor===undefined){
@@ -1102,7 +1216,7 @@ document.getElementById('ranking-year').addEventListener('change', renderRanking
 /* ---------- HISTORICO ---------- */
 function renderHistory(){
   const list = document.getElementById('history-list');
-  const sorted = [...DATA.rounds].sort((a,b)=> b.data.localeCompare(a.data));
+  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   if(sorted.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-history"></i>Nenhuma rodada lançada ainda.</div>';
     return;
@@ -1161,6 +1275,16 @@ function getYearOf(iso){
   const d = new Date(iso);
   if(!isNaN(d.getTime())) return String(d.getFullYear());
   return null;
+}
+function toTimestamp(iso){
+  // usado para achar a rodada mais recente de verdade (comparando datas), em vez de
+  // comparar como texto puro — isso evita erro se alguma data ficar num formato diferente.
+  if(typeof iso === 'string'){
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return new Date(Number(m[1]), Number(m[2])-1, Number(m[3])).getTime();
+  }
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1243,7 +1367,7 @@ function renderSorteioList(){
       <input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>
       ${avatarHtml(p,'sm')}
       <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
-      ${starsDisplay(p.estrelas)}
+      ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
     </label>
   `).join('');
@@ -1292,7 +1416,7 @@ function renderDraftResult(){
     return `<div class="draft-team" data-team-index="${ti}">
       <div class="draft-team-head">
         <span class="tname">Time ${ti+1}</span>
-        <span class="draft-team-stats">${team.length} jog · ${fem}F · ★${stars}</span>
+        <span class="draft-team-stats">${team.length} jog · ${fem}F${starsVisibleNow() ? ' · ★'+stars : ''}</span>
       </div>
       <div class="draft-players" data-team-index="${ti}">
         ${team.map(p=>`
