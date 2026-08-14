@@ -109,7 +109,7 @@
   .sb-date{color:var(--muted);font-size:13px;margin:0 0 16px;}
   .sb-players{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{background:var(--court-navy-3);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:13px;}
-  .sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;}
+  .sb-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-content:start;}
   .stat-card{background:var(--court-navy-3);border-radius:10px;padding:14px;}
   .stat-num{font-family:'Space Mono',monospace;font-weight:700;font-size:26px;color:var(--ball-yellow);}
   .stat-cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
@@ -204,7 +204,17 @@
   .stars-picker{display:flex;gap:2px;align-items:center;}
   .stars-picker button{background:transparent;border:none;font-size:20px;line-height:1;cursor:pointer;color:var(--line);padding:2px;}
   .stars-picker button.filled{color:var(--ball-yellow);}
-  .stars-display{color:var(--ball-yellow);font-size:12px;letter-spacing:1px;}
+  .stars-picker button.half{
+    background-image:linear-gradient(90deg, var(--ball-yellow) 50%, var(--line) 50%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  }
+  .stars-display{font-size:12px;letter-spacing:1px;}
+  .stars-display .star-full{color:var(--ball-yellow);}
+  .stars-display .star-empty{color:var(--line);}
+  .stars-display .star-half{
+    background-image:linear-gradient(90deg, var(--ball-yellow) 50%, var(--line) 50%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  }
   .badge-gender{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--muted);}
   .badge-gender.F{color:#ff8fc0;border-color:#ff8fc055;}
   .badge-gender.M{color:var(--ball-blue);border-color:#4d7cff55;}
@@ -733,11 +743,22 @@ function wireStarsPicker(containerId){
   const el = document.getElementById(containerId);
   el.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const val = parseInt(btn.dataset.star,10);
-      const current = parseInt(el.dataset.value,10) || 0;
-      const next = (current === val) ? 0 : val; // clicar na mesma estrela zera (não obrigatório)
+      const star = parseInt(btn.dataset.star,10); // posição da estrela clicada (1 a 5)
+      const current = parseFloat(el.dataset.value) || 0;
+      let next;
+      if(current === star){
+        next = 0; // já estava cheia nessa estrela: um clique a mais zera (nota é opcional)
+      } else if(current === star - 0.5){
+        next = star; // já estava meia nessa estrela: segundo clique completa
+      } else {
+        next = star - 0.5; // primeiro clique nessa estrela: preenche só a metade
+      }
       el.dataset.value = next;
-      el.querySelectorAll('button').forEach(b=> b.classList.toggle('filled', parseInt(b.dataset.star,10) <= next));
+      el.querySelectorAll('button').forEach(b=>{
+        const pos = parseInt(b.dataset.star,10);
+        b.classList.toggle('filled', next >= pos);
+        b.classList.toggle('half', next === pos - 0.5);
+      });
     });
   });
 }
@@ -745,9 +766,15 @@ wireStarsPicker('new-player-stars');
 wireStarsPicker('guest-stars');
 
 function starsDisplay(n){
-  n = parseInt(n,10) || 0;
+  n = parseFloat(n) || 0;
   if(n<=0) return '';
-  return '<span class="stars-display">' + '★'.repeat(n) + '</span>';
+  let stars = '';
+  for(let i=1;i<=5;i++){
+    if(n >= i) stars += '<span class="star-full">★</span>';
+    else if(n >= i-0.5) stars += '<span class="star-half">★</span>';
+    else stars += '<span class="star-empty">★</span>';
+  }
+  return '<span class="stars-display">' + stars + '</span>';
 }
 
 /* ---------- JOGADORES ---------- */
@@ -834,7 +861,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   }
   const newPlayer = {
     id: uid(), nome: name, apelido: nickInput.value.trim(), foto,
-    estrelas: parseInt(starsEl.dataset.value,10) || 0,
+    estrelas: parseFloat(starsEl.dataset.value) || 0,
     sexo: genderSelect.value || ''
   };
   DATA.players.push(newPlayer);
@@ -847,7 +874,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   }
   nameInput.value=''; nickInput.value=''; photoInput.value=''; genderSelect.value='';
   starsEl.dataset.value = 0;
-  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled'));
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
   document.getElementById('new-player-preview').style.display='none';
   renderPlayers();
 });
@@ -1117,17 +1144,19 @@ function renderDashboard(){
     const team = lastRound.times[lastRound.vencedor];
     const names = team.playerIds.map(id=> getPlayer(id));
     const yearRounds = DATA.rounds.filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
+    const badges = computeBadges();
     hero.innerHTML = `
       <div class="scoreboard">
         <div>
           <p class="sb-label">Campeão da semana</p>
           <p class="sb-team">${escapeHtml(team.nome)}</p>
           <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}${badgeIconsHtml(p&&p.id, computeBadges())}</span>`).join('')}</div>
+          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}${badgeIconsHtml(p&&p.id, badges)}</span>`).join('')}</div>
         </div>
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
-          <div class="stat-card"><div class="stat-num">${DATA.players.length}</div><div class="stat-cap">Jogadores ativos</div></div>
+          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
+          <div class="stat-card"><div class="stat-num">${badges.rip.size}</div><div class="stat-cap">Desaparecidos ⚰️</div></div>
         </div>
       </div>`;
   }
@@ -1177,27 +1206,51 @@ function computeBadges(){
   const maxFoto = photoCounts.length ? photoCounts[0].vezes : 0;
   const top1 = new Set(maxFoto > 0 ? photoCounts.filter(d=>d.vezes===maxFoto).map(d=>d.id) : []);
 
-  // PANELEIRO — quem mais vezes esteve num time "panela" (olhando TODAS as ocorrências, não só o top 3 exibido)
+  // PANELEIRO — os 3 jogadores que mais vezes estiveram num time "panela" (olhando TODAS as ocorrências, não só o top 3 exibido no card)
   const paneleiroCounts = {};
   computeAllPanelaEntries().filter(p=>p.diff>0).forEach(p=>{
     p.playerIds.forEach(pid=> paneleiroCounts[pid] = (paneleiroCounts[pid]||0) + 1);
   });
-  let paneleiro = null, maxPanelas = 0;
-  Object.entries(paneleiroCounts).forEach(([pid,c])=>{ if(c>maxPanelas){ maxPanelas=c; paneleiro=pid; } });
+  const paneleiro = new Set(
+    Object.entries(paneleiroCounts).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
+  );
 
   // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas"
   const topDuo = computeTopDuos()[0];
   const grudento = topDuo ? new Set([topDuo.id1, topDuo.id2]) : new Set();
 
-  return { top1, paneleiro, grudento };
+  // RIP — jogadores cadastrados que já jogaram alguma vez, mas estão há mais de 60 dias sem aparecer numa rodada
+  const DIA_MS = 24*60*60*1000;
+  const now = Date.now();
+  const ultimaVez = {}; // pid -> timestamp da rodada mais recente em que apareceu
+  DATA.rounds.forEach(r=>{
+    const ts = toTimestamp(r.data);
+    r.times.forEach(team=>{
+      (team.playerIds||[]).forEach(pid=>{
+        if(ultimaVez[pid]===undefined || ts > ultimaVez[pid]) ultimaVez[pid] = ts;
+      });
+    });
+  });
+  const rip = new Set(
+    DATA.players
+      .filter(p=> ultimaVez[p.id]!==undefined && (now - ultimaVez[p.id]) > 60*DIA_MS)
+      .map(p=>p.id)
+  );
+
+  // CABEÇA DE CHAVE — todo jogador com nota máxima (5 estrelas)
+  const cabecaDeChave = new Set(DATA.players.filter(p=> p.estrelas === 5).map(p=>p.id));
+
+  return { top1, paneleiro, grudento, rip, cabecaDeChave };
 }
 
 function badgeIconsHtml(pid, badges){
   if(!pid || !badges) return '';
   let html = '';
   if(badges.top1.has(pid)) html += `<span class="badge-icon" title="TOP1 — quem mais saiu na foto de campeão">📸</span>`;
-  if(badges.paneleiro === pid) html += `<span class="badge-icon" title="PANELEIRO — o time dele foi o mais desequilibrado a favor mais vezes">🍳</span>`;
+  if(badges.paneleiro.has(pid)) html += `<span class="badge-icon" title="PANELEIRO — um dos 3 jogadores mais vezes em time desequilibrado a favor">🍳</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
+  if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">⚰️</span>`;
+  if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   return html;
 }
 
@@ -1486,13 +1539,13 @@ document.getElementById('add-guest-btn').addEventListener('click', ()=>{
   if(!name) return;
   GUESTS.push({
     id: uid(), nome: name, apelido:'', foto:'',
-    estrelas: parseInt(starsEl.dataset.value,10) || 0,
+    estrelas: parseFloat(starsEl.dataset.value) || 0,
     sexo: genderSelect.value || '',
     isGuest: true
   });
   nameInput.value=''; genderSelect.value='';
   starsEl.dataset.value = 0;
-  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled'));
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
   renderSorteioList();
 });
 
@@ -1555,23 +1608,96 @@ function renderSorteioList(){
 
 let DRAFT_TEAMS = []; // [[player, player...], [...], ...] — estado local do sorteio, ajustável por drag-and-drop
 
-function draftBalanced(players, numTeams){
-  const withDefault = players.map(p=> ({...p, _peso: p.estrelas>0 ? p.estrelas : 3}));
-  const female = withDefault.filter(p=>p.sexo==='F').sort((a,b)=> b._peso - a._peso);
-  const rest = withDefault.filter(p=>p.sexo!=='F').sort((a,b)=> b._peso - a._peso);
-  const teams = Array.from({length:numTeams}, ()=>[]);
-  function snake(list){
-    let idx=0, dir=1;
-    list.forEach(p=>{
-      teams[idx].push(p);
-      idx += dir;
-      if(idx===numTeams){ idx=numTeams-1; dir=-1; }
-      else if(idx<0){ idx=0; dir=1; }
-    });
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
   }
-  snake(female);
-  snake(rest);
-  return teams;
+  return a;
+}
+
+function pesoDe(p){ return (p && p.estrelas > 0) ? p.estrelas : 3; }
+function somaTime(team){ return team.reduce((s,p)=> s + pesoDe(p), 0); }
+
+function draftBalanced(players, numTeams){
+  // embaralha ANTES de ordenar — assim, jogadores com a mesma nota (empate) caem em posições
+  // aleatórias na fila, e não sempre na ordem alfabética em que apareciam na lista
+  const embaralhados = shuffleArray(players).map(p=> ({...p}));
+  const ordenados = embaralhados.sort((a,b)=> pesoDe(b) - pesoDe(a));
+
+  const totalMulheres = ordenados.filter(p=>p.sexo==='F').length;
+  const tetoMulheres = Math.max(1, Math.ceil(totalMulheres / numTeams));
+
+  const teams = Array.from({length:numTeams}, ()=>[]);
+  const mulheresPorTime = Array(numTeams).fill(0);
+
+  // ponto de partida do zigue-zague é sorteado a cada rodada — assim não é sempre o
+  // Time 1 (ou sempre o último) quem leva vantagem/desvantagem na distribuição
+  let idx = Math.floor(Math.random()*numTeams);
+  let dir = Math.random() < 0.5 ? 1 : -1;
+  function proximaVaga(){
+    const escolhida = idx;
+    idx += dir;
+    if(idx>=numTeams){ idx=numTeams-1; dir=-1; }
+    else if(idx<0){ idx=0; dir=1; }
+    return escolhida;
+  }
+
+  ordenados.forEach(p=>{
+    let colocado = false;
+    for(let tentativa=0; tentativa<numTeams && !colocado; tentativa++){
+      const vaga = proximaVaga();
+      if(p.sexo==='F' && mulheresPorTime[vaga] >= tetoMulheres) continue; // esse time já tem mulheres suficientes
+      teams[vaga].push(p);
+      if(p.sexo==='F') mulheresPorTime[vaga]++;
+      colocado = true;
+    }
+    if(!colocado){
+      const menorTime = teams.reduce((menor,_,i)=> teams[i].length < teams[menor].length ? i : menor, 0);
+      teams[menorTime].push(p);
+      if(p.sexo==='F') mulheresPorTime[menorTime]++;
+    }
+  });
+
+  equilibrarTimes(teams, numTeams, tetoMulheres);
+
+  return shuffleArray(teams); // ordem de EXIBIÇÃO dos times sorteada de novo — nunca previsível
+}
+
+function equilibrarTimes(teams, numTeams, tetoMulheres){
+  // ajuste fino: troca jogadores entre o time mais forte e o mais fraco pra reduzir a
+  // diferença de soma de notas — corrige times tipo "16 vs 11" e evita empilhar
+  // jogadores de nota parecida no mesmo time
+  for(let rodada=0; rodada<40; rodada++){
+    let maxT=0, minT=0;
+    for(let i=1;i<numTeams;i++){
+      if(somaTime(teams[i]) > somaTime(teams[maxT])) maxT=i;
+      if(somaTime(teams[i]) < somaTime(teams[minT])) minT=i;
+    }
+    const diffAtual = somaTime(teams[maxT]) - somaTime(teams[minT]);
+    if(maxT===minT || diffAtual <= 1) break; // já está equilibrado o suficiente
+
+    let melhorTroca = null, melhorDiff = diffAtual;
+    teams[maxT].forEach((pa, ia)=>{
+      teams[minT].forEach((pb, ib)=>{
+        const paF = pa.sexo==='F', pbF = pb.sexo==='F';
+        if(paF !== pbF){
+          const femMax = teams[maxT].filter(p=>p.sexo==='F').length - (paF?1:0) + (pbF?1:0);
+          const femMin = teams[minT].filter(p=>p.sexo==='F').length - (pbF?1:0) + (paF?1:0);
+          if(femMax > tetoMulheres || femMin > tetoMulheres) return; // não pode furar o limite de mulheres
+        }
+        const novaSomaMax = somaTime(teams[maxT]) - pesoDe(pa) + pesoDe(pb);
+        const novaSomaMin = somaTime(teams[minT]) - pesoDe(pb) + pesoDe(pa);
+        const novoDiff = Math.abs(novaSomaMax - novaSomaMin);
+        if(novoDiff < melhorDiff){ melhorDiff = novoDiff; melhorTroca = {ia, ib}; }
+      });
+    });
+    if(!melhorTroca) break; // nenhuma troca disponível melhora mais
+    const tmp = teams[maxT][melhorTroca.ia];
+    teams[maxT][melhorTroca.ia] = teams[minT][melhorTroca.ib];
+    teams[minT][melhorTroca.ib] = tmp;
+  }
 }
 
 document.getElementById('sortear-btn').addEventListener('click', ()=>{
@@ -1592,15 +1718,16 @@ function renderDraftResult(){
   const grid = document.getElementById('draft-grid');
   const badges = computeBadges();
   grid.innerHTML = DRAFT_TEAMS.map((team, ti)=>{
-    const stars = team.reduce((s,p)=> s + (p.estrelas||3), 0);
+    const stars = somaTime(team);
     const fem = team.filter(p=>p.sexo==='F').length;
+    const ordemExibicao = [...team].sort((a,b)=> pesoDe(b) - pesoDe(a)); // exibição sempre por nota decrescente
     return `<div class="draft-team" data-team-index="${ti}">
       <div class="draft-team-head">
         <span class="tname">Time ${ti+1}</span>
         <span class="draft-team-stats">${team.length} jog · ${fem}F${starsVisibleNow() ? ' · ★'+stars : ''}</span>
       </div>
       <div class="draft-players" data-team-index="${ti}">
-        ${team.map(p=>`
+        ${ordemExibicao.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
             ${avatarHtml(p,'sm')}
             <span class="flex1">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
