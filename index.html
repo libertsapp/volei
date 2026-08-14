@@ -255,6 +255,13 @@
   .badge-icon{
     display:inline-block;font-size:12px;margin-left:3px;cursor:help;
     filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));vertical-align:middle;
+    padding:2px;
+  }
+  .badge-tooltip-popup{
+    position:fixed;background:var(--court-navy-3);color:var(--chalk);
+    border:1px solid var(--ball-yellow);border-radius:8px;padding:7px 11px;
+    font-size:12px;line-height:1.4;z-index:200;max-width:230px;
+    box-shadow:0 10px 26px rgba(0,0,0,0.5);pointer-events:none;
   }
 
   /* sorteio */
@@ -1802,6 +1809,38 @@ function wireDragAndDrop(){
 }
 
 renderSorteioList();
+
+/* ---------- TOOLTIP DOS EMBLEMAS (funciona por toque, não só passar o mouse) ---------- */
+function closeBadgeTooltip(){
+  const existing = document.getElementById('badge-tooltip-popup');
+  if(existing) existing.remove();
+}
+function showBadgeTooltip(icon){
+  closeBadgeTooltip();
+  const text = icon.getAttribute('title');
+  if(!text) return;
+  const rect = icon.getBoundingClientRect();
+  const bubble = document.createElement('div');
+  bubble.id = 'badge-tooltip-popup';
+  bubble.className = 'badge-tooltip-popup';
+  bubble.textContent = text;
+  document.body.appendChild(bubble);
+  const bw = bubble.offsetWidth;
+  let left = rect.left + rect.width/2 - bw/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+  let top = rect.bottom + 8;
+  if(top + 44 > window.innerHeight) top = rect.top - 44; // não coube embaixo, mostra em cima do ícone
+  bubble.style.left = left + 'px';
+  bubble.style.top = top + 'px';
+  clearTimeout(window._badgeTooltipTimer);
+  window._badgeTooltipTimer = setTimeout(closeBadgeTooltip, 3500);
+}
+document.addEventListener('click', (e)=>{
+  const icon = e.target.closest('.badge-icon');
+  if(icon){ e.stopPropagation(); showBadgeTooltip(icon); }
+  else { closeBadgeTooltip(); }
+});
+window.addEventListener('scroll', closeBadgeTooltip, true);
 
 loadData();
 </script>
