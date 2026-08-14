@@ -143,6 +143,7 @@
     display:flex;align-items:center;justify-content:space-between;
     background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;
   }
+  .player-row.player-row-editing{flex-wrap:wrap;gap:14px;border-color:var(--ball-yellow);}
   .player-row .name{font-weight:600;}
   .player-row .sub{color:var(--muted);font-size:12px;}
   .avatar{
@@ -896,6 +897,8 @@ function avatarHtml(player, size){
   return `<div class="${fcls}">${initial}</div>`;
 }
 
+let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
+
 function renderPlayers(){
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
@@ -904,7 +907,9 @@ function renderPlayers(){
   }
   const sorted = sortByName(DATA.players);
   const badges = computeBadges();
-  list.innerHTML = sorted.map(p=>`
+  list.innerHTML = sorted.map(p=>{
+    if(p.id === EDITING_PLAYER_ID) return editPlayerRowHtml(p);
+    return `
     <div class="player-row">
       <div class="with-avatar">
         ${avatarHtml(p)}
@@ -917,9 +922,24 @@ function renderPlayers(){
           </div>
         </div>
       </div>
-      <button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>
+      <div style="display:flex;gap:2px;">
+        <button class="icon-btn" data-edit="${p.id}" title="Editar estrelas/foto" aria-label="Editar jogador">✏️</button>
+        <button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>
+      </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+
+  list.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const pwd = await requireAdminPassword();
+      if(!pwd) return;
+      EDITING_PLAYER_ID = btn.dataset.edit;
+      renderPlayers();
+    });
+  });
+  wireEditPlayerRow();
+
   list.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
@@ -931,6 +951,102 @@ function renderPlayers(){
       if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
       renderPlayers();
     });
+  });
+}
+
+/* ---------- EDIÇÃO DE JOGADOR (estrelas e foto — só admin) ---------- */
+function editPlayerRowHtml(p){
+  return `
+    <div class="player-row player-row-editing">
+      <div class="with-avatar" style="flex-wrap:wrap;gap:10px;">
+        <div class="photo-input-wrap">
+          <img class="preview" id="edit-photo-preview-${p.id}" src="${p.foto||''}" style="${p.foto?'display:block;':'display:none;'}">
+          <input type="file" id="edit-photo-input-${p.id}" accept="image/*">
+        </div>
+        <div>
+          <div class="name">${escapeHtml(p.nome)}</div>
+          <div class="field-group" style="margin-top:6px;">
+            <label>Nota</label>
+            <div class="stars-picker" id="edit-stars-${p.id}" data-value="${p.estrelas||0}">
+              <button type="button" data-star="1">★</button>
+              <button type="button" data-star="2">★</button>
+              <button type="button" data-star="3">★</button>
+              <button type="button" data-star="4">★</button>
+              <button type="button" data-star="5">★</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" data-save-edit="${p.id}" style="padding:8px 14px;font-size:13px;">Salvar</button>
+        <button class="btn secondary" data-cancel-edit="${p.id}" style="padding:8px 14px;font-size:13px;">Cancelar</button>
+      </div>
+    </div>
+  `;
+}
+
+function wireEditPlayerRow(){
+  if(!EDITING_PLAYER_ID) return;
+  const pid = EDITING_PLAYER_ID;
+
+  // pinta as estrelas já marcadas de acordo com a nota atual do jogador
+  const starsEl = document.getElementById('edit-stars-'+pid);
+  if(starsEl){
+    const atual = parseFloat(starsEl.dataset.value) || 0;
+    starsEl.querySelectorAll('button').forEach(b=>{
+      const pos = parseInt(b.dataset.star,10);
+      b.classList.toggle('filled', atual >= pos);
+      b.classList.toggle('half', atual === pos - 0.5);
+    });
+    wireStarsPicker('edit-stars-'+pid);
+  }
+
+  const photoInput = document.getElementById('edit-photo-input-'+pid);
+  const preview = document.getElementById('edit-photo-preview-'+pid);
+  if(photoInput){
+    photoInput.addEventListener('change', ()=>{
+      const file = photoInput.files[0];
+      if(!file){ return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{ preview.src = reader.result; preview.style.display='block'; };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const cancelBtn = document.querySelector('[data-cancel-edit="'+pid+'"]');
+  if(cancelBtn) cancelBtn.addEventListener('click', ()=>{
+    EDITING_PLAYER_ID = null;
+    renderPlayers();
+  });
+
+  const saveBtn = document.querySelector('[data-save-edit="'+pid+'"]');
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    const pwd = await requireAdminPassword();
+    if(!pwd){ return; }
+    const player = DATA.players.find(pp=>pp.id===pid);
+    if(!player) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando...';
+    const novaEstrelas = parseFloat(starsEl.dataset.value) || 0;
+    let novaFoto = player.foto || '';
+    try{
+      if(photoInput.files[0]){
+        novaFoto = await uploadPhoto(photoInput.files[0], pwd);
+      }
+    }catch(e){
+      console.error('Falha no upload da foto', e);
+      alert('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.');
+    }
+    const anterior = { estrelas: player.estrelas, foto: player.foto };
+    player.estrelas = novaEstrelas;
+    player.foto = novaFoto;
+    const ok = await saveData(pwd);
+    if(!ok){
+      player.estrelas = anterior.estrelas; // desfaz se não salvou
+      player.foto = anterior.foto;
+    }
+    EDITING_PLAYER_ID = null;
+    renderPlayers();
   });
 }
 
@@ -1632,15 +1748,33 @@ function draftBalanced(players, numTeams){
   // aleatórias na fila, e não sempre na ordem alfabética em que apareciam na lista
   const embaralhados = shuffleArray(players).map(p=> ({...p}));
   const ordenados = embaralhados.sort((a,b)=> pesoDe(b) - pesoDe(a));
+  const total = ordenados.length;
 
+  // tamanho-alvo de cada time (o mais igual possível: ex. 13 pessoas em 4 times = 4,3,3,3) —
+  // sorteia QUAIS times recebem a "vaga extra", pra não ser sempre os primeiros times
+  const base = Math.floor(total / numTeams);
+  const resto = total % numTeams;
+  const comVagaExtra = new Set(shuffleArray([...Array(numTeams).keys()]).slice(0, resto));
+  const tamanhoAlvo = Array.from({length:numTeams}, (_,i)=> base + (comVagaExtra.has(i) ? 1 : 0));
+
+  // meta EXATA de mulheres por time (mesma lógica do tamanho): ex. 5 mulheres em 4 times
+  // vira 2/1/1/1 (nunca 2/0/1/2 nem qualquer coisa fora desse padrão mais parelho possível)
   const totalMulheres = ordenados.filter(p=>p.sexo==='F').length;
-  const tetoMulheres = Math.max(1, Math.ceil(totalMulheres / numTeams));
+  const femBase = Math.floor(totalMulheres / numTeams);
+  const femResto = totalMulheres % numTeams;
+  const femComExtra = new Set(shuffleArray([...Array(numTeams).keys()]).slice(0, femResto));
+  const femaleAlvo = Array.from({length:numTeams}, (_,i)=> femBase + (femComExtra.has(i) ? 1 : 0));
+
+  const totalCincoEstrelas = ordenados.filter(p=>p.estrelas===5).length;
+  const tetoCincoEstrelas = totalCincoEstrelas===0 ? 0 : Math.max(1, Math.ceil(totalCincoEstrelas / numTeams));
 
   const teams = Array.from({length:numTeams}, ()=>[]);
   const mulheresPorTime = Array(numTeams).fill(0);
+  const cincoPorTime = Array(numTeams).fill(0);
 
   // ponto de partida do zigue-zague é sorteado a cada rodada — assim não é sempre o
-  // Time 1 (ou sempre o último) quem leva vantagem/desvantagem na distribuição
+  // Time 1 (ou sempre o último) quem leva vantagem/desvantagem na distribuição.
+  // O mesmo ponteiro (idx/dir) continua rodando entre as duas fases abaixo, sem resetar.
   let idx = Math.floor(Math.random()*numTeams);
   let dir = Math.random() < 0.5 ? 1 : -1;
   function proximaVaga(){
@@ -1651,31 +1785,102 @@ function draftBalanced(players, numTeams){
     return escolhida;
   }
 
-  ordenados.forEach(p=>{
-    let colocado = false;
-    for(let tentativa=0; tentativa<numTeams && !colocado; tentativa++){
-      const vaga = proximaVaga();
-      if(p.sexo==='F' && mulheresPorTime[vaga] >= tetoMulheres) continue; // esse time já tem mulheres suficientes
-      teams[vaga].push(p);
-      if(p.sexo==='F') mulheresPorTime[vaga]++;
-      colocado = true;
-    }
-    if(!colocado){
-      const menorTime = teams.reduce((menor,_,i)=> teams[i].length < teams[menor].length ? i : menor, 0);
-      teams[menorTime].push(p);
-      if(p.sexo==='F') mulheresPorTime[menorTime]++;
-    }
-  });
+  function cabe(time, p, respeitarCinco, respeitarMulher){
+    if(teams[time].length >= tamanhoAlvo[time]) return false; // time já está no tamanho certo, não pode crescer mais
+    if(respeitarMulher && p.sexo==='F' && mulheresPorTime[time] >= femaleAlvo[time]) return false; // já bateu a META de mulheres desse time
+    if(respeitarCinco && p.estrelas===5 && cincoPorTime[time] >= tetoCincoEstrelas) return false;
+    return true;
+  }
+  function colocar(time, p){
+    teams[time].push(p);
+    if(p.sexo==='F') mulheresPorTime[time]++;
+    if(p.estrelas===5) cincoPorTime[time]++;
+  }
+  function distribuir(lista, respeitarCinco){
+    lista.forEach(p=>{
+      let vaga = null;
+      for(let tentativa=0; tentativa<numTeams; tentativa++){
+        const candidata = proximaVaga();
+        if(cabe(candidata, p, respeitarCinco, true)){ vaga = candidata; break; }
+      }
+      if(vaga === null){
+        // afrouxa só o limite de 5 estrelas (mulheres e tamanho do time nunca são afrouxados)
+        for(let tentativa=0; tentativa<numTeams; tentativa++){
+          const candidata = proximaVaga();
+          if(cabe(candidata, p, false, true)){ vaga = candidata; break; }
+        }
+      }
+      if(vaga === null){
+        // segurança final (não deveria cair aqui na prática)
+        const candidatosMenores = teams
+          .map((t,i)=>i)
+          .filter(i=> teams[i].length < tamanhoAlvo[i] && (p.sexo!=='F' || mulheresPorTime[i] < femaleAlvo[i]));
+        vaga = candidatosMenores.length ? candidatosMenores[0]
+          : teams.reduce((menor,_,i)=> teams[i].length < teams[menor].length ? i : menor, 0);
+      }
+      colocar(vaga, p);
+    });
+  }
 
-  equilibrarTimes(teams, numTeams, tetoMulheres);
+  // FASE 1: distribui as mulheres primeiro, garantindo a cota exata de cada time —
+  // se misturássemos com os homens, um time podia lotar de homens antes de "chegar
+  // a vez" da mulher que faltava nele, deixando ele sem nenhuma. Processar as
+  // mulheres antes evita esse problema.
+  const mulheres = ordenados.filter(p=>p.sexo==='F');
+  const homens = ordenados.filter(p=>p.sexo!=='F');
+  distribuir(mulheres, true);
+  // FASE 2: preenche o restante das vagas com os homens, na mesma sequência de zigue-zague
+  distribuir(homens, true);
+
+  equilibrarTimes(teams, numTeams, tetoCincoEstrelas);
+  reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas);
 
   return shuffleArray(teams); // ordem de EXIBIÇÃO dos times sorteada de novo — nunca previsível
 }
 
-function equilibrarTimes(teams, numTeams, tetoMulheres){
+function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas){
+  // quando não dá pra evitar que algum time fique com mais mulheres que os outros
+  // (ex: 5 mulheres em 4 times), esse time deve ficar com a MAIOR soma de notas —
+  // mesmo que isso deixe os outros times um pouco menos parelhos entre si.
+  const femCounts = teams.map(t=> t.filter(p=>p.sexo==='F').length);
+  const maxFem = Math.max(...femCounts);
+  const minFem = Math.min(...femCounts);
+  if(maxFem === minFem) return; // todos os times já têm o mesmo número de mulheres, nada a reforçar
+
+  teams.forEach((_,teamForte)=>{
+    if(femCounts[teamForte] !== maxFem) return;
+    for(let tentativa=0; tentativa<30; tentativa++){
+      const somas = teams.map(somaTime);
+      const maxSoma = Math.max(...somas);
+      if(somas[teamForte] >= maxSoma) break; // já é (ou empatou como) o time de maior soma
+      const doador = somas.indexOf(maxSoma);
+      if(doador === teamForte) break;
+
+      let melhorTroca = null, melhorGanho = 0;
+      teams[teamForte].forEach((pFraco, iFraco)=>{
+        teams[doador].forEach((pForte, iForte)=>{
+          if(pFraco.sexo !== pForte.sexo) return; // troca só entre mesmo sexo, pra não mexer na meta de mulheres
+          const cincoForte = teams[teamForte].filter(p=>p.estrelas===5).length - (pFraco.estrelas===5?1:0) + (pForte.estrelas===5?1:0);
+          const cincoDoador = teams[doador].filter(p=>p.estrelas===5).length - (pForte.estrelas===5?1:0) + (pFraco.estrelas===5?1:0);
+          if(cincoForte > tetoCincoEstrelas || cincoDoador > tetoCincoEstrelas) return; // não pode empilhar 5 estrelas
+          const ganho = pesoDe(pForte) - pesoDe(pFraco);
+          if(ganho > melhorGanho){ melhorGanho = ganho; melhorTroca = {iFraco, iForte}; }
+        });
+      });
+      if(!melhorTroca) break;
+      const tmp = teams[teamForte][melhorTroca.iFraco];
+      teams[teamForte][melhorTroca.iFraco] = teams[doador][melhorTroca.iForte];
+      teams[doador][melhorTroca.iForte] = tmp;
+    }
+  });
+}
+
+function equilibrarTimes(teams, numTeams, tetoCincoEstrelas){
   // ajuste fino: troca jogadores entre o time mais forte e o mais fraco pra reduzir a
   // diferença de soma de notas — corrige times tipo "16 vs 11" e evita empilhar
-  // jogadores de nota parecida no mesmo time
+  // jogadores de nota parecida (inclusive 5 estrelas) no mesmo time.
+  // A troca é sempre entre jogadores do MESMO sexo, pra nunca mudar a meta exata de
+  // mulheres por time definida na montagem inicial. Tamanho do time também nunca muda aqui.
   for(let rodada=0; rodada<40; rodada++){
     let maxT=0, minT=0;
     for(let i=1;i<numTeams;i++){
@@ -1688,11 +1893,12 @@ function equilibrarTimes(teams, numTeams, tetoMulheres){
     let melhorTroca = null, melhorDiff = diffAtual;
     teams[maxT].forEach((pa, ia)=>{
       teams[minT].forEach((pb, ib)=>{
-        const paF = pa.sexo==='F', pbF = pb.sexo==='F';
-        if(paF !== pbF){
-          const femMax = teams[maxT].filter(p=>p.sexo==='F').length - (paF?1:0) + (pbF?1:0);
-          const femMin = teams[minT].filter(p=>p.sexo==='F').length - (pbF?1:0) + (paF?1:0);
-          if(femMax > tetoMulheres || femMin > tetoMulheres) return; // não pode furar o limite de mulheres
+        if(pa.sexo !== pb.sexo) return; // só troca entre mesmo sexo — preserva a meta de mulheres por time
+        const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
+        if(paCinco !== pbCinco){
+          const cincoMax = teams[maxT].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
+          const cincoMin = teams[minT].filter(p=>p.estrelas===5).length - (pbCinco?1:0) + (paCinco?1:0);
+          if(cincoMax > tetoCincoEstrelas || cincoMin > tetoCincoEstrelas) return; // não pode empilhar 5 estrelas
         }
         const novaSomaMax = somaTime(teams[maxT]) - pesoDe(pa) + pesoDe(pb);
         const novaSomaMin = somaTime(teams[minT]) - pesoDe(pb) + pesoDe(pa);
