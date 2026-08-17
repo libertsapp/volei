@@ -2027,7 +2027,7 @@ function renderManualGroups(){
     const souMulheres = grupo.length>0 && grupo.every(p=>p.sexo==='F');
     return `<div class="group-card ${souMulheres?'group-women':''}" data-group-index="${gi}">
       <div class="group-head">
-        <span class="tname">Grupo ${gi+1}${souMulheres?' (mulheres)':''}</span>
+        <span class="tname">Grupo ${gi+1}</span>
         <span class="draft-team-stats">${grupo.length} jog</span>
       </div>
       <div class="draft-players" data-group-index="${gi}">
