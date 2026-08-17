@@ -265,6 +265,43 @@
     box-shadow:0 10px 26px rgba(0,0,0,0.5);pointer-events:none;
   }
 
+  /* sub-abas Sorteio Automático / Manual */
+  .subtabs{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;width:fit-content;margin-bottom:18px;}
+  .subtabs button{
+    background:transparent;border:none;color:var(--chalk-dim);font-weight:600;font-size:13px;
+    padding:9px 16px;border-radius:7px;cursor:pointer;font-family:'Work Sans',sans-serif;
+  }
+  .subtabs button.active{background:var(--ball-yellow);color:var(--court-navy);}
+
+  /* grupos do sorteio manual */
+  .group-card{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .group-card.group-women{border-color:#ff8fc055;}
+  .group-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .group-head .tname{font-family:'Anton',sans-serif;font-size:15px;text-transform:uppercase;}
+  .group-empty-hint{color:var(--muted);font-size:12px;text-align:center;padding:10px;border:1px dashed var(--line);border-radius:8px;}
+
+  /* roleta do sorteio manual */
+  .roleta-wrap{
+    text-align:center;background:var(--court-navy-2);border:1px solid var(--ball-yellow);
+    border-radius:16px;padding:28px 20px;margin-top:18px;
+  }
+  .roleta-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:0 0 6px;}
+  .roleta-nome{font-family:'Anton',sans-serif;font-size:28px;text-transform:uppercase;margin:0 0 18px;}
+  .roleta-numero{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:56px;color:var(--ball-yellow);
+    margin:0 0 20px;transition:transform .05s;
+  }
+  .roleta-numero.girando{animation:roleta-pulse .15s infinite alternate;}
+  @keyframes roleta-pulse{ from{ transform:scale(1); } to{ transform:scale(1.06); } }
+  .roleta-resultado{font-size:14px;color:var(--chalk-dim);margin:0 0 16px;}
+  .roleta-times-mini{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:20px;}
+  .roleta-time-slot{
+    background:var(--court-navy-3);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;min-width:100px;font-size:12px;
+  }
+  .roleta-time-slot.preenchido{border-color:var(--ball-yellow);}
+  .roleta-time-slot .tt{font-family:'Anton',sans-serif;font-size:12px;color:var(--muted);margin-bottom:4px;}
+
   /* sorteio */
   .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
   .field-group{display:flex;flex-direction:column;gap:4px;}
@@ -277,6 +314,7 @@
   .draft-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px;}
   .draft-team{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:160px;}
   .draft-team.dragover{border-color:var(--ball-yellow);background:var(--court-navy-3);}
+  .group-card.dragover{border-color:var(--ball-yellow);background:var(--court-navy-3);}
   .draft-team-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
   .draft-team-head .tname{font-family:'Anton',sans-serif;font-size:15px;text-transform:uppercase;}
   .draft-team-stats{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;}
@@ -463,7 +501,12 @@
     </section>
 
     <section id="view-sorteio">
-      <h2 class="section-title">Sorteio equilibrado</h2>
+      <h2 class="section-title">Sorteio de times</h2>
+
+      <div class="subtabs" id="sorteio-subtabs">
+        <button data-submode="auto" class="active">🎲 Sorteio Automático</button>
+        <button data-submode="manual">🎯 Sorteio Manual</button>
+      </div>
 
       <div class="guest-row">
         <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
@@ -519,7 +562,17 @@
 
       <div class="select-list" id="sorteio-select-list"></div>
 
-      <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
+      <div id="sorteio-auto-panel">
+        <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
+      </div>
+
+      <div id="sorteio-manual-panel" style="display:none;">
+        <button class="btn" id="montar-grupos-btn">Montar grupos por nível</button>
+        <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Os participantes selecionados são separados em grupos por nota (cabeças de chave primeiro), com as mulheres sempre no(s) último(s) grupo(s). Arraste pra ajustar antes de sortear.</p>
+        <div id="manual-groups" class="draft-grid" style="margin-top:16px;"></div>
+        <button class="btn" id="iniciar-sorteio-manual-btn" style="display:none;margin-top:16px;">Iniciar sorteio 🎯</button>
+        <div id="roleta-container"></div>
+      </div>
 
       <div id="draft-result"></div>
     </section>
@@ -1924,6 +1977,228 @@ document.getElementById('sortear-btn').addEventListener('click', ()=>{
   DRAFT_TEAMS = draftBalanced(players, numTeams);
   renderDraftResult();
 });
+
+/* ---------- SUB-ABAS: SORTEIO AUTOMÁTICO x MANUAL ---------- */
+document.getElementById('sorteio-subtabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-submode]');
+  if(!btn) return;
+  document.querySelectorAll('#sorteio-subtabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const isManual = btn.dataset.submode === 'manual';
+  document.getElementById('sorteio-auto-panel').style.display = isManual ? 'none' : 'block';
+  document.getElementById('sorteio-manual-panel').style.display = isManual ? 'block' : 'none';
+  document.getElementById('draft-result').innerHTML = ''; // troca de modo limpa o resultado anterior
+  document.getElementById('roleta-container').innerHTML = '';
+});
+
+/* ---------- SORTEIO MANUAL: montagem dos grupos por nível ---------- */
+let MANUAL_GROUPS = [];
+
+function montarGrupos(players, numTeams){
+  const mulheres = shuffleArray(players.filter(p=>p.sexo==='F')).sort((a,b)=> pesoDe(b)-pesoDe(a));
+  const homens = shuffleArray(players.filter(p=>p.sexo!=='F')).sort((a,b)=> pesoDe(b)-pesoDe(a));
+  function emGrupos(lista){
+    const grupos = [];
+    for(let i=0;i<lista.length;i+=numTeams) grupos.push(lista.slice(i, i+numTeams));
+    return grupos;
+  }
+  // mulheres sempre no(s) último(s) grupo(s), independente da nota
+  return emGrupos(homens).concat(emGrupos(mulheres));
+}
+
+document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
+  if(SELECTED_IDS.size < 2){
+    alert('Selecione pelo menos 2 jogadores para montar os grupos.');
+    return;
+  }
+  const pool = DATA.players.concat(GUESTS);
+  const players = Array.from(SELECTED_IDS).map(id=> pool.find(p=>p.id===id)).filter(Boolean);
+  const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
+  MANUAL_GROUPS = montarGrupos(players, numTeams);
+  document.getElementById('draft-result').innerHTML = '';
+  document.getElementById('roleta-container').innerHTML = '';
+  renderManualGroups();
+});
+
+function renderManualGroups(){
+  const container = document.getElementById('manual-groups');
+  const badges = computeBadges();
+  container.innerHTML = MANUAL_GROUPS.map((grupo, gi)=>{
+    const souMulheres = grupo.length>0 && grupo.every(p=>p.sexo==='F');
+    return `<div class="group-card ${souMulheres?'group-women':''}" data-group-index="${gi}">
+      <div class="group-head">
+        <span class="tname">Grupo ${gi+1}${souMulheres?' (mulheres)':''}</span>
+        <span class="draft-team-stats">${grupo.length} jog</span>
+      </div>
+      <div class="draft-players" data-group-index="${gi}">
+        ${grupo.length===0 ? '<div class="group-empty-hint">Arraste alguém pra cá</div>' : grupo.map(p=>`
+          <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-group="${gi}">
+            ${avatarHtml(p,'sm')}
+            <span class="flex1">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
+            ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
+            ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
+            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  wireGroupDragAndDrop();
+  document.getElementById('iniciar-sorteio-manual-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
+}
+
+function wireGroupDragAndDrop(){
+  const chips = document.querySelectorAll('#manual-groups .draft-chip');
+  const dropzones = document.querySelectorAll('#manual-groups .draft-players');
+  chips.forEach(chip=>{
+    chip.addEventListener('dragstart', (e)=>{
+      chip.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        playerId: chip.dataset.playerId,
+        fromGroup: parseInt(chip.dataset.fromGroup,10)
+      }));
+    });
+    chip.addEventListener('dragend', ()=> chip.classList.remove('dragging'));
+  });
+  dropzones.forEach(zone=>{
+    zone.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      zone.closest('.group-card').classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', ()=> zone.closest('.group-card').classList.remove('dragover'));
+    zone.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      zone.closest('.group-card').classList.remove('dragover');
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const toGroup = parseInt(zone.dataset.groupIndex,10);
+      if(data.fromGroup === toGroup) return;
+      const fromList = MANUAL_GROUPS[data.fromGroup];
+      const idx = fromList.findIndex(p=>p.id===data.playerId);
+      if(idx===-1) return;
+      const [jogador] = fromList.splice(idx,1);
+      MANUAL_GROUPS[toGroup].push(jogador);
+      renderManualGroups();
+    });
+  });
+}
+
+/* ---------- SORTEIO MANUAL: roleta de cabeças-de-chave, grupo por grupo ---------- */
+let MANUAL_TEAMS_BUILDING = [];
+let manualNumTeams = 4;
+let manualGroupIndex = 0;
+let manualPlayerIndexInGroup = 0;
+let manualAvailableTeams = [];
+let manualSpinTimer = null;
+
+document.getElementById('iniciar-sorteio-manual-btn').addEventListener('click', ()=>{
+  const gruposComGente = MANUAL_GROUPS.filter(g=>g.length>0);
+  if(gruposComGente.length===0){
+    alert('Monte os grupos antes de iniciar o sorteio.');
+    return;
+  }
+  manualNumTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
+  if(MANUAL_GROUPS.some(g=> g.length > manualNumTeams)){
+    alert('Algum grupo tem mais participantes do que times disponíveis (' + manualNumTeams + '). Arraste os jogadores excedentes para outro grupo antes de iniciar o sorteio.');
+    return;
+  }
+  MANUAL_TEAMS_BUILDING = Array.from({length:manualNumTeams}, ()=>[]);
+  manualGroupIndex = 0;
+  document.getElementById('draft-result').innerHTML = '';
+  avancarGrupoManual();
+});
+
+function avancarGrupoManual(){
+  // pula grupos vazios (podem sobrar se o admin arrastou todo mundo de um grupo pra outro)
+  while(manualGroupIndex < MANUAL_GROUPS.length && MANUAL_GROUPS[manualGroupIndex].length===0){
+    manualGroupIndex++;
+  }
+  if(manualGroupIndex >= MANUAL_GROUPS.length){
+    finalizarSorteioManual();
+    return;
+  }
+  manualAvailableTeams = Array.from({length:manualNumTeams}, (_,i)=>i); // todos os times voltam a disputar neste grupo
+  manualPlayerIndexInGroup = 0;
+  processarProximoJogadorManual();
+}
+
+function processarProximoJogadorManual(){
+  const grupo = MANUAL_GROUPS[manualGroupIndex];
+  if(manualPlayerIndexInGroup >= grupo.length || manualAvailableTeams.length===0){
+    manualGroupIndex++;
+    avancarGrupoManual();
+    return;
+  }
+  const jogador = grupo[manualPlayerIndexInGroup];
+  if(manualAvailableTeams.length === 1){
+    // só sobrou um time possível — atribui direto, sem precisar girar
+    mostrarResultadoDireto(jogador, manualAvailableTeams[0]);
+    return;
+  }
+  mostrarRoleta(jogador);
+}
+
+function mostrarRoleta(jogador){
+  const container = document.getElementById('roleta-container');
+  container.innerHTML = `
+    <div class="roleta-wrap">
+      <p class="roleta-label">Sorteando o time de</p>
+      <p class="roleta-nome">${escapeHtml(jogador.apelido||jogador.nome)}</p>
+      <p class="roleta-numero girando" id="roleta-numero">TIME ${manualAvailableTeams[0]+1}</p>
+      <p class="roleta-resultado" id="roleta-resultado">Clique para parar e sortear o time</p>
+      <button class="btn" id="parar-roleta-btn">🎯 Parar sorteio</button>
+      ${renderizarMiniTimes()}
+    </div>`;
+  const numeroEl = document.getElementById('roleta-numero');
+  let i = 0;
+  clearInterval(manualSpinTimer);
+  manualSpinTimer = setInterval(()=>{
+    i = (i+1) % manualAvailableTeams.length;
+    numeroEl.textContent = 'TIME ' + (manualAvailableTeams[i]+1);
+  }, 90);
+  document.getElementById('parar-roleta-btn').addEventListener('click', ()=>{
+    clearInterval(manualSpinTimer);
+    const timeSorteado = manualAvailableTeams[i];
+    numeroEl.classList.remove('girando');
+    document.getElementById('roleta-resultado').textContent = (jogador.apelido||jogador.nome) + ' caiu no Time ' + (timeSorteado+1) + '!';
+    document.getElementById('parar-roleta-btn').disabled = true;
+    setTimeout(()=> atribuirTimeManual(jogador, timeSorteado), 1200);
+  });
+}
+
+function mostrarResultadoDireto(jogador, time){
+  const container = document.getElementById('roleta-container');
+  container.innerHTML = `
+    <div class="roleta-wrap">
+      <p class="roleta-label">Única vaga disponível</p>
+      <p class="roleta-nome">${escapeHtml(jogador.apelido||jogador.nome)}</p>
+      <p class="roleta-numero">TIME ${time+1}</p>
+      <p class="roleta-resultado">Só sobrava esse time — atribuído automaticamente!</p>
+      ${renderizarMiniTimes()}
+    </div>`;
+  setTimeout(()=> atribuirTimeManual(jogador, time), 1200);
+}
+
+function renderizarMiniTimes(){
+  return `<div class="roleta-times-mini">${MANUAL_TEAMS_BUILDING.map((tm,i)=>`
+    <div class="roleta-time-slot ${tm.length?'preenchido':''}">
+      <div class="tt">TIME ${i+1}</div>
+      ${tm.map(p=> escapeHtml(p.apelido||p.nome)).join('<br>') || '<span style="color:var(--muted);">—</span>'}
+    </div>
+  `).join('')}</div>`;
+}
+
+function atribuirTimeManual(jogador, time){
+  MANUAL_TEAMS_BUILDING[time].push(jogador);
+  manualAvailableTeams = manualAvailableTeams.filter(t=>t!==time); // esse time sai da disputa até o próximo grupo
+  manualPlayerIndexInGroup++;
+  processarProximoJogadorManual();
+}
+
+function finalizarSorteioManual(){
+  document.getElementById('roleta-container').innerHTML = `<div class="roleta-wrap"><p class="roleta-nome">🏐 Sorteio concluído!</p></div>`;
+  DRAFT_TEAMS = shuffleArray(MANUAL_TEAMS_BUILDING); // reaproveita a mesma exibição/ajuste/envio do modo automático
+  renderDraftResult();
+}
 
 function renderDraftResult(){
   const container = document.getElementById('draft-result');
