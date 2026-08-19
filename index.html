@@ -166,6 +166,11 @@
 
   /* nova rodada */
   .round-form-top{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+  .edit-round-banner{
+    background:#3a3320;border:1px solid var(--ball-yellow);color:var(--chalk);
+    padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;
+    display:flex;align-items:center;flex-wrap:wrap;
+  }
   .teams-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;}
   .team-card{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:16px;}
   .team-card.winner{border-color:var(--ball-yellow);box-shadow:0 0 0 1px var(--ball-yellow);}
@@ -476,6 +481,10 @@
 
     <section id="view-rodada">
       <h2 class="section-title">Nova rodada</h2>
+      <div class="edit-round-banner" id="edit-round-banner" style="display:none;">
+        ✏️ Editando a rodada de <strong id="edit-round-banner-date"></strong>
+        <button type="button" class="btn secondary" id="cancel-edit-round-btn" style="padding:6px 12px;font-size:12px;margin-left:10px;">Cancelar edição</button>
+      </div>
       <div class="round-form-top">
         <label style="color:var(--muted);font-size:13px;">Data</label>
         <input type="date" id="round-date">
@@ -570,7 +579,10 @@
         <button class="btn" id="montar-grupos-btn">Montar grupos por nível</button>
         <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Os participantes selecionados são separados em grupos por nota (cabeças de chave primeiro), com as mulheres sempre no(s) último(s) grupo(s). Arraste pra ajustar antes de sortear.</p>
         <div id="manual-groups" class="draft-grid" style="margin-top:16px;"></div>
-        <button class="btn" id="iniciar-sorteio-manual-btn" style="display:none;margin-top:16px;">Iniciar sorteio 🎯</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn" id="iniciar-sorteio-manual-btn" style="display:none;">Iniciar sorteio 🎯</button>
+          <button class="btn secondary" id="share-groups-whatsapp-btn" style="display:none;">📲 Compartilhar grupos no WhatsApp</button>
+        </div>
         <div id="roleta-container"></div>
       </div>
 
@@ -673,7 +685,7 @@ document.getElementById('star-visibility-checkbox').addEventListener('change', a
   const previous = SETTINGS.estrelasVisiveis;
   SETTINGS.estrelasVisiveis = checkbox.checked;
   renderPlayers();
-  const ok = await saveData(pwd);
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
   if(!ok){
     SETTINGS.estrelasVisiveis = previous; // desfaz se não salvou
     checkbox.checked = previous;
@@ -720,13 +732,15 @@ async function requireAdminPassword(){
   return pwd;
 }
 
-async function saveData(pwd){
+// Envia uma AÇÃO ESPECÍFICA (só a linha que mudou), não a planilha inteira de novo —
+// isso evita que uma gravação apague o que outra pessoa acabou de salvar.
+async function postAction(action, payload, pwd){
   if(!sheetReady) return true;
   try{
     const res = await fetch(SHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({...DATA, senha: pwd, settings: SETTINGS})
+      body: JSON.stringify({ action, senha: pwd, ...payload })
     });
     const json = await res.json();
     if(json && json.error){
@@ -767,6 +781,13 @@ function getPlayer(id){
 document.getElementById('nav').addEventListener('click', (e)=>{
   const btn = e.target.closest('button[data-view]');
   if(!btn) return;
+  // sair da Nova Rodada sem salvar cancela uma edição de rodada em andamento,
+  // pra não deixar o formulário "meio editando" e confundir o próximo lançamento
+  if(EDITING_ROUND_ID && btn.dataset.view !== 'rodada'){
+    EDITING_ROUND_ID = null;
+    document.getElementById('edit-round-banner').style.display = 'none';
+    document.getElementById('save-round-btn').textContent = 'Salvar rodada';
+  }
   document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
@@ -926,7 +947,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
     sexo: genderSelect.value || ''
   };
   DATA.players.push(newPlayer);
-  const ok = await saveData(pwd);
+  const ok = await postAction('addPlayer', {player: newPlayer}, pwd);
   addBtn.disabled = false;
   addBtn.textContent = 'Adicionar';
   if(!ok){
@@ -951,6 +972,7 @@ function avatarHtml(player, size){
 }
 
 let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
+let EDITING_ROUND_ID = null; // id da rodada sendo editada na tela Nova Rodada (só admin)
 
 function renderPlayers(){
   const list = document.getElementById('player-list');
@@ -1000,7 +1022,7 @@ function renderPlayers(){
       if(!pwd) return;
       const removed = DATA.players.find(p=>p.id===btn.dataset.remove);
       DATA.players = DATA.players.filter(p=>p.id!==btn.dataset.remove);
-      const ok = await saveData(pwd);
+      const ok = await postAction('removePlayer', {id: btn.dataset.remove}, pwd);
       if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
       renderPlayers();
     });
@@ -1093,7 +1115,7 @@ function wireEditPlayerRow(){
     const anterior = { estrelas: player.estrelas, foto: player.foto };
     player.estrelas = novaEstrelas;
     player.foto = novaFoto;
-    const ok = await saveData(pwd);
+    const ok = await postAction('updatePlayer', {player: player}, pwd);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
       player.foto = anterior.foto;
@@ -1295,9 +1317,27 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   const pwd = await requireAdminPassword();
   if(!pwd) return;
   const date = document.getElementById('round-date').value || new Date().toISOString().slice(0,10);
+
+  if(EDITING_ROUND_ID){
+    const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
+    if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
+    const anterior = DATA.rounds[idx];
+    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: winnerCard };
+    DATA.rounds[idx] = roundAtualizada;
+    const ok = await postAction('updateRound', {round: roundAtualizada}, pwd);
+    if(!ok){
+      DATA.rounds[idx] = anterior; // desfaz localmente, já que não foi salvo
+      return;
+    }
+    alert('Rodada atualizada!');
+    fecharEdicaoDeRodada();
+    renderDashboard();
+    return;
+  }
+
   const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard };
   DATA.rounds.push(newRound);
-  const ok = await saveData(pwd);
+  const ok = await postAction('addRound', {round: newRound}, pwd);
   if(!ok){
     DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id); // desfaz localmente, já que não foi salvo
     return;
@@ -1307,6 +1347,44 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   renderTeamsGrid();
   renderDashboard();
 });
+
+/* ---------- EDIÇÃO DE RODADA (a partir do Histórico) ---------- */
+function abrirEdicaoDeRodada(roundId){
+  const round = DATA.rounds.find(r=>r.id===roundId);
+  if(!round) return;
+  EDITING_ROUND_ID = roundId;
+  document.querySelector('#nav button[data-view="rodada"]').click(); // troca de aba (já chama renderTeamsGrid/guest chips)
+  document.getElementById('round-date').value = round.data;
+  document.getElementById('round-team-count').value = String(round.times.length);
+  renderTeamsGrid();
+  const grid = document.getElementById('teams-grid');
+  round.times.forEach((team, ti)=>{
+    const card = grid.querySelector(`.team-card[data-team="${ti}"]`);
+    if(!card) return;
+    const pickers = card.querySelectorAll('.player-picker');
+    (team.playerIds||[]).slice(0,4).forEach((pid, si)=>{
+      if(!pickers[si]) return;
+      pickers[si].dataset.value = pid;
+      pickers[si].querySelector('.picker-trigger').innerHTML = playerTriggerHtml(getPlayer(pid));
+    });
+    const winsInput = card.querySelector('[data-wins]');
+    if(winsInput) winsInput.value = team.vitorias || 0;
+  });
+  updateLeader();
+  document.getElementById('edit-round-banner').style.display = 'flex';
+  document.getElementById('edit-round-banner-date').textContent = formatDate(round.data);
+  document.getElementById('save-round-btn').textContent = 'Salvar alterações';
+}
+
+function fecharEdicaoDeRodada(){
+  EDITING_ROUND_ID = null;
+  document.getElementById('edit-round-banner').style.display = 'none';
+  document.getElementById('save-round-btn').textContent = 'Salvar rodada';
+  document.getElementById('round-date').valueAsDate = new Date();
+  document.getElementById('round-team-count').value = '4';
+  renderTeamsGrid();
+}
+document.getElementById('cancel-edit-round-btn').addEventListener('click', fecharEdicaoDeRodada);
 
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
@@ -1633,7 +1711,10 @@ function renderHistory(){
     <div class="history-item">
       <div class="history-head">
         <span class="history-date">${formatDate(r.data)}</span>
-        <button class="icon-btn" data-del-round="${r.id}" aria-label="Excluir rodada">✕</button>
+        <div style="display:flex;gap:2px;">
+          <button class="icon-btn" data-edit-round="${r.id}" title="Editar rodada" aria-label="Editar rodada">✏️</button>
+          <button class="icon-btn" data-del-round="${r.id}" aria-label="Excluir rodada">✕</button>
+        </div>
       </div>
       <div class="history-teams">
         ${r.times.map((t, idx)=>`
@@ -1646,6 +1727,9 @@ function renderHistory(){
       </div>
     </div>
   `).join('');
+  list.querySelectorAll('[data-edit-round]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.editRound));
+  });
   list.querySelectorAll('[data-del-round]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Excluir esta rodada? Isso vai atualizar o ranking.')) return;
@@ -1653,7 +1737,7 @@ function renderHistory(){
       if(!pwd) return;
       const removed = DATA.rounds.find(r=>r.id===btn.dataset.delRound);
       DATA.rounds = DATA.rounds.filter(r=>r.id!==btn.dataset.delRound);
-      const ok = await saveData(pwd);
+      const ok = await postAction('removeRound', {id: btn.dataset.delRound}, pwd);
       if(!ok && removed){ DATA.rounds.push(removed); } // desfaz se não salvou
       renderHistory();
     });
@@ -2020,6 +2104,21 @@ document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
   renderManualGroups();
 });
 
+/* ---------- COMPARTILHAR NO WHATSAPP (grupos ou times) ---------- */
+function montarTextoWhatsApp(titulo, listas, rotulo){
+  let texto = `🏐 *${titulo}* — Volei de Areia\n\n`;
+  listas.forEach((lista, i)=>{
+    if(!lista || lista.length===0) return;
+    texto += `*${rotulo} ${i+1}*\n`;
+    lista.forEach((p,idx)=>{ texto += `${idx+1}. ${p.apelido||p.nome}${p.isGuest?' (convidado)':''}\n`; });
+    texto += '\n';
+  });
+  return texto;
+}
+function compartilharNoWhatsApp(texto){
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
 function renderManualGroups(){
   const container = document.getElementById('manual-groups');
   const badges = computeBadges();
@@ -2045,7 +2144,11 @@ function renderManualGroups(){
   }).join('');
   wireGroupDragAndDrop();
   document.getElementById('iniciar-sorteio-manual-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
+  document.getElementById('share-groups-whatsapp-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
 }
+document.getElementById('share-groups-whatsapp-btn').addEventListener('click', ()=>{
+  compartilharNoWhatsApp(montarTextoWhatsApp('Grupos do sorteio', MANUAL_GROUPS, 'Grupo'));
+});
 
 function wireGroupDragAndDrop(){
   const chips = document.querySelectorAll('#manual-groups .draft-chip');
@@ -2202,7 +2305,12 @@ function finalizarSorteioManual(){
 
 function renderDraftResult(){
   const container = document.getElementById('draft-result');
-  container.innerHTML = `<button class="btn" id="send-to-rodada-btn" style="margin-bottom:16px;">Usar esses times na Nova Rodada</button><div class="draft-grid" id="draft-grid"></div>`;
+  container.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="btn" id="send-to-rodada-btn">Usar esses times na Nova Rodada</button>
+      <button class="btn secondary" id="share-teams-whatsapp-btn">📲 Compartilhar times no WhatsApp</button>
+    </div>
+    <div class="draft-grid" id="draft-grid"></div>`;
   const grid = document.getElementById('draft-grid');
   const badges = computeBadges();
   grid.innerHTML = DRAFT_TEAMS.map((team, ti)=>{
@@ -2228,6 +2336,9 @@ function renderDraftResult(){
   }).join('');
   wireDragAndDrop();
   document.getElementById('send-to-rodada-btn').addEventListener('click', sendDraftToRodada);
+  document.getElementById('share-teams-whatsapp-btn').addEventListener('click', ()=>{
+    compartilharNoWhatsApp(montarTextoWhatsApp('Times sorteados', DRAFT_TEAMS, 'Time'));
+  });
 }
 
 function sendDraftToRodada(){
