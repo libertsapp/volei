@@ -466,6 +466,22 @@
   }
   .admin-status.is-admin{background:var(--ball-yellow);color:var(--court-navy);border-color:var(--ball-yellow);}
 
+  /* status e controle do check-in */
+  .checkin-open-badge{
+    background:#1f3a2a;border:1px solid #5fd68a;color:#eafff0;
+    padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;
+  }
+  .checkin-open-badge strong{color:#8ff0ae;}
+  .checkin-closed-badge{
+    background:var(--court-navy-2);border:1px solid var(--line);color:var(--muted);
+    padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;
+  }
+  .checkin-admin-controls{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:10px;
+    padding:12px 14px;margin-bottom:16px;
+  }
+
   /* interruptor de visibilidade das estrelas (somente admin) */
   .star-toggle{
     display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;
@@ -574,13 +590,19 @@
 
     <section id="view-checkin">
       <h2 class="section-title">Check-in — quem vai jogar?</h2>
-      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Livre pra qualquer jogador se confirmar, sem precisar de senha de administrador.</p>
-      <div class="round-form-top">
-        <label style="color:var(--muted);font-size:13px;">Data da rodada</label>
-        <input type="date" id="checkin-date">
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Livre pra qualquer jogador se confirmar, sem precisar de senha — mas só quando o admin abrir o check-in pra uma data.</p>
+
+      <div id="checkin-status"></div>
+
+      <div class="checkin-admin-controls" id="checkin-admin-controls" style="display:none;">
+        <label style="color:var(--muted);font-size:13px;">Data do próximo jogo</label>
+        <input type="date" id="checkin-admin-date">
+        <button class="btn" id="open-checkin-btn">Abrir check-in</button>
+        <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
+        <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
       </div>
 
-      <div class="guest-row">
+      <div class="guest-row" id="checkin-guest-row">
         <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
         <input id="checkin-guest-name" placeholder="Nome do convidado" style="width:160px;">
         <select id="checkin-guest-gender">
@@ -602,7 +624,7 @@
         <span class="selected-counter-num" id="checkin-counter-num">0</span>
         <span class="selected-counter-label">confirmado(s)</span>
       </div>
-      <div class="search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
+      <div class="search-box" id="checkin-search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
       <div class="select-list" id="checkin-list"></div>
       <button class="btn" id="use-checkins-sorteio-btn" style="margin-top:12px;">Usar confirmados no Sorteio →</button>
     </section>
@@ -771,7 +793,7 @@
 
 <script>
 let DATA = { players: [], rounds: [] };
-let SETTINGS = { estrelasVisiveis: true };
+let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false };
 let CHECKINS = [];
 
 /* ==========================================================
@@ -837,6 +859,8 @@ function updateAdminStatusBtn(){
     starToggle.style.display = isAdmin ? 'flex' : 'none';
     if(starCheckbox) starCheckbox.checked = !!SETTINGS.estrelasVisiveis;
   }
+  const checkinAdminControls = document.getElementById('checkin-admin-controls');
+  if(checkinAdminControls) checkinAdminControls.style.display = isAdmin ? 'flex' : 'none';
   renderPlayers(); // reaplica a visibilidade das estrelas para o público certo
 }
 
@@ -963,7 +987,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='historico') renderHistory();
   if(btn.dataset.view==='dashboard') renderDashboard();
   if(btn.dataset.view==='sorteio') renderSorteioList();
-  if(btn.dataset.view==='checkin') renderCheckinList();
+  if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
 });
 
@@ -2109,16 +2133,77 @@ function escapeHtml(str){
 
 function renderAll(){
   updateAdminStatusBtn();
-  document.getElementById('checkin-date').valueAsDate = new Date();
+  renderCheckinStatus();
   renderPlayers();
   renderTeamsGrid();
   renderRodadaGuestChips();
   renderDashboard();
 }
 
-/* ---------- CHECK-IN (livre, sem senha) ---------- */
-document.getElementById('checkin-date').addEventListener('change', renderCheckinList);
+/* ---------- CHECK-IN (livre pra confirmar, mas só o admin abre/fecha a data) ---------- */
+function renderCheckinStatus(){
+  const statusEl = document.getElementById('checkin-status');
+  const data = SETTINGS.checkinDataAberta;
+  const travado = SETTINGS.checkinTravado;
+  statusEl.innerHTML = data
+    ? `<div class="checkin-open-badge">✅ Check-in aberto para <strong>${formatDate(data)}</strong>${travado ? ' — <strong>lista travada</strong>, sem novas confirmações' : ' — pode confirmar presença!'}</div>`
+    : `<div class="checkin-closed-badge">🔒 Check-in fechado no momento. Aguarde o admin abrir pra próxima rodada.</div>`;
+
+  const adminDateInput = document.getElementById('checkin-admin-date');
+  if(adminDateInput && !adminDateInput.value){
+    adminDateInput.value = data || new Date().toISOString().slice(0,10);
+  }
+  const lockBtn = document.getElementById('toggle-checkin-lock-btn');
+  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar inclusões/exclusões' : '🔒 Travar inclusões/exclusões';
+
+  // a LISTA de quem confirmou fica visível pra todos mesmo travado — só o formulário de
+  // convidado é escondido, já que adicionar convidado também cria uma nova confirmação
+  const searchBox = document.getElementById('checkin-search-box');
+  const guestRow = document.getElementById('checkin-guest-row');
+  const useBtn = document.getElementById('use-checkins-sorteio-btn');
+  if(searchBox) searchBox.style.display = data ? 'block' : 'none';
+  if(guestRow) guestRow.style.display = (data && !travado) ? 'flex' : 'none';
+  if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
+}
+
+document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
+  const anterior = SETTINGS.checkinTravado;
+  SETTINGS.checkinTravado = !anterior;
+  renderCheckinStatus();
+  renderCheckinList();
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
+});
+
+document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
+  const novaData = document.getElementById('checkin-admin-date').value;
+  if(!novaData){ alert('Escolha uma data antes de abrir o check-in.'); return; }
+  const anterior = SETTINGS.checkinDataAberta;
+  SETTINGS.checkinDataAberta = novaData;
+  renderCheckinStatus();
+  renderCheckinList();
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
+});
+
+document.getElementById('close-checkin-btn').addEventListener('click', async ()=>{
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
+  const anterior = SETTINGS.checkinDataAberta;
+  SETTINGS.checkinDataAberta = '';
+  renderCheckinStatus();
+  renderCheckinList();
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
+});
+
 document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
+  if(!SETTINGS.checkinDataAberta){ alert('O check-in está fechado no momento.'); return; }
+  if(SETTINGS.checkinTravado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
   const nameInput = document.getElementById('checkin-guest-name');
   const genderSelect = document.getElementById('checkin-guest-gender');
   const starsEl = document.getElementById('checkin-guest-stars');
@@ -2135,9 +2220,8 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   starsEl.dataset.value = 0;
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
 
-  // já marca presença automaticamente pro convidado recém-adicionado, na data selecionada
-  const data = document.getElementById('checkin-date').value;
-  const novoCheckin = { id: uid(), data, jogadorId: novoConvidado.id, jogadorNome: name };
+  // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
+  const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name };
   CHECKINS.push(novoCheckin);
   await postAction('addCheckin', {checkin: novoCheckin}, null);
 
@@ -2146,9 +2230,16 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
 document.getElementById('checkin-search').addEventListener('input', renderCheckinList);
 
 function renderCheckinList(){
-  const data = document.getElementById('checkin-date').value;
-  const term = document.getElementById('checkin-search').value;
+  const data = SETTINGS.checkinDataAberta;
   const list = document.getElementById('checkin-list');
+
+  if(!data){
+    list.innerHTML = '';
+    document.getElementById('checkin-counter-num').textContent = '0';
+    return;
+  }
+
+  const term = document.getElementById('checkin-search').value;
   const confirmadosHoje = new Set(CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId));
   document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
 
@@ -2158,6 +2249,7 @@ function renderCheckinList(){
     return;
   }
   const badges = computeBadges();
+  const travado = SETTINGS.checkinTravado;
   list.innerHTML = pool.map(p=>{
     const confirmado = confirmadosHoje.has(p.id);
     return `<label class="select-row" style="cursor:pointer;" data-checkin-toggle="${p.id}">
@@ -2165,11 +2257,12 @@ function renderCheckinList(){
       <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
       ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-      <button type="button" class="btn ${confirmado?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}">
-        ${confirmado ? '✅ Confirmado' : 'Vou jogar'}
+      <button type="button" class="btn ${confirmado?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${travado?'disabled title="Check-in travado pelo admin"':''}>
+        ${confirmado ? '✅ Confirmado' : (travado ? '🔒 Travado' : 'Vou jogar')}
       </button>
     </label>`;
   }).join('');
+  if(travado) return; // travado: só exibe a lista, sem religar os botões (ficam desabilitados)
   list.querySelectorAll('[data-checkin-btn]').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       e.preventDefault();
@@ -2192,7 +2285,7 @@ function renderCheckinList(){
 }
 
 document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()=>{
-  const data = document.getElementById('checkin-date').value;
+  const data = SETTINGS.checkinDataAberta;
   const idsConfirmados = CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
   if(idsConfirmados.length===0){
     alert('Ninguém confirmou presença para essa data ainda.');
