@@ -19,6 +19,25 @@
     --line: rgba(244,241,230,0.12);
     --danger: #e0664f;
   }
+  /* modo claro — pensado pra ler no celular com sol forte, na quadra */
+  body.light-mode{
+    --court-navy: #f6f3ea;
+    --court-navy-2: #ffffff;
+    --court-navy-3: #ece5d3;
+    --chalk: #16213f;
+    --chalk-dim: #33405e;
+    --muted: #5c6785;
+    --ball-yellow: #b3790a;
+    --ball-blue: #1d4ed8;
+    --line: rgba(22,33,63,0.14);
+    --danger: #c0392b;
+  }
+  body.light-mode .ball{border-color:var(--chalk);}
+  body.light-mode .scoreboard, body.light-mode .team-card, body.light-mode .history-item,
+  body.light-mode .draft-team, body.light-mode .group-card, body.light-mode .panela-card,
+  body.light-mode .player-row, body.light-mode .duo-row, body.light-mode .profile-card,
+  body.light-mode .roleta-wrap{ box-shadow:0 2px 10px rgba(22,33,63,0.08); }
+  body.light-mode .badge-gender.F{color:#c2255c;} /* rosa mais escuro pra ler bem em fundo claro */
   *{box-sizing:border-box;}
   body{
     margin:0;
@@ -203,6 +222,33 @@
 
   .toolbar-right{display:flex;gap:8px;margin-left:auto;}
   .loading{text-align:center;padding:40px;color:var(--muted);}
+
+  /* estado de carregamento (skeleton) */
+  .skeleton-wrap{padding:4px 0;}
+  .skeleton{
+    background:linear-gradient(90deg, var(--court-navy-2) 25%, var(--court-navy-3) 50%, var(--court-navy-2) 75%);
+    background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:12px;
+  }
+  @keyframes skeleton-shimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+  .skeleton-hero{height:160px;margin-bottom:16px;}
+  .skeleton-line{height:20px;margin-bottom:20px;}
+  .skeleton-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;}
+  .skeleton-card{height:90px;}
+
+  /* seções recolhíveis do dashboard */
+  .dash-accordion{
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:12px;overflow:hidden;
+  }
+  .dash-accordion summary{
+    list-style:none;cursor:pointer;padding:14px 18px;font-family:'Anton',sans-serif;
+    font-size:15px;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;
+    justify-content:space-between;user-select:none;
+  }
+  .dash-accordion summary::-webkit-details-marker{display:none;}
+  .dash-accordion summary::after{content:'▾';color:var(--ball-yellow);font-family:'Work Sans',sans-serif;transition:transform .2s;}
+  .dash-accordion[open] summary::after{transform:rotate(180deg);}
+  .dash-accordion > div{padding:0 18px 18px;}
   .yearpick{margin-left:auto;}
   .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
 
@@ -227,12 +273,36 @@
   .meta-row{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;}
 
   /* gráfico top 10 na foto */
-  .chart-wrap{display:flex;flex-direction:column;gap:10px;}
-  .chart-row{display:grid;grid-template-columns:140px 1fr 50px;align-items:center;gap:10px;}
-  .chart-name{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-  .chart-track{background:var(--court-navy-3);border-radius:6px;height:22px;overflow:hidden;}
-  .chart-fill{height:100%;width:0%;background:linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));border-radius:6px;transition:width 1s cubic-bezier(.22,.9,.3,1);}
-  .chart-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);text-align:right;}
+  /* pódio "mais vezes na foto" — top 3 */
+  .podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin-bottom:22px;padding-top:10px;flex-wrap:wrap;}
+  .podium-place{display:flex;flex-direction:column;align-items:center;width:104px;cursor:pointer;}
+  .podium-crown{font-size:20px;margin-bottom:2px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));}
+  .podium-avatar, .podium-avatar-fallback{width:52px;height:52px;border-radius:50%;object-fit:cover;border:3px solid var(--ball-yellow);margin-bottom:8px;background:var(--court-navy-3);}
+  .podium-avatar.big{width:70px;height:70px;border-color:#ffd54a;}
+  .podium-avatar-fallback{display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:20px;color:var(--muted);}
+  .podium-name{font-size:12px;font-weight:600;text-align:center;margin-bottom:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .podium-name:hover{text-decoration:underline;text-decoration-color:var(--ball-yellow);}
+  .podium-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);margin-bottom:8px;font-size:14px;}
+  .podium-block{
+    width:100%;border-radius:12px 12px 4px 4px;display:flex;align-items:flex-start;justify-content:center;
+    padding-top:8px;font-family:'Anton',sans-serif;color:var(--court-navy);font-size:16px;
+    transform:scaleY(0);transform-origin:bottom;transition:transform .6s cubic-bezier(.22,1.4,.4,1);
+    box-shadow:0 8px 20px rgba(0,0,0,0.35);
+  }
+  .podium-block.subiu{transform:scaleY(1);}
+  .block-1{height:92px;background:linear-gradient(180deg,#ffe27a,#f4b942);}
+  .block-2{height:66px;background:linear-gradient(180deg,#eef1f7,#c3cadd);}
+  .block-3{height:48px;background:linear-gradient(180deg,#f0c396,#c98a52);}
+
+  /* lista do 4º em diante */
+  .leaderboard-list{display:flex;flex-direction:column;gap:8px;}
+  .leaderboard-row{display:grid;grid-template-columns:26px 30px 1fr 90px 34px;align-items:center;gap:10px;}
+  .leaderboard-rank{font-family:'Anton',sans-serif;color:var(--muted);font-size:14px;text-align:center;}
+  .leaderboard-name{font-size:13px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;}
+  .leaderboard-name:hover{text-decoration:underline;text-decoration-color:var(--ball-yellow);}
+  .leaderboard-track{background:var(--court-navy-3);border-radius:8px;height:16px;overflow:hidden;}
+  .leaderboard-fill{height:100%;width:0%;background:linear-gradient(90deg, var(--ball-blue), var(--ball-yellow));border-radius:8px;transition:width 1s cubic-bezier(.22,.9,.3,1);}
+  .leaderboard-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);text-align:right;}
 
   /* duplas mais sorteadas juntas */
   .duo-list{display:flex;flex-direction:column;gap:8px;}
@@ -269,6 +339,37 @@
     font-size:12px;line-height:1.4;z-index:200;max-width:230px;
     box-shadow:0 10px 26px rgba(0,0,0,0.5);pointer-events:none;
   }
+
+  /* modal de perfil do jogador */
+  .profile-overlay{
+    position:fixed;inset:0;background:rgba(8,12,24,0.75);z-index:300;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .profile-card{
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:18px;
+    padding:26px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;
+    box-shadow:0 24px 60px rgba(0,0,0,0.6);position:relative;
+  }
+  .profile-close{position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+  .profile-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+  .profile-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--ball-yellow);}
+  .profile-avatar-fallback{
+    width:64px;height:64px;border-radius:50%;background:var(--court-navy-3);border:2px solid var(--ball-yellow);
+    display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:24px;color:var(--muted);
+  }
+  .profile-name{font-family:'Anton',sans-serif;font-size:22px;text-transform:uppercase;margin:0;}
+  .profile-badges{margin-top:4px;}
+  .profile-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .profile-stat{background:var(--court-navy-3);border-radius:10px;padding:10px 12px;}
+  .profile-stat-num{font-family:'Space Mono',monospace;font-weight:700;font-size:20px;color:var(--ball-yellow);}
+  .profile-stat-cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .profile-section-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 8px;}
+  .profile-chart-wrap{background:var(--court-navy-3);border-radius:10px;padding:12px;}
+  .profile-partner{display:flex;align-items:center;gap:8px;font-size:13px;background:var(--court-navy-3);border-radius:8px;padding:8px 10px;margin-bottom:6px;}
+  .profile-round-item{font-size:12px;color:var(--chalk-dim);padding:6px 0;border-bottom:1px solid var(--line);}
+  .profile-round-item:last-child{border-bottom:none;}
+  .clickable-name{cursor:pointer;}
+  .clickable-name:hover{text-decoration:underline;text-decoration-color:var(--ball-yellow);}
 
   /* sub-abas Sorteio Automático / Manual */
   .subtabs{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;width:fit-content;margin-bottom:18px;}
@@ -392,6 +493,12 @@
   .selected-counter-num{font-family:'Space Mono',monospace;font-weight:700;font-size:22px;color:var(--ball-yellow);transition:transform .15s;}
   .selected-counter-num.bump{transform:scale(1.25);}
   .selected-counter-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+
+  .equilibrio-badge{
+    display:inline-block;background:var(--court-navy-2);border:1px solid var(--ball-yellow);
+    border-radius:20px;padding:8px 16px;font-size:13px;color:var(--chalk-dim);margin-bottom:14px;
+  }
+  .equilibrio-badge strong{color:var(--ball-yellow);}
 </style>
 </head>
 <body>
@@ -406,6 +513,7 @@
     </div>
     <nav id="nav">
       <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="checkin">Check-in ✅</button>
       <button data-view="jogadores">Jogadores</button>
       <button data-view="rodada">Nova rodada</button>
       <button data-view="sorteio">Sorteio</button>
@@ -413,6 +521,7 @@
       <button data-view="historico">Histórico</button>
     </nav>
     <div class="header-right">
+      <button type="button" id="theme-toggle-btn" class="admin-status" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)">☀️ Modo claro</button>
       <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -420,7 +529,15 @@
     </div>
   </header>
 
-  <div id="loading" class="loading">Carregando dados…</div>
+  <div id="loading" class="skeleton-wrap">
+    <div class="skeleton skeleton-hero"></div>
+    <div class="skeleton skeleton-line" style="width:40%;"></div>
+    <div class="skeleton-row">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+  </div>
   <div id="config-warning" style="display:none;background:#3a2333;border:1px solid var(--danger);color:var(--chalk);padding:16px 20px;border-radius:10px;margin-bottom:16px;font-size:14px;line-height:1.6;">
     ⚠️ <strong>Configuração da planilha pendente.</strong> Abra o arquivo HTML num editor de texto, procure por <code>SHEET_API_URL</code> perto do início do <code>&lt;script&gt;</code> e cole a URL do seu Apps Script ali. Enquanto isso, os dados não serão salvos.
   </div>
@@ -428,19 +545,66 @@
   <div id="app" style="display:none;">
 
     <section id="view-dashboard" class="active">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button class="btn secondary" id="share-weekly-whatsapp-btn">📲 Gerar resumo da semana</button>
+      </div>
       <div id="dash-hero"></div>
       <div class="netline"></div>
-      <h2 class="section-title">Top 10 — mais vezes na foto (campeões)</h2>
-      <div id="dash-chart"></div>
-      <div class="netline"></div>
-      <h2 class="section-title">Duplas mais sorteadas juntas</h2>
-      <div id="dash-duos"></div>
-      <div class="netline"></div>
-      <h2 class="section-title">Ranking do ano — top 5</h2>
-      <div id="dash-top5"></div>
-      <div class="netline"></div>
-      <h2 class="section-title">Maiores panelas já formadas</h2>
-      <div id="dash-panelas"></div>
+
+      <details class="dash-accordion" open>
+        <summary>📸 Top 10 — mais vezes na foto (campeões)</summary>
+        <div id="dash-chart"></div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>🏆 Ranking do ano — top 5</summary>
+        <div id="dash-top5"></div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>🧲 Duplas mais sorteadas juntas</summary>
+        <div id="dash-duos"></div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>🍳 Maiores panelas já formadas</summary>
+        <div id="dash-panelas"></div>
+      </details>
+    </section>
+
+    <section id="view-checkin">
+      <h2 class="section-title">Check-in — quem vai jogar?</h2>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Livre pra qualquer jogador se confirmar, sem precisar de senha de administrador.</p>
+      <div class="round-form-top">
+        <label style="color:var(--muted);font-size:13px;">Data da rodada</label>
+        <input type="date" id="checkin-date">
+      </div>
+
+      <div class="guest-row">
+        <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
+        <input id="checkin-guest-name" placeholder="Nome do convidado" style="width:160px;">
+        <select id="checkin-guest-gender">
+          <option value="">Sexo</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+        <div class="stars-picker" id="checkin-guest-stars" data-value="0">
+          <button type="button" data-star="1">★</button>
+          <button type="button" data-star="2">★</button>
+          <button type="button" data-star="3">★</button>
+          <button type="button" data-star="4">★</button>
+          <button type="button" data-star="5">★</button>
+        </div>
+        <button class="btn secondary" id="add-checkin-guest-btn">Adicionar convidado</button>
+      </div>
+
+      <div class="selected-counter" id="checkin-counter">
+        <span class="selected-counter-num" id="checkin-counter-num">0</span>
+        <span class="selected-counter-label">confirmado(s)</span>
+      </div>
+      <div class="search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
+      <div class="select-list" id="checkin-list"></div>
+      <button class="btn" id="use-checkins-sorteio-btn" style="margin-top:12px;">Usar confirmados no Sorteio →</button>
     </section>
 
     <section id="view-jogadores">
@@ -608,6 +772,7 @@
 <script>
 let DATA = { players: [], rounds: [] };
 let SETTINGS = { estrelasVisiveis: true };
+let CHECKINS = [];
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
@@ -644,6 +809,7 @@ async function loadData(){
     const json = await res.json();
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
+    CHECKINS = json.checkins || [];
   }catch(e){
     console.error('Falha ao carregar da planilha', e);
     document.getElementById('config-warning').style.display = 'block';
@@ -797,7 +963,16 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='historico') renderHistory();
   if(btn.dataset.view==='dashboard') renderDashboard();
   if(btn.dataset.view==='sorteio') renderSorteioList();
+  if(btn.dataset.view==='checkin') renderCheckinList();
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
+});
+
+// clique em qualquer nome marcado como "clicável" (Jogadores, Ranking, etc.) abre o perfil —
+// um único listener global, então funciona em qualquer tela nova sem precisar religar nada
+document.addEventListener('click', (e)=>{
+  if(e.target.closest('.badge-icon')) return; // clique no emblema só mostra a dica, não abre o perfil
+  const el = e.target.closest('[data-open-profile]');
+  if(el) openPlayerProfile(el.dataset.openProfile);
 });
 
 /* ---------- MENU MOBILE ---------- */
@@ -846,6 +1021,7 @@ function wireStarsPicker(containerId){
 }
 wireStarsPicker('new-player-stars');
 wireStarsPicker('guest-stars');
+wireStarsPicker('checkin-guest-stars');
 
 function starsDisplay(n){
   n = parseFloat(n) || 0;
@@ -989,7 +1165,7 @@ function renderPlayers(){
       <div class="with-avatar">
         ${avatarHtml(p)}
         <div>
-          <div class="name">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
+          <div class="name clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
           ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
           <div class="meta-row">
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
@@ -1030,6 +1206,121 @@ function renderPlayers(){
 }
 
 /* ---------- EDIÇÃO DE JOGADOR (estrelas e foto — só admin) ---------- */
+/* ---------- PERFIL INDIVIDUAL DO JOGADOR (modal) ---------- */
+function computePlayerAllTimeStats(id){
+  let jogos=0, titulos=0, vitoriasPartidas=0, vezesNaFoto=0;
+  const rounds = [];
+  DATA.rounds.forEach(r=>{
+    r.times.forEach((team, idx)=>{
+      if(!(team.playerIds||[]).includes(id)) return;
+      jogos++;
+      const isWinner = idx===r.vencedor;
+      if(isWinner){ titulos++; vezesNaFoto++; }
+      vitoriasPartidas += (team.vitorias||0);
+      rounds.push({ data:r.data, teamNome:team.nome, isWinner, vitorias:team.vitorias||0 });
+    });
+  });
+  rounds.sort((a,b)=> toTimestamp(b.data)-toTimestamp(a.data));
+  return { jogos, titulos, vitoriasPartidas, vezesNaFoto, pct: jogos>0?Math.round((titulos/jogos)*100):0, rounds };
+}
+function computeTopPartner(id){
+  const counts = {};
+  DATA.rounds.forEach(r=> r.times.forEach(team=>{
+    const ids = (team.playerIds||[]).filter(Boolean);
+    if(!ids.includes(id)) return;
+    ids.forEach(pid=>{ if(pid!==id) counts[pid] = (counts[pid]||0)+1; });
+  }));
+  let melhor=null, max=0;
+  Object.entries(counts).forEach(([pid,c])=>{ if(c>max){ max=c; melhor=pid; } });
+  return melhor ? { id: melhor, count: max } : null;
+}
+
+function computeAproveitamentoSeries(stats){
+  // stats.rounds vem do mais recente pro mais antigo — inverte pra ordem cronológica
+  const cronologico = [...stats.rounds].reverse();
+  const janela = 5; // média móvel das últimas 5 rodadas, pra suavizar e mostrar a tendência real
+  return cronologico.map((r, i)=>{
+    const inicio = Math.max(0, i - janela + 1);
+    const recorte = cronologico.slice(inicio, i + 1);
+    const vitorias = recorte.filter(x=>x.isWinner).length;
+    return { data: r.data, pct: Math.round((vitorias / recorte.length) * 100) };
+  });
+}
+
+function renderAproveitamentoChart(pontos){
+  if(pontos.length < 2){
+    return '<div style="color:var(--muted);font-size:12px;">Ainda faltam rodadas suficientes pra mostrar uma tendência (precisa de pelo menos 2).</div>';
+  }
+  const w = 380, h = 84, pad = 6;
+  const stepX = (w - 2*pad) / (pontos.length - 1);
+  const coords = pontos.map((p,i)=>{
+    const x = pad + i*stepX;
+    const y = pad + (h - 2*pad) * (1 - p.pct/100);
+    return [Number(x.toFixed(1)), Number(y.toFixed(1))];
+  });
+  const primeiro = pontos[0].pct, ultimo = pontos[pontos.length-1].pct;
+  const diff = ultimo - primeiro;
+  const cor = diff > 5 ? '#5fd68a' : (diff < -5 ? 'var(--danger)' : 'var(--ball-yellow)');
+  const textoTendencia = diff > 5 ? `📈 Melhorando (+${diff} pontos)` : (diff < -5 ? `📉 Piorando (${diff} pontos)` : '➡️ Estável');
+  const pathPoints = coords.map(c=>c.join(',')).join(' ');
+  return `
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block;">
+      <polyline points="${pathPoints}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${coords.map(c=>`<circle cx="${c[0]}" cy="${c[1]}" r="3" fill="${cor}"/>`).join('')}
+    </svg>
+    <div style="text-align:center;font-size:13px;color:${cor};font-weight:700;margin-top:2px;">${textoTendencia}</div>
+    <div style="text-align:center;font-size:11px;color:var(--muted);">de ${primeiro}% pra ${ultimo}% de aproveitamento (média móvel de 5 rodadas)</div>
+  `;
+}
+
+function openPlayerProfile(id){
+  const player = getPlayer(id);
+  if(!player) return;
+  const stats = computePlayerAllTimeStats(id);
+  const badges = computeBadges();
+  const parceiro = computeTopPartner(id);
+  const parceiroPlayer = parceiro ? getPlayer(parceiro.id) : null;
+  const serieAproveitamento = computeAproveitamentoSeries(stats);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.id = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-close" id="profile-close-btn" aria-label="Fechar">✕</button>
+      <div class="profile-head">
+        ${player.foto ? `<img class="profile-avatar" src="${player.foto}">` : `<div class="profile-avatar-fallback">${escapeHtml((player.apelido||player.nome||'?').charAt(0).toUpperCase())}</div>`}
+        <div>
+          <p class="profile-name">${escapeHtml(player.nome)}</p>
+          ${player.apelido ? `<div class="sub">"${escapeHtml(player.apelido)}"</div>` : ''}
+          <div class="profile-badges">${badgeIconsHtml(id, badges)} ${starsVisibleNow()?starsDisplay(player.estrelas):''} ${player.sexo?`<span class="badge-gender ${player.sexo}">${player.sexo==='F'?'Feminino':'Masculino'}</span>`:''}</div>
+        </div>
+      </div>
+      <div class="profile-stats-grid">
+        <div class="profile-stat"><div class="profile-stat-num">${stats.jogos}</div><div class="profile-stat-cap">Rodadas jogadas</div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${stats.vezesNaFoto}</div><div class="profile-stat-cap">Vezes na foto</div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap">Vit. de partidas</div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${stats.pct}%</div><div class="profile-stat-cap">Aproveitamento</div></div>
+      </div>
+      <div class="profile-section-title">Evolução do aproveitamento</div>
+      <div class="profile-chart-wrap">${renderAproveitamentoChart(serieAproveitamento)}</div>
+      ${parceiroPlayer ? `
+        <div class="profile-section-title">Parceiro mais frequente</div>
+        <div class="profile-partner">${avatarHtml(parceiroPlayer,'sm')} ${escapeHtml(parceiroPlayer.apelido||parceiroPlayer.nome)} <span style="margin-left:auto;color:var(--muted);">${parceiro.count}× juntos</span></div>
+      ` : ''}
+      <div class="profile-section-title">Últimas rodadas</div>
+      ${stats.rounds.length===0 ? '<div style="color:var(--muted);font-size:12px;">Ainda não jogou nenhuma rodada.</div>' :
+        stats.rounds.slice(0,6).map(r=>`<div class="profile-round-item">${formatDate(r.data)} — ${escapeHtml(r.teamNome)} ${r.isWinner?'🏆':''} (${r.vitorias} vit.)</div>`).join('')}
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('profile-close-btn').addEventListener('click', closePlayerProfile);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closePlayerProfile(); });
+}
+function closePlayerProfile(){
+  const overlay = document.getElementById('profile-overlay');
+  if(overlay) overlay.remove();
+}
+
 function editPlayerRowHtml(p){
   return `
     <div class="player-row player-row-editing">
@@ -1196,7 +1487,7 @@ function renderRodadaGuestChips(){
   if(!container) return;
   if(GUESTS.length===0){ container.innerHTML=''; return; }
   container.innerHTML = GUESTS.map(g=>`
-    <span class="chip with-avatar">${avatarHtml(g,'sm')}${escapeHtml(g.nome)}<span class="badge-guest" style="margin-left:6px;">convidado</span>
+    <span class="chip with-avatar">${avatarHtml(g,'sm')}<span class="clickable-name" data-open-profile="${g.id}">${escapeHtml(g.nome)}</span><span class="badge-guest" style="margin-left:6px;">convidado</span>
       <button type="button" class="icon-btn" data-remove-guest="${g.id}" style="margin-left:4px;" title="Remover convidado">✕</button>
     </span>`).join('');
   container.querySelectorAll('[data-remove-guest]').forEach(btn=>{
@@ -1405,7 +1696,7 @@ function renderDashboard(){
           <p class="sb-label">Campeão da semana</p>
           <p class="sb-team">${escapeHtml(team.nome)}</p>
           <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}${escapeHtml(p? (p.apelido||p.nome) : '?')}${badgeIconsHtml(p&&p.id, badges)}</span>`).join('')}</div>
+          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${p&&p.id}">${escapeHtml(p? (p.apelido||p.nome) : '?')}</span>${badgeIconsHtml(p&&p.id, badges)}</span>`).join('')}</div>
         </div>
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
@@ -1524,9 +1815,9 @@ function renderDuos(){
     return `<div class="duo-row">
       <span class="duo-rank">${i+1}º</span>
       <span class="duo-pair">
-        ${avatarHtml(p1,'sm')}${escapeHtml(nome1)}${badgeIconsHtml(d.id1, badges)}
+        ${avatarHtml(p1,'sm')}<span class="clickable-name" data-open-profile="${d.id1}">${escapeHtml(nome1)}</span>${badgeIconsHtml(d.id1, badges)}
         <span class="duo-plus">+</span>
-        ${avatarHtml(p2,'sm')}${escapeHtml(nome2)}${badgeIconsHtml(d.id2, badges)}
+        ${avatarHtml(p2,'sm')}<span class="clickable-name" data-open-profile="${d.id2}">${escapeHtml(nome2)}</span>${badgeIconsHtml(d.id2, badges)}
       </span>
       <span class="duo-count">${d.count}×</span>
     </div>`;
@@ -1581,7 +1872,7 @@ function renderPanelas(){
         <span class="panela-rank">${i+1}º — ${escapeHtml(p.teamNome)}</span>
         <span class="panela-date">${formatDate(p.data)}</span>
       </div>
-      <div class="panela-players">${players.map((pl,idx)=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}${badgeIconsHtml(p.playerIds[idx], badges)}</span>`).join('')}</div>
+      <div class="panela-players">${players.map((pl,idx)=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}<span class="clickable-name" data-open-profile="${p.playerIds[idx]}">${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}</span>${badgeIconsHtml(p.playerIds[idx], badges)}</span>`).join('')}</div>
       <div class="panela-vs">Média do time: <span class="panela-gap">★${p.mediaTime.toFixed(1)}</span> · demais times: ★${p.mediaOutros.toFixed(1)} · diferença: <span class="panela-gap">+${p.diff.toFixed(1)}</span></div>
     </div>`;
   }).join('');
@@ -1610,34 +1901,68 @@ function renderPhotoChart(){
     container.innerHTML = '<div class="empty"><i class="ti ti-camera"></i>Ainda sem rodadas com vencedor definido para gerar o gráfico.</div>';
     return;
   }
-  const max = Math.max(...data.map(d=>d.vezes));
   const badges = computeBadges();
-  container.innerHTML = `<div class="chart-wrap">${data.map((d,i)=>`
-    <div class="chart-row">
-      <div class="chart-name">${avatarHtml({foto:d.foto, nome:d.nome},'sm')}${escapeHtml(d.nome)}${badgeIconsHtml(d.id, badges)}</div>
-      <div class="chart-track"><div class="chart-fill" data-target="${d.vezes}" data-max="${max}" id="chart-fill-${i}"></div></div>
-      <div class="chart-count" id="chart-count-${i}">0</div>
-    </div>
-  `).join('')}</div>`;
+  const podio = data.slice(0,3);
+  const resto = data.slice(3);
+  const max = Math.max(...data.map(d=>d.vezes));
 
-  // anima largura das barras + contagem dos números subindo
+  // pódio dos 3 primeiros — ordem visual 2º / 1º / 3º, como um pódio de verdade
+  const ordemVisual = [podio[1], podio[0], podio[2]].filter(Boolean);
+  const podioHtml = ordemVisual.length ? `<div class="podium-wrap">${ordemVisual.map(d=>{
+    if(!d) return '';
+    const posicaoReal = data.indexOf(d) + 1;
+    const cls = posicaoReal===1 ? 'place-1' : (posicaoReal===2 ? 'place-2' : 'place-3');
+    const avatarCls = posicaoReal===1 ? 'podium-avatar big' : 'podium-avatar';
+    return `<div class="podium-place ${cls} clickable-name" data-open-profile="${d.id}">
+      ${posicaoReal===1 ? '<div class="podium-crown">👑</div>' : ''}
+      ${d.foto ? `<img class="${avatarCls}" src="${d.foto}">` : `<div class="${avatarCls} podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
+      <div class="podium-name">${escapeHtml(d.nome)}</div>
+      <div class="podium-count" id="podium-count-${posicaoReal}">0×</div>
+      <div class="podium-block block-${posicaoReal}">${posicaoReal}º</div>
+    </div>`;
+  }).join('')}</div>` : '';
+
+  // 4º em diante — lista com barra em degradê e emblema de posição
+  const listaHtml = resto.length ? `<div class="leaderboard-list">${resto.map((d,i)=>{
+    const posicao = i+4;
+    return `<div class="leaderboard-row">
+      <div class="leaderboard-rank">${posicao}º</div>
+      ${avatarHtml({foto:d.foto, nome:d.nome},'sm')}
+      <div class="leaderboard-name clickable-name" data-open-profile="${d.id}">${escapeHtml(d.nome)}${badgeIconsHtml(d.id, badges)}</div>
+      <div class="leaderboard-track"><div class="leaderboard-fill" id="lb-fill-${i}"></div></div>
+      <div class="leaderboard-count" id="lb-count-${i}">0</div>
+    </div>`;
+  }).join('')}</div>` : '';
+
+  container.innerHTML = podioHtml + listaHtml;
+
+  // animações: pódio sobe e os números do pódio e da lista contam subindo
   requestAnimationFrame(()=>{
-    data.forEach((d,i)=>{
-      const fill = document.getElementById('chart-fill-'+i);
-      const countEl = document.getElementById('chart-count-'+i);
-      const target = d.vezes;
-      fill.style.width = (target / max * 100) + '%';
-      const duration = 900;
-      const start = performance.now();
-      function step(now){
-        const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        countEl.textContent = Math.round(eased * target);
-        if(progress < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
+    document.querySelectorAll('.podium-block').forEach(el=> el.classList.add('subiu'));
+    podio.forEach((d,i)=>{
+      if(!d) return;
+      const posicaoReal = i+1;
+      animarContador(document.getElementById('podium-count-'+posicaoReal), d.vezes, '×');
+    });
+    resto.forEach((d,i)=>{
+      const fill = document.getElementById('lb-fill-'+i);
+      if(fill) fill.style.width = (d.vezes / max * 100) + '%';
+      animarContador(document.getElementById('lb-count-'+i), d.vezes, '');
     });
   });
+}
+
+function animarContador(el, alvo, sufixo){
+  if(!el) return;
+  const duration = 900;
+  const start = performance.now();
+  function step(now){
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(eased * alvo) + sufixo;
+    if(progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 /* ---------- RANKING ---------- */
@@ -1668,7 +1993,7 @@ function rankingTableHtml(rows){
     <tbody>
       ${rows.map((r,i)=>`<tr>
         <td class="medal">${i+1}º</td>
-        <td><div class="with-avatar">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}${badgeIconsHtml(r.id, badges)}</div></td>
+        <td><div class="with-avatar clickable-name" data-open-profile="${r.id}">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}${badgeIconsHtml(r.id, badges)}</div></td>
         <td class="num">${r.jogos}</td>
         <td class="num">${r.titulos}</td>
         <td class="num">${r.vitoriasPartidas}</td>
@@ -1721,7 +2046,7 @@ function renderHistory(){
           <div class="history-team ${idx===r.vencedor?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${idx===r.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}${p?escapeHtml(p.apelido||p.nome):'(removido)'}${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?escapeHtml(p.apelido||p.nome):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
           </div>
         `).join('')}
       </div>
@@ -1784,11 +2109,99 @@ function escapeHtml(str){
 
 function renderAll(){
   updateAdminStatusBtn();
+  document.getElementById('checkin-date').valueAsDate = new Date();
   renderPlayers();
   renderTeamsGrid();
   renderRodadaGuestChips();
   renderDashboard();
 }
+
+/* ---------- CHECK-IN (livre, sem senha) ---------- */
+document.getElementById('checkin-date').addEventListener('change', renderCheckinList);
+document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
+  const nameInput = document.getElementById('checkin-guest-name');
+  const genderSelect = document.getElementById('checkin-guest-gender');
+  const starsEl = document.getElementById('checkin-guest-stars');
+  const name = nameInput.value.trim();
+  if(!name) return;
+  const novoConvidado = {
+    id: uid(), nome: name, apelido:'', foto:'',
+    estrelas: parseFloat(starsEl.dataset.value) || 0,
+    sexo: genderSelect.value || '',
+    isGuest: true
+  };
+  GUESTS.push(novoConvidado);
+  nameInput.value=''; genderSelect.value='';
+  starsEl.dataset.value = 0;
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
+
+  // já marca presença automaticamente pro convidado recém-adicionado, na data selecionada
+  const data = document.getElementById('checkin-date').value;
+  const novoCheckin = { id: uid(), data, jogadorId: novoConvidado.id, jogadorNome: name };
+  CHECKINS.push(novoCheckin);
+  await postAction('addCheckin', {checkin: novoCheckin}, null);
+
+  renderCheckinList();
+});
+document.getElementById('checkin-search').addEventListener('input', renderCheckinList);
+
+function renderCheckinList(){
+  const data = document.getElementById('checkin-date').value;
+  const term = document.getElementById('checkin-search').value;
+  const list = document.getElementById('checkin-list');
+  const confirmadosHoje = new Set(CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId));
+  document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
+
+  const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+  if(pool.length===0){
+    list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador encontrado.</div>';
+    return;
+  }
+  const badges = computeBadges();
+  list.innerHTML = pool.map(p=>{
+    const confirmado = confirmadosHoje.has(p.id);
+    return `<label class="select-row" style="cursor:pointer;" data-checkin-toggle="${p.id}">
+      ${avatarHtml(p,'sm')}
+      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
+      ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
+      ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
+      <button type="button" class="btn ${confirmado?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}">
+        ${confirmado ? '✅ Confirmado' : 'Vou jogar'}
+      </button>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('[data-checkin-btn]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const pid = btn.dataset.checkinBtn;
+      const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid);
+      btn.disabled = true;
+      if(jaConfirmado){
+        const ok = await postAction('removeCheckin', {id: jaConfirmado.id}, null);
+        if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
+      } else {
+        const player = getPlayer(pid);
+        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '' };
+        CHECKINS.push(novoCheckin);
+        const ok = await postAction('addCheckin', {checkin: novoCheckin}, null);
+        if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
+      }
+      renderCheckinList();
+    });
+  });
+}
+
+document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()=>{
+  const data = document.getElementById('checkin-date').value;
+  const idsConfirmados = CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
+  if(idsConfirmados.length===0){
+    alert('Ninguém confirmou presença para essa data ainda.');
+    return;
+  }
+  SELECTED_IDS = new Set(idsConfirmados);
+  document.querySelector('#nav button[data-view="sorteio"]').click();
+  renderSorteioList();
+});
 
 /* ---------- SORTEIO ---------- */
 document.getElementById('add-guest-btn').addEventListener('click', ()=>{
@@ -1971,8 +2384,72 @@ function draftBalanced(players, numTeams){
 
   equilibrarTimes(teams, numTeams, tetoCincoEstrelas);
   reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas);
+  evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas);
 
   return shuffleArray(teams); // ordem de EXIBIÇÃO dos times sorteada de novo — nunca previsível
+}
+
+function contarDuplasRecentes(rounds, limiteQtdRodadas){
+  // olha só as rodadas mais recentes — duplas de meses atrás não devem pesar no sorteio de hoje
+  const recentes = [...rounds].sort((a,b)=> toTimestamp(b.data)-toTimestamp(a.data)).slice(0, limiteQtdRodadas);
+  const counts = {};
+  recentes.forEach(r=> r.times.forEach(team=>{
+    const ids = (team.playerIds||[]).filter(Boolean);
+    for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++){
+      const key=[ids[i],ids[j]].sort().join('|');
+      counts[key]=(counts[key]||0)+1;
+    }
+  }));
+  return counts;
+}
+
+function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
+  // tenta separar duplas que já jogaram muito juntas nas últimas rodadas, trocando jogadores
+  // entre times — só faz a troca se ISSO NÃO piorar o equilíbrio de notas em mais de 1 ponto,
+  // pra não desfazer o trabalho da etapa de equilíbrio anterior
+  const recentCounts = contarDuplasRecentes(DATA.rounds, 5);
+  if(Object.keys(recentCounts).length===0) return; // sem histórico recente, nada a evitar
+
+  function penalidadeTime(team){
+    let p=0;
+    for(let i=0;i<team.length;i++) for(let j=i+1;j<team.length;j++){
+      p += recentCounts[[team[i].id,team[j].id].sort().join('|')] || 0;
+    }
+    return p;
+  }
+
+  for(let rodada=0; rodada<20; rodada++){
+    let melhor = null, melhorGanho = 0;
+    for(let ta=0; ta<numTeams; ta++){
+      for(let tb=ta+1; tb<numTeams; tb++){
+        const penAntes = penalidadeTime(teams[ta]) + penalidadeTime(teams[tb]);
+        const diffAntes = Math.abs(somaTime(teams[ta]) - somaTime(teams[tb]));
+        teams[ta].forEach((pa, ia)=>{
+          teams[tb].forEach((pb, ib)=>{
+            if(pa.sexo !== pb.sexo) return; // preserva a meta de mulheres por time
+            const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
+            if(paCinco !== pbCinco){
+              const cincoA = teams[ta].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
+              const cincoB = teams[tb].filter(p=>p.estrelas===5).length - (pbCinco?1:0) + (paCinco?1:0);
+              if(cincoA > tetoCincoEstrelas || cincoB > tetoCincoEstrelas) return;
+            }
+            const novoTa = teams[ta].slice(); novoTa[ia]=pb;
+            const novoTb = teams[tb].slice(); novoTb[ib]=pa;
+            const ganho = penAntes - (penalidadeTime(novoTa) + penalidadeTime(novoTb));
+            const diffDepois = Math.abs(somaTime(novoTa) - somaTime(novoTb));
+            if(ganho > melhorGanho && diffDepois <= diffAntes + 1){
+              melhorGanho = ganho;
+              melhor = { ta, tb, ia, ib };
+            }
+          });
+        });
+      }
+    }
+    if(!melhor) break;
+    const tmp = teams[melhor.ta][melhor.ia];
+    teams[melhor.ta][melhor.ia] = teams[melhor.tb][melhor.ib];
+    teams[melhor.tb][melhor.ib] = tmp;
+  }
 }
 
 function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas){
@@ -2119,6 +2596,50 @@ function compartilharNoWhatsApp(texto){
   window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
 }
 
+/* ---------- RESUMO SEMANAL PRO WHATSAPP ---------- */
+function montarResumoSemanal(){
+  let texto = `🏐 *Resumo da semana* — Volei de Areia\n\n`;
+
+  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  const lastRound = sorted[0];
+  if(lastRound && lastRound.vencedor !== -1 && lastRound.vencedor !== undefined){
+    const team = lastRound.times[lastRound.vencedor];
+    const nomes = (team.playerIds||[]).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; });
+    texto += `🏆 *Campeão de ${formatDate(lastRound.data)}*\n${nomes.join(', ')}\n\n`;
+  }
+
+  const badges = computeBadges();
+  function nomesDoSet(idsSet){
+    return Array.from(idsSet).map(id=>{ const p=getPlayer(id); return p ? (p.apelido||p.nome) : null; }).filter(Boolean);
+  }
+  const top1Nomes = nomesDoSet(badges.top1);
+  if(top1Nomes.length) texto += `📸 *TOP1 (mais vezes na foto)*\n${top1Nomes.join(', ')}\n\n`;
+
+  const grudentoNomes = nomesDoSet(badges.grudento);
+  if(grudentoNomes.length===2) texto += `🧲 *Dupla mais grudenta*\n${grudentoNomes.join(' + ')}\n\n`;
+
+  if(badges.paneleiro.size){
+    const paneleiroNomes = nomesDoSet(badges.paneleiro);
+    texto += `🍳 *Paneleiros da vez*\n${paneleiroNomes.join(', ')}\n\n`;
+  }
+
+  const top3 = computeRanking(new Date().getFullYear().toString()).slice(0,3);
+  if(top3.length){
+    texto += `📊 *Top 3 do ano*\n`;
+    top3.forEach((r,i)=>{ texto += `${i+1}º ${r.nome} — ${r.titulos} campeonato(s), ${r.vitoriasPartidas} vit. de partidas\n`; });
+    texto += '\n';
+  }
+
+  if(badges.rip.size > 0){
+    texto += `⚰️ ${badges.rip.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
+  }
+
+  return texto;
+}
+document.getElementById('share-weekly-whatsapp-btn').addEventListener('click', ()=>{
+  compartilharNoWhatsApp(montarResumoSemanal());
+});
+
 function renderManualGroups(){
   const container = document.getElementById('manual-groups');
   const badges = computeBadges();
@@ -2133,7 +2654,7 @@ function renderManualGroups(){
         ${grupo.length===0 ? '<div class="group-empty-hint">Arraste alguém pra cá</div>' : grupo.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-group="${gi}">
             ${avatarHtml(p,'sm')}
-            <span class="flex1">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
+            <span class="flex1 clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
             ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
@@ -2305,7 +2826,13 @@ function finalizarSorteioManual(){
 
 function renderDraftResult(){
   const container = document.getElementById('draft-result');
+  const somas = DRAFT_TEAMS.map(somaTime);
+  const diff = somas.length ? Math.max(...somas) - Math.min(...somas) : 0;
+  const equilibrio = Math.max(0, Math.min(100, Math.round(100 - diff*12)));
   container.innerHTML = `
+    <div class="equilibrio-badge" title="Baseado na diferença de soma de notas entre o time mais forte e o mais fraco">
+      ⚖️ Equilíbrio deste sorteio: <strong>${equilibrio}%</strong>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="btn" id="send-to-rodada-btn">Usar esses times na Nova Rodada</button>
       <button class="btn secondary" id="share-teams-whatsapp-btn">📲 Compartilhar times no WhatsApp</button>
@@ -2326,7 +2853,7 @@ function renderDraftResult(){
         ${ordemExibicao.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
             ${avatarHtml(p,'sm')}
-            <span class="flex1">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
+            <span class="flex1 clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
             ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
           </div>
@@ -2433,6 +2960,19 @@ document.addEventListener('click', (e)=>{
   else { closeBadgeTooltip(); }
 });
 window.addEventListener('scroll', closeBadgeTooltip, true);
+
+/* ---------- MODO CLARO (preferência pessoal, salva só no navegador) ---------- */
+function aplicarTema(){
+  const claro = localStorage.getItem('volei-theme') === 'light';
+  document.body.classList.toggle('light-mode', claro);
+  document.getElementById('theme-toggle-btn').textContent = claro ? '🌙 Modo escuro' : '☀️ Modo claro';
+}
+document.getElementById('theme-toggle-btn').addEventListener('click', ()=>{
+  const claroAtual = document.body.classList.contains('light-mode');
+  localStorage.setItem('volei-theme', claroAtual ? 'dark' : 'light');
+  aplicarTema();
+});
+aplicarTema();
 
 loadData();
 </script>
