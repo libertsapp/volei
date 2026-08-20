@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rodada — Dashboard do Vôlei</title>
+<title>Volei de Areia — Dashboard do Time</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.85em' font-size='90'%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -1725,7 +1726,7 @@ function renderDashboard(){
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
           <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
-          <div class="stat-card"><div class="stat-num">${badges.rip.size}</div><div class="stat-cap">Desaparecidos ⚰️</div></div>
+          <div class="stat-card"><div class="stat-num">${badges.rip.size}</div><div class="stat-cap">Desaparecidos 👻</div></div>
         </div>
       </div>`;
   }
@@ -1818,7 +1819,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.top1.has(pid)) html += `<span class="badge-icon" title="TOP1 — quem mais saiu na foto de campeão">📸</span>`;
   if(badges.paneleiro.has(pid)) html += `<span class="badge-icon" title="PANELEIRO — um dos 3 jogadores mais vezes em time desequilibrado a favor">🍳</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
-  if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">⚰️</span>`;
+  if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   return html;
 }
@@ -2724,7 +2725,7 @@ function montarResumoSemanal(){
   }
 
   if(badges.rip.size > 0){
-    texto += `⚰️ ${badges.rip.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
+    texto += `👻 ${badges.rip.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
   }
 
   return texto;
