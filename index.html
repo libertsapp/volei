@@ -1248,16 +1248,17 @@ function computePlayerAllTimeStats(id){
   rounds.sort((a,b)=> toTimestamp(b.data)-toTimestamp(a.data));
   return { jogos, titulos, vitoriasPartidas, vezesNaFoto, pct: jogos>0?Math.round((titulos/jogos)*100):0, rounds };
 }
-function computeTopPartner(id){
+function computeTopPartners(id, limite){
   const counts = {};
   DATA.rounds.forEach(r=> r.times.forEach(team=>{
     const ids = (team.playerIds||[]).filter(Boolean);
     if(!ids.includes(id)) return;
     ids.forEach(pid=>{ if(pid!==id) counts[pid] = (counts[pid]||0)+1; });
   }));
-  let melhor=null, max=0;
-  Object.entries(counts).forEach(([pid,c])=>{ if(c>max){ max=c; melhor=pid; } });
-  return melhor ? { id: melhor, count: max } : null;
+  return Object.entries(counts)
+    .map(([pid,c])=>({ id: pid, count: c }))
+    .sort((a,b)=> b.count - a.count)
+    .slice(0, limite || 3);
 }
 
 function computeAproveitamentoSeries(stats){
@@ -1303,8 +1304,7 @@ function openPlayerProfile(id){
   if(!player) return;
   const stats = computePlayerAllTimeStats(id);
   const badges = computeBadges();
-  const parceiro = computeTopPartner(id);
-  const parceiroPlayer = parceiro ? getPlayer(parceiro.id) : null;
+  const parceiros = computeTopPartners(id, 3);
   const serieAproveitamento = computeAproveitamentoSeries(stats);
 
   const overlay = document.createElement('div');
@@ -1329,9 +1329,13 @@ function openPlayerProfile(id){
       </div>
       <div class="profile-section-title">Evolução do aproveitamento</div>
       <div class="profile-chart-wrap">${renderAproveitamentoChart(serieAproveitamento)}</div>
-      ${parceiroPlayer ? `
-        <div class="profile-section-title">Parceiro mais frequente</div>
-        <div class="profile-partner">${avatarHtml(parceiroPlayer,'sm')} ${escapeHtml(parceiroPlayer.apelido||parceiroPlayer.nome)} <span style="margin-left:auto;color:var(--muted);">${parceiro.count}× juntos</span></div>
+      ${parceiros.length ? `
+        <div class="profile-section-title">Jogadores que mais jogou junto</div>
+        ${parceiros.map(par=>{
+          const pj = getPlayer(par.id);
+          if(!pj) return '';
+          return `<div class="profile-partner">${avatarHtml(pj,'sm')} ${escapeHtml(pj.apelido||pj.nome)} <span style="margin-left:auto;color:var(--muted);">${par.count}× juntos</span></div>`;
+        }).join('')}
       ` : ''}
       <div class="profile-section-title">Últimas rodadas</div>
       ${stats.rounds.length===0 ? '<div style="color:var(--muted);font-size:12px;">Ainda não jogou nenhuma rodada.</div>' :
