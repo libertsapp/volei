@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Volei de Areia — Dashboard do Time</title>
+<title>Volei de Terça — Dashboard do Time</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.85em' font-size='90'%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -48,6 +48,10 @@
     min-height:100vh;
   }
   .wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
+  .app-footer{
+    text-align:center;font-size:11px;color:var(--muted);opacity:0.6;
+    padding:18px 20px 4px;max-width:1000px;margin:0 auto;
+  }
 
   /* header */
   header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;position:relative;}
@@ -524,7 +528,7 @@
     <div class="brand">
       <div class="ball"></div>
       <div>
-        <h1>Volei de Areia</h1>
+        <h1>Volei de Terça</h1>
         <p>dashboard do time</p>
       </div>
     </div>
@@ -536,6 +540,7 @@
       <button data-view="sorteio">Sorteio</button>
       <button data-view="ranking">Ranking</button>
       <button data-view="historico">Histórico</button>
+      <button data-view="info">Info ℹ️</button>
     </nav>
     <div class="header-right">
       <button type="button" id="theme-toggle-btn" class="admin-status" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)">☀️ Modo claro</button>
@@ -688,12 +693,30 @@
       <div class="guest-row">
         <strong style="font-size:13px;">Adicionar convidado a esta rodada (não é salvo permanentemente):</strong>
         <input id="rodada-guest-name" placeholder="Nome do convidado" style="width:160px;">
+        <select id="rodada-guest-gender">
+          <option value="">Sexo</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+        <div class="field-group">
+          <label>Nota</label>
+          <div class="stars-picker" id="rodada-guest-stars" data-value="0">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+        </div>
         <button class="btn secondary" id="rodada-add-guest-btn">Adicionar convidado</button>
       </div>
       <div id="rodada-guest-chips" class="sb-players" style="margin-bottom:14px;"></div>
 
       <div class="teams-grid" id="teams-grid"></div>
-      <button class="btn" id="save-round-btn">Salvar rodada</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn" id="save-round-btn">Salvar rodada</button>
+        <button class="btn secondary" id="save-draft-btn">💾 Salvar times como rascunho (lançar placar depois)</button>
+      </div>
     </section>
 
     <section id="view-sorteio">
@@ -785,11 +808,64 @@
     </section>
 
     <section id="view-historico">
+      <div id="history-drafts"></div>
       <h2 class="section-title">Histórico de rodadas</h2>
       <div id="history-list"></div>
     </section>
 
+    <section id="view-info">
+      <h2 class="section-title">Como funciona o Volei de Terça</h2>
+
+      <details class="dash-accordion" open>
+        <summary>🎲 Sorteio Automático — como o algoritmo decide os times</summary>
+        <div>
+          <p style="line-height:1.6;">O sorteio automático não é apenas aleatório — ele segue um conjunto de regras pensadas pra deixar os times o mais parelhos possível, sem depender de nenhum jogador em especial pra ficar bem distribuído. Nesta ordem de prioridade:</p>
+          <ol style="line-height:1.8;padding-left:20px;">
+            <li><strong>Tamanho do time.</strong> Todo mundo fica com o número de jogadores mais parecido possível (ex: 15 pessoas em 4 times vira 4/4/4/3, nunca 5/3). Essa regra nunca é quebrada.</li>
+            <li><strong>Cota de mulheres.</strong> É calculada pra ficar sempre a mais parelha possível (ex: 5 mulheres em 4 times sempre vira 2/1/1/1 — nunca um time com 2 e outro com nenhuma). Se algum time inevitavelmente ficar com mais mulheres que os outros, esse time recebe de propósito os jogadores de maior nota entre os homens, como forma de compensar.</li>
+            <li><strong>Cabeças de chave (5 estrelas).</strong> No máximo 1 jogador de nota máxima por time, sempre que a quantidade total permitir.</li>
+            <li><strong>Distribuição inicial embaralhada.</strong> Os jogadores são organizados por nota (do maior pro menor) e distribuídos em zigue-zague entre os times — mas antes disso, a lista inteira é embaralhada, pra jogadores com a mesma nota não caírem sempre na mesma ordem alfabética. O time que "começa a fila" também é sorteado a cada vez, pra não favorecer sempre o mesmo time.</li>
+            <li><strong>Ajuste fino de equilíbrio.</strong> Depois da primeira distribuição, o sistema compara a soma de notas de cada time e faz trocas (sempre entre jogadores do mesmo sexo, pra não bagunçar a cota de mulheres) até a diferença entre o time mais forte e o mais fraco ficar mínima.</li>
+            <li><strong>Evitar duplas repetidas.</strong> Por fim, o sistema tenta separar duplas que já jogaram muito juntas nas últimas rodadas — mas só faz essa troca se não atrapalhar o equilíbrio de notas conquistado no passo anterior.</li>
+          </ol>
+          <p style="line-height:1.6;">No final, aparece um selo <strong>"⚖️ Equilíbrio: X%"</strong> — quanto mais perto de 100%, mais parelha ficou a soma de notas entre os times daquele sorteio específico.</p>
+        </div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>🎯 Sorteio Manual — cada jogador sorteia o próprio time</summary>
+        <div>
+          <p style="line-height:1.6;">No Sorteio Manual, em vez do computador decidir tudo sozinho, cada jogador participa do próprio sorteio, ao vivo:</p>
+          <ol style="line-height:1.8;padding-left:20px;">
+            <li>Os participantes são organizados em grupos por nível (os de nota mais alta primeiro, as mulheres sempre no(s) último(s) grupo(s), independente da nota delas).</li>
+            <li>O admin pode arrastar qualquer jogador entre os grupos antes de começar, caso ache que a divisão não ficou justa.</li>
+            <li>Ao iniciar, o app mostra o nome do primeiro jogador do grupo, com um número de time girando na tela (só entre os times ainda disponíveis).</li>
+            <li>O próprio jogador — geralmente segurando o celular na hora — aperta o botão <strong>"Parar sorteio"</strong> e o time em que a roleta parou vira o time dele.</li>
+            <li>Esse time sai da disputa pros próximos jogadores do mesmo grupo, e quando só sobra uma opção, ela é atribuída direto, sem precisar girar de novo.</li>
+            <li>Terminado um grupo, todos os times voltam a disputar no grupo seguinte, até todo mundo ser sorteado.</li>
+          </ol>
+          <p style="line-height:1.6;">É a forma mais "de igual pra igual" de sortear — ninguém pode dizer que o resultado foi manipulado, porque cada um decide o próprio sorteio com as próprias mãos.</p>
+        </div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>📈 Evolução do aproveitamento — como o gráfico do perfil é calculado</summary>
+        <div>
+          <p style="line-height:1.6;">No perfil de cada jogador, o gráfico de "Evolução do aproveitamento" mostra se o desempenho dele está melhorando, piorando ou estável ao longo do tempo. O cálculo funciona assim:</p>
+          <ol style="line-height:1.8;padding-left:20px;">
+            <li>Pra cada rodada que o jogador participou, o sistema olha se o time dele foi o campeão daquele dia (venceu ou não).</li>
+            <li>Em vez de mostrar cada rodada isolada (o que deixaria o gráfico "serrilhado" e difícil de ler), é calculada uma <strong>média móvel das últimas 5 rodadas</strong> — ou seja, cada ponto do gráfico representa o aproveitamento considerando aquela rodada e as 4 anteriores.</li>
+            <li>Isso suaviza oscilações pontuais (tipo perder um dia ruim isolado) e mostra a <strong>tendência real</strong> de forma mais confiável.</li>
+            <li>No final, o app compara o primeiro ponto do gráfico com o último: se subiu mais de 5 pontos percentuais, mostra <strong>"📈 Melhorando"</strong>; se caiu mais de 5, mostra <strong>"📉 Piorando"</strong>; senão, <strong>"➡️ Estável"</strong>.</li>
+          </ol>
+          <p style="line-height:1.6;color:var(--muted);font-size:13px;">É preciso pelo menos 2 rodadas jogadas pra o gráfico conseguir mostrar alguma tendência.</p>
+        </div>
+      </details>
+    </section>
+
   </div>
+
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados</footer>
 </div>
 
 <script>
@@ -833,6 +909,7 @@ async function loadData(){
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
     CHECKINS = json.checkins || [];
+    reconstituirConvidadosDosCheckins();
   }catch(e){
     console.error('Falha ao carregar da planilha', e);
     document.getElementById('config-warning').style.display = 'block';
@@ -954,6 +1031,10 @@ async function postAction(action, payload, pwd){
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+// Rodadas "rascunho" (times já montados, mas placar ainda não lançado) não contam em
+// nenhuma estatística/ranking/gráfico — só viram rodada de verdade quando finalizadas.
+function roundsOficiais(){ return DATA.rounds.filter(r=> !r.rascunho); }
+
 let GUESTS = []; // jogadores visitantes — apenas na memória, nunca salvos na planilha
 let SELECTED_IDS = new Set(); // participantes marcados no Sorteio — persiste mesmo trocando o filtro de busca
 
@@ -966,6 +1047,25 @@ function getPlayer(id){
     return { id, nome: `${nomeConvidado} (Convidado(a))`, apelido:'', foto:'', estrelas:0, sexo:'', isGuestMarker:true };
   }
   return DATA.players.find(p=>p.id===id) || GUESTS.find(g=>g.id===id);
+}
+
+// Convidados existem só na memória (nunca são salvos como jogador de verdade). Se a página
+// recarrega, um convidado que já tinha feito check-in "sumia" da lista, mesmo contando na soma
+// (porque o check-in continuava salvo, mas o app não sabia mais quem era aquele id). Aqui a
+// gente reconstrói esses convidados a partir dos check-ins da data ABERTA no momento (só essa,
+// não o histórico inteiro — senão convidados de semanas passadas voltariam a aparecer sempre).
+function reconstituirConvidadosDosCheckins(){
+  const dataAberta = SETTINGS.checkinDataAberta;
+  if(!dataAberta) return; // sem check-in aberto, não há convidado "ativo" pra reconstruir
+  const idsConhecidos = new Set(DATA.players.map(p=>p.id).concat(GUESTS.map(g=>g.id)));
+  CHECKINS.filter(c=> c.data === dataAberta).forEach(c=>{
+    if(idsConhecidos.has(c.jogadorId)) return;
+    GUESTS.push({
+      id: c.jogadorId, nome: c.jogadorNome || 'Convidado', apelido: '', foto: '',
+      estrelas: c.estrelas || 0, sexo: c.sexo || '', isGuest: true
+    });
+    idsConhecidos.add(c.jogadorId);
+  });
 }
 
 /* ---------- NAV ---------- */
@@ -1047,6 +1147,7 @@ function wireStarsPicker(containerId){
 wireStarsPicker('new-player-stars');
 wireStarsPicker('guest-stars');
 wireStarsPicker('checkin-guest-stars');
+wireStarsPicker('rodada-guest-stars');
 
 function starsDisplay(n){
   n = parseFloat(n) || 0;
@@ -1235,7 +1336,7 @@ function renderPlayers(){
 function computePlayerAllTimeStats(id){
   let jogos=0, titulos=0, vitoriasPartidas=0, vezesNaFoto=0;
   const rounds = [];
-  DATA.rounds.forEach(r=>{
+  roundsOficiais().forEach(r=>{
     r.times.forEach((team, idx)=>{
       if(!(team.playerIds||[]).includes(id)) return;
       jogos++;
@@ -1250,7 +1351,7 @@ function computePlayerAllTimeStats(id){
 }
 function computeTopPartners(id, limite){
   const counts = {};
-  DATA.rounds.forEach(r=> r.times.forEach(team=>{
+  roundsOficiais().forEach(r=> r.times.forEach(team=>{
     const ids = (team.playerIds||[]).filter(Boolean);
     if(!ids.includes(id)) return;
     ids.forEach(pid=>{ if(pid!==id) counts[pid] = (counts[pid]||0)+1; });
@@ -1504,10 +1605,19 @@ function renderTeamsGrid(){
 /* convidados adicionados diretamente na Nova Rodada (mesma lista GUESTS usada no Sorteio) */
 document.getElementById('rodada-add-guest-btn').addEventListener('click', ()=>{
   const nameInput = document.getElementById('rodada-guest-name');
+  const genderSelect = document.getElementById('rodada-guest-gender');
+  const starsEl = document.getElementById('rodada-guest-stars');
   const name = nameInput.value.trim();
   if(!name) return;
-  GUESTS.push({ id: uid(), nome: name, apelido:'', foto:'', estrelas:0, sexo:'', isGuest:true });
-  nameInput.value = '';
+  GUESTS.push({
+    id: uid(), nome: name, apelido:'', foto:'',
+    estrelas: parseFloat(starsEl.dataset.value) || 0,
+    sexo: genderSelect.value || '',
+    isGuest: true
+  });
+  nameInput.value = ''; genderSelect.value = '';
+  starsEl.dataset.value = 0;
+  starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
   renderRodadaGuestChips();
 });
 
@@ -1516,7 +1626,7 @@ function renderRodadaGuestChips(){
   if(!container) return;
   if(GUESTS.length===0){ container.innerHTML=''; return; }
   container.innerHTML = GUESTS.map(g=>`
-    <span class="chip with-avatar">${avatarHtml(g,'sm')}<span class="clickable-name" data-open-profile="${g.id}">${escapeHtml(g.nome)}</span><span class="badge-guest" style="margin-left:6px;">convidado</span>
+    <span class="chip with-avatar">${avatarHtml(g,'sm')}<span class="clickable-name" data-open-profile="${g.id}">${escapeHtml(g.nome)}</span>${starsVisibleNow() ? starsDisplay(g.estrelas) : ''}<span class="badge-guest" style="margin-left:6px;">convidado</span>
       <button type="button" class="icon-btn" data-remove-guest="${g.id}" style="margin-left:4px;" title="Remover convidado">✕</button>
     </span>`).join('');
   container.querySelectorAll('[data-remove-guest]').forEach(btn=>{
@@ -1601,11 +1711,10 @@ function wirePickers(){
   document.addEventListener('click', closeAllPanels);
 }
 
-document.getElementById('save-round-btn').addEventListener('click', async ()=>{
+function buildTeamsFromGrid(){
   const grid = document.getElementById('teams-grid');
   const teamCards = Array.from(grid.querySelectorAll('.team-card'));
-  if(teamCards.length===0) return;
-  const teams = teamCards.map((card, idx)=>{
+  return teamCards.map((card, idx)=>{
     const rawIds = Array.from(card.querySelectorAll('.player-picker')).map(p=>p.dataset.value).filter(v=>v);
     // convidados não são salvos como jogadores reais — na hora de gravar, o nome vira parte de um
     // marcador "convidado:Nome#sufixo" (o sufixo evita colisão entre convidados de mesmo nome)
@@ -1620,6 +1729,11 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     const vitorias = winsInput ? (parseInt(winsInput.value,10) || 0) : 0;
     return { nome: `Time ${idx+1}`, playerIds, vitorias };
   });
+}
+
+document.getElementById('save-round-btn').addEventListener('click', async ()=>{
+  const teams = buildTeamsFromGrid();
+  if(teams.length===0) return;
   if(teams.every(t=>t.playerIds.length===0)){
     alert('Monte pelo menos um time com jogadores antes de salvar.');
     return;
@@ -1642,7 +1756,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
     if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
     const anterior = DATA.rounds[idx];
-    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: winnerCard };
+    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: winnerCard, rascunho: false };
     DATA.rounds[idx] = roundAtualizada;
     const ok = await postAction('updateRound', {round: roundAtualizada}, pwd);
     if(!ok){
@@ -1655,7 +1769,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     return;
   }
 
-  const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard };
+  const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard, rascunho: false };
   DATA.rounds.push(newRound);
   const ok = await postAction('addRound', {round: newRound}, pwd);
   if(!ok){
@@ -1663,6 +1777,43 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     return;
   }
   alert('Rodada salva!');
+  document.getElementById('round-team-count').value = '4';
+  renderTeamsGrid();
+  renderDashboard();
+});
+
+document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
+  const teams = buildTeamsFromGrid();
+  if(teams.length===0 || teams.every(t=>t.playerIds.length===0)){
+    alert('Monte pelo menos um time com jogadores antes de salvar o rascunho.');
+    return;
+  }
+  const pwd = await requireAdminPassword();
+  if(!pwd) return;
+  const date = document.getElementById('round-date').value || new Date().toISOString().slice(0,10);
+
+  if(EDITING_ROUND_ID){
+    const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
+    if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
+    const anterior = DATA.rounds[idx];
+    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: -1, rascunho: true };
+    DATA.rounds[idx] = roundAtualizada;
+    const ok = await postAction('updateRound', {round: roundAtualizada}, pwd);
+    if(!ok){ DATA.rounds[idx] = anterior; return; }
+    alert('Rascunho atualizado! Volte aqui quando quiser lançar o placar.');
+    fecharEdicaoDeRodada();
+    renderDashboard();
+    return;
+  }
+
+  const newRound = { id: uid(), data: date, times: teams, vencedor: -1, rascunho: true };
+  DATA.rounds.push(newRound);
+  const ok = await postAction('addRound', {round: newRound}, pwd);
+  if(!ok){
+    DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id);
+    return;
+  }
+  alert('Rascunho salvo! Os times ficam guardados, sem entrar nas estatísticas — quando quiser lançar o placar, é só abrir no Histórico.');
   document.getElementById('round-team-count').value = '4';
   renderTeamsGrid();
   renderDashboard();
@@ -1692,8 +1843,13 @@ function abrirEdicaoDeRodada(roundId){
   });
   updateLeader();
   document.getElementById('edit-round-banner').style.display = 'flex';
-  document.getElementById('edit-round-banner-date').textContent = formatDate(round.data);
-  document.getElementById('save-round-btn').textContent = 'Salvar alterações';
+  document.getElementById('edit-round-banner').innerHTML = round.rascunho
+    ? `✏️ Editando o <strong>rascunho</strong> de <strong>${formatDate(round.data)}</strong> — lance o placar e clique em "Salvar rodada" pra finalizar
+       <button type="button" class="btn secondary" id="cancel-edit-round-btn" style="padding:6px 12px;font-size:12px;margin-left:10px;">Cancelar edição</button>`
+    : `✏️ Editando a rodada de <strong>${formatDate(round.data)}</strong>
+       <button type="button" class="btn secondary" id="cancel-edit-round-btn" style="padding:6px 12px;font-size:12px;margin-left:10px;">Cancelar edição</button>`;
+  document.getElementById('cancel-edit-round-btn').addEventListener('click', fecharEdicaoDeRodada);
+  document.getElementById('save-round-btn').textContent = round.rascunho ? 'Salvar rodada (finalizar)' : 'Salvar alterações';
 }
 
 function fecharEdicaoDeRodada(){
@@ -1709,7 +1865,7 @@ document.getElementById('cancel-edit-round-btn').addEventListener('click', fecha
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
   const hero = document.getElementById('dash-hero');
-  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
 
   if(!lastRound || lastRound.vencedor===-1 || lastRound.vencedor===undefined){
@@ -1717,7 +1873,7 @@ function renderDashboard(){
   } else {
     const team = lastRound.times[lastRound.vencedor];
     const names = team.playerIds.map(id=> getPlayer(id));
-    const yearRounds = DATA.rounds.filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
+    const yearRounds = roundsOficiais().filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
     const badges = computeBadges();
     hero.innerHTML = `
       <div class="scoreboard">
@@ -1751,7 +1907,7 @@ function renderDashboard(){
 /* ---------- DUPLAS MAIS SORTEADAS JUNTAS ---------- */
 function computeTopDuos(){
   const counts = {}; // "id1|id2" (ordenado) -> quantidade de vezes juntos no mesmo time
-  DATA.rounds.forEach(r=>{
+  roundsOficiais().forEach(r=>{
     r.times.forEach(team=>{
       const ids = (team.playerIds || []).filter(Boolean);
       for(let i=0;i<ids.length;i++){
@@ -1797,7 +1953,7 @@ function computeBadges(){
   const DIA_MS = 24*60*60*1000;
   const now = Date.now();
   const ultimaVez = {}; // pid -> timestamp da rodada mais recente em que apareceu
-  DATA.rounds.forEach(r=>{
+  roundsOficiais().forEach(r=>{
     const ts = toTimestamp(r.data);
     r.times.forEach(team=>{
       (team.playerIds||[]).forEach(pid=>{
@@ -1863,7 +2019,7 @@ function pesoEstrelas(pid){
 
 function computeAllPanelaEntries(){
   const results = [];
-  DATA.rounds.forEach(r=>{
+  roundsOficiais().forEach(r=>{
     const teams = r.times
       .filter(t => (t.playerIds||[]).length > 0)
       .map(t=>{
@@ -1911,7 +2067,7 @@ function renderPanelas(){
 function computePhotoCounts(){
   const counts = {};
   DATA.players.forEach(p=>{ counts[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, vezes:0 }; });
-  DATA.rounds.forEach(r=>{
+  roundsOficiais().forEach(r=>{
     r.times.forEach((team, idx)=>{
       if(idx !== r.vencedor) return;
       team.playerIds.forEach(pid=>{
@@ -1998,7 +2154,7 @@ function animarContador(el, alvo, sufixo){
 function computeRanking(year){
   const stats = {};
   DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0 }; });
-  DATA.rounds.filter(r=> getYearOf(r.data)===year).forEach(r=>{
+  roundsOficiais().filter(r=> getYearOf(r.data)===year).forEach(r=>{
     r.times.forEach((team, idx)=>{
       const isWinner = idx === r.vencedor;
       team.playerIds.forEach(pid=>{
@@ -2034,7 +2190,7 @@ function rankingTableHtml(rows){
 
 function populateYearSelect(){
   const sel = document.getElementById('ranking-year');
-  const years = new Set(DATA.rounds.map(r=>getYearOf(r.data)).filter(Boolean));
+  const years = new Set(roundsOficiais().map(r=>getYearOf(r.data)).filter(Boolean));
   years.add(new Date().getFullYear().toString());
   const sorted = Array.from(years).sort().reverse();
   const current = sel.value || new Date().getFullYear().toString();
@@ -2054,8 +2210,53 @@ document.getElementById('ranking-year').addEventListener('change', renderRanking
 
 /* ---------- HISTORICO ---------- */
 function renderHistory(){
+  const draftsContainer = document.getElementById('history-drafts');
+  const rascunhos = DATA.rounds.filter(r=>r.rascunho).sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  if(rascunhos.length===0){
+    draftsContainer.innerHTML = '';
+  } else {
+    draftsContainer.innerHTML = `
+      <h2 class="section-title">📝 Rascunhos pendentes (placar ainda não lançado)</h2>
+      <div id="drafts-list" style="margin-bottom:24px;"></div>`;
+    const draftsList = document.getElementById('drafts-list');
+    draftsList.innerHTML = rascunhos.map(r=>`
+      <div class="history-item" style="border-color:var(--ball-yellow);">
+        <div class="history-head">
+          <span class="history-date">${formatDate(r.data)} <span class="badge-guest" style="margin-left:6px;">rascunho</span></span>
+          <div style="display:flex;gap:2px;">
+            <button class="icon-btn" data-del-draft="${r.id}" aria-label="Excluir rascunho">✕</button>
+          </div>
+        </div>
+        <div class="history-teams">
+          ${r.times.map(t=>`
+            <div class="history-team">
+              <div class="tn">${escapeHtml(t.nome)}</div>
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?escapeHtml(p.apelido||p.nome):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn" data-lancar-placar="${r.id}" style="margin-top:12px;">Lançar placar →</button>
+      </div>
+    `).join('');
+    draftsList.querySelectorAll('[data-lancar-placar]').forEach(btn=>{
+      btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.lancarPlacar));
+    });
+    draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('Excluir este rascunho?')) return;
+        const pwd = await requireAdminPassword();
+        if(!pwd) return;
+        const removed = DATA.rounds.find(r=>r.id===btn.dataset.delDraft);
+        DATA.rounds = DATA.rounds.filter(r=>r.id!==btn.dataset.delDraft);
+        const ok = await postAction('removeRound', {id: btn.dataset.delDraft}, pwd);
+        if(!ok && removed){ DATA.rounds.push(removed); }
+        renderHistory();
+      });
+    });
+  }
+
   const list = document.getElementById('history-list');
-  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   if(sorted.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-history"></i>Nenhuma rodada lançada ainda.</div>';
     return;
@@ -2226,7 +2427,7 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
 
   // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
-  const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name };
+  const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo };
   CHECKINS.push(novoCheckin);
   await postAction('addCheckin', {checkin: novoCheckin}, null);
 
@@ -2279,7 +2480,7 @@ function renderCheckinList(){
         if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
       } else {
         const player = getPlayer(pid);
-        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '' };
+        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'' };
         CHECKINS.push(novoCheckin);
         const ok = await postAction('addCheckin', {checkin: novoCheckin}, null);
         if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
@@ -2505,7 +2706,7 @@ function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
   // tenta separar duplas que já jogaram muito juntas nas últimas rodadas, trocando jogadores
   // entre times — só faz a troca se ISSO NÃO piorar o equilíbrio de notas em mais de 1 ponto,
   // pra não desfazer o trabalho da etapa de equilíbrio anterior
-  const recentCounts = contarDuplasRecentes(DATA.rounds, 5);
+  const recentCounts = contarDuplasRecentes(roundsOficiais(), 5);
   if(Object.keys(recentCounts).length===0) return; // sem histórico recente, nada a evitar
 
   function penalidadeTime(team){
@@ -2681,7 +2882,7 @@ document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
 
 /* ---------- COMPARTILHAR NO WHATSAPP (grupos ou times) ---------- */
 function montarTextoWhatsApp(titulo, listas, rotulo){
-  let texto = `🏐 *${titulo}* — Volei de Areia\n\n`;
+  let texto = `🏐 *${titulo}* — Volei de Terça\n\n`;
   listas.forEach((lista, i)=>{
     if(!lista || lista.length===0) return;
     texto += `*${rotulo} ${i+1}*\n`;
@@ -2696,9 +2897,9 @@ function compartilharNoWhatsApp(texto){
 
 /* ---------- RESUMO SEMANAL PRO WHATSAPP ---------- */
 function montarResumoSemanal(){
-  let texto = `🏐 *Resumo da semana* — Volei de Areia\n\n`;
+  let texto = `🏐 *Resumo da semana* — Volei de Terça\n\n`;
 
-  const sorted = [...DATA.rounds].sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
   if(lastRound && lastRound.vencedor !== -1 && lastRound.vencedor !== undefined){
     const team = lastRound.times[lastRound.vencedor];
