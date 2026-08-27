@@ -445,6 +445,7 @@
   .search-box::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:0.6;}
   .search-count{font-size:11px;color:var(--muted);margin:-6px 0 12px;}
   mark.picker-match{background:none;color:var(--ball-yellow);font-weight:700;}
+  .apelido-tag{font-size:11px;color:var(--muted);font-weight:400;}
 
   /* combobox de jogador (Nova Rodada) */
   .player-picker{position:relative;margin-bottom:8px;}
@@ -867,7 +868,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados</footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.1</footer>
 </div>
 
 <script>
@@ -1601,6 +1602,16 @@ function highlightMatch(label, term){
   return escapeHtml(label.slice(0,idx)) + '<mark class="picker-match">' + escapeHtml(label.slice(idx, idx+term.length)) + '</mark>' + escapeHtml(label.slice(idx+term.length));
 }
 
+// Em qualquer lugar que o usuário SELECIONA um jogador (seletor da Nova Rodada, listas do
+// Sorteio/Check-in, times sorteados), o NOME completo vem primeiro; o apelido (se tiver)
+// aparece depois, menor e entre aspas — nunca mais o apelido sozinho no lugar do nome.
+function nomeComApelidoHtml(p, term){
+  if(!p) return '?';
+  let html = highlightMatch(p.nome, term||'');
+  if(p.apelido) html += ` <span class="apelido-tag">"${highlightMatch(p.apelido, term||'')}"</span>`;
+  return html;
+}
+
 /* ---------- NOVA RODADA ---------- */
 document.getElementById('round-date').valueAsDate = new Date();
 document.getElementById('round-team-count').addEventListener('change', renderTeamsGrid);
@@ -1695,7 +1706,7 @@ function updateLeader(){
 /* combobox de jogador com busca, usado nos slots de Nova Rodada */
 function playerTriggerHtml(p){
   if(!p) return '<span class="picker-placeholder">🔍 Escolher jogador…</span>';
-  return `${avatarHtml(p,'sm')}<span>${escapeHtml(p.apelido||p.nome)}${badgeIconsHtml(p.id, computeBadges())}</span>`;
+  return `${avatarHtml(p,'sm')}<span>${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, computeBadges())}</span>`;
 }
 
 function wirePickers(){
@@ -1709,7 +1720,7 @@ function wirePickers(){
   function renderList(picker, term){
     const list = picker.querySelector('.picker-list');
     const chosenIds = pickers.map(p=>p.dataset.value).filter(v=> v && v!==picker.dataset.value);
-    const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+    const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
     if(pool.length===0){
       list.innerHTML = '<div class="picker-empty">Nenhum jogador encontrado</div>';
       return;
@@ -1717,7 +1728,7 @@ function wirePickers(){
     const badges = computeBadges();
     list.innerHTML = pool.map(p=>{
       const disabled = chosenIds.includes(p.id);
-      const label = highlightMatch(p.apelido||p.nome, term);
+      const label = nomeComApelidoHtml(p, term);
       return `<div class="picker-item ${disabled?'disabled':''}" data-id="${p.id}">${avatarHtml(p,'sm')}<span>${label}${badgeIconsHtml(p.id, badges)}</span>${p.isGuest?'<span class="badge-guest">convidado</span>':''}</div>`;
     }).join('');
     list.querySelectorAll('.picker-item:not(.disabled)').forEach(item=>{
@@ -2503,7 +2514,7 @@ function renderCheckinList(){
   const confirmadosHoje = new Set(CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId));
   document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
 
-  const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+  const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
   if(pool.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador encontrado.</div>';
     return;
@@ -2514,7 +2525,7 @@ function renderCheckinList(){
     const confirmado = confirmadosHoje.has(p.id);
     return `<label class="select-row" style="cursor:pointer;" data-checkin-toggle="${p.id}">
       ${avatarHtml(p,'sm')}
-      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
+      <span class="flex1">${nomeComApelidoHtml(p, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
       ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
       <button type="button" class="btn ${confirmado?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${travado?'disabled title="Check-in travado pelo admin"':''}>
@@ -2609,7 +2620,7 @@ function renderSorteioList(){
   const list = document.getElementById('sorteio-select-list');
   const countEl = document.getElementById('sorteio-search-count');
   const fullPool = DATA.players.concat(GUESTS).filter(p => (p.estrelas||0) >= minStar);
-  const pool = sortByName(fullPool).filter(p => normalizeStr(p.apelido||p.nome).includes(normalizeStr(term)));
+  const pool = sortByName(fullPool).filter(p => normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
   countEl.textContent = term ? `${pool.length} de ${fullPool.length} jogador(es) encontrado(s)` : '';
   updateSelectedCounter();
   if(fullPool.length===0){
@@ -2625,7 +2636,7 @@ function renderSorteioList(){
     <label class="select-row">
       <input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>
       ${avatarHtml(p,'sm')}
-      <span class="flex1">${highlightMatch(p.apelido||p.nome, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
+      <span class="flex1">${nomeComApelidoHtml(p, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
       ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
     </label>
@@ -3007,7 +3018,7 @@ function renderManualGroups(){
         ${grupo.length===0 ? '<div class="group-empty-hint">Arraste alguém pra cá</div>' : grupo.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-group="${gi}">
             ${avatarHtml(p,'sm')}
-            <span class="flex1 clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
+            <span class="flex1 clickable-name" data-open-profile="${p.id}">${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, badges)}</span>
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
             ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
@@ -3206,7 +3217,7 @@ function renderDraftResult(){
         ${ordemExibicao.map(p=>`
           <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
             ${avatarHtml(p,'sm')}
-            <span class="flex1 clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</span>
+            <span class="flex1 clickable-name" data-open-profile="${p.id}">${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, badges)}</span>
             ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
           </div>
