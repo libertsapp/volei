@@ -539,10 +539,10 @@
       <button data-view="dashboard" class="active">Dashboard</button>
       <button data-view="checkin">Check-in ✅</button>
       <button data-view="jogadores">Jogadores</button>
-      <button data-view="rodada">Nova rodada</button>
       <button data-view="sorteio">Sorteio</button>
       <button data-view="ranking">Ranking</button>
       <button data-view="historico">Histórico</button>
+      <button data-view="rodada">Nova rodada</button>
       <button data-view="info">Info ℹ️</button>
     </nav>
     <div class="header-right">
@@ -635,7 +635,10 @@
       </div>
       <div class="search-box" id="checkin-search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
       <div class="select-list" id="checkin-list"></div>
-      <button class="btn" id="use-checkins-sorteio-btn" style="margin-top:12px;">Usar confirmados no Sorteio →</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
+        <button class="btn secondary" id="share-checkins-whatsapp-btn">📲 Compartilhar confirmados no WhatsApp</button>
+      </div>
     </section>
 
     <section id="view-jogadores">
@@ -868,7 +871,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.1</footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.2</footer>
 </div>
 
 <script>
@@ -2296,7 +2299,7 @@ function renderHistory(){
           ${r.times.map(t=>`
             <div class="history-team">
               <div class="tn">${escapeHtml(t.nome)}</div>
-              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?escapeHtml(p.apelido||p.nome):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
             </div>
           `).join('')}
         </div>
@@ -2341,7 +2344,7 @@ function renderHistory(){
           <div class="history-team ${idx===r.vencedor?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${idx===r.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?escapeHtml(p.apelido||p.nome):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
           </div>
         `).join('')}
       </div>
@@ -2432,9 +2435,11 @@ function renderCheckinStatus(){
   const searchBox = document.getElementById('checkin-search-box');
   const guestRow = document.getElementById('checkin-guest-row');
   const useBtn = document.getElementById('use-checkins-sorteio-btn');
+  const shareBtn = document.getElementById('share-checkins-whatsapp-btn');
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
   if(guestRow) guestRow.style.display = (data && !travado) ? 'flex' : 'none';
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
+  if(shareBtn) shareBtn.style.display = data ? 'inline-block' : 'none';
 }
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
@@ -2565,6 +2570,19 @@ document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()
   SELECTED_IDS = new Set(idsConfirmados);
   document.querySelector('#nav button[data-view="sorteio"]').click();
   renderSorteioList();
+});
+
+document.getElementById('share-checkins-whatsapp-btn').addEventListener('click', ()=>{
+  const data = SETTINGS.checkinDataAberta;
+  const confirmados = CHECKINS.filter(c=>c.data===data);
+  if(confirmados.length===0){
+    alert('Ninguém confirmou presença para essa data ainda.');
+    return;
+  }
+  let texto = `✅ *Confirmados para ${formatDate(data)}* — Volei de Terça\n\n`;
+  confirmados.forEach((c,i)=>{ texto += `${i+1}. ${c.jogadorNome || 'Convidado'}\n`; });
+  texto += `\nTotal: ${confirmados.length} confirmado(s)`;
+  compartilharNoWhatsApp(texto);
 });
 
 /* ---------- SORTEIO ---------- */
