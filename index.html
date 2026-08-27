@@ -871,7 +871,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.2</footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.3 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -901,6 +901,13 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx89S9izf2YKa33Y6
 
 let sheetReady = SHEET_API_URL.startsWith("http");
 
+function atualizarContadorAcessos(){
+  const el = document.getElementById('visit-counter');
+  if(!el) return;
+  const total = SETTINGS.contadorAcessos || 0;
+  el.textContent = `👁️ ${total.toLocaleString('pt-BR')} acesso${total===1?'':'s'}`;
+}
+
 async function loadData(){
   if(!sheetReady){
     document.getElementById('config-warning').style.display = 'block';
@@ -918,6 +925,7 @@ async function loadData(){
     }
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
+    atualizarContadorAcessos();
     CHECKINS = json.checkins || [];
     reconstituirConvidadosDosCheckins();
   }catch(e){
