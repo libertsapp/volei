@@ -276,6 +276,8 @@
   .badge-gender.F{color:#ff8fc0;border-color:#ff8fc055;}
   .badge-gender.M{color:var(--ball-blue);border-color:#4d7cff55;}
   .meta-row{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;}
+  .player-absence{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 7px;border-radius:10px;}
+  .player-absence.alerta{color:var(--danger);border-color:var(--danger);font-weight:700;}
 
   /* gráfico top 10 na foto */
   /* pódio "mais vezes na foto" — top 3 */
@@ -906,6 +908,10 @@ async function loadData(){
   try{
     const res = await fetch(SHEET_API_URL);
     const json = await res.json();
+    if(json && json.error){
+      document.getElementById('config-warning').style.display = 'block';
+      document.getElementById('config-warning').innerHTML = '⚠️ O Apps Script respondeu com um erro: <strong>' + json.error + '</strong>';
+    }
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
     CHECKINS = json.checkins || [];
@@ -1284,8 +1290,22 @@ function renderPlayers(){
   }
   const sorted = sortByName(DATA.players);
   const badges = computeBadges();
+  const ultimaVez = computeUltimaParticipacao();
+  const agora = Date.now();
   list.innerHTML = sorted.map(p=>{
     if(p.id === EDITING_PLAYER_ID) return editPlayerRowHtml(p);
+    let ausenciaHtml;
+    if(ultimaVez[p.id]===undefined){
+      ausenciaHtml = `<span class="player-absence">Sem Participações</span>`;
+    } else {
+      const dias = Math.floor((agora - ultimaVez[p.id]) / DIA_MS);
+      if(dias > 15){
+        const alerta = dias > 60;
+        ausenciaHtml = `<span class="player-absence ${alerta?'alerta':''}">${dias} dia${dias===1?'':'s'} sem jogar</span>`;
+      } else {
+        ausenciaHtml = ''; // jogou recentemente (15 dias ou menos) — não exibe nada
+      }
+    }
     return `
     <div class="player-row">
       <div class="with-avatar">
@@ -1296,11 +1316,12 @@ function renderPlayers(){
           <div class="meta-row">
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
             ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo==='F'?'Feminino':'Masculino'}</span>` : ''}
+            ${ausenciaHtml}
           </div>
         </div>
       </div>
       <div style="display:flex;gap:2px;">
-        <button class="icon-btn" data-edit="${p.id}" title="Editar estrelas/foto" aria-label="Editar jogador">✏️</button>
+        <button class="icon-btn" data-edit="${p.id}" title="Editar jogador" aria-label="Editar jogador">✏️</button>
         <button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>
       </div>
     </div>
@@ -1460,7 +1481,14 @@ function editPlayerRowHtml(p){
           <input type="file" id="edit-photo-input-${p.id}" accept="image/*">
         </div>
         <div>
-          <div class="name">${escapeHtml(p.nome)}</div>
+          <div class="field-group" style="margin-bottom:6px;">
+            <label>Nome</label>
+            <input type="text" id="edit-name-${p.id}" value="${escapeHtml(p.nome)}" style="min-width:180px;">
+          </div>
+          <div class="field-group" style="margin-bottom:6px;">
+            <label>Apelido (opcional)</label>
+            <input type="text" id="edit-nick-${p.id}" value="${escapeHtml(p.apelido||'')}" style="min-width:180px;">
+          </div>
           <div class="field-group" style="margin-top:6px;">
             <label>Nota</label>
             <div class="stars-picker" id="edit-stars-${p.id}" data-value="${p.estrelas||0}">
@@ -1521,6 +1549,14 @@ function wireEditPlayerRow(){
     if(!pwd){ return; }
     const player = DATA.players.find(pp=>pp.id===pid);
     if(!player) return;
+    const nameInput = document.getElementById('edit-name-'+pid);
+    const nickInput = document.getElementById('edit-nick-'+pid);
+    const novoNome = nameInput.value.trim();
+    const novoApelido = nickInput.value.trim();
+    if(!novoNome){
+      alert('O nome não pode ficar vazio.');
+      return;
+    }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando...';
     const novaEstrelas = parseFloat(starsEl.dataset.value) || 0;
@@ -1533,13 +1569,17 @@ function wireEditPlayerRow(){
       console.error('Falha no upload da foto', e);
       alert('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.');
     }
-    const anterior = { estrelas: player.estrelas, foto: player.foto };
+    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido };
     player.estrelas = novaEstrelas;
     player.foto = novaFoto;
+    player.nome = novoNome;
+    player.apelido = novoApelido;
     const ok = await postAction('updatePlayer', {player: player}, pwd);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
       player.foto = anterior.foto;
+      player.nome = anterior.nome;
+      player.apelido = anterior.apelido;
     }
     EDITING_PLAYER_ID = null;
     renderPlayers();
@@ -1930,6 +1970,21 @@ function computeTopDuos(){
 /* ---------- EMBLEMAS (ícones ao lado do nome, em todas as telas) ---------- */
 // Recalcula sempre a partir dos dados atuais — é uma conta leve (poucas dezenas de
 // jogadores/rodadas num app de time amador), então não pesa navegar entre as telas.
+const DIA_MS = 24*60*60*1000;
+function computeUltimaParticipacao(){
+  // pid -> timestamp da rodada oficial mais recente em que o jogador apareceu
+  const ultimaVez = {};
+  roundsOficiais().forEach(r=>{
+    const ts = toTimestamp(r.data);
+    r.times.forEach(team=>{
+      (team.playerIds||[]).forEach(pid=>{
+        if(ultimaVez[pid]===undefined || ts > ultimaVez[pid]) ultimaVez[pid] = ts;
+      });
+    });
+  });
+  return ultimaVez;
+}
+
 function computeBadges(){
   // TOP1 — quem mais saiu na foto de campeão (pode ter empate, todos ganham o ícone)
   const photoCounts = computePhotoCounts();
@@ -1950,17 +2005,8 @@ function computeBadges(){
   const grudento = topDuo ? new Set([topDuo.id1, topDuo.id2]) : new Set();
 
   // RIP — jogadores cadastrados que já jogaram alguma vez, mas estão há mais de 60 dias sem aparecer numa rodada
-  const DIA_MS = 24*60*60*1000;
   const now = Date.now();
-  const ultimaVez = {}; // pid -> timestamp da rodada mais recente em que apareceu
-  roundsOficiais().forEach(r=>{
-    const ts = toTimestamp(r.data);
-    r.times.forEach(team=>{
-      (team.playerIds||[]).forEach(pid=>{
-        if(ultimaVez[pid]===undefined || ts > ultimaVez[pid]) ultimaVez[pid] = ts;
-      });
-    });
-  });
+  const ultimaVez = computeUltimaParticipacao();
   const rip = new Set(
     DATA.players
       .filter(p=> ultimaVez[p.id]!==undefined && (now - ultimaVez[p.id]) > 60*DIA_MS)
