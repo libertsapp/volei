@@ -1925,8 +1925,8 @@ function renderDashboard(){
         </div>
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
-          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
-          <div class="stat-card"><div class="stat-num">${badges.rip.size}</div><div class="stat-cap">Desaparecidos 👻</div></div>
+          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
+          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🧙</div></div>
         </div>
       </div>`;
   }
@@ -2009,14 +2009,21 @@ function computeBadges(){
   const ultimaVez = computeUltimaParticipacao();
   const rip = new Set(
     DATA.players
-      .filter(p=> ultimaVez[p.id]!==undefined && (now - ultimaVez[p.id]) > 60*DIA_MS)
+      .filter(p=> ultimaVez[p.id]!==undefined && (now - ultimaVez[p.id]) > 60*DIA_MS && (now - ultimaVez[p.id]) <= 100*DIA_MS)
+      .map(p=>p.id)
+  );
+
+  // APOSENTADO — mais de 100 dias sem aparecer numa rodada (a partir daqui, substitui o RIP)
+  const aposentado = new Set(
+    DATA.players
+      .filter(p=> ultimaVez[p.id]!==undefined && (now - ultimaVez[p.id]) > 100*DIA_MS)
       .map(p=>p.id)
   );
 
   // CABEÇA DE CHAVE — todo jogador com nota máxima (5 estrelas)
   const cabecaDeChave = new Set(DATA.players.filter(p=> p.estrelas === 5).map(p=>p.id));
 
-  return { top1, paneleiro, grudento, rip, cabecaDeChave };
+  return { top1, paneleiro, grudento, rip, cabecaDeChave, aposentado };
 }
 
 function badgeIconsHtml(pid, badges){
@@ -2026,6 +2033,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.paneleiro.has(pid)) html += `<span class="badge-icon" title="PANELEIRO — um dos 3 jogadores mais vezes em time desequilibrado a favor">🍳</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
+  if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="APOSENTADO — mais de 100 dias sem aparecer numa rodada">🧙</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   return html;
 }
@@ -2975,8 +2983,8 @@ function montarResumoSemanal(){
     texto += '\n';
   }
 
-  if(badges.rip.size > 0){
-    texto += `👻 ${badges.rip.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
+  if(badges.rip.size + badges.aposentado.size > 0){
+    texto += `👻 ${badges.rip.size + badges.aposentado.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
   }
 
   return texto;
