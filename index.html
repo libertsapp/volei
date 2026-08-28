@@ -871,7 +871,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.4 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 1.5 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -897,7 +897,7 @@ let CHECKINS = [];
    6. Copie a URL do app da Web gerada e cole abaixo, no lugar
       de "SUA_URL_DO_APPS_SCRIPT_AQUI".
 ========================================================== */
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx89S9izf2YKa33Y6_c_RVlOWOihCr1RULdgqIKSncLOgq9nQP7j0CNgCNgS6rupVeoLw/exec";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxOqq08EU0J49bCuUlidhRimvLYZi5jISo5h5moPHCqJDpJSNMWMql6tTmmrXnJcs9G-A/exec";
 
 let sheetReady = SHEET_API_URL.startsWith("http");
 
@@ -906,6 +906,27 @@ function atualizarContadorAcessos(){
   if(!el) return;
   const total = SETTINGS.contadorAcessos || 0;
   el.textContent = `👁️ ${total.toLocaleString('pt-BR')} acesso${total===1?'':'s'}`;
+}
+
+// contador de acessos — via POST de propósito. Requisições GET podem ficar presas em
+// cache (do navegador, de alguma extensão, ou de proxy) mesmo com parâmetro único e
+// "no-store"; POST nunca é armazenado em cache por padrão, então é mais confiável aqui.
+async function registrarAcesso(){
+  if(!sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'incrementarAcesso' })
+    });
+    const json = await res.json();
+    if(json && typeof json.contadorAcessos === 'number'){
+      SETTINGS.contadorAcessos = json.contadorAcessos;
+      atualizarContadorAcessos();
+    }
+  }catch(e){
+    console.error('Falha ao registrar acesso', e);
+  }
 }
 
 async function loadData(){
@@ -917,10 +938,7 @@ async function loadData(){
     return;
   }
   try{
-    // adiciona um parâmetro único a cada carregamento, pra nunca deixar o navegador
-    // reaproveitar do cache uma resposta antiga da planilha (isso já causou o contador
-    // de acessos aparecer travado, mostrando um número desatualizado)
-    const res = await fetch(SHEET_API_URL + (SHEET_API_URL.includes('?') ? '&' : '?') + '_=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch(SHEET_API_URL);
     const json = await res.json();
     if(json && json.error){
       document.getElementById('config-warning').style.display = 'block';
@@ -928,7 +946,7 @@ async function loadData(){
     }
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
-    atualizarContadorAcessos();
+    registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
     CHECKINS = json.checkins || [];
     reconstituirConvidadosDosCheckins();
   }catch(e){
