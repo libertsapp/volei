@@ -929,7 +929,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.3 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.5 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -2157,36 +2157,28 @@ function computeBadges(){
     Object.entries(paneleiroCounts).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
   );
 
-  // CARREGADOR DE MOCHILA — o inverso do Paneleiro: os 3 jogadores (só quem tem nota
-  // 3 ou mais — não faz sentido "prejudicar" quem já é mais fraco) que mais vezes caíram
-  // no time desfavorecido de uma rodada. Calculado separado pro ano atual e pros anos
-  // anteriores — um jogador ganha o emblema se estiver no top 3 de qualquer um dos dois
-  function computeMochilaCounts(modo){
-    // modo: 'atual' = só rodadas do ano corrente | 'anteriores' = só rodadas de anos passados
+  // CARREGADOR DE MOCHILA — o inverso do Paneleiro: os 3 jogadores com nota ACIMA de 3
+  // (não faz sentido "prejudicar" quem já não é tão bem avaliado) que mais vezes caíram
+  // no time desfavorecido de uma rodada, olhando só o ANO CORRENTE
+  function computeMochilaCounts(){
     const anoAtual = new Date().getFullYear().toString();
     const counts = {};
     computeAllPanelaEntries().filter(p=>{
       if(p.diff >= 0) return false; // só quem ficou no time mais fraco
-      const anoRodada = getYearOf(p.data);
-      if(modo === 'atual') return anoRodada === anoAtual;
-      if(modo === 'anteriores') return anoRodada !== anoAtual;
-      return true;
+      return getYearOf(p.data) === anoAtual;
     }).forEach(p=>{
       p.playerIds.forEach(pid=>{
         const jogador = getPlayer(pid);
-        if(!jogador || (jogador.estrelas||0) < 3) return; // só nota 3+
+        if(!jogador || (jogador.estrelas||0) <= 3) return; // só nota acima de 3
         counts[pid] = (counts[pid]||0) + 1;
       });
     });
     return counts;
   }
-  function top3DoMapa(mapa){
-    return Object.entries(mapa).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid);
-  }
-  const mochila = new Set([
-    ...top3DoMapa(computeMochilaCounts('atual')),
-    ...top3DoMapa(computeMochilaCounts('anteriores'))
-  ]);
+  const mochila = new Set(
+    Object.entries(computeMochilaCounts()).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
+  );
+
 
   // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas"
   const topDuo = computeTopDuos()[0];
@@ -2219,7 +2211,7 @@ function badgeIconsHtml(pid, badges){
   let html = '';
   if(badges.top1.has(pid)) html += `<span class="badge-icon" title="TOP1 — quem mais saiu na foto de campeão">📸</span>`;
   if(badges.paneleiro.has(pid)) html += `<span class="badge-icon" title="PANELEIRO — um dos 3 jogadores mais vezes em time desequilibrado a favor">🍳</span>`;
-  if(badges.mochila.has(pid)) html += `<span class="badge-icon" title="CARREGADOR DE MOCHILA — nota 3+ que mais vezes caiu no time desfavorecido (ano atual ou anos anteriores)">🎒</span>`;
+  if(badges.mochila.has(pid)) html += `<span class="badge-icon" title="CARREGADOR DE MOCHILA — caiu muito em time fraco">🎒</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="APOSENTADO — mais de 100 dias sem aparecer numa rodada">🧙</span>`;
