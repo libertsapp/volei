@@ -929,7 +929,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.5 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.6 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -2143,14 +2143,16 @@ function computeUltimaParticipacao(){
 }
 
 function computeBadges(){
-  // TOP1 — quem mais saiu na foto de campeão (pode ter empate, todos ganham o ícone)
-  const photoCounts = computePhotoCounts();
+  const anoAtual = new Date().getFullYear().toString();
+
+  // TOP1 — quem mais saiu na foto de campeão NO ANO CORRENTE (pode ter empate, todos ganham o ícone)
+  const photoCounts = computePhotoCounts(anoAtual);
   const maxFoto = photoCounts.length ? photoCounts[0].vezes : 0;
   const top1 = new Set(maxFoto > 0 ? photoCounts.filter(d=>d.vezes===maxFoto).map(d=>d.id) : []);
 
-  // PANELEIRO — os 3 jogadores que mais vezes estiveram num time "panela" (olhando TODAS as ocorrências, não só o top 3 exibido no card)
+  // PANELEIRO — os 3 jogadores que mais vezes estiveram num time "panela" NO ANO CORRENTE
   const paneleiroCounts = {};
-  computeAllPanelaEntries().filter(p=>p.diff>0).forEach(p=>{
+  computeAllPanelaEntries(anoAtual).filter(p=>p.diff>0).forEach(p=>{
     p.playerIds.forEach(pid=> paneleiroCounts[pid] = (paneleiroCounts[pid]||0) + 1);
   });
   const paneleiro = new Set(
@@ -2161,12 +2163,8 @@ function computeBadges(){
   // (não faz sentido "prejudicar" quem já não é tão bem avaliado) que mais vezes caíram
   // no time desfavorecido de uma rodada, olhando só o ANO CORRENTE
   function computeMochilaCounts(){
-    const anoAtual = new Date().getFullYear().toString();
     const counts = {};
-    computeAllPanelaEntries().filter(p=>{
-      if(p.diff >= 0) return false; // só quem ficou no time mais fraco
-      return getYearOf(p.data) === anoAtual;
-    }).forEach(p=>{
+    computeAllPanelaEntries(anoAtual).filter(p=> p.diff < 0).forEach(p=>{
       p.playerIds.forEach(pid=>{
         const jogador = getPlayer(pid);
         if(!jogador || (jogador.estrelas||0) <= 3) return; // só nota acima de 3
@@ -2180,11 +2178,13 @@ function computeBadges(){
   );
 
 
-  // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas"
-  const topDuo = computeTopDuos()[0];
+  // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas" NO ANO CORRENTE
+  const topDuo = computeTopDuos(anoAtual)[0];
   const grudento = topDuo ? new Set([topDuo.id1, topDuo.id2]) : new Set();
 
-  // RIP — jogadores cadastrados que já jogaram alguma vez, mas estão há mais de 60 dias sem aparecer numa rodada
+  // RIP e APOSENTADO olham o histórico completo de propósito — são sobre "há quanto tempo
+  // não aparece", que só faz sentido comparando com a ÚLTIMA vez que jogou (mesmo que tenha
+  // sido em outro ano); restringir ao ano corrente faria sumir justamente quem está mais sumido.
   const now = Date.now();
   const ultimaVez = computeUltimaParticipacao();
   const rip = new Set(
@@ -2200,7 +2200,8 @@ function computeBadges(){
       .map(p=>p.id)
   );
 
-  // CABEÇA DE CHAVE — todo jogador com nota máxima (5 estrelas)
+  // CABEÇA DE CHAVE — todo jogador com nota máxima (5 estrelas); é um atributo do
+  // cadastro do jogador, não depende de rodada nem de ano nenhum
   const cabecaDeChave = new Set(DATA.players.filter(p=> p.estrelas === 5).map(p=>p.id));
 
   return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado };
