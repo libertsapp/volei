@@ -176,7 +176,7 @@
   }
   .player-row.player-row-editing{flex-wrap:wrap;gap:14px;border-color:var(--ball-yellow);}
   .player-row .name{font-weight:600;}
-  .player-row .sub{color:var(--muted);font-size:12px;}
+  .sub{color:var(--muted);font-size:12px;}
   .avatar{
     width:42px;height:42px;border-radius:50%;object-fit:cover;
     border:2px solid var(--line);flex-shrink:0;background:var(--court-navy-3);
@@ -920,7 +920,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.0 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.2 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -2056,7 +2056,7 @@ function renderDashboard(){
           <p class="sb-label">Campeão da semana</p>
           <p class="sb-team">${escapeHtml(team.nome)}</p>
           <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${p&&p.id}">${escapeHtml(p? (p.apelido||p.nome) : '?')}</span>${badgeIconsHtml(p&&p.id, badges)}</span>`).join('')}</div>
+          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>
         </div>
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
@@ -2323,7 +2323,7 @@ function renderPanelas(){
 /* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
 function computePhotoCounts(){
   const counts = {};
-  DATA.players.forEach(p=>{ counts[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, vezes:0, ultimaConquista:0 }; });
+  DATA.players.forEach(p=>{ counts[p.id] = { id:p.id, nome:p.nome, apelido:p.apelido, foto:p.foto, vezes:0, ultimaConquista:0 }; });
   roundsOficiais().forEach(r=>{
     r.times.forEach((team, idx)=>{
       if(idx !== r.vencedor) return;
@@ -2364,7 +2364,7 @@ function renderPhotoChart(){
     const cls = posicaoReal===2 ? 'place-2' : 'place-3';
     return `<div class="podium-place ${cls} clickable-name" data-open-profile="${d.id}">
       ${d.foto ? `<img class="podium-avatar" src="${d.foto}">` : `<div class="podium-avatar podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-      <div class="podium-name">${escapeHtml(d.nome)}</div>
+      <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
       <div class="podium-count" id="podium-count-${posicaoReal}">0×</div>
       <div class="podium-block block-${posicaoReal}">${posicaoReal}º</div>
     </div>`;
@@ -2380,7 +2380,7 @@ function renderPhotoChart(){
         <div class="podium-primeiro-pessoa clickable-name" data-open-profile="${d.id}">
           ${empatado ? '<div class="podium-crown-mini">👑</div>' : ''}
           ${d.foto ? `<img class="podium-avatar ${empatado?'':'big'}" src="${d.foto}">` : `<div class="podium-avatar ${empatado?'':'big'} podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-          <div class="podium-name">${escapeHtml(d.nome)}</div>
+          <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
           <div class="podium-count" id="podium-count-1-${gi}">0×</div>
         </div>
       `).join('')}
@@ -2400,7 +2400,7 @@ function renderPhotoChart(){
     return `<div class="leaderboard-row">
       <div class="leaderboard-rank">${posicao}º</div>
       ${avatarHtml({foto:d.foto, nome:d.nome},'sm')}
-      <div class="leaderboard-name clickable-name" data-open-profile="${d.id}">${escapeHtml(d.nome)}${badgeIconsHtml(d.id, badges)}</div>
+      <div class="leaderboard-name clickable-name" data-open-profile="${d.id}">${nomeComApelidoHtml(d)}${badgeIconsHtml(d.id, badges)}</div>
       <div class="leaderboard-track"><div class="leaderboard-fill" id="lb-fill-${i}"></div></div>
       <div class="leaderboard-count" id="lb-count-${i}">0</div>
     </div>`;
