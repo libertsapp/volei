@@ -613,6 +613,9 @@
 
       <details class="dash-accordion" open>
         <summary>📸 Top 10 — mais vezes na foto (campeões)</summary>
+        <div style="padding:0 18px;">
+          <select id="photo-chart-year" class="yearpick" style="margin-bottom:10px;"></select>
+        </div>
         <div id="dash-chart"></div>
       </details>
 
@@ -623,11 +626,17 @@
 
       <details class="dash-accordion">
         <summary>🧲 Duplas mais sorteadas juntas</summary>
+        <div style="padding:0 18px;">
+          <select id="duos-year" class="yearpick" style="margin-bottom:10px;"></select>
+        </div>
         <div id="dash-duos"></div>
       </details>
 
       <details class="dash-accordion">
         <summary>🍳 Maiores panelas já formadas</summary>
+        <div style="padding:0 18px;">
+          <select id="panelas-year" class="yearpick" style="margin-bottom:10px;"></select>
+        </div>
         <div id="dash-panelas"></div>
       </details>
     </section>
@@ -920,7 +929,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.2 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.3 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -2080,9 +2089,22 @@ function renderDashboard(){
 }
 
 /* ---------- DUPLAS MAIS SORTEADAS JUNTAS ---------- */
-function computeTopDuos(){
+// helper genérico pra popular qualquer seletor de ano do Dashboard com os anos que
+// realmente têm rodada oficial lançada, sempre incluindo o ano atual mesmo sem dados ainda
+function popularSeletorDeAno(elementId){
+  const sel = document.getElementById(elementId);
+  const years = new Set(roundsOficiais().map(r=>getYearOf(r.data)).filter(Boolean));
+  const anoAtual = new Date().getFullYear().toString();
+  years.add(anoAtual);
+  const sorted = Array.from(years).sort().reverse();
+  const current = sel.value || anoAtual;
+  sel.innerHTML = sorted.map(y=>`<option value="${y}" ${y===current?'selected':''}>${y}</option>`).join('');
+}
+
+function computeTopDuos(ano){
   const counts = {}; // "id1|id2" (ordenado) -> quantidade de vezes juntos no mesmo time
   roundsOficiais().forEach(r=>{
+    if(ano && getYearOf(r.data) !== ano) return;
     r.times.forEach(team=>{
       const ids = (team.playerIds || []).filter(Boolean);
       for(let i=0;i<ids.length;i++){
@@ -2135,6 +2157,37 @@ function computeBadges(){
     Object.entries(paneleiroCounts).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
   );
 
+  // CARREGADOR DE MOCHILA — o inverso do Paneleiro: os 3 jogadores (só quem tem nota
+  // 3 ou mais — não faz sentido "prejudicar" quem já é mais fraco) que mais vezes caíram
+  // no time desfavorecido de uma rodada. Calculado separado pro ano atual e pros anos
+  // anteriores — um jogador ganha o emblema se estiver no top 3 de qualquer um dos dois
+  function computeMochilaCounts(modo){
+    // modo: 'atual' = só rodadas do ano corrente | 'anteriores' = só rodadas de anos passados
+    const anoAtual = new Date().getFullYear().toString();
+    const counts = {};
+    computeAllPanelaEntries().filter(p=>{
+      if(p.diff >= 0) return false; // só quem ficou no time mais fraco
+      const anoRodada = getYearOf(p.data);
+      if(modo === 'atual') return anoRodada === anoAtual;
+      if(modo === 'anteriores') return anoRodada !== anoAtual;
+      return true;
+    }).forEach(p=>{
+      p.playerIds.forEach(pid=>{
+        const jogador = getPlayer(pid);
+        if(!jogador || (jogador.estrelas||0) < 3) return; // só nota 3+
+        counts[pid] = (counts[pid]||0) + 1;
+      });
+    });
+    return counts;
+  }
+  function top3DoMapa(mapa){
+    return Object.entries(mapa).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid);
+  }
+  const mochila = new Set([
+    ...top3DoMapa(computeMochilaCounts('atual')),
+    ...top3DoMapa(computeMochilaCounts('anteriores'))
+  ]);
+
   // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas"
   const topDuo = computeTopDuos()[0];
   const grudento = topDuo ? new Set([topDuo.id1, topDuo.id2]) : new Set();
@@ -2158,7 +2211,7 @@ function computeBadges(){
   // CABEÇA DE CHAVE — todo jogador com nota máxima (5 estrelas)
   const cabecaDeChave = new Set(DATA.players.filter(p=> p.estrelas === 5).map(p=>p.id));
 
-  return { top1, paneleiro, grudento, rip, cabecaDeChave, aposentado };
+  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado };
 }
 
 function badgeIconsHtml(pid, badges){
@@ -2166,6 +2219,7 @@ function badgeIconsHtml(pid, badges){
   let html = '';
   if(badges.top1.has(pid)) html += `<span class="badge-icon" title="TOP1 — quem mais saiu na foto de campeão">📸</span>`;
   if(badges.paneleiro.has(pid)) html += `<span class="badge-icon" title="PANELEIRO — um dos 3 jogadores mais vezes em time desequilibrado a favor">🍳</span>`;
+  if(badges.mochila.has(pid)) html += `<span class="badge-icon" title="CARREGADOR DE MOCHILA — nota 3+ que mais vezes caiu no time desfavorecido (ano atual ou anos anteriores)">🎒</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="APOSENTADO — mais de 100 dias sem aparecer numa rodada">🧙</span>`;
@@ -2174,10 +2228,12 @@ function badgeIconsHtml(pid, badges){
 }
 
 function renderDuos(){
+  popularSeletorDeAno('duos-year');
+  const ano = document.getElementById('duos-year').value;
   const container = document.getElementById('dash-duos');
-  const duos = computeTopDuos();
+  const duos = computeTopDuos(ano);
   if(duos.length===0){
-    container.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Ainda sem times suficientes lançados para calcular duplas.</div>';
+    container.innerHTML = `<div class="empty"><i class="ti ti-users"></i>Nenhuma dupla formada em ${ano} ainda.</div>`;
     return;
   }
   container.innerHTML = `<div class="duo-list">${duos.map((d,i)=>{
@@ -2274,9 +2330,10 @@ document.getElementById('hall-tabs').addEventListener('click', (e)=>{
   renderHallDaFama(btn.dataset.hallView);
 });
 
-function computeAllPanelaEntries(){
+function computeAllPanelaEntries(ano){
   const results = [];
   roundsOficiais().forEach(r=>{
+    if(ano && getYearOf(r.data) !== ano) return;
     const teams = r.times
       .filter(t => (t.playerIds||[]).length > 0)
       .map(t=>{
@@ -2295,15 +2352,17 @@ function computeAllPanelaEntries(){
   });
   return results.sort((a,b)=> b.diff - a.diff);
 }
-function computePanelas(){
-  return computeAllPanelaEntries().slice(0,3);
+function computePanelas(ano){
+  return computeAllPanelaEntries(ano).slice(0,3);
 }
 
 function renderPanelas(){
+  popularSeletorDeAno('panelas-year');
+  const ano = document.getElementById('panelas-year').value;
   const container = document.getElementById('dash-panelas');
-  const panelas = computePanelas().filter(p=> p.diff > 0);
+  const panelas = computePanelas(ano).filter(p=> p.diff > 0);
   if(panelas.length===0){
-    container.innerHTML = '<div class="empty"><i class="ti ti-scale"></i>Ainda sem dados suficientes (times precisam ter jogadores com nota de estrelas para calcular isso).</div>';
+    container.innerHTML = `<div class="empty"><i class="ti ti-scale"></i>Nenhuma panela formada em ${ano} ainda (times precisam ter jogadores com nota de estrelas para calcular isso).</div>`;
     return;
   }
   container.innerHTML = panelas.map((p,i)=>{
@@ -2319,12 +2378,15 @@ function renderPanelas(){
     </div>`;
   }).join('');
 }
+document.getElementById('duos-year').addEventListener('change', renderDuos);
+document.getElementById('panelas-year').addEventListener('change', renderPanelas);
 
 /* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
-function computePhotoCounts(){
+function computePhotoCounts(ano){
   const counts = {};
   DATA.players.forEach(p=>{ counts[p.id] = { id:p.id, nome:p.nome, apelido:p.apelido, foto:p.foto, vezes:0, ultimaConquista:0 }; });
   roundsOficiais().forEach(r=>{
+    if(ano && getYearOf(r.data) !== ano) return; // filtra pelo ano selecionado, se houver
     r.times.forEach((team, idx)=>{
       if(idx !== r.vencedor) return;
       const ts = toTimestamp(r.data);
@@ -2344,11 +2406,18 @@ function computePhotoCounts(){
     .slice(0,10);
 }
 
+function populatePhotoChartYearSelect(){
+  popularSeletorDeAno('photo-chart-year');
+}
+document.getElementById('photo-chart-year').addEventListener('change', renderPhotoChart);
+
 function renderPhotoChart(){
+  populatePhotoChartYearSelect();
+  const ano = document.getElementById('photo-chart-year').value;
   const container = document.getElementById('dash-chart');
-  const data = computePhotoCounts();
+  const data = computePhotoCounts(ano);
   if(data.length===0){
-    container.innerHTML = '<div class="empty"><i class="ti ti-camera"></i>Ainda sem rodadas com vencedor definido para gerar o gráfico.</div>';
+    container.innerHTML = `<div class="empty"><i class="ti ti-camera"></i>Nenhuma rodada com vencedor definido em ${ano} ainda.</div>`;
     return;
   }
   const badges = computeBadges();
