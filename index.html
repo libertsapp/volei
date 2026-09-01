@@ -1005,7 +1005,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.13 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.14 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -1655,7 +1655,7 @@ function openPlayerProfile(id){
       </div>
       <div class="profile-stats-grid">
         <div class="profile-stat"><div class="profile-stat-num">${stats.jogos}</div><div class="profile-stat-cap">Rodadas jogadas</div></div>
-        <div class="profile-stat"><div class="profile-stat-num">${stats.vezesNaFoto}</div><div class="profile-stat-cap">Vezes na foto</div></div>
+        <div class="profile-stat"><div class="profile-stat-num ranking-titulos-clicavel" id="profile-fotos-clicavel" title="Toque para ver as datas">${stats.vezesNaFoto}</div><div class="profile-stat-cap">Vezes na foto</div></div>
         <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap">Vit. de partidas</div></div>
         <div class="profile-stat"><div class="profile-stat-num">${stats.pct}%</div><div class="profile-stat-cap">Aproveitamento</div></div>
       </div>
@@ -1666,7 +1666,7 @@ function openPlayerProfile(id){
         ${parceiros.map(par=>{
           const pj = getPlayer(par.id);
           if(!pj) return '';
-          return `<div class="profile-partner">${avatarHtml(pj,'sm')} ${escapeHtml(pj.apelido||pj.nome)} <span style="margin-left:auto;color:var(--muted);">${par.count}× juntos</span></div>`;
+          return `<div class="profile-partner" data-abrir-parceiro="${par.id}" style="cursor:pointer;">${avatarHtml(pj,'sm')} ${escapeHtml(pj.apelido||pj.nome)} <span style="margin-left:auto;color:var(--muted);">${par.count}× juntos</span></div>`;
         }).join('')}
       ` : ''}
       <div class="profile-section-title">Últimas rodadas</div>
@@ -1676,6 +1676,19 @@ function openPlayerProfile(id){
   document.body.appendChild(overlay);
   document.getElementById('profile-close-btn').addEventListener('click', closePlayerProfile);
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closePlayerProfile(); });
+
+  const fotosEl = document.getElementById('profile-fotos-clicavel');
+  if(fotosEl) fotosEl.addEventListener('click', ()=>{
+    const datasCampeao = stats.rounds.filter(r=>r.isWinner).map(r=>r.data);
+    abrirDatasCampeao(player.apelido||player.nome, datasCampeao);
+  });
+  overlay.querySelectorAll('[data-abrir-parceiro]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const novoId = el.dataset.abrirParceiro;
+      closePlayerProfile(); // fecha o atual e abre o do parceiro clicado, trocando de perfil
+      openPlayerProfile(novoId);
+    });
+  });
 }
 function closePlayerProfile(){
   const overlay = document.getElementById('profile-overlay');
