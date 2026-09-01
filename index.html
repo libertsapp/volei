@@ -221,6 +221,8 @@
   tr:hover td{background:var(--court-navy-2);}
   td.num, th.num{text-align:center;font-family:'Space Mono',monospace;}
   .medal{font-family:'Space Mono',monospace;color:var(--ball-yellow);}
+  .ranking-titulos-clicavel{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--muted);}
+  .ranking-titulos-clicavel:hover{color:var(--ball-yellow);}
 
   /* historico */
   .history-item{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
@@ -1003,7 +1005,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.12 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.13 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -2155,6 +2157,7 @@ function renderDashboard(){
     top5container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Ainda sem dados suficientes para o ranking deste ano.</div>';
   } else {
     top5container.innerHTML = rankingTableHtml(top5);
+    wireRankingTitulosClicks(top5);
   }
 
   renderPhotoChart();
@@ -2574,14 +2577,14 @@ function animarContador(el, alvo, sufixo){
 /* ---------- RANKING ---------- */
 function computeRanking(year){
   const stats = {};
-  DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.apelido||p.nome, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0 }; });
+  DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.nome, apelido:p.apelido, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0, datasCampeao:[] }; });
   roundsOficiais().filter(r=> getYearOf(r.data)===year).forEach(r=>{
     r.times.forEach((team, idx)=>{
       const isWinner = idx === r.vencedor;
       team.playerIds.forEach(pid=>{
         if(!stats[pid]) return;
         stats[pid].jogos++;
-        if(isWinner){ stats[pid].titulos++; }
+        if(isWinner){ stats[pid].titulos++; stats[pid].datasCampeao.push(r.data); } // guarda a data pra poder mostrar depois
         stats[pid].vitoriasPartidas += (team.vitorias || 0); // soma as vitórias de partidas lançadas em cada rodada
       });
     });
@@ -2592,6 +2595,23 @@ function computeRanking(year){
     .sort((a,b)=> b.titulos - a.titulos || b.vitoriasPartidas - a.vitoriasPartidas || b.pct - a.pct);
 }
 
+function abrirDatasCampeao(nome, datas){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-close" id="datas-campeao-close-btn" aria-label="Fechar">✕</button>
+      <p class="profile-name" style="margin-bottom:14px;">🏆 ${escapeHtml(nome)}</p>
+      <div class="profile-section-title">Datas em que foi campeão</div>
+      ${datas.length===0
+        ? '<div style="color:var(--muted);font-size:12px;">Nunca saiu na foto de campeão neste ano.</div>'
+        : datas.slice().sort((a,b)=> toTimestamp(b)-toTimestamp(a)).map(d=>`<div class="profile-round-item">${formatDate(d)}</div>`).join('')}
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('datas-campeao-close-btn').addEventListener('click', ()=> overlay.remove());
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
+}
+
 function rankingTableHtml(rows){
   const badges = computeBadges();
   return `<div style="overflow-x:auto;"><table>
@@ -2599,14 +2619,23 @@ function rankingTableHtml(rows){
     <tbody>
       ${rows.map((r,i)=>`<tr>
         <td class="medal">${i+1}º</td>
-        <td><div class="with-avatar clickable-name" data-open-profile="${r.id}">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${escapeHtml(r.nome)}${badgeIconsHtml(r.id, badges)}</div></td>
+        <td><div class="with-avatar clickable-name" data-open-profile="${r.id}">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${nomeComApelidoHtml(r)}${badgeIconsHtml(r.id, badges)}</div></td>
         <td class="num">${r.jogos}</td>
-        <td class="num">${r.titulos}</td>
+        <td class="num"><span class="ranking-titulos-clicavel" data-ranking-titulos="${r.id}" title="Toque para ver as datas">${r.titulos}</span></td>
         <td class="num">${r.vitoriasPartidas}</td>
         <td class="num">${r.pct}%</td>
       </tr>`).join('')}
     </tbody>
   </table></div>`;
+}
+function wireRankingTitulosClicks(rows){
+  document.querySelectorAll('[data-ranking-titulos]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const row = rows.find(r=>r.id===el.dataset.rankingTitulos);
+      if(!row) return;
+      abrirDatasCampeao(row.apelido||row.nome, row.datasCampeao);
+    });
+  });
 }
 
 function populateYearSelect(){
@@ -2623,9 +2652,12 @@ function renderRanking(){
   const year = document.getElementById('ranking-year').value;
   const rows = computeRanking(year);
   const container = document.getElementById('ranking-table');
-  container.innerHTML = rows.length===0
-    ? '<div class="empty"><i class="ti ti-trophy"></i>Sem rodadas registradas para este ano.</div>'
-    : rankingTableHtml(rows);
+  if(rows.length===0){
+    container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Sem rodadas registradas para este ano.</div>';
+    return;
+  }
+  container.innerHTML = rankingTableHtml(rows);
+  wireRankingTitulosClicks(rows);
 }
 document.getElementById('ranking-year').addEventListener('change', renderRanking);
 
