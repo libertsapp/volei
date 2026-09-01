@@ -59,6 +59,22 @@
     text-align:center;font-size:11px;color:var(--muted);opacity:0.6;
     padding:18px 20px 4px;max-width:1000px;margin:0 auto;
   }
+  .footer-link{color:inherit;text-decoration:underline;text-decoration-style:dotted;}
+  .footer-link-discreto{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
+  .footer-link-discreto:hover{color:var(--ball-yellow);}
+
+  /* pop-up de relatar bug / sugerir funcionalidade */
+  .bugreport-card{
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:16px;
+    padding:24px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.6);
+  }
+  .bugreport-title{font-family:'Anton',sans-serif;font-size:16px;text-transform:uppercase;margin:0 0 14px;}
+  .bugreport-card textarea{
+    width:100%;resize:vertical;margin-bottom:14px;font-family:inherit;font-size:14px;
+    padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--court-navy-3);color:var(--chalk);box-sizing:border-box;
+  }
+  .bugreport-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
 
   /* header */
   header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;position:relative;}
@@ -1005,7 +1021,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.14 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados · Ver.: 2.15 · <span id="visit-counter"></span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></footer>
 </div>
 
 <script>
@@ -1149,6 +1165,36 @@ document.getElementById('admin-status-btn').addEventListener('click', ()=>{
 /* modal de senha com campo mascarado (bolinhas), no lugar do prompt() nativo do
    navegador — o prompt() sempre mostra a senha em texto puro, sem nenhuma opção
    de mascarar, então qualquer um olhando pra tela via o que foi digitado */
+/* pop-up de relatar bug / sugerir funcionalidade — manda a mensagem digitada pro
+   WhatsApp do desenvolvedor, já formatada, sem precisar de nenhuma senha */
+function abrirRelatarBug(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="bugreport-card">
+      <p class="bugreport-title">🐞 Informar bug / sugerir funcionalidade</p>
+      <textarea id="bugreport-textarea" rows="6" placeholder="Descreva o problema que encontrou ou a ideia que quer sugerir..."></textarea>
+      <div class="bugreport-actions">
+        <button class="btn secondary" id="bugreport-cancel-btn">Cancelar</button>
+        <button class="btn" id="bugreport-send-btn">Enviar no WhatsApp</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const textarea = overlay.querySelector('#bugreport-textarea');
+  setTimeout(()=> textarea.focus(), 50);
+  function fechar(){ overlay.remove(); }
+  overlay.querySelector('#bugreport-cancel-btn').addEventListener('click', fechar);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(); });
+  overlay.querySelector('#bugreport-send-btn').addEventListener('click', ()=>{
+    const texto = textarea.value.trim();
+    if(!texto){ alert('Escreve alguma coisa antes de enviar :)'); return; }
+    const mensagem = `🐞 *Bug/sugestão — Volei de Terça*\n\n${texto}`;
+    window.open('https://wa.me/5531987320965?text=' + encodeURIComponent(mensagem), '_blank');
+    fechar();
+  });
+}
+document.getElementById('report-bug-btn').addEventListener('click', abrirRelatarBug);
+
 function pedirSenhaModal(){
   return new Promise((resolve)=>{
     const overlay = document.createElement('div');
