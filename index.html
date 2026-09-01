@@ -412,6 +412,47 @@
   .hall-winner-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:92px;}
   .hall-count{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;}
 
+  /* ---------- PLACAR (marcador ao vivo) ---------- */
+  .placar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .placar-board{
+    display:flex;width:100%;height:min(70vh,600px);border-radius:18px;overflow:hidden;
+    position:relative;box-shadow:0 12px 40px rgba(0,0,0,0.35);
+  }
+  .placar-board:fullscreen{height:100vh;border-radius:0;}
+  .placar-board:-webkit-full-screen{height:100vh;border-radius:0;}
+  .placar-half{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;
+    transition:background-color .25s;gap:6px;
+  }
+  .placar-name{
+    font-family:'Anton',sans-serif;font-size:clamp(18px,4vw,32px);text-transform:uppercase;
+    letter-spacing:0.5px;padding:6px 14px;border-radius:10px;max-width:90%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;
+  }
+  .placar-name:hover, .placar-name:active{background:rgba(128,128,128,0.18);}
+  .placar-score{
+    font-family:'Anton',sans-serif;font-size:clamp(120px,32vw,300px);line-height:0.85;
+    -webkit-text-stroke:3px currentColor;letter-spacing:-2px;
+  }
+  .placar-color-swatch{
+    position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.65);overflow:hidden;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);background:rgba(255,255,255,0.15);
+  }
+  #placar-half-1 .placar-color-swatch{right:auto;left:14px;}
+  .placar-color-swatch input[type="color"]{
+    position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);
+    border:none;padding:0;cursor:pointer;background:transparent;
+  }
+  .placar-reset-btn{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;
+    width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.3);color:#fff;
+    border:1px solid rgba(255,255,255,0.3);font-size:17px;display:flex;align-items:center;
+    justify-content:center;cursor:pointer;backdrop-filter:blur(3px);
+  }
+  .placar-reset-btn:hover{background:rgba(0,0,0,0.5);}
+
   /* sub-abas Sorteio Automático / Manual */
   .subtabs{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;width:fit-content;margin-bottom:18px;}
   .subtabs button{
@@ -578,6 +619,7 @@
       <button data-view="historico">Histórico</button>
       <button data-view="rodada">Nova rodada</button>
       <button data-view="hall">Hall da Fama 🏛️</button>
+      <button data-view="placar">Placar 🔢</button>
       <button data-view="info">Info ℹ️</button>
     </nav>
     <div class="header-right">
@@ -877,6 +919,30 @@
       <div id="hall-content"></div>
     </section>
 
+    <section id="view-placar">
+      <div class="placar-toolbar">
+        <p style="color:var(--muted);font-size:13px;margin:0;">Deite o celular pra usar melhor. O placar fica salvo neste aparelho, mesmo se a página recarregar.</p>
+        <button class="btn secondary" id="placar-fullscreen-btn">⛶ Tela cheia</button>
+      </div>
+      <div class="placar-board" id="placar-board">
+        <button class="placar-reset-btn" id="placar-reset-btn" title="Zerar placar">↺</button>
+        <div class="placar-half" id="placar-half-1">
+          <label class="placar-color-swatch" id="placar-color-swatch-1">
+            <input type="color" id="placar-color-1" value="#e53e3e">
+          </label>
+          <div class="placar-name" id="placar-name-1" title="Toque para renomear">Time 1</div>
+          <div class="placar-score" id="placar-score-1">0</div>
+        </div>
+        <div class="placar-half" id="placar-half-2">
+          <label class="placar-color-swatch" id="placar-color-swatch-2">
+            <input type="color" id="placar-color-2" value="#3182ce">
+          </label>
+          <div class="placar-name" id="placar-name-2" title="Toque para renomear">Time 2</div>
+          <div class="placar-score" id="placar-score-2">0</div>
+        </div>
+      </div>
+    </section>
+
     <section id="view-info">
       <h2 class="section-title">Como funciona o Volei de Terça</h2>
 
@@ -929,7 +995,7 @@
 
   </div>
 
-  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.6 · <span id="visit-counter"></span></footer>
+  <footer class="app-footer">By: Heleno Vilela — todos direitos reservados · Ver.: 2.8 · <span id="visit-counter"></span></footer>
 </div>
 
 <script>
@@ -3695,6 +3761,121 @@ function configurarPWA(){
   }
 }
 configurarPWA();
+
+/* ---------- PLACAR (marcador ao vivo, funciona sem internet, salvo só neste aparelho) ---------- */
+let PLACAR_SCORE = [0, 0];
+let PLACAR_NAMES = ['Time 1', 'Time 2'];
+let PLACAR_COLORS = ['#e53e3e', '#3182ce'];
+
+function placarContraste(hex){
+  // decide se o texto fica branco ou escuro, conforme o quão clara é a cor de fundo escolhida
+  hex = (hex || '#000000').replace('#','');
+  const r = parseInt(hex.substr(0,2),16) || 0, g = parseInt(hex.substr(2,2),16) || 0, b = parseInt(hex.substr(4,2),16) || 0;
+  const luminancia = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminancia > 0.6 ? '#101018' : '#ffffff';
+}
+
+function salvarPlacarLocal(){
+  try{ localStorage.setItem('placar-estado-terca-v1', JSON.stringify({ score: PLACAR_SCORE, names: PLACAR_NAMES, colors: PLACAR_COLORS })); }
+  catch(e){ /* modo privado do navegador pode bloquear — não é grave, só não persiste */ }
+}
+function carregarPlacarLocal(){
+  try{
+    const raw = localStorage.getItem('placar-estado-terca-v1');
+    if(!raw) return;
+    const dados = JSON.parse(raw);
+    if(Array.isArray(dados.score) && dados.score.length===2) PLACAR_SCORE = dados.score;
+    if(Array.isArray(dados.names) && dados.names.length===2) PLACAR_NAMES = dados.names;
+    if(Array.isArray(dados.colors) && dados.colors.length===2) PLACAR_COLORS = dados.colors;
+  }catch(e){ /* ignora estado corrompido e começa do zero */ }
+}
+
+function renderPlacar(){
+  [0,1].forEach(i=>{
+    const n = i+1;
+    const half = document.getElementById('placar-half-'+n);
+    const cor = PLACAR_COLORS[i];
+    half.style.background = cor;
+    half.style.color = placarContraste(cor);
+    document.getElementById('placar-score-'+n).textContent = PLACAR_SCORE[i];
+    document.getElementById('placar-color-'+n).value = cor;
+    const nameEl = document.getElementById('placar-name-'+n);
+    if(document.activeElement !== nameEl) nameEl.textContent = PLACAR_NAMES[i];
+  });
+  salvarPlacarLocal();
+}
+
+function alterarPlacar(i, delta){
+  PLACAR_SCORE[i] = Math.max(0, PLACAR_SCORE[i] + delta);
+  renderPlacar();
+}
+
+function renomearPlacar(i){
+  const atual = PLACAR_NAMES[i];
+  const novo = window.prompt('Novo nome do time:', atual);
+  if(novo && novo.trim()){
+    PLACAR_NAMES[i] = novo.trim().slice(0, 24);
+    renderPlacar();
+  }
+}
+
+[0,1].forEach(i=>{
+  const n = i+1;
+  const half = document.getElementById('placar-half-'+n);
+  let inicioY = 0, tocandoEmControle = false;
+
+  half.addEventListener('pointerdown', (e)=>{
+    tocandoEmControle = !!(e.target.closest('.placar-name') || e.target.closest('.placar-color-swatch'));
+    inicioY = e.clientY;
+  });
+  half.addEventListener('pointerup', (e)=>{
+    if(tocandoEmControle) return; // deixa o clique no nome/cor ser tratado pelos próprios controles
+    const dy = e.clientY - inicioY;
+    const LIMIAR = 40; // pixels mínimos de arraste pra não confundir com um toque parado
+    if(dy < -LIMIAR) alterarPlacar(i, +1);       // arrastou pra cima -> soma
+    else if(dy > LIMIAR) alterarPlacar(i, -1);   // arrastou pra baixo -> subtrai
+    else alterarPlacar(i, +1);                   // toque simples, sem arrastar -> soma
+  });
+
+  document.getElementById('placar-name-'+n).addEventListener('click', (e)=>{
+    e.stopPropagation();
+    renomearPlacar(i);
+  });
+  document.getElementById('placar-color-'+n).addEventListener('click', (e)=> e.stopPropagation());
+  document.getElementById('placar-color-'+n).addEventListener('input', (e)=>{
+    PLACAR_COLORS[i] = e.target.value;
+    renderPlacar();
+  });
+});
+
+document.getElementById('placar-reset-btn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  PLACAR_SCORE = [0, 0];
+  renderPlacar();
+});
+
+document.getElementById('placar-fullscreen-btn').addEventListener('click', ()=>{
+  const board = document.getElementById('placar-board');
+  const emTelaCheia = document.fullscreenElement || document.webkitFullscreenElement;
+  if(!emTelaCheia){
+    if(board.requestFullscreen) board.requestFullscreen();
+    else if(board.webkitRequestFullscreen) board.webkitRequestFullscreen(); // Safari/iOS mais antigos
+    else alert('Seu navegador não permite tela cheia aqui — pode continuar usando normalmente do mesmo jeito.');
+  } else {
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+});
+function atualizarBotaoTelaCheiaPlacar(){
+  const btn = document.getElementById('placar-fullscreen-btn');
+  const emTelaCheia = document.fullscreenElement || document.webkitFullscreenElement;
+  btn.textContent = emTelaCheia ? '✕ Sair da tela cheia' : '⛶ Tela cheia';
+}
+document.addEventListener('fullscreenchange', atualizarBotaoTelaCheiaPlacar);
+document.addEventListener('webkitfullscreenchange', atualizarBotaoTelaCheiaPlacar);
+
+carregarPlacarLocal();
+renderPlacar();
 
 loadData();
 </script>
