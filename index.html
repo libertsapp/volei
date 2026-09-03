@@ -59,6 +59,8 @@
     text-align:center;font-size:11px;color:var(--muted);opacity:0.6;
     padding:18px 20px 4px;max-width:1000px;margin:0 auto;
   }
+  .footer-line{margin-bottom:4px;}
+  .footer-line:last-child{margin-bottom:0;}
   .footer-link{color:inherit;text-decoration:underline;text-decoration-style:dotted;}
   .footer-link-discreto{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
   .footer-link-discreto:hover{color:var(--ball-yellow);}
@@ -303,6 +305,24 @@
   .meta-row{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;}
   .player-absence{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 7px;border-radius:10px;}
   .player-absence.alerta{color:var(--danger);border-color:var(--danger);font-weight:700;}
+
+  /* seletor de porte (P/M/G) — opcional, ícone de manequim crescendo de tamanho */
+  .porte-seletor{display:flex;gap:6px;}
+  .porte-opcao{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;
+    padding:8px 6px;border-radius:10px;border:1px solid var(--line);background:var(--court-navy-3);
+    cursor:pointer;min-width:50px;transition:border-color .15s,background .15s;
+  }
+  .porte-opcao svg{fill:var(--muted);transition:fill .15s;}
+  .porte-opcao.selecionado{border-color:var(--ball-yellow);background:rgba(244,185,66,0.12);}
+  .porte-opcao.selecionado svg{fill:var(--ball-yellow);}
+  .porte-letra{font-family:'Anton',sans-serif;font-size:14px;color:var(--chalk-dim);}
+  .porte-opcao.selecionado .porte-letra{color:var(--ball-yellow);}
+  .porte-faixa{font-size:9px;color:var(--muted);white-space:nowrap;}
+  .porte-badge{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:10px;border:1px solid var(--line);color:var(--chalk-dim);
+  }
 
   /* gráfico top 10 na foto */
   /* pódio "mais vezes na foto" — top 3 */
@@ -780,6 +800,10 @@
             <button type="button" data-star="5">★</button>
           </div>
         </div>
+        <div class="field-group">
+          <label>Porte (opcional)</label>
+          <div id="new-player-porte-wrap"></div>
+        </div>
         <div class="photo-input-wrap">
           <img class="preview" id="new-player-preview">
           <input type="file" id="new-player-photo" accept="image/*">
@@ -1021,7 +1045,11 @@
 
   </div>
 
-  <footer class="app-footer">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados · Ver.: 2.16 · <span id="visit-counter"></span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></footer>
+  <footer class="app-footer">
+    <div class="footer-line">Ver.: 2.19 · <span id="visit-counter"></span></div>
+    <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
+    <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
+  </footer>
 </div>
 
 <script>
@@ -1409,6 +1437,63 @@ function wireStarsPicker(containerId){
 wireStarsPicker('new-player-stars');
 wireStarsPicker('guest-stars');
 wireStarsPicker('checkin-guest-stars');
+
+/* ---------- SELETOR DE PORTE (P/M/G) — opcional, altura do jogador. Ícone: bonequinho
+   saltando perto da rede de vôlei — quanto mais alto o porte, mais perto do topo da rede ---------- */
+const PORTE_OPCOES = [
+  { valor:'P', faixa:'até 165cm' },
+  { valor:'M', faixa:'166-179cm' },
+  { valor:'G', faixa:'180cm+' },
+];
+const PORTE_SALTO_POS = {
+  P: { cx:14, cy:24, r:2.6, corpo:'M14 27 C11 27 10.5 30 10.5 31.5 L10.5 34 L17.5 34 L17.5 31.5 C17.5 30 17 27 14 27 Z' },
+  M: { cx:14, cy:15, r:3,   corpo:'M14 18.4 C10.6 18.4 10 22 10 23.8 L10 34 L18 34 L18 23.8 C18 22 17.4 18.4 14 18.4 Z' },
+  G: { cx:15, cy:4,  r:3.2, corpo:'M15 7.6 C11.4 7.6 10.8 11.5 10.8 13.4 L10.8 34 L19.2 34 L19.2 13.4 C19.2 11.5 18.6 7.6 15 7.6 Z' },
+};
+function svgSaltador(porte, escala){
+  const s = escala || 1;
+  const w = 22*s, h = 34*s;
+  const d = PORTE_SALTO_POS[porte] || PORTE_SALTO_POS.M;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 22 34" fill="currentColor" style="vertical-align:middle;">
+    <line x1="0" y1="4" x2="0" y2="34" stroke="currentColor" stroke-width="1.3" opacity="0.45"/>
+    <rect x="0" y="4" width="18" height="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45"/>
+    <circle cx="${d.cx}" cy="${d.cy}" r="${d.r}"/>
+    <path d="${d.corpo}"/>
+  </svg>`;
+}
+function porteSeletorHtml(idPrefix, valorAtual){
+  return `<div class="porte-seletor" id="${idPrefix}-porte-seletor" data-value="${valorAtual||''}">
+    ${PORTE_OPCOES.map(o=>`
+      <div class="porte-opcao ${valorAtual===o.valor?'selecionado':''}" data-porte="${o.valor}">
+        ${svgSaltador(o.valor)}
+        <span class="porte-letra">${o.valor}</span>
+        <span class="porte-faixa">${o.faixa}</span>
+      </div>
+    `).join('')}
+  </div>`;
+}
+function wirePorteSeletor(idPrefix){
+  const container = document.getElementById(idPrefix+'-porte-seletor');
+  if(!container) return;
+  container.querySelectorAll('.porte-opcao').forEach(op=>{
+    op.addEventListener('click', ()=>{
+      const jaSelecionado = op.classList.contains('selecionado');
+      container.querySelectorAll('.porte-opcao').forEach(o=>o.classList.remove('selecionado'));
+      if(jaSelecionado){
+        container.dataset.value = ''; // clicar de novo no já selecionado desmarca (o porte é opcional)
+      } else {
+        op.classList.add('selecionado');
+        container.dataset.value = op.dataset.porte;
+      }
+    });
+  });
+}
+function labelPorte(p){
+  const info = PORTE_OPCOES.find(o=>o.valor===p);
+  return info ? `${info.valor} (${info.faixa})` : '';
+}
+document.getElementById('new-player-porte-wrap').innerHTML = porteSeletorHtml('new-player', '');
+wirePorteSeletor('new-player');
 wireStarsPicker('rodada-guest-stars');
 
 function starsDisplay(n){
@@ -1508,7 +1593,8 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   const newPlayer = {
     id: uid(), nome: name, apelido: nickInput.value.trim(), foto,
     estrelas: parseFloat(starsEl.dataset.value) || 0,
-    sexo: genderSelect.value || ''
+    sexo: genderSelect.value || '',
+    porte: document.getElementById('new-player-porte-seletor').dataset.value || ''
   };
   DATA.players.push(newPlayer);
   const ok = await postAction('addPlayer', {player: newPlayer}, pwd);
@@ -1521,6 +1607,8 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   nameInput.value=''; nickInput.value=''; photoInput.value=''; genderSelect.value='';
   starsEl.dataset.value = 0;
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
+  document.getElementById('new-player-porte-wrap').innerHTML = porteSeletorHtml('new-player', '');
+  wirePorteSeletor('new-player');
   document.getElementById('new-player-preview').style.display='none';
   renderPlayers();
 });
@@ -1696,7 +1784,7 @@ function openPlayerProfile(id){
         <div>
           <p class="profile-name">${escapeHtml(player.nome)}</p>
           ${player.apelido ? `<div class="sub">"${escapeHtml(player.apelido)}"</div>` : ''}
-          <div class="profile-badges">${badgeIconsHtml(id, badges)} ${starsVisibleNow()?starsDisplay(player.estrelas):''} ${player.sexo?`<span class="badge-gender ${player.sexo}">${player.sexo==='F'?'Feminino':'Masculino'}</span>`:''}</div>
+          <div class="profile-badges">${badgeIconsHtml(id, badges)} ${starsVisibleNow()?starsDisplay(player.estrelas):''} ${player.sexo?`<span class="badge-gender ${player.sexo}">${player.sexo==='F'?'Feminino':'Masculino'}</span>`:''} ${player.porte?`<span class="porte-badge">${svgSaltador(player.porte, 0.5)} ${labelPorte(player.porte)}</span>`:''}</div>
         </div>
       </div>
       <div class="profile-stats-grid">
@@ -1768,6 +1856,10 @@ function editPlayerRowHtml(p){
               <button type="button" data-star="5">★</button>
             </div>
           </div>
+          <div class="field-group" style="margin-top:10px;max-width:220px;">
+            <label>Porte (opcional)</label>
+            <div id="edit-porte-wrap-${p.id}"></div>
+          </div>
         </div>
       </div>
       <div style="display:flex;gap:6px;">
@@ -1806,6 +1898,14 @@ function wireEditPlayerRow(){
     });
   }
 
+  // seletor de porte, já vindo com o valor atual do jogador marcado
+  const jogadorAtual = DATA.players.find(pp=>pp.id===pid);
+  const porteWrap = document.getElementById('edit-porte-wrap-'+pid);
+  if(porteWrap){
+    porteWrap.innerHTML = porteSeletorHtml('edit-'+pid, jogadorAtual ? (jogadorAtual.porte||'') : '');
+    wirePorteSeletor('edit-'+pid);
+  }
+
   const cancelBtn = document.querySelector('[data-cancel-edit="'+pid+'"]');
   if(cancelBtn) cancelBtn.addEventListener('click', ()=>{
     EDITING_PLAYER_ID = null;
@@ -1838,17 +1938,19 @@ function wireEditPlayerRow(){
       console.error('Falha no upload da foto', e);
       alert('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.');
     }
-    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido };
+    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte };
     player.estrelas = novaEstrelas;
     player.foto = novaFoto;
     player.nome = novoNome;
     player.apelido = novoApelido;
+    player.porte = document.getElementById('edit-'+pid+'-porte-seletor').dataset.value || '';
     const ok = await postAction('updatePlayer', {player: player}, pwd);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
       player.foto = anterior.foto;
       player.nome = anterior.nome;
       player.apelido = anterior.apelido;
+      player.porte = anterior.porte;
     }
     EDITING_PLAYER_ID = null;
     renderPlayers();
