@@ -59,6 +59,9 @@
     text-align:center;font-size:11px;color:var(--muted);opacity:0.6;
     padding:18px 20px 4px;max-width:1000px;margin:0 auto;
   }
+  @media (max-width:640px){
+    .app-footer{padding-bottom:80px;} /* reserva espaço pra barra inferior fixa não tampar o rodapé */
+  }
   .footer-line{margin-bottom:4px;}
   .footer-line:last-child{margin-bottom:0;}
   .footer-link{color:inherit;text-decoration:underline;text-decoration-style:dotted;}
@@ -116,7 +119,6 @@
   .mobile-menu-btn.open span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
 
   @media (max-width:640px){
-    .mobile-menu-btn{display:flex;}
     nav{
       display:none;position:absolute;top:calc(100% + 10px);left:0;right:0;
       flex-direction:column;gap:2px;background:var(--court-navy-2);
@@ -131,7 +133,54 @@
     nav.mobile-open{display:flex;}
     nav button{width:100%;text-align:left;padding:13px 16px;font-size:14px;}
     .brand h1{font-size:20px;}
+    /* menu de cima e o botão hambúrguer somem no celular — a navegação vira a
+       barra inferior fixa, no estilo dos apps nativos de celular */
+    .mobile-menu-btn{display:none !important;}
+    .wrap{padding-bottom:16px;} /* o espaço pra barra inferior é reservado no rodapé, que vem depois do .wrap */
   }
+
+  /* ---------- barra de navegação inferior (só no celular) ---------- */
+  .bottom-tabbar{
+    display:none;position:fixed;left:0;right:0;bottom:0;z-index:70;
+    background:var(--court-navy-2);border-top:1px solid var(--line);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+  }
+  @media (max-width:640px){ .bottom-tabbar{display:flex;} }
+  .tab-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:transparent;border:none;color:var(--muted);padding:6px 2px;
+    border-radius:10px;cursor:pointer;font-family:'Work Sans',sans-serif;
+  }
+  .tab-btn.active{color:var(--ball-yellow);}
+  .tab-icon{font-size:19px;line-height:1;}
+  .tab-label{font-size:10px;font-weight:600;}
+
+  /* painel "Mais" — desliza de baixo pra cima, cobrindo a tela com um fundo escuro atrás */
+  .mais-sheet-overlay{
+    display:none;position:fixed;inset:0;z-index:80;background:rgba(8,12,24,0.65);
+    align-items:flex-end;justify-content:center;
+  }
+  .mais-sheet-overlay.aberto{display:flex;}
+  .mais-sheet{
+    width:100%;max-width:600px;max-height:75vh;overflow-y:auto;background:var(--court-navy-2);
+    border:1px solid var(--ball-yellow);border-bottom:none;border-radius:22px 22px 0 0;
+    padding:10px 18px calc(22px + env(safe-area-inset-bottom));
+    animation:mais-sheet-subir .22s ease-out;
+  }
+  @keyframes mais-sheet-subir{ from{ transform:translateY(24px); opacity:0.4; } to{ transform:translateY(0); opacity:1; } }
+  .mais-sheet-handle{width:36px;height:4px;background:var(--line);border-radius:4px;margin:4px auto 14px;}
+  .mais-sheet-title{font-family:'Anton',sans-serif;text-transform:uppercase;font-size:15px;margin:0 0 14px;}
+  .mais-sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .mais-item{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:var(--court-navy-3);border:1px solid var(--line);border-radius:14px;
+    padding:16px 6px;color:var(--chalk-dim);font-size:12px;font-weight:600;cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+  }
+  .mais-item:active{border-color:var(--ball-yellow);}
+  .mais-item-icon{font-size:22px;}
+  
 
   .netline{
     height:1px;background-image:linear-gradient(90deg, var(--line) 50%, transparent 50%);
@@ -677,6 +726,32 @@
     </div>
   </header>
 
+  <!-- barra de navegação inferior — só aparece no celular, com os 4 itens mais usados.
+       Cada botão só "clica de mentira" no botão real do menu de cima, reaproveitando
+       toda a lógica de troca de tela que já existe, sem duplicar nada. -->
+  <nav class="bottom-tabbar" id="bottom-tabbar">
+    <button class="tab-btn active" data-view="dashboard"><span class="tab-icon">🏠</span><span class="tab-label">Início</span></button>
+    <button class="tab-btn" data-view="checkin"><span class="tab-icon">✅</span><span class="tab-label">Check-in</span></button>
+    <button class="tab-btn" data-view="sorteio"><span class="tab-icon">🎲</span><span class="tab-label">Sorteio</span></button>
+    <button class="tab-btn" data-view="ranking"><span class="tab-icon">🏆</span><span class="tab-label">Ranking</span></button>
+    <button class="tab-btn" id="tab-mais-btn"><span class="tab-icon">☰</span><span class="tab-label">Mais</span></button>
+  </nav>
+
+  <div class="mais-sheet-overlay" id="mais-sheet-overlay">
+    <div class="mais-sheet">
+      <div class="mais-sheet-handle"></div>
+      <h3 class="mais-sheet-title">Mais opções</h3>
+      <div class="mais-sheet-grid">
+        <button class="mais-item" data-view="jogadores"><span class="mais-item-icon">👥</span>Jogadores</button>
+        <button class="mais-item" data-view="rodada"><span class="mais-item-icon">📝</span>Nova rodada</button>
+        <button class="mais-item" data-view="historico"><span class="mais-item-icon">📜</span>Histórico</button>
+        <button class="mais-item" data-view="hall"><span class="mais-item-icon">🏛️</span>Hall da Fama</button>
+        <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
+        <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
+      </div>
+    </div>
+  </div>
+
   <div id="loading" class="skeleton-wrap">
     <div class="skeleton skeleton-hero"></div>
     <div class="skeleton skeleton-line" style="width:40%;"></div>
@@ -1046,7 +1121,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 2.19 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1380,7 +1455,44 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='sorteio') renderSorteioList();
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
+  atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
+
+/* ---------- BARRA DE NAVEGAÇÃO INFERIOR (celular) ---------- */
+// Os itens da barra de baixo e do painel "Mais" não têm lógica própria de troca de
+// tela — cada um só "clica de mentira" no botão real do menu de cima (#nav), que já
+// tem tudo implementado. Isso evita duplicar toda a lógica de renderização por tela.
+function abrirTelaVia(viewName){
+  const navBtn = document.querySelector('#nav button[data-view="'+viewName+'"]');
+  if(navBtn) navBtn.click();
+}
+document.querySelectorAll('.tab-btn[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=> abrirTelaVia(btn.dataset.view));
+});
+document.querySelectorAll('.mais-item[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    abrirTelaVia(btn.dataset.view);
+    fecharMaisSheet();
+  });
+});
+function abrirMaisSheet(){ document.getElementById('mais-sheet-overlay').classList.add('aberto'); }
+function fecharMaisSheet(){ document.getElementById('mais-sheet-overlay').classList.remove('aberto'); }
+document.getElementById('tab-mais-btn').addEventListener('click', abrirMaisSheet);
+document.getElementById('mais-sheet-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'mais-sheet-overlay') fecharMaisSheet(); // só fecha clicando fora do painel
+});
+// mantém o botão certo destacado na barra de baixo — os itens que não estão nos 4
+// principais (estão dentro do painel "Mais") deixam o botão "Mais" destacado, pra
+// dar uma pista visual de "você está em algo que não é a tela inicial de baixo"
+function atualizarBarraInferior(viewAtual){
+  const itensPrincipais = ['dashboard','checkin','sorteio','ranking'];
+  document.querySelectorAll('.tab-btn').forEach(b=> b.classList.remove('active'));
+  if(itensPrincipais.includes(viewAtual)){
+    document.querySelector('.tab-btn[data-view="'+viewAtual+'"]')?.classList.add('active');
+  } else {
+    document.getElementById('tab-mais-btn')?.classList.add('active');
+  }
+}
 
 // clique em qualquer nome marcado como "clicável" (Jogadores, Ranking, etc.) abre o perfil —
 // um único listener global, então funciona em qualquer tela nova sem precisar religar nada
