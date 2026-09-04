@@ -729,13 +729,13 @@
   <!-- barra de navegação inferior — só aparece no celular, com os 4 itens mais usados.
        Cada botão só "clica de mentira" no botão real do menu de cima, reaproveitando
        toda a lógica de troca de tela que já existe, sem duplicar nada. -->
-  <nav class="bottom-tabbar" id="bottom-tabbar">
+  <div class="bottom-tabbar" id="bottom-tabbar" role="navigation" aria-label="Navegação principal">
     <button class="tab-btn active" data-view="dashboard"><span class="tab-icon">🏠</span><span class="tab-label">Início</span></button>
     <button class="tab-btn" data-view="checkin"><span class="tab-icon">✅</span><span class="tab-label">Check-in</span></button>
     <button class="tab-btn" data-view="sorteio"><span class="tab-icon">🎲</span><span class="tab-label">Sorteio</span></button>
     <button class="tab-btn" data-view="ranking"><span class="tab-icon">🏆</span><span class="tab-label">Ranking</span></button>
     <button class="tab-btn" id="tab-mais-btn"><span class="tab-icon">☰</span><span class="tab-label">Mais</span></button>
-  </nav>
+  </div>
 
   <div class="mais-sheet-overlay" id="mais-sheet-overlay">
     <div class="mais-sheet">
@@ -1121,7 +1121,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
