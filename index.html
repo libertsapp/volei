@@ -1081,7 +1081,8 @@
             <li><strong>Cabeças de chave (5 estrelas).</strong> No máximo 1 jogador de nota máxima por time, sempre que a quantidade total permitir.</li>
             <li><strong>Distribuição inicial embaralhada.</strong> Os jogadores são organizados por nota (do maior pro menor) e distribuídos em zigue-zague entre os times — mas antes disso, a lista inteira é embaralhada, pra jogadores com a mesma nota não caírem sempre na mesma ordem alfabética. O time que "começa a fila" também é sorteado a cada vez, pra não favorecer sempre o mesmo time.</li>
             <li><strong>Ajuste fino de equilíbrio.</strong> Depois da primeira distribuição, o sistema compara a soma de notas de cada time e faz trocas (sempre entre jogadores do mesmo sexo, pra não bagunçar a cota de mulheres) até a diferença entre o time mais forte e o mais fraco ficar mínima.</li>
-            <li><strong>Evitar duplas repetidas.</strong> Por fim, o sistema tenta separar duplas que já jogaram muito juntas nas últimas rodadas — mas só faz essa troca se não atrapalhar o equilíbrio de notas conquistado no passo anterior.</li>
+            <li><strong>Equilíbrio de altura.</strong> Pra quem tem o porte (P/M/G) cadastrado no perfil, o sistema tenta espalhar jogadores mais altos entre os times, em vez de deixar todos concentrados num só — afinal, altura é uma vantagem real no vôlei. Mas essa troca só acontece se <u>não</u> piorar o equilíbrio de notas já conquistado no passo anterior. Quem não tem porte cadastrado é tratado como "médio", sem interferir no ajuste.</li>
+            <li><strong>Evitar duplas repetidas.</strong> Por fim, o sistema tenta separar duplas que já jogaram muito juntas nas últimas rodadas — mas só faz essa troca se não atrapalhar o equilíbrio de notas conquistado nos passos anteriores.</li>
           </ol>
           <p style="line-height:1.6;">No final, aparece um selo <strong>"⚖️ Equilíbrio: X%"</strong> — quanto mais perto de 100%, mais parelha ficou a soma de notas entre os times daquele sorteio específico.</p>
         </div>
@@ -1121,7 +1122,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3454,6 +3455,7 @@ function draftBalanced(players, numTeams){
 
   equilibrarTimes(teams, numTeams, tetoCincoEstrelas);
   reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas);
+  equilibrarAltura(teams, numTeams, tetoCincoEstrelas);
   evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas);
 
   return shuffleArray(teams); // ordem de EXIBIÇÃO dos times sorteada de novo — nunca previsível
@@ -3471,6 +3473,61 @@ function contarDuplasRecentes(rounds, limiteQtdRodadas){
     }
   }));
   return counts;
+}
+
+function pesoAltura(p){
+  // jogador sem porte cadastrado é tratado como médio (neutro) — a maioria do
+  // elenco ainda não preencheu esse campo opcional, então isso evita distorcer
+  // o ajuste com base em dado que simplesmente não existe
+  if(!p || !p.porte) return 1;
+  if(p.porte === 'G') return 2;
+  if(p.porte === 'P') return 0;
+  return 1; // M
+}
+
+function equilibrarAltura(teams, numTeams, tetoCincoEstrelas){
+  // ajuste fino de altura — roda DEPOIS do equilíbrio de notas já feito, e só troca
+  // jogador se isso não piorar o equilíbrio de notas já alcançado em mais de 1 ponto.
+  // Ou seja: altura nunca tem força pra desfazer o que já está balanceado por nota,
+  // só refina quando dá — mesmo espírito do passo que evita duplas repetidas.
+  for(let rodada=0; rodada<20; rodada++){
+    let melhor = null, melhorGanho = 0;
+    for(let ta=0; ta<numTeams; ta++){
+      for(let tb=ta+1; tb<numTeams; tb++){
+        const alturaTa = teams[ta].reduce((s,p)=>s+pesoAltura(p),0);
+        const alturaTb = teams[tb].reduce((s,p)=>s+pesoAltura(p),0);
+        const gapAntes = Math.abs(alturaTa - alturaTb);
+        const diffNotasAntes = Math.abs(somaTime(teams[ta]) - somaTime(teams[tb]));
+        teams[ta].forEach((pa, ia)=>{
+          teams[tb].forEach((pb, ib)=>{
+            if(pa.sexo !== pb.sexo) return; // preserva a cota de mulheres
+            const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
+            if(paCinco !== pbCinco){
+              const cincoA = teams[ta].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
+              const cincoB = teams[tb].filter(p=>p.estrelas===5).length - (pbCinco?1:0) + (paCinco?1:0);
+              if(cincoA > tetoCincoEstrelas || cincoB > tetoCincoEstrelas) return; // preserva o teto de cabeças de chave
+            }
+            const novaAlturaTa = alturaTa - pesoAltura(pa) + pesoAltura(pb);
+            const novaAlturaTb = alturaTb - pesoAltura(pb) + pesoAltura(pa);
+            const ganho = gapAntes - Math.abs(novaAlturaTa - novaAlturaTb);
+            if(ganho <= 0) return;
+            const novoTa = teams[ta].slice(); novoTa[ia]=pb;
+            const novoTb = teams[tb].slice(); novoTb[ib]=pa;
+            const diffNotasDepois = Math.abs(somaTime(novoTa) - somaTime(novoTb));
+            if(diffNotasDepois > diffNotasAntes + 1) return; // não piora o equilíbrio de nota em mais de 1 ponto
+            if(ganho > melhorGanho){
+              melhorGanho = ganho;
+              melhor = { ta, tb, ia, ib };
+            }
+          });
+        });
+      }
+    }
+    if(!melhor) break;
+    const tmp = teams[melhor.ta][melhor.ia];
+    teams[melhor.ta][melhor.ia] = teams[melhor.tb][melhor.ib];
+    teams[melhor.tb][melhor.ib] = tmp;
+  }
 }
 
 function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
