@@ -792,7 +792,7 @@
 
     <section id="view-dashboard" class="active">
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-        <button class="btn secondary" id="share-weekly-whatsapp-btn">📲 Gerar resumo da semana</button>
+        <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Gerar resumo da semana</button>
       </div>
       <div id="dash-hero"></div>
       <div class="netline"></div>
@@ -824,6 +824,11 @@
           <select id="panelas-year" class="yearpick" style="margin-bottom:10px;"></select>
         </div>
         <div id="dash-panelas"></div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>🪦 Defuntos — mais de 100 dias sem jogar</summary>
+        <div id="dash-defuntos"></div>
       </details>
     </section>
 
@@ -867,7 +872,7 @@
       <div class="select-list" id="checkin-list"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
-        <button class="btn secondary" id="share-checkins-whatsapp-btn">📲 Compartilhar confirmados no WhatsApp</button>
+        <button class="btn secondary" id="share-checkins-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar confirmados no WhatsApp</button>
       </div>
     </section>
 
@@ -1031,7 +1036,7 @@
         <div id="manual-groups" class="draft-grid" style="margin-top:16px;"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
           <button class="btn" id="iniciar-sorteio-manual-btn" style="display:none;">Iniciar sorteio 🎯</button>
-          <button class="btn secondary" id="share-groups-whatsapp-btn" style="display:none;">📲 Compartilhar grupos no WhatsApp</button>
+          <button class="btn secondary" id="share-groups-whatsapp-btn" style="display:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar grupos no WhatsApp</button>
         </div>
         <div id="roleta-container"></div>
       </div>
@@ -1145,7 +1150,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2443,7 +2448,7 @@ function renderDashboard(){
         <div class="sb-stats">
           <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
           <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
-          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🧙</div></div>
+          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🪦</div></div>
         </div>
       </div>`;
   }
@@ -2460,6 +2465,7 @@ function renderDashboard(){
   renderPhotoChart();
   renderDuos();
   renderPanelas();
+  renderDefuntos();
 }
 
 /* ---------- DUPLAS MAIS SORTEADAS JUNTAS ---------- */
@@ -2589,7 +2595,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.mochila.has(pid)) html += `<span class="badge-icon" title="CARREGADOR DE MOCHILA — caiu muito em time fraco">🎒</span>`;
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
-  if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="APOSENTADO — mais de 100 dias sem aparecer numa rodada">🧙</span>`;
+  if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="DEFUNTO — mais de 100 dias sem aparecer numa rodada">🪦</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   return html;
 }
@@ -2747,6 +2753,28 @@ function renderPanelas(){
 }
 document.getElementById('duos-year').addEventListener('change', renderDuos);
 document.getElementById('panelas-year').addEventListener('change', renderPanelas);
+
+/* ---------- DEFUNTOS — jogadores com mais de 100 dias sem jogar ---------- */
+function renderDefuntos(){
+  const container = document.getElementById('dash-defuntos');
+  const badges = computeBadges();
+  const ultimaVez = computeUltimaParticipacao();
+  const agora = Date.now();
+  const lista = DATA.players
+    .filter(p=> badges.aposentado.has(p.id))
+    .map(p=>({ p, dias: Math.floor((agora - (ultimaVez[p.id]||agora)) / DIA_MS) }))
+    .sort((a,b)=> b.dias - a.dias);
+  if(lista.length===0){
+    container.innerHTML = '<div class="empty"><i class="ti ti-ghost-2"></i>Ninguém sumiu por mais de 100 dias até agora — cemitério vazio! 🪦</div>';
+    return;
+  }
+  container.innerHTML = lista.map(({p,dias})=>`
+    <div class="profile-partner clickable-name" data-open-profile="${p.id}">
+      ${avatarHtml(p,'sm')} ${nomeComApelidoHtml(p)}
+      <span style="margin-left:auto;color:var(--muted);">${dias} dias sem jogar</span>
+    </div>
+  `).join('');
+}
 
 /* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
 function computePhotoCounts(ano){
@@ -3816,8 +3844,10 @@ function montarResumoSemanal(){
   }
 
   if(badges.rip.size + badges.aposentado.size > 0){
-    texto += `👻 ${badges.rip.size + badges.aposentado.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
+    texto += `👻🪦 ${badges.rip.size + badges.aposentado.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
   }
+
+  texto += `\n🔗 Veja os dados completos: https://libertsapp.github.io/volei/`;
 
   return texto;
 }
@@ -4020,7 +4050,7 @@ function renderDraftResult(){
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="btn" id="send-to-rodada-btn">Usar esses times na Nova Rodada</button>
-      <button class="btn secondary" id="share-teams-whatsapp-btn">📲 Compartilhar times no WhatsApp</button>
+      <button class="btn secondary" id="share-teams-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar times no WhatsApp</button>
     </div>
     <div class="draft-grid" id="draft-grid"></div>`;
   const grid = document.getElementById('draft-grid');
