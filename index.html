@@ -384,11 +384,34 @@
   .podium-name{font-size:12px;font-weight:600;text-align:center;margin-bottom:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .podium-name:hover{text-decoration:underline;text-decoration-color:var(--ball-yellow);}
   .podium-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);margin-bottom:8px;font-size:14px;}
-  /* quando há empate no 1º lugar, todo mundo aparece lado a lado, dividindo o bloco dourado */
-  .podium-place.empatado{width:auto;max-width:220px;}
   .podium-primeiro-grupo{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:2px;}
   .podium-primeiro-pessoa{display:flex;flex-direction:column;align-items:center;width:74px;cursor:pointer;}
-  .podium-crown-mini{font-size:13px;margin-bottom:2px;}
+
+  /* empate no 1º lugar — faixa própria, cheia, no topo (não tenta mais dividir espaço
+     com 2º/3º, porque com 3+ pessoas empatadas isso quebrava o alinhamento do pódio) */
+  .podium-empate-faixa{
+    background:linear-gradient(135deg, rgba(244,185,66,0.16), rgba(244,185,66,0.03));
+    border:1px solid var(--ball-yellow);border-radius:16px;
+    padding:18px 14px 14px;margin-bottom:16px;text-align:center;
+  }
+  .podium-empate-titulo{
+    font-family:'Anton',sans-serif;text-transform:uppercase;font-size:14px;
+    color:var(--ball-yellow);margin-bottom:16px;letter-spacing:0.5px;
+  }
+  .podium-empate-grupo{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;}
+  .podium-empate-pessoa{display:flex;flex-direction:column;align-items:center;gap:2px;width:90px;cursor:pointer;}
+
+  /* 2º/3º quando o 1º está empatado — lista simples, sem bloco de pódio (não tem uma
+     base de 1º lugar única pra apoiar visualmente um "degrau" de pódio aqui) */
+  .podium-secundaria-faixa{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .podium-secundaria-item{
+    display:flex;align-items:center;gap:10px;background:var(--court-navy-2);
+    border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;
+  }
+  .podium-secundaria-rank{font-family:'Anton',sans-serif;color:var(--muted);font-size:14px;width:20px;text-align:center;flex-shrink:0;}
+  .podium-secundaria-nome{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .podium-secundaria-count{font-family:'Space Mono',monospace;font-weight:700;color:var(--ball-yellow);font-size:13px;flex-shrink:0;}
+
   .podium-block{
     width:100%;border-radius:12px 12px 4px 4px;display:flex;align-items:flex-start;justify-content:center;
     padding-top:8px;font-family:'Anton',sans-serif;color:var(--court-navy);font-size:16px;
@@ -1122,7 +1145,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2782,30 +2805,65 @@ function renderPhotoChart(){
       <div class="podium-block block-${posicaoReal}">${posicaoReal}º</div>
     </div>`;
   }
+  function blocoSecundario(d, posicaoReal){
+    return `<div class="podium-secundaria-item clickable-name" data-open-profile="${d.id}">
+      <div class="podium-secundaria-rank">${posicaoReal}º</div>
+      ${avatarHtml({foto:d.foto, nome:d.nome},'sm')}
+      <div class="podium-secundaria-nome">${nomeComApelidoHtml(d)}</div>
+      <div class="podium-secundaria-count" id="podium-count-${posicaoReal}">0×</div>
+    </div>`;
+  }
 
-  // 1º lugar: se for só uma pessoa, mantém o visual grande de sempre; se for empate,
-  // todo mundo aparece lado a lado, menorzinho, dividindo o mesmo bloco dourado
   const empatado = grupoPrimeiro.length > 1;
-  const primeiroHtml = `<div class="podium-place place-1 ${empatado?'empatado':''}">
-    ${empatado ? '' : '<div class="podium-crown">👑</div>'}
-    <div class="podium-primeiro-grupo">
-      ${grupoPrimeiro.map((d,gi)=>`
-        <div class="podium-primeiro-pessoa clickable-name" data-open-profile="${d.id}">
-          ${empatado ? '<div class="podium-crown-mini">👑</div>' : ''}
-          ${d.foto ? `<img class="podium-avatar ${empatado?'':'big'}" src="${d.foto}">` : `<div class="podium-avatar ${empatado?'':'big'} podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-          <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
-          <div class="podium-count" id="podium-count-1-${gi}">0×</div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="podium-block block-1">1º</div>
-  </div>`;
+  let podioHtml;
 
-  const podioHtml = `<div class="podium-wrap">
-    ${segundo ? blocoIndividual(segundo, 2) : ''}
-    ${primeiroHtml}
-    ${terceiro ? blocoIndividual(terceiro, 3) : ''}
-  </div>`;
+  if(empatado){
+    // EMPATE NO 1º LUGAR: em vez de tentar espremer todo mundo do lado do 2º/3º (o que
+    // quebra o layout quando são 3+ pessoas empatadas), o 1º lugar ganha uma faixa
+    // própria, cheia, no topo — cabe qualquer quantidade de gente empatada, sem
+    // depender de blocos de pódio que não escalam. O 2º/3º (se existirem) viram uma
+    // lista simples logo abaixo, sem pódio nenhum, já que não faz sentido um "degrau"
+    // de pódio sem uma base de 1º lugar única pra apoiar visualmente.
+    const faixaPrimeiroHtml = `
+      <div class="podium-empate-faixa">
+        <div class="podium-empate-titulo">👑 1º lugar — empate entre ${grupoPrimeiro.length}</div>
+        <div class="podium-empate-grupo">
+          ${grupoPrimeiro.map((d,gi)=>`
+            <div class="podium-empate-pessoa clickable-name" data-open-profile="${d.id}">
+              ${d.foto ? `<img class="podium-avatar" src="${d.foto}">` : `<div class="podium-avatar podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
+              <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
+              <div class="podium-count" id="podium-count-1-${gi}">0×</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    const faixaSecundariaHtml = (segundo || terceiro) ? `
+      <div class="podium-secundaria-faixa">
+        ${segundo ? blocoSecundario(segundo, 2) : ''}
+        ${terceiro ? blocoSecundario(terceiro, 3) : ''}
+      </div>` : '';
+    podioHtml = faixaPrimeiroHtml + faixaSecundariaHtml;
+  } else {
+    // SEM EMPATE: pódio clássico de 3 colunas (2º / 1º alto no meio / 3º), como sempre foi
+    const primeiroHtml = `<div class="podium-place place-1">
+      <div class="podium-crown">👑</div>
+      <div class="podium-primeiro-grupo">
+        ${grupoPrimeiro.map((d,gi)=>`
+          <div class="podium-primeiro-pessoa clickable-name" data-open-profile="${d.id}">
+            ${d.foto ? `<img class="podium-avatar big" src="${d.foto}">` : `<div class="podium-avatar big podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
+            <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
+            <div class="podium-count" id="podium-count-1-${gi}">0×</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="podium-block block-1">1º</div>
+    </div>`;
+    podioHtml = `<div class="podium-wrap">
+      ${segundo ? blocoIndividual(segundo, 2) : ''}
+      ${primeiroHtml}
+      ${terceiro ? blocoIndividual(terceiro, 3) : ''}
+    </div>`;
+  }
 
   // 4º em diante — lista com barra em degradê e emblema de posição
   const listaHtml = restanteLista.length ? `<div class="leaderboard-list">${restanteLista.map((d,i)=>{
