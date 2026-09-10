@@ -1040,11 +1040,21 @@
       <div class="select-list" id="sorteio-select-list"></div>
 
       <div id="sorteio-auto-panel">
-        <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
+          <button class="btn secondary" id="montar-grupos-auto-btn">Montar grupos por nível</button>
+          <button class="btn secondary" id="importar-checkin-auto-btn" style="display:none;">📋 Importar jogadores do check-in</button>
+        </div>
+        <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Montar grupos por nível separa os participantes por nota (mulheres sempre no(s) último(s) grupo(s)) — depois disso, o sorteio automático distribui os times respeitando as mesmas regras de sempre, garantindo ainda que nenhum time fique com 2 pessoas do mesmo grupo juntas.</p>
+        <div id="auto-groups" class="draft-grid" style="margin-top:16px;"></div>
+        <button class="btn" id="sortear-com-grupos-btn" style="display:none;margin-top:16px;">🎯 Sorteio automático (respeitando os grupos)</button>
       </div>
 
       <div id="sorteio-manual-panel" style="display:none;">
-        <button class="btn" id="montar-grupos-btn">Montar grupos por nível</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="montar-grupos-btn">Montar grupos por nível</button>
+          <button class="btn secondary" id="importar-checkin-manual-btn" style="display:none;">📋 Importar jogadores do check-in</button>
+        </div>
         <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Os participantes selecionados são separados em grupos por nota (cabeças de chave primeiro), com as mulheres sempre no(s) último(s) grupo(s). Arraste pra ajustar antes de sortear.</p>
         <div id="manual-groups" class="draft-grid" style="margin-top:16px;"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
@@ -1146,6 +1156,19 @@
       </details>
 
       <details class="dash-accordion">
+        <summary>🎯🎲 Sorteio Automático por Grupos — o meio-termo entre os dois</summary>
+        <div>
+          <p style="line-height:1.6;">Esse modo (disponível dentro da aba Sorteio Automático) combina os dois jeitos acima: você monta os grupos por nível igual no Sorteio Manual (podendo arrastar pra ajustar), mas na hora de distribuir os times, quem faz é o computador — sem roleta, sem precisar reunir todo mundo em volta do celular.</p>
+          <ol style="line-height:1.8;padding-left:20px;">
+            <li>Clique em <strong>"Montar grupos por nível"</strong>, dentro do Sorteio Automático. Os grupos são montados do mesmo jeito de sempre (nota mais alta primeiro, mulheres no(s) último(s) grupo(s)).</li>
+            <li>Ajuste os grupos arrastando, se quiser.</li>
+            <li>Clique em <strong>"Sorteio automático (respeitando os grupos)"</strong>. O sistema roda o mesmo algoritmo do Sorteio Automático comum (cota de mulheres, teto de cabeças de chave, equilíbrio de nota, equilíbrio de altura, evitar duplas repetidas) — com uma regra extra: <strong>nenhum time recebe 2 pessoas do mesmo grupo</strong>, do início ao fim do processo.</li>
+          </ol>
+          <p style="line-height:1.6;">Na prática, isso garante uma mistura de níveis em todos os times (ninguém tem 2 "cabeças de chave" do mesmo grupo juntos), mas sem depender de reunir todo mundo pra girar a roleta — o resultado sai pronto na hora.</p>
+        </div>
+      </details>
+
+      <details class="dash-accordion">
         <summary>📈 Evolução do aproveitamento — como o gráfico do perfil é calculado</summary>
         <div>
           <p style="line-height:1.6;">No perfil de cada jogador, o gráfico de "Evolução do aproveitamento" mostra se o desempenho dele está melhorando, piorando ou estável ao longo do tempo. O cálculo funciona assim:</p>
@@ -1163,7 +1186,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 4.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1494,7 +1517,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='historico') renderHistory();
   if(btn.dataset.view==='hall') renderHallDaFama(document.querySelector('.hall-tab.active')?.dataset.hallView || 'mensal');
   if(btn.dataset.view==='dashboard') renderDashboard();
-  if(btn.dataset.view==='sorteio') renderSorteioList();
+  if(btn.dataset.view==='sorteio'){ renderSorteioList(); atualizarBotoesImportarCheckin(); }
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
@@ -3360,6 +3383,29 @@ document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()
   renderSorteioList();
 });
 
+/* ---------- IMPORTAR JOGADORES DO CHECK-IN DIRETO NA TELA DE SORTEIO ---------- */
+// mesma ideia do botão que já existe na aba Check-in, só que sem precisar sair do
+// Sorteio pra usar — aparece nos dois modos (automático e manual) só quando tem um
+// check-in aberto no momento
+function importarJogadoresDoCheckin(){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data){ alert('Não há check-in aberto no momento.'); return; }
+  const idsConfirmados = CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
+  if(idsConfirmados.length===0){
+    alert('Ninguém confirmou presença para essa data ainda.');
+    return;
+  }
+  SELECTED_IDS = new Set(idsConfirmados);
+  renderSorteioList();
+}
+document.getElementById('importar-checkin-auto-btn').addEventListener('click', importarJogadoresDoCheckin);
+document.getElementById('importar-checkin-manual-btn').addEventListener('click', importarJogadoresDoCheckin);
+function atualizarBotoesImportarCheckin(){
+  const temCheckinAberto = !!SETTINGS.checkinDataAberta;
+  document.getElementById('importar-checkin-auto-btn').style.display = temCheckinAberto ? 'inline-block' : 'none';
+  document.getElementById('importar-checkin-manual-btn').style.display = temCheckinAberto ? 'inline-block' : 'none';
+}
+
 document.getElementById('share-checkins-whatsapp-btn').addEventListener('click', ()=>{
   const data = SETTINGS.checkinDataAberta;
   const confirmados = CHECKINS.filter(c=>c.data===data);
@@ -3463,7 +3509,16 @@ function shuffleArray(arr){
 function pesoDe(p){ return (p && p.estrelas > 0) ? p.estrelas : 3; }
 function somaTime(team){ return team.reduce((s,p)=> s + pesoDe(p), 0); }
 
-function draftBalanced(players, numTeams){
+function trocaViolaGrupo(gruposMap, timeDestino, jogadorQueEntra, jogadorQueSai){
+  // usado só quando o sorteio partiu de grupos por nível — garante que nenhuma troca
+  // entre times, em nenhum passo de ajuste, deixe 2 pessoas do MESMO grupo no mesmo time
+  if(!gruposMap) return false; // sorteio automático comum (sem grupos) nunca bloqueia por isso
+  const meuGrupo = gruposMap.get(jogadorQueEntra.id);
+  if(meuGrupo === undefined) return false;
+  return timeDestino.some(q => q.id !== jogadorQueSai.id && gruposMap.get(q.id) === meuGrupo);
+}
+
+function draftBalanced(players, numTeams, gruposParaEsteSorteio){
   // embaralha ANTES de ordenar — assim, jogadores com a mesma nota (empate) caem em posições
   // aleatórias na fila, e não sempre na ordem alfabética em que apareciam na lista
   const embaralhados = shuffleArray(players).map(p=> ({...p}));
@@ -3542,20 +3597,55 @@ function draftBalanced(players, numTeams){
     });
   }
 
-  // FASE 1: distribui as mulheres primeiro, garantindo a cota exata de cada time —
-  // se misturássemos com os homens, um time podia lotar de homens antes de "chegar
-  // a vez" da mulher que faltava nele, deixando ele sem nenhuma. Processar as
-  // mulheres antes evita esse problema.
-  const mulheres = ordenados.filter(p=>p.sexo==='F');
-  const homens = ordenados.filter(p=>p.sexo!=='F');
-  distribuir(mulheres, true);
-  // FASE 2: preenche o restante das vagas com os homens, na mesma sequência de zigue-zague
-  distribuir(homens, true);
+  let gruposMap = null;
+  if(gruposParaEsteSorteio && gruposParaEsteSorteio.length){
+    // SORTEIO POR GRUPOS: cada grupo (do mais forte pro mais fraco, do jeito que já vem
+    // do "Montar grupos por nível") distribui seus integrantes em times DIFERENTES entre
+    // si — garante, já na montagem inicial, que nenhum time recebe 2 pessoas do mesmo grupo
+    const idParaGrupo = new Map();
+    gruposParaEsteSorteio.forEach((grupo, gi)=> grupo.forEach(p=> idParaGrupo.set(p.id, gi)));
+    const gruposClonados = gruposParaEsteSorteio.map(()=>[]);
+    ordenados.forEach(p=>{
+      const gi = idParaGrupo.get(p.id);
+      if(gi !== undefined) gruposClonados[gi].push(p);
+    });
+    gruposMap = new Map();
+    gruposClonados.forEach((grupo, gi)=> grupo.forEach(p=> gruposMap.set(p.id, gi)));
 
-  equilibrarTimes(teams, numTeams, tetoCincoEstrelas);
-  reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas);
-  equilibrarAltura(teams, numTeams, tetoCincoEstrelas);
-  evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas);
+    gruposClonados.forEach(grupo=>{
+      const jogadoresDoGrupo = shuffleArray(grupo);
+      const timesUsadosNesseGrupo = new Set();
+      jogadoresDoGrupo.forEach(p=>{
+        const candidatos = shuffleArray([...Array(numTeams).keys()].filter(i=> !timesUsadosNesseGrupo.has(i)));
+        let vaga = candidatos.find(i=> cabe(i, p, true, true));
+        if(vaga===undefined) vaga = candidatos.find(i=> cabe(i, p, false, true)); // afrouxa só o 5 estrelas
+        if(vaga===undefined) vaga = candidatos.find(i=> teams[i].length < tamanhoAlvo[i]); // segurança
+        if(vaga===undefined){
+          // segurança extrema (não deveria acontecer, já que cada grupo tem no máximo
+          // "numTeams" pessoas): pega o time com menos gente, mesmo repetindo grupo
+          vaga = [...Array(numTeams).keys()].sort((a,b)=> teams[a].length-teams[b].length)[0];
+        }
+        colocar(vaga, p);
+        timesUsadosNesseGrupo.add(vaga);
+      });
+    });
+  } else {
+    // SORTEIO NORMAL (sem grupos) — exatamente como sempre foi
+    // FASE 1: distribui as mulheres primeiro, garantindo a cota exata de cada time —
+    // se misturássemos com os homens, um time podia lotar de homens antes de "chegar
+    // a vez" da mulher que faltava nele, deixando ele sem nenhuma. Processar as
+    // mulheres antes evita esse problema.
+    const mulheres = ordenados.filter(p=>p.sexo==='F');
+    const homens = ordenados.filter(p=>p.sexo!=='F');
+    distribuir(mulheres, true);
+    // FASE 2: preenche o restante das vagas com os homens, na mesma sequência de zigue-zague
+    distribuir(homens, true);
+  }
+
+  equilibrarTimes(teams, numTeams, tetoCincoEstrelas, gruposMap);
+  reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas, gruposMap);
+  equilibrarAltura(teams, numTeams, tetoCincoEstrelas, gruposMap);
+  evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas, gruposMap);
 
   return shuffleArray(teams); // ordem de EXIBIÇÃO dos times sorteada de novo — nunca previsível
 }
@@ -3584,7 +3674,7 @@ function pesoAltura(p){
   return 1; // M
 }
 
-function equilibrarAltura(teams, numTeams, tetoCincoEstrelas){
+function equilibrarAltura(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // ajuste fino de altura — roda DEPOIS do equilíbrio de notas já feito, e só troca
   // jogador se isso não piorar o equilíbrio de notas já alcançado em mais de 1 ponto.
   // Ou seja: altura nunca tem força pra desfazer o que já está balanceado por nota,
@@ -3600,6 +3690,7 @@ function equilibrarAltura(teams, numTeams, tetoCincoEstrelas){
         teams[ta].forEach((pa, ia)=>{
           teams[tb].forEach((pb, ib)=>{
             if(pa.sexo !== pb.sexo) return; // preserva a cota de mulheres
+            if(trocaViolaGrupo(gruposMap, teams[tb], pa, pb) || trocaViolaGrupo(gruposMap, teams[ta], pb, pa)) return; // preserva "ninguém do mesmo grupo junto"
             const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
             if(paCinco !== pbCinco){
               const cincoA = teams[ta].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
@@ -3629,7 +3720,7 @@ function equilibrarAltura(teams, numTeams, tetoCincoEstrelas){
   }
 }
 
-function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
+function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // tenta separar duplas que já jogaram muito juntas nas últimas rodadas, trocando jogadores
   // entre times — só faz a troca se ISSO NÃO piorar o equilíbrio de notas em mais de 1 ponto,
   // pra não desfazer o trabalho da etapa de equilíbrio anterior
@@ -3653,6 +3744,7 @@ function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
         teams[ta].forEach((pa, ia)=>{
           teams[tb].forEach((pb, ib)=>{
             if(pa.sexo !== pb.sexo) return; // preserva a meta de mulheres por time
+            if(trocaViolaGrupo(gruposMap, teams[tb], pa, pb) || trocaViolaGrupo(gruposMap, teams[ta], pb, pa)) return; // preserva "ninguém do mesmo grupo junto"
             const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
             if(paCinco !== pbCinco){
               const cincoA = teams[ta].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
@@ -3678,7 +3770,7 @@ function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas){
   }
 }
 
-function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas){
+function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas, gruposMap){
   // quando não dá pra evitar que algum time fique com mais mulheres que os outros
   // (ex: 5 mulheres em 4 times), esse time deve ficar com a MAIOR soma de notas —
   // mesmo que isso deixe os outros times um pouco menos parelhos entre si.
@@ -3700,6 +3792,7 @@ function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas){
       teams[teamForte].forEach((pFraco, iFraco)=>{
         teams[doador].forEach((pForte, iForte)=>{
           if(pFraco.sexo !== pForte.sexo) return; // troca só entre mesmo sexo, pra não mexer na meta de mulheres
+          if(trocaViolaGrupo(gruposMap, teams[teamForte], pForte, pFraco) || trocaViolaGrupo(gruposMap, teams[doador], pFraco, pForte)) return; // preserva "ninguém do mesmo grupo junto"
           const cincoForte = teams[teamForte].filter(p=>p.estrelas===5).length - (pFraco.estrelas===5?1:0) + (pForte.estrelas===5?1:0);
           const cincoDoador = teams[doador].filter(p=>p.estrelas===5).length - (pForte.estrelas===5?1:0) + (pFraco.estrelas===5?1:0);
           if(cincoForte > tetoCincoEstrelas || cincoDoador > tetoCincoEstrelas) return; // não pode empilhar 5 estrelas
@@ -3715,7 +3808,7 @@ function reforcarTimeComMaisMulheres(teams, tetoCincoEstrelas){
   });
 }
 
-function equilibrarTimes(teams, numTeams, tetoCincoEstrelas){
+function equilibrarTimes(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // ajuste fino: troca jogadores entre o time mais forte e o mais fraco pra reduzir a
   // diferença de soma de notas — corrige times tipo "16 vs 11" e evita empilhar
   // jogadores de nota parecida (inclusive 5 estrelas) no mesmo time.
@@ -3734,6 +3827,7 @@ function equilibrarTimes(teams, numTeams, tetoCincoEstrelas){
     teams[maxT].forEach((pa, ia)=>{
       teams[minT].forEach((pb, ib)=>{
         if(pa.sexo !== pb.sexo) return; // só troca entre mesmo sexo — preserva a meta de mulheres por time
+        if(trocaViolaGrupo(gruposMap, teams[minT], pa, pb) || trocaViolaGrupo(gruposMap, teams[maxT], pb, pa)) return; // preserva "ninguém do mesmo grupo junto"
         const paCinco = pa.estrelas===5, pbCinco = pb.estrelas===5;
         if(paCinco !== pbCinco){
           const cincoMax = teams[maxT].filter(p=>p.estrelas===5).length - (paCinco?1:0) + (pbCinco?1:0);
@@ -3868,10 +3962,12 @@ document.getElementById('share-weekly-whatsapp-btn').addEventListener('click', (
   compartilharNoWhatsApp(montarResumoSemanal());
 });
 
-function renderManualGroups(){
-  const container = document.getElementById('manual-groups');
+let AUTO_GROUPS = [];
+
+function renderGroupsInto(containerId, grupos, rerenderFn){
+  const container = document.getElementById(containerId);
   const badges = computeBadges();
-  container.innerHTML = MANUAL_GROUPS.map((grupo, gi)=>{
+  container.innerHTML = grupos.map((grupo, gi)=>{
     const souMulheres = grupo.length>0 && grupo.every(p=>p.sexo==='F');
     return `<div class="group-card ${souMulheres?'group-women':''}" data-group-index="${gi}">
       <div class="group-head">
@@ -3891,7 +3987,11 @@ function renderManualGroups(){
       </div>
     </div>`;
   }).join('');
-  wireGroupDragAndDrop();
+  wireGroupDragAndDrop(containerId, grupos, rerenderFn);
+}
+
+function renderManualGroups(){
+  renderGroupsInto('manual-groups', MANUAL_GROUPS, renderManualGroups);
   document.getElementById('iniciar-sorteio-manual-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
   document.getElementById('share-groups-whatsapp-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
 }
@@ -3899,9 +3999,33 @@ document.getElementById('share-groups-whatsapp-btn').addEventListener('click', (
   compartilharNoWhatsApp(montarTextoWhatsApp('Grupos do sorteio', MANUAL_GROUPS, 'Grupo'));
 });
 
-function wireGroupDragAndDrop(){
-  const chips = document.querySelectorAll('#manual-groups .draft-chip');
-  const dropzones = document.querySelectorAll('#manual-groups .draft-players');
+function renderAutoGroups(){
+  renderGroupsInto('auto-groups', AUTO_GROUPS, renderAutoGroups);
+  document.getElementById('sortear-com-grupos-btn').style.display = AUTO_GROUPS.length ? 'inline-block' : 'none';
+}
+document.getElementById('montar-grupos-auto-btn').addEventListener('click', ()=>{
+  if(SELECTED_IDS.size < 2){
+    alert('Selecione pelo menos 2 jogadores para montar os grupos.');
+    return;
+  }
+  const pool = DATA.players.concat(GUESTS);
+  const players = Array.from(SELECTED_IDS).map(id=> pool.find(p=>p.id===id)).filter(Boolean);
+  const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
+  AUTO_GROUPS = montarGrupos(players, numTeams);
+  document.getElementById('draft-result').innerHTML = '';
+  renderAutoGroups();
+});
+document.getElementById('sortear-com-grupos-btn').addEventListener('click', ()=>{
+  if(!AUTO_GROUPS.length) return;
+  const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
+  const todosOsJogadoresDosGrupos = AUTO_GROUPS.flat();
+  DRAFT_TEAMS = draftBalanced(todosOsJogadoresDosGrupos, numTeams, AUTO_GROUPS);
+  renderDraftResult();
+});
+
+function wireGroupDragAndDrop(containerId, grupos, rerenderFn){
+  const chips = document.querySelectorAll('#'+containerId+' .draft-chip');
+  const dropzones = document.querySelectorAll('#'+containerId+' .draft-players');
   chips.forEach(chip=>{
     chip.addEventListener('dragstart', (e)=>{
       chip.classList.add('dragging');
@@ -3924,12 +4048,12 @@ function wireGroupDragAndDrop(){
       const data = JSON.parse(e.dataTransfer.getData('text/plain'));
       const toGroup = parseInt(zone.dataset.groupIndex,10);
       if(data.fromGroup === toGroup) return;
-      const fromList = MANUAL_GROUPS[data.fromGroup];
+      const fromList = grupos[data.fromGroup];
       const idx = fromList.findIndex(p=>p.id===data.playerId);
       if(idx===-1) return;
       const [jogador] = fromList.splice(idx,1);
-      MANUAL_GROUPS[toGroup].push(jogador);
-      renderManualGroups();
+      grupos[toGroup].push(jogador);
+      rerenderFn();
     });
   });
 }
