@@ -472,7 +472,7 @@
   .badge-tooltip-popup{
     position:fixed;background:var(--court-navy-3);color:var(--chalk);
     border:1px solid var(--ball-yellow);border-radius:8px;padding:7px 11px;
-    font-size:12px;line-height:1.4;z-index:200;max-width:260px;
+    font-size:12px;line-height:1.4;z-index:400;max-width:260px;
     box-shadow:0 10px 26px rgba(0,0,0,0.5);pointer-events:none;
   }
 
@@ -501,6 +501,8 @@
   .profile-stat-cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
   .profile-section-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 8px;}
   .profile-chart-wrap{background:var(--court-navy-3);border-radius:10px;padding:12px;}
+  .chart-tooltip-trigger{cursor:help;}
+  .chart-tooltip-trigger:active{opacity:0.85;}
   .profile-partner{display:flex;align-items:center;gap:8px;font-size:13px;background:var(--court-navy-3);border-radius:8px;padding:8px 10px;margin-bottom:6px;}
   .profile-round-item{font-size:12px;color:var(--chalk-dim);padding:6px 0;border-bottom:1px solid var(--line);}
   .profile-round-item:last-child{border-bottom:none;}
@@ -1157,7 +1159,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1533,7 +1535,7 @@ function atualizarBarraInferior(viewAtual){
 // clique em qualquer nome marcado como "clicável" (Jogadores, Ranking, etc.) abre o perfil —
 // um único listener global, então funciona em qualquer tela nova sem precisar religar nada
 document.addEventListener('click', (e)=>{
-  if(e.target.closest('.badge-icon, .info-icon')) return; // clique no emblema/ícone de info só mostra a dica, não abre o perfil
+  if(e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger')) return; // clique no emblema/ícone de info/gráfico só mostra a dica, não abre o perfil
   const el = e.target.closest('[data-open-profile]');
   if(el) openPlayerProfile(el.dataset.openProfile);
 });
@@ -1941,8 +1943,8 @@ function openPlayerProfile(id){
         <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap">Vit. de partidas <span class="info-icon" title="Soma de todas as vitórias de partida que o time dele teve, somando cada rodada em que participou — não é quantas vezes foi campeão, é o total acumulado ao longo do tempo.">ⓘ</span></div></div>
         <div class="profile-stat"><div class="profile-stat-num">${stats.pct}%</div><div class="profile-stat-cap">Aproveitamento</div></div>
       </div>
-      <div class="profile-section-title">Evolução do aproveitamento <span class="info-icon" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais e mostra a tendência real: se está subindo, estável ou caindo.">ⓘ</span></div>
-      <div class="profile-chart-wrap">${renderAproveitamentoChart(serieAproveitamento)}</div>
+      <div class="profile-section-title">Evolução do aproveitamento</div>
+      <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais e mostra a tendência real: se está subindo, estável ou caindo. Toque no gráfico pra ver essa explicação de novo.">${renderAproveitamentoChart(serieAproveitamento)}</div>
       ${parceiros.length ? `
         <div class="profile-section-title">Jogadores que mais jogou junto</div>
         ${parceiros.map(par=>{
@@ -4177,7 +4179,7 @@ function showBadgeTooltip(icon){
   window._badgeTooltipTimer = setTimeout(closeBadgeTooltip, 3500);
 }
 document.addEventListener('click', (e)=>{
-  const icon = e.target.closest('.badge-icon, .info-icon');
+  const icon = e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger');
   if(icon){ e.stopPropagation(); showBadgeTooltip(icon); }
   else { closeBadgeTooltip(); }
 });
