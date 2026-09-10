@@ -503,6 +503,10 @@
   .profile-chart-wrap{background:var(--court-navy-3);border-radius:10px;padding:12px;}
   .chart-tooltip-trigger{cursor:help;}
   .chart-tooltip-trigger:active{opacity:0.85;}
+  .label-destacado{
+    color:var(--ball-yellow);font-weight:700;cursor:help;
+    border-bottom:1px dotted var(--ball-yellow);padding-bottom:1px;
+  }
   .profile-partner{display:flex;align-items:center;gap:8px;font-size:13px;background:var(--court-navy-3);border-radius:8px;padding:8px 10px;margin-bottom:6px;}
   .profile-round-item{font-size:12px;color:var(--chalk-dim);padding:6px 0;border-bottom:1px solid var(--line);}
   .profile-round-item:last-child{border-bottom:none;}
@@ -1159,7 +1163,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 3.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 3.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1940,7 +1944,7 @@ function openPlayerProfile(id){
       <div class="profile-stats-grid">
         <div class="profile-stat"><div class="profile-stat-num">${stats.jogos}</div><div class="profile-stat-cap">Rodadas jogadas</div></div>
         <div class="profile-stat"><div class="profile-stat-num ranking-titulos-clicavel" id="profile-fotos-clicavel" title="Toque para ver as datas">${stats.vezesNaFoto}</div><div class="profile-stat-cap">Vezes na foto</div></div>
-        <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap">Vit. de partidas <span class="info-icon" title="Soma de todas as vitórias de partida que o time dele teve, somando cada rodada em que participou — não é quantas vezes foi campeão, é o total acumulado ao longo do tempo.">ⓘ</span></div></div>
+        <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></div></div>
         <div class="profile-stat"><div class="profile-stat-num">${stats.pct}%</div><div class="profile-stat-cap">Aproveitamento</div></div>
       </div>
       <div class="profile-section-title">Evolução do aproveitamento</div>
@@ -2984,7 +2988,7 @@ function abrirDatasCampeao(nome, datas){
 function rankingTableHtml(rows){
   const badges = computeBadges();
   return `<div style="overflow-x:auto;"><table>
-    <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num">Vit. partidas <span class="info-icon" title="Soma de todas as vitórias de partida que o time dele teve, somando cada rodada em que participou — não é quantas vezes foi campeão, é o total acumulado ao longo do tempo.">ⓘ</span></th><th class="num">%</th></tr></thead>
+    <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></th><th class="num">%</th></tr></thead>
     <tbody>
       ${rows.map((r,i)=>`<tr>
         <td class="medal">${i+1}º</td>
