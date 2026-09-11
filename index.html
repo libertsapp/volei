@@ -1186,7 +1186,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 4.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 4.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3878,13 +3878,28 @@ let MANUAL_GROUPS = [];
 function montarGrupos(players, numTeams){
   const mulheres = shuffleArray(players.filter(p=>p.sexo==='F')).sort((a,b)=> pesoDe(b)-pesoDe(a));
   const homens = shuffleArray(players.filter(p=>p.sexo!=='F')).sort((a,b)=> pesoDe(b)-pesoDe(a));
+
+  // as mulheres sempre ficam no(s) último(s) grupo(s), e esse(s) grupo(s) sempre tem
+  // exatamente o tamanho de um time (numTeams) — se sobrar vaga depois de colocar
+  // todas as mulheres, ela é preenchida pelos homens de MENOR nota, completando o
+  // grupo. É a mesma regra que já vale pros homens entre si: sempre a menor nota desce.
+  const homensRestantes = homens.slice();
+  let poolMulheres = mulheres.slice();
+  if(poolMulheres.length > 0){
+    const qtdGruposMulheres = Math.ceil(poolMulheres.length / numTeams);
+    const vagasFaltando = (qtdGruposMulheres * numTeams) - poolMulheres.length;
+    if(vagasFaltando > 0){
+      const homensDeMenorNota = homensRestantes.splice(Math.max(0, homensRestantes.length - vagasFaltando));
+      poolMulheres = poolMulheres.concat(homensDeMenorNota);
+    }
+  }
+
   function emGrupos(lista){
     const grupos = [];
     for(let i=0;i<lista.length;i+=numTeams) grupos.push(lista.slice(i, i+numTeams));
     return grupos;
   }
-  // mulheres sempre no(s) último(s) grupo(s), independente da nota
-  return emGrupos(homens).concat(emGrupos(mulheres));
+  return emGrupos(homensRestantes).concat(emGrupos(poolMulheres));
 }
 
 document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
