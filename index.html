@@ -14,6 +14,11 @@
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFkklEQVR42u3dQW4TWRSF4aqn7AExzg4YMUEMWIUltpFVsI1IXgUDxIQRO8g4YhUwISKA4yq7yq733vn+WdNSOlTOf8+9jq0eh8p4dfv+54Bu+fHwZazp+xmFHclSjEKPZBlGwUeyCKPgI1mEUfCRLMIo+EgWoQg/WmLtjI2Cj+Q2KMKP5DYowo9kCYrwI1mCIvxIlqAIP5IlKMKPZAmK8CNZgiL8SJagCD+SJSgeE5Ippj+SW6AIP5IlsALBCmT6I7UFNAA0gOmP1BbQAIhmNP0vy8P3/eKvcftm50GuyPNPkt14HPUE/dSvTYwVG8D0ryfwmuJ6LaABGg/9S98fGeZBgEuH/tvHo/969/Xz5JfY3z2S4ZIrkPVnhdBPBH2JAGuKQYa/1yANcG7wzwz8muw+vT5ZiKe/IxGsQKcHv4LQzxViSgYiEGBe8CsP/VIZ0kW4Efy+gn9MBiIcOILTDuDJ8F85+EuO4Esdz0kSxAhQW/C3FIAIYQIcDf/Gq86WAswRoXcJuhag5uDXJECyCN0K8GL4KztuaxJgSoQeJSjCj/+k/OcXbLPvKA1g5emhAZJWom4EaHXq1yxAwkpUhB/JK1ERfiRL0PQKdPDhNxb8FlagOStRq+tQEX6s0QatNkERfiRLUIQfyRIU4UeyBEX4kSxBuy+DCn/1EhDgktMffm4JAlh9rEKxAgg/CaxAwu8eSBTA3u8eiBXA6mMVsgIJv1UoUYD/poTwdyVBbS1Qqg4/3APRK5DpbxVKEcD01wIawPTXAokCmP5aQAOY/logUQDTXwtoANNfCyQKYPpj6xzU1QCmvxZwBAMBAnjPjxaoYQ3SANAAAAGsPwhcgzQANABAAOsPAtcgDQANABAAIID9H1l3gAaABgAIABAAIABAgLXxChCOsdUrQRoAGgAgAEAAgAAAAQACAAQA+uVmq//w7utnT/83+3cfPIRhGIbhXgMABAAIABAAIABAAIAAQKMC3L7Z/fXP+7tHTx9/eHt/NC8aACAAQACAAAABgJYE8EoQDrLRK0AaABrAIwABAAK4A5C1/2sAaACPAASwBiFw/dEA0AAeAQhgDULg+qMBoAFq+ma0QOb0jxVgq9pDXWyZg+pWIC1g+kcJoAVMfzeAFjD9kwXQAqa/BtACpn+yAFrA9NcAWsD0TxZAC5j+8Q3gPUJ9T//ahlwT7wUigdUnSoBDU4IE7Ye/xhW32gZwD9j7rUBawOqTLIBVyOoT3wAkEP74Fcg9YO93A2gBe3+yAFYhq098A5BA+ONXIBIIf/wNQALhjz+CSSD8azC+un3/s+WfxcP3/cE/33163czfYf/uQ7PBbzn8TTfA1MPXBsIfIQAJhD96BZqzDtW+ElW7Ah355VYvv53vSoBW74IqBeh46ne3AlmJhF8DNLwSVdMAAStPlACtiLC5AIHBjxJgSoKtRdhMgIl3cCa8DX0chmFIkaBWEa4ugOAPwzAMPx6+jHH/i6SpH+7+7rHfY/ntvfD/w80QyNMP+VgbPEnQ0lsqzp34icGPFuAcEZqTYeYntNI/bhotwCkiNCHDCR9L9DnrZ0dw2iG89FBe+3g++wg+43O4gv/nANYAM0IyV4aXDudVmmLhB86FXgNs1gw1SIyXG2B8/ockaFsGoT8t/FagFcO2hRACv+IKpAXqbQpBv8z01wCmdDxlyhCg1+l/UAAgugG0AFKmvwaABjjVGKCX6T/ZACRAz+G3AsEKtNQgoNXpP7sBSIAew3/SCkQC9Bb+k28AEqCn8J91BJMAvYT/LAFIgF7Cf7YAJEAP4V8kAAnQevgXC0ACtBz+YTjwibAl+DQZWgn+ag2gDdBq+FdvAG2AVoJ/cQGIgBa2iqutLERAjev01Xd2IqCmO3LTo5UM2CL01QhACmHfml+yjt42mFGoLgAAAABJRU5ErkJggg==">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Google Identity Services: renderiza o botão "Entrar com Google" e devolve um ID Token
+     assinado pelo Google. A função global window.onGoogleLibraryLoad (definida no bloco
+     de script principal, mais abaixo) é o gancho oficial pra saber que a biblioteca
+     terminou de carregar. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --court-navy: #101b33;
@@ -522,6 +527,41 @@
   .password-field{width:100%;text-align:center;font-size:18px;letter-spacing:3px;margin-bottom:16px;}
   .password-actions{display:flex;gap:8px;justify-content:center;}
 
+  /* ---------- login com Google / identidade ---------- */
+  #google-signin-btn{display:flex;align-items:center;min-height:32px;}
+  .auth-chip{
+    display:none;align-items:center;gap:7px;background:var(--court-navy-3);
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 4px;
+    color:var(--chalk);font-family:'Work Sans',sans-serif;font-size:12px;
+    font-weight:600;cursor:pointer;max-width:210px;
+  }
+  .auth-chip.visivel{display:flex;}
+  .auth-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--court-navy-2);}
+  .auth-chip-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .auth-chip-perfil{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ball-yellow);}
+
+  /* card do "esse é você?" (vínculo conta Google -> jogador cadastrado) */
+  .vinculo-card{
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:16px;
+    padding:24px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.6);
+  }
+  .vinculo-title{font-family:'Anton',sans-serif;font-size:16px;text-transform:uppercase;margin:0 0 12px;}
+  .vinculo-texto{font-size:13px;color:var(--chalk-dim);line-height:1.6;margin:0 0 14px;}
+  .vinculo-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .vinculo-select{width:100%;margin-bottom:14px;}
+
+  /* tela "Gerenciar usuários" */
+  .usuario-row{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;
+  }
+  .usuario-row.usuario-pendente{border-color:var(--ball-yellow);}
+  .usuario-email{flex:1;min-width:190px;font-size:13px;font-weight:600;overflow-wrap:anywhere;}
+  .usuario-sub{font-size:11px;color:var(--muted);}
+  .usuario-perfil-select, .usuario-jogador-select{font-size:12px;padding:6px 8px;}
+  .usuario-pendente-tag{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ball-yellow);font-weight:700;}
+
   /* Hall da Fama */
   .hall-tabs{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;width:fit-content;margin-bottom:18px;}
   .hall-tab{background:transparent;border:none;color:var(--chalk-dim);font-weight:600;font-size:13px;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:'Work Sans',sans-serif;}
@@ -752,8 +792,17 @@
       <button data-view="hall">Hall da Fama 🏛️</button>
       <button data-view="placar">Placar 🔢</button>
       <button data-view="info">Info ℹ️</button>
+      <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤</button>
     </nav>
     <div class="header-right">
+      <div id="google-signin-btn" title="Entrar com sua conta Google"></div>
+      <button type="button" id="auth-user-chip" class="auth-chip" title="Sua conta — clique para sair">
+        <img id="auth-user-foto" class="auth-avatar" alt="">
+        <span>
+          <span class="auth-chip-nome" id="auth-user-nome"></span><br>
+          <span class="auth-chip-perfil" id="auth-user-perfil"></span>
+        </span>
+      </button>
       <button type="button" id="theme-toggle-btn" class="admin-status" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)">☀️ Modo claro</button>
       <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
@@ -784,6 +833,7 @@
         <button class="mais-item" data-view="hall"><span class="mais-item-icon">🏛️</span>Hall da Fama</button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
+        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários</button>
       </div>
     </div>
   </div>
@@ -898,7 +948,7 @@
         <span class="star-toggle-label">Exibir notas (estrelas) para todos os usuários</span>
       </label>
 
-      <div class="add-row">
+      <div class="add-row" id="add-player-row">
         <input id="new-player-name" placeholder="Nome do jogador" style="flex:1;min-width:180px;">
         <input id="new-player-nick" placeholder="Apelido (opcional)" style="width:160px;">
         <select id="new-player-gender">
@@ -1122,6 +1172,13 @@
     <section id="view-info">
       <h2 class="section-title">Como funciona o Volei de Terça</h2>
 
+      <p style="font-size:13px;color:var(--chalk-dim);line-height:1.7;">
+        <strong>Login com Google:</strong> entrar não é obrigatório — qualquer pessoa vê tudo e faz check-in sem login.
+        Entrar serve pra dizer <em>quem</em> você é: o administrador define seu perfil
+        (<strong>jogador</strong> vê e se confirma, <strong>organizador</strong> também cadastra jogador e monta rodada,
+        <strong>admin</strong> faz tudo, inclusive remover e mexer nas configurações).
+      </p>
+
       <details class="dash-accordion" open>
         <summary>🎲 Sorteio Automático — como o algoritmo decide os times</summary>
         <div>
@@ -1183,10 +1240,23 @@
       </details>
     </section>
 
+    <section id="view-usuarios">
+      <h2 class="section-title">Gerenciar usuários</h2>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">
+        Cada linha é uma conta Google que já entrou no app. O <strong>perfil</strong> define o que a pessoa pode fazer;
+        o <strong>jogador vinculado</strong> liga a conta ao cadastro dela (foto, histórico). Quem está marcado como
+        <strong>PENDENTE</strong> ainda não tem jogador vinculado.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn secondary" id="usuarios-reload-btn">🔄 Recarregar lista</button>
+      </div>
+      <div id="usuarios-list"></div>
+    </section>
+
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 4.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1196,6 +1266,34 @@
 let DATA = { players: [], rounds: [] };
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false };
 let CHECKINS = [];
+
+/* Quem está logado com conta Google agora. O idToken é o que prova a identidade pro
+   Apps Script — ele vive ~1h e é renovado em segundo plano (ver garantirTokenFresco).
+   'logado' falso = visitante anônimo, que continua vendo tudo e fazendo check-in. */
+let AUTH = {
+  idToken: '', exp: 0, email: '', nome: '', foto: '',
+  perfil: '', jogadorId: '', logado: false,
+  aoRenovar: null // callback temporário usado pela renovação silenciosa do token
+};
+
+/* Cópia da matriz de permissões do apps-script-codigo.gs. Aqui ela serve SÓ pra
+   esconder botão que a pessoa não pode usar (conforto visual). Quem realmente
+   autoriza é o backend — se essas duas listas divergirem, o backend ganha. */
+const PERMISSOES_UI = {
+  ping:               ['jogador','organizador','admin'],
+  uploadPhoto:        ['jogador','organizador','admin'],
+  addPlayer:          ['organizador','admin'],
+  updatePlayer:       ['organizador','admin'],
+  addRound:           ['organizador','admin'],
+  updateRound:        ['organizador','admin'],
+  removePlayer:       ['admin'],
+  removeRound:        ['admin'],
+  saveSettings:       ['admin'],
+  listarUsuarios:     ['admin'],
+  salvarUsuario:      ['admin'],
+  removerUsuario:     ['admin'],
+  vincularMeuJogador: ['jogador','organizador','admin']
+};
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
@@ -1214,8 +1312,22 @@ let CHECKINS = [];
       autorize as permissões pedidas.
    6. Copie a URL do app da Web gerada e cole abaixo, no lugar
       de "SUA_URL_DO_APPS_SCRIPT_AQUI".
+   7. Para o login com Google: crie um Client ID OAuth no Google
+      Cloud Console (Credenciais > ID do cliente OAuth >
+      Aplicativo da Web), com a origem do site em "Origens
+      JavaScript autorizadas", e cole o valor em
+      GOOGLE_CLIENT_ID, aqui embaixo e também no
+      apps-script-codigo.gs (os dois têm que ser iguais).
+   8. A aba "Usuarios" (email | nome | perfil | jogadorId |
+      criadoEm) é criada sozinha no primeiro login.
 ========================================================== */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxOqq08EU0J49bCuUlidhRimvLYZi5jISo5h5moPHCqJDpJSNMWMql6tTmmrXnJcs9G-A/exec";
+
+/* Client ID OAuth do Google — público de propósito (o Google exige que ele apareça
+   no frontend). A segurança não vem de esconder ele, e sim de duas coisas: a lista
+   de "origens autorizadas" no Google Cloud Console, e a conferência do campo "aud"
+   feita no Apps Script. Tem que ser igual ao GOOGLE_CLIENT_ID do .gs. */
+const GOOGLE_CLIENT_ID = "986000653553-d5ri8n0k3kg6f1iii2e8c3v3854uuk3d.apps.googleusercontent.com";
 
 let sheetReady = SHEET_API_URL.startsWith("http");
 
@@ -1277,6 +1389,412 @@ async function loadData(){
   renderAll();
 }
 
+/* ==========================================================
+   LOGIN COM GOOGLE (Google Identity Services)
+   O botão é desenhado pelo próprio Google — a gente só dá o
+   container e diz qual função chamar quando der certo.
+   ========================================================== */
+
+// gancho oficial do gsi/client: roda quando a biblioteca termina de carregar
+window.onGoogleLibraryLoad = function(){
+  if(!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('COLE_AQUI') === 0){
+    console.warn('GOOGLE_CLIENT_ID não configurado — o login com Google fica desligado.');
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true,            // quem já autorizou uma vez volta a logar sozinho
+    cancel_on_tap_outside: true,
+    use_fedcm_for_prompt: true    // exigido pelos navegadores novos pro One Tap funcionar
+  });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), {
+    theme: 'filled_black', size: 'medium', shape: 'pill', text: 'signin_with', locale: 'pt-BR'
+  });
+  // One Tap: reentra em silêncio quem já tinha autorizado, sem clique nenhum
+  google.accounts.id.prompt();
+};
+
+// chamado pelo Google com o ID Token recém-emitido
+function handleGoogleCredential(resposta){
+  const idToken = resposta && resposta.credential;
+  if(!idToken) return;
+  // se alguém estava esperando uma renovação de token, entrega pra ela e não refaz o login
+  if(AUTH.aoRenovar){
+    const avisar = AUTH.aoRenovar;
+    AUTH.aoRenovar = null;
+    const payload = decodificarJwtPayload(idToken) || {};
+    AUTH.idToken = idToken;
+    AUTH.exp = Number(payload.exp) || 0;
+    salvarSessaoAuth();
+    avisar(idToken);
+    return;
+  }
+  loginComGoogle(idToken);
+}
+
+/* Lê o "miolo" do JWT só pra mostrar nome/foto na hora, sem esperar o servidor.
+   ATENÇÃO: isso NÃO é validação — qualquer um sabe forjar um JWT não assinado.
+   A validação de verdade é no Apps Script (verificarTokenGoogle_). */
+function decodificarJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  }catch(e){
+    console.error('Não foi possível ler o token do Google', e);
+    return null;
+  }
+}
+
+async function loginComGoogle(idToken){
+  const payload = decodificarJwtPayload(idToken) || {};
+  AUTH.idToken = idToken;
+  AUTH.exp = Number(payload.exp) || 0;
+  AUTH.email = String(payload.email || '').toLowerCase();
+  AUTH.nome = String(payload.name || '');
+  AUTH.foto = String(payload.picture || '');
+  AUTH.perfil = 'jogador'; // palpite otimista até o servidor responder
+  AUTH.logado = true;
+  atualizarStatusAuth();
+
+  if(!sheetReady){ aplicarPermissoesUI(); return; }
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'loginGoogle', idToken: idToken })
+    });
+    const json = await res.json();
+    if(json && json.error){
+      alert('Não foi possível confirmar seu login: ' + json.error);
+      sairDaConta(true);
+      return;
+    }
+    AUTH.perfil = json.perfil || 'jogador';
+    AUTH.jogadorId = json.jogadorId || '';
+    AUTH.nome = json.nome || AUTH.nome;
+    salvarSessaoAuth();
+    atualizarStatusAuth();
+    aplicarPermissoesUI();
+    // aba Usuarios vazia até agora = ninguém é admin ainda: oferece o bootstrap
+    if(json.totalUsuarios <= 1 && AUTH.perfil !== 'admin'){
+      await pedirBootstrapAdmin();
+    }
+    // sem jogador vinculado mas com um palpite: pergunta "esse é você?"
+    // (perguntarVinculoJogador só existe a partir da Task 12 — até lá, a sugestão é ignorada)
+    if(!AUTH.jogadorId && json.sugestao && typeof perguntarVinculoJogador === 'function'){
+      perguntarVinculoJogador(json.sugestao);
+    }
+  }catch(e){
+    console.error('Falha ao confirmar o login no servidor', e);
+    alert('Entrou no Google, mas não foi possível falar com a planilha agora. Recarregue a página.');
+  }
+}
+
+/* A sessão mora no sessionStorage (morre ao fechar a aba), igual à senha de admin.
+   O backend não guarda sessão nenhuma: cada requisição revalida o token. */
+function salvarSessaoAuth(){
+  sessionStorage.setItem('volei-auth-v1', JSON.stringify({
+    idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
+    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId
+  }));
+}
+function restaurarSessaoAuth(){
+  try{
+    const raw = sessionStorage.getItem('volei-auth-v1');
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(!s || !s.idToken) return;
+    Object.assign(AUTH, s, { logado:true, aoRenovar:null });
+    // token vencido enquanto a aba estava parada: mantém nome/perfil na tela e deixa
+    // a renovação silenciosa do Google resolver quando a pessoa for salvar algo
+  }catch(e){
+    console.error('Sessão de login corrompida, descartando', e);
+    sessionStorage.removeItem('volei-auth-v1');
+  }
+}
+function sairDaConta(silencioso){
+  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', logado:false, aoRenovar:null };
+  sessionStorage.removeItem('volei-auth-v1');
+  if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
+    google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
+  }
+  atualizarStatusAuth();
+  aplicarPermissoesUI();
+  if(!silencioso) renderAll();
+}
+
+// ID Token do Google dura ~1h. Antes de qualquer gravação a gente confere se ainda
+// sobra tempo; se não, pede um novo em silêncio (One Tap). Se o navegador bloquear
+// o One Tap (é comum depois de alguns "dispensar"), aí sim avisa pra pessoa entrar.
+function tokenExpirado(margemSegundos){
+  if(!AUTH.idToken || !AUTH.exp) return true;
+  return (AUTH.exp * 1000) - Date.now() < (margemSegundos || 120) * 1000;
+}
+
+function renovarTokenGoogle(){
+  return new Promise((resolve)=>{
+    if(typeof google === 'undefined' || !google.accounts || !google.accounts.id){ resolve(null); return; }
+    let respondeu = false;
+    AUTH.aoRenovar = (token)=>{ respondeu = true; resolve(token); };
+    google.accounts.id.prompt();
+    setTimeout(()=>{
+      if(!respondeu){ AUTH.aoRenovar = null; resolve(null); }
+    }, 8000);
+  });
+}
+
+async function garantirTokenFresco(){
+  if(!AUTH.logado) return null;
+  if(!tokenExpirado(120)) return AUTH.idToken;
+  const novo = await renovarTokenGoogle();
+  if(novo) return novo;
+  alert('Seu login do Google expirou. Clique em "Entrar com Google" de novo pra continuar.');
+  sairDaConta(true);
+  return null;
+}
+
+// renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
+// a aba aberta a tarde inteira não travar na hora de salvar a rodada
+setInterval(()=>{ if(AUTH.logado && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
+
+/* Primeiro admin: a aba Usuarios começa vazia, então quem logar com Google E souber
+   a chave mestra vira admin. Depois disso esse convite não aparece mais. */
+async function pedirBootstrapAdmin(){
+  if(!confirm('Ninguém é administrador ainda. Se você é o organizador, informe a chave mestra agora pra virar administrador. Quer fazer isso?')) return false;
+  const senha = await pedirSenhaModal();
+  if(!senha) return false;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'bootstrapAdmin', senha: senha, idToken: AUTH.idToken })
+    });
+    const json = await res.json();
+    if(json && json.error){ alert('Não deu: ' + json.error); return false; }
+    AUTH.perfil = json.perfil;
+    AUTH.jogadorId = json.jogadorId || '';
+    salvarSessaoAuth();
+    atualizarStatusAuth();
+    aplicarPermissoesUI();
+    renderAll();
+    alert('Pronto! Agora você é administrador. A chave mestra não é mais necessária no dia a dia.');
+    return true;
+  }catch(e){
+    console.error('Falha no bootstrap de admin', e);
+    alert('Não foi possível falar com a planilha agora. Tente de novo.');
+    return false;
+  }
+}
+
+/* Primeiro login de um e-mail novo: o backend tenta casar o nome da conta Google com
+   um jogador já cadastrado e manda um palpite. Quem decide é a pessoa — a gente nunca
+   vincula sozinho, porque errar aqui mistura a foto e o histórico de duas pessoas. */
+function perguntarVinculoJogador(sugestao){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  const opcoes = sortByName(DATA.players)
+    .map(p=> `<option value="${p.id}"${sugestao && p.id===sugestao.id ? ' selected' : ''}>${escapeHtml(p.nome)}${p.apelido ? ' ("' + escapeHtml(p.apelido) + '")' : ''}</option>`)
+    .join('');
+  overlay.innerHTML = `
+    <div class="vinculo-card">
+      <p class="vinculo-title">👋 Esse é você?</p>
+      ${sugestao
+        ? `<p class="vinculo-texto">Encontramos um jogador cadastrado parecido com o nome da sua conta Google (<strong>${escapeHtml(AUTH.nome)}</strong>):<br><br>➡️ <strong>${escapeHtml(sugestao.nome)}</strong><br><br>Confirmando, sua conta fica ligada a esse cadastro (foto, histórico e estatísticas).</p>`
+        : `<p class="vinculo-texto">Não achamos nenhum jogador cadastrado com o nome <strong>${escapeHtml(AUTH.nome)}</strong>. Se você já é cadastrado com outro nome, escolha na lista abaixo. Senão, pode deixar pra depois — dá pra vincular a qualquer momento.</p>`}
+      <select class="vinculo-select" id="vinculo-select" style="display:${sugestao ? 'none' : 'block'};">
+        <option value="">— escolher jogador —</option>
+        ${opcoes}
+      </select>
+      <div class="vinculo-actions">
+        <button class="btn secondary" id="vinculo-depois-btn">${sugestao ? 'Não sou eu' : 'Deixar pra depois'}</button>
+        <button class="btn secondary" id="vinculo-outro-btn" style="display:${sugestao ? 'inline-flex' : 'none'};">Escolher outro</button>
+        <button class="btn" id="vinculo-confirmar-btn">${sugestao ? 'Sim, sou eu' : 'Vincular'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const select = overlay.querySelector('#vinculo-select');
+  function fechar(){ overlay.remove(); }
+
+  overlay.querySelector('#vinculo-depois-btn').addEventListener('click', fechar);
+  overlay.querySelector('#vinculo-outro-btn').addEventListener('click', ()=>{
+    // troca pro modo "escolher da lista", sem fechar e reabrir o card
+    select.style.display = 'block';
+    select.value = '';
+    overlay.querySelector('#vinculo-outro-btn').style.display = 'none';
+    overlay.querySelector('#vinculo-confirmar-btn').textContent = 'Vincular';
+  });
+  overlay.querySelector('#vinculo-confirmar-btn').addEventListener('click', async ()=>{
+    const escolhido = (select.style.display === 'none' && sugestao) ? sugestao.id : select.value;
+    if(!escolhido){ alert('Escolha um jogador na lista primeiro.'); return; }
+    const cred = await requireAuth('vincularMeuJogador');
+    if(!cred) return;
+    const ok = await postAction('vincularMeuJogador', { jogadorId: escolhido }, cred);
+    if(!ok) return;
+    AUTH.jogadorId = escolhido;
+    salvarSessaoAuth();
+    aplicarPermissoesUI();
+    fechar();
+    const nomeJogador = (DATA.players.find(p=>p.id===escolhido) || {}).nome || '';
+    alert('Pronto! Sua conta agora está ligada ao jogador ' + nomeJogador + '.');
+  });
+}
+
+/* ---------- GERENCIAR USUÁRIOS (só admin) ---------- */
+// a lista de e-mails NÃO vem no doGet público de propósito — ela é buscada por POST
+// autenticado, senão qualquer visitante leria os e-mails de todo mundo
+async function carregarUsuarios(){
+  const cred = await requireAuth('listarUsuarios');
+  if(!cred) return null;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'listarUsuarios', senha: cred.senha || '', idToken: cred.idToken || '' })
+    });
+    const json = await res.json();
+    if(json && json.error){ alert('Não foi possível carregar os usuários: ' + json.error); return null; }
+    return json.usuarios || [];
+  }catch(e){
+    console.error('Falha ao carregar usuários', e);
+    alert('Não foi possível carregar os usuários. Verifique sua conexão.');
+    return null;
+  }
+}
+
+async function renderUsuarios(){
+  const list = document.getElementById('usuarios-list');
+  list.innerHTML = '<div class="empty">Carregando usuários...</div>';
+  const usuarios = await carregarUsuarios();
+  if(!usuarios){
+    list.innerHTML = '<div class="empty">Sem permissão pra ver esta lista, ou falha ao carregar. Entre como administrador.</div>';
+    return;
+  }
+  if(usuarios.length === 0){
+    list.innerHTML = '<div class="empty">Ninguém entrou com conta Google ainda.</div>';
+    return;
+  }
+  const jogadoresOrdenados = sortByName(DATA.players);
+  list.innerHTML = usuarios.map(u=>{
+    const opcoesJogador = jogadoresOrdenados
+      .map(p=> `<option value="${p.id}"${p.id===u.jogadorId ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`)
+      .join('');
+    const pendente = !u.jogadorId;
+    return `
+    <div class="usuario-row ${pendente ? 'usuario-pendente' : ''}" data-email="${escapeHtml(u.email)}">
+      <div class="usuario-email">
+        ${escapeHtml(u.email)} ${pendente ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
+        <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(u.criadoEm) : ''}</div>
+      </div>
+      <select class="usuario-perfil-select">
+        <option value="jogador"${u.perfil==='jogador'?' selected':''}>jogador</option>
+        <option value="organizador"${u.perfil==='organizador'?' selected':''}>organizador</option>
+        <option value="admin"${u.perfil==='admin'?' selected':''}>admin</option>
+      </select>
+      <select class="usuario-jogador-select">
+        <option value="">— sem jogador vinculado —</option>
+        ${opcoesJogador}
+      </select>
+      <button class="btn" data-salvar-usuario="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Salvar</button>
+      <button class="icon-btn" data-remover-usuario="${escapeHtml(u.email)}" title="Remover este usuário" aria-label="Remover usuário">✕</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-salvar-usuario]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const row = btn.closest('.usuario-row');
+      const usuario = {
+        email: btn.dataset.salvarUsuario,
+        nome: (usuarios.find(u=> u.email === btn.dataset.salvarUsuario) || {}).nome || '',
+        perfil: row.querySelector('.usuario-perfil-select').value,
+        jogadorId: row.querySelector('.usuario-jogador-select').value
+      };
+      const cred = await requireAuth('salvarUsuario');
+      if(!cred) return;
+      const ok = await postAction('salvarUsuario', { usuario: usuario }, cred);
+      if(!ok) return;
+      // se o admin mexeu no próprio perfil, a sessão dele precisa refletir isso na hora
+      if(usuario.email === AUTH.email){
+        AUTH.perfil = usuario.perfil;
+        AUTH.jogadorId = usuario.jogadorId;
+        salvarSessaoAuth();
+        updateAdminStatusBtn();
+      }
+      alert('Usuário atualizado.');
+      renderUsuarios();
+    });
+  });
+
+  list.querySelectorAll('[data-remover-usuario]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const email = btn.dataset.removerUsuario;
+      if(!confirm('Remover ' + email + ' da lista de usuários? Ela volta a ser tratada como jogador comum se entrar de novo.')) return;
+      const cred = await requireAuth('removerUsuario');
+      if(!cred) return;
+      const ok = await postAction('removerUsuario', { email: email }, cred);
+      if(!ok) return;
+      renderUsuarios();
+    });
+  });
+}
+
+document.getElementById('usuarios-reload-btn').addEventListener('click', renderUsuarios);
+
+// mostra o botão do Google OU o chip da pessoa logada — nunca os dois
+function atualizarStatusAuth(){
+  const chip = document.getElementById('auth-user-chip');
+  const botao = document.getElementById('google-signin-btn');
+  if(!chip || !botao) return;
+  if(AUTH.logado){
+    chip.classList.add('visivel');
+    botao.style.display = 'none';
+    document.getElementById('auth-user-nome').textContent = AUTH.nome || AUTH.email;
+    document.getElementById('auth-user-perfil').textContent = (AUTH.perfil || 'jogador').toUpperCase();
+    const img = document.getElementById('auth-user-foto');
+    if(AUTH.foto){ img.src = AUTH.foto; img.style.display = 'block'; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
+  } else {
+    chip.classList.remove('visivel');
+    botao.style.display = 'flex';
+  }
+}
+
+document.getElementById('auth-user-chip').addEventListener('click', ()=>{
+  if(confirm('Sair da conta ' + (AUTH.email || '') + '?')) sairDaConta(false);
+});
+
+// "admin de verdade agora": perfil admin no Google OU chave mestra digitada nesta aba
+function ehAdminAgora(){
+  return !!getCachedPassword() || AUTH.perfil === 'admin';
+}
+
+/* Esconde da tela o que a pessoa não pode fazer. É conforto visual, NÃO segurança:
+   quem editar o HTML no navegador consegue fazer o botão aparecer, mas o Apps Script
+   recusa a gravação de qualquer jeito (defesa em profundidade). */
+function aplicarPermissoesUI(){
+  const mostrar = (id, pode)=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = pode ? '' : 'none';
+  };
+  mostrar('add-player-row', temPermissao('addPlayer'));
+  mostrar('star-visibility-toggle', temPermissao('saveSettings'));
+  mostrar('checkin-admin-controls', temPermissao('saveSettings'));
+  mostrar('nav-usuarios-btn', temPermissao('listarUsuarios'));
+  mostrar('mais-usuarios-btn', temPermissao('listarUsuarios'));
+  // o toggle de estrelas e os controles de check-in usam flex quando visíveis
+  const toggle = document.getElementById('star-visibility-toggle');
+  if(toggle && temPermissao('saveSettings')){
+    toggle.style.display = 'flex';
+    const cb = document.getElementById('star-visibility-checkbox');
+    if(cb) cb.checked = !!SETTINGS.estrelasVisiveis;
+  }
+  const checkinCtrls = document.getElementById('checkin-admin-controls');
+  if(checkinCtrls && temPermissao('saveSettings')) checkinCtrls.style.display = 'flex';
+}
+
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
 function getCachedPassword(){ return sessionStorage.getItem('volei-admin-pwd') || ''; }
 function setCachedPassword(p){ sessionStorage.setItem('volei-admin-pwd', p); }
@@ -1284,33 +1802,28 @@ function clearCachedPassword(){ sessionStorage.removeItem('volei-admin-pwd'); }
 
 function updateAdminStatusBtn(){
   const btn = document.getElementById('admin-status-btn');
-  const isAdmin = !!getCachedPassword();
-  btn.textContent = isAdmin ? '🔓 Administrador' : '🔒 Visitante';
-  btn.classList.toggle('is-admin', isAdmin);
-
-  const starToggle = document.getElementById('star-visibility-toggle');
-  const starCheckbox = document.getElementById('star-visibility-checkbox');
-  if(starToggle){
-    starToggle.style.display = isAdmin ? 'flex' : 'none';
-    if(starCheckbox) starCheckbox.checked = !!SETTINGS.estrelasVisiveis;
-  }
-  const checkinAdminControls = document.getElementById('checkin-admin-controls');
-  if(checkinAdminControls) checkinAdminControls.style.display = isAdmin ? 'flex' : 'none';
-  renderPlayers(); // reaplica a visibilidade das estrelas para o público certo
+  const comChaveMestra = !!getCachedPassword();
+  // o botão antigo agora é só o indicador da CHAVE MESTRA — a identidade individual
+  // mora no chip do Google, ao lado
+  btn.textContent = comChaveMestra ? '🔑 Chave mestra' : (AUTH.logado ? '🔓 ' + (AUTH.perfil || 'jogador') : '🔒 Visitante');
+  btn.classList.toggle('is-admin', comChaveMestra || AUTH.perfil === 'admin');
+  atualizarStatusAuth();
+  aplicarPermissoesUI();
+  renderPlayers(); // reaplica a visibilidade das estrelas e dos botões de editar/remover
 }
 
 function starsVisibleNow(){
-  return !!SETTINGS.estrelasVisiveis || !!getCachedPassword(); // admin sempre vê, mesmo se estiver oculto pro público
+  return !!SETTINGS.estrelasVisiveis || ehAdminAgora(); // admin sempre vê, mesmo se estiver oculto pro público
 }
 
 document.getElementById('star-visibility-checkbox').addEventListener('change', async (e)=>{
   const checkbox = e.target;
-  const pwd = await requireAdminPassword();
-  if(!pwd){ checkbox.checked = SETTINGS.estrelasVisiveis; return; } // cancelou/errou: mantém como estava
+  const cred = await requireAuth('saveSettings');
+  if(!cred){ checkbox.checked = SETTINGS.estrelasVisiveis; return; } // cancelou/errou: mantém como estava
   const previous = SETTINGS.estrelasVisiveis;
   SETTINGS.estrelasVisiveis = checkbox.checked;
   renderPlayers();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
   if(!ok){
     SETTINGS.estrelasVisiveis = previous; // desfaz se não salvou
     checkbox.checked = previous;
@@ -1319,13 +1832,17 @@ document.getElementById('star-visibility-checkbox').addEventListener('change', a
 });
 document.getElementById('admin-status-btn').addEventListener('click', ()=>{
   if(getCachedPassword()){
-    if(confirm('Sair do modo administrador?')){
+    if(confirm('Parar de usar a chave mestra nesta aba?')){
       clearCachedPassword();
       updateAdminStatusBtn();
     }
-  } else {
-    requireAdminPassword();
+    return;
   }
+  if(AUTH.logado && AUTH.perfil === 'admin'){
+    alert('Você já está logado como administrador (' + AUTH.email + '). A chave mestra não é necessária.');
+    return;
+  }
+  requireAuth('saveSettings'); // pede a chave mestra (caminho de emergência)
 });
 
 /* Garante uma senha válida (pede e confirma com o servidor se ainda não tiver uma em cache).
@@ -1393,17 +1910,44 @@ function pedirSenhaModal(){
   });
 }
 
-async function requireAdminPassword(){
-  let pwd = getCachedPassword();
-  if(pwd) return pwd;
-  pwd = await pedirSenhaModal();
-  if(!pwd) return null;
-  if(!sheetReady){ setCachedPassword(pwd); updateAdminStatusBtn(); return pwd; }
+function podePerfil(acao, perfil){
+  const lista = PERMISSOES_UI[acao];
+  return !!lista && lista.indexOf(perfil) > -1;
+}
+
+// "essa pessoa pode fazer essa ação agora?" — vale por perfil do Google OU por
+// chave mestra já digitada nessa aba (que equivale a admin)
+function temPermissao(acao){
+  if(getCachedPassword()) return true;
+  return AUTH.logado && podePerfil(acao, AUTH.perfil);
+}
+
+/* Garante uma CREDENCIAL válida pra executar 'acao'. Devolve { idToken, senha } ou
+   null (a pessoa desistiu / não tem permissão). O contrato de retorno é o mesmo de
+   antes — objeto truthy pra seguir, null pra abortar — então todos os call sites
+   continuam com a mesma forma: "const cred = await requireAuth('x'); if(!cred) return;"
+   Ordem: login do Google com perfil suficiente > chave mestra em cache > pede a chave. */
+async function requireAuth(acao){
+  if(AUTH.logado && podePerfil(acao, AUTH.perfil)){
+    const token = await garantirTokenFresco();
+    if(token) return { idToken: token, senha: '' };
+  }
+
+  const cacheada = getCachedPassword();
+  if(cacheada) return { idToken: AUTH.idToken || '', senha: cacheada };
+
+  if(AUTH.logado && !podePerfil(acao, AUTH.perfil)){
+    if(!confirm('Seu perfil (' + (AUTH.perfil || 'jogador') + ') não tem permissão pra isso.\n\nSe você tem a chave mestra do administrador, pode usá-la agora. Quer digitar?')) return null;
+  }
+
+  const digitada = await pedirSenhaModal();
+  if(!digitada) return null;
+  if(!sheetReady){ setCachedPassword(digitada); updateAdminStatusBtn(); return { idToken:'', senha: digitada }; }
   try{
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'ping', senha: pwd })
+      body: JSON.stringify({ action:'ping', senha: digitada })
     });
     const json = await res.json();
     if(json && json.error){
@@ -1415,27 +1959,41 @@ async function requireAdminPassword(){
     alert('Não foi possível confirmar a senha agora. Verifique sua conexão e tente de novo.');
     return null;
   }
-  setCachedPassword(pwd);
+  setCachedPassword(digitada);
   updateAdminStatusBtn();
-  return pwd;
+  return { idToken: AUTH.idToken || '', senha: digitada };
 }
 
 // Envia uma AÇÃO ESPECÍFICA (só a linha que mudou), não a planilha inteira de novo —
 // isso evita que uma gravação apague o que outra pessoa acabou de salvar.
-async function postAction(action, payload, pwd){
+// 'cred' é o que o requireAuth() devolveu: { idToken, senha }. Os dois vão juntos e
+// o backend decide qual usar (chave mestra primeiro, token depois).
+async function postAction(action, payload, cred){
   if(!sheetReady) return true;
   try{
     const res = await fetch(SHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, senha: pwd, ...payload })
+      body: JSON.stringify({
+        action,
+        senha: (cred && cred.senha) || '',
+        idToken: (cred && cred.idToken) || '',
+        ...payload
+      })
     });
     const json = await res.json();
     if(json && json.error){
-      if(json.error.toLowerCase().includes('senha')){
+      const erro = json.error.toLowerCase();
+      if(erro.includes('senha') || erro.includes('chave mestra')){
         clearCachedPassword();
         updateAdminStatusBtn();
         alert('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.');
+      } else if(erro.includes('login do google')){
+        AUTH.idToken = ''; AUTH.exp = 0;
+        salvarSessaoAuth();
+        alert('Seu login do Google expirou. Entre com sua conta Google de novo e tente salvar novamente.');
+      } else if(erro.includes('não tem permissão')){
+        alert(json.error);
       } else {
         alert('Não foi possível salvar: ' + json.error);
       }
@@ -1519,6 +2077,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='dashboard') renderDashboard();
   if(btn.dataset.view==='sorteio'){ renderSorteioList(); atualizarBotoesImportarCheckin(); }
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
+  if(btn.dataset.view==='usuarios') renderUsuarios();
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
@@ -1729,13 +2288,13 @@ function resizeImageToBase64(file, maxSize, quality){
   });
 }
 
-async function uploadPhoto(file, pwd){
+async function uploadPhoto(file, cred){
   if(!sheetReady) return '';
   const base64 = await resizeImageToBase64(file);
   const res = await fetch(SHEET_API_URL, {
     method:'POST',
     headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, senha: pwd })
+    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
   });
   const json = await res.json();
   if(json.error){ throw new Error(json.error); }
@@ -1750,15 +2309,15 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   const starsEl = document.getElementById('new-player-stars');
   const name = nameInput.value.trim();
   if(!name) return;
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('addPlayer');
+  if(!cred) return;
   const addBtn = document.getElementById('add-player-btn');
   addBtn.disabled = true;
   addBtn.textContent = 'Salvando...';
   let foto = '';
   try{
     if(photoInput.files[0]){
-      foto = await uploadPhoto(photoInput.files[0], pwd);
+      foto = await uploadPhoto(photoInput.files[0], cred);
     }
   }catch(e){
     console.error('Falha no upload da foto', e);
@@ -1774,7 +2333,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
     porte: document.getElementById('new-player-porte-seletor').dataset.value || ''
   };
   DATA.players.push(newPlayer);
-  const ok = await postAction('addPlayer', {player: newPlayer}, pwd);
+  const ok = await postAction('addPlayer', {player: newPlayer}, cred);
   addBtn.disabled = false;
   addBtn.textContent = 'Adicionar';
   if(!ok){
@@ -1813,6 +2372,8 @@ function renderPlayers(){
   const badges = computeBadges();
   const ultimaVez = computeUltimaParticipacao();
   const agora = Date.now();
+  const podeEditar = temPermissao('updatePlayer');
+  const podeRemover = temPermissao('removePlayer');
   list.innerHTML = sorted.map(p=>{
     if(p.id === EDITING_PLAYER_ID) return editPlayerRowHtml(p);
     let ausenciaHtml;
@@ -1842,8 +2403,8 @@ function renderPlayers(){
         </div>
       </div>
       <div style="display:flex;gap:2px;">
-        <button class="icon-btn" data-edit="${p.id}" title="Editar jogador" aria-label="Editar jogador">✏️</button>
-        <button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>
+        ${podeEditar ? `<button class="icon-btn" data-edit="${p.id}" title="Editar jogador" aria-label="Editar jogador">✏️</button>` : ''}
+        ${podeRemover ? `<button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>` : ''}
       </div>
     </div>
   `;
@@ -1851,8 +2412,8 @@ function renderPlayers(){
 
   list.querySelectorAll('[data-edit]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      const pwd = await requireAdminPassword();
-      if(!pwd) return;
+      const cred = await requireAuth('updatePlayer');
+      if(!cred) return;
       EDITING_PLAYER_ID = btn.dataset.edit;
       renderPlayers();
     });
@@ -1862,11 +2423,11 @@ function renderPlayers(){
   list.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
-      const pwd = await requireAdminPassword();
-      if(!pwd) return;
+      const cred = await requireAuth('removePlayer');
+      if(!cred) return;
       const removed = DATA.players.find(p=>p.id===btn.dataset.remove);
       DATA.players = DATA.players.filter(p=>p.id!==btn.dataset.remove);
-      const ok = await postAction('removePlayer', {id: btn.dataset.remove}, pwd);
+      const ok = await postAction('removePlayer', {id: btn.dataset.remove}, cred);
       if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
       renderPlayers();
     });
@@ -2091,8 +2652,8 @@ function wireEditPlayerRow(){
 
   const saveBtn = document.querySelector('[data-save-edit="'+pid+'"]');
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{
-    const pwd = await requireAdminPassword();
-    if(!pwd){ return; }
+    const cred = await requireAuth('updatePlayer');
+    if(!cred){ return; }
     const player = DATA.players.find(pp=>pp.id===pid);
     if(!player) return;
     const nameInput = document.getElementById('edit-name-'+pid);
@@ -2109,7 +2670,7 @@ function wireEditPlayerRow(){
     let novaFoto = player.foto || '';
     try{
       if(photoInput.files[0]){
-        novaFoto = await uploadPhoto(photoInput.files[0], pwd);
+        novaFoto = await uploadPhoto(photoInput.files[0], cred);
       }
     }catch(e){
       console.error('Falha no upload da foto', e);
@@ -2121,7 +2682,7 @@ function wireEditPlayerRow(){
     player.nome = novoNome;
     player.apelido = novoApelido;
     player.porte = document.getElementById('edit-'+pid+'-porte-seletor').dataset.value || '';
-    const ok = await postAction('updatePlayer', {player: player}, pwd);
+    const ok = await postAction('updatePlayer', {player: player}, cred);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
       player.foto = anterior.foto;
@@ -2346,8 +2907,8 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   } else {
     winnerCard = teams.findIndex(t=>t.vitorias===maxWins);
   }
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('addRound');
+  if(!cred) return;
   const date = document.getElementById('round-date').value || new Date().toISOString().slice(0,10);
 
   if(EDITING_ROUND_ID){
@@ -2356,7 +2917,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     const anterior = DATA.rounds[idx];
     const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: winnerCard, rascunho: false };
     DATA.rounds[idx] = roundAtualizada;
-    const ok = await postAction('updateRound', {round: roundAtualizada}, pwd);
+    const ok = await postAction('updateRound', {round: roundAtualizada}, cred);
     if(!ok){
       DATA.rounds[idx] = anterior; // desfaz localmente, já que não foi salvo
       return;
@@ -2369,7 +2930,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
 
   const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard, rascunho: false };
   DATA.rounds.push(newRound);
-  const ok = await postAction('addRound', {round: newRound}, pwd);
+  const ok = await postAction('addRound', {round: newRound}, cred);
   if(!ok){
     DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id); // desfaz localmente, já que não foi salvo
     return;
@@ -2386,8 +2947,8 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
     alert('Monte pelo menos um time com jogadores antes de salvar o rascunho.');
     return;
   }
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('addRound');
+  if(!cred) return;
   const date = document.getElementById('round-date').value || new Date().toISOString().slice(0,10);
 
   if(EDITING_ROUND_ID){
@@ -2396,7 +2957,7 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
     const anterior = DATA.rounds[idx];
     const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: -1, rascunho: true };
     DATA.rounds[idx] = roundAtualizada;
-    const ok = await postAction('updateRound', {round: roundAtualizada}, pwd);
+    const ok = await postAction('updateRound', {round: roundAtualizada}, cred);
     if(!ok){ DATA.rounds[idx] = anterior; return; }
     alert('Rascunho atualizado! Volte aqui quando quiser lançar o placar.');
     fecharEdicaoDeRodada();
@@ -2406,7 +2967,7 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
 
   const newRound = { id: uid(), data: date, times: teams, vencedor: -1, rascunho: true };
   DATA.rounds.push(newRound);
-  const ok = await postAction('addRound', {round: newRound}, pwd);
+  const ok = await postAction('addRound', {round: newRound}, cred);
   if(!ok){
     DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id);
     return;
@@ -3118,11 +3679,11 @@ function renderHistory(){
     draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         if(!confirm('Excluir este rascunho?')) return;
-        const pwd = await requireAdminPassword();
-        if(!pwd) return;
+        const cred = await requireAuth('removeRound');
+        if(!cred) return;
         const removed = DATA.rounds.find(r=>r.id===btn.dataset.delDraft);
         DATA.rounds = DATA.rounds.filter(r=>r.id!==btn.dataset.delDraft);
-        const ok = await postAction('removeRound', {id: btn.dataset.delDraft}, pwd);
+        const ok = await postAction('removeRound', {id: btn.dataset.delDraft}, cred);
         if(!ok && removed){ DATA.rounds.push(removed); }
         renderHistory();
       });
@@ -3167,11 +3728,11 @@ function renderHistory(){
   list.querySelectorAll('[data-del-round]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       if(!confirm('Excluir esta rodada? Isso vai atualizar o ranking.')) return;
-      const pwd = await requireAdminPassword();
-      if(!pwd) return;
+      const cred = await requireAuth('removeRound');
+      if(!cred) return;
       const removed = DATA.rounds.find(r=>r.id===btn.dataset.delRound);
       DATA.rounds = DATA.rounds.filter(r=>r.id!==btn.dataset.delRound);
-      const ok = await postAction('removeRound', {id: btn.dataset.delRound}, pwd);
+      const ok = await postAction('removeRound', {id: btn.dataset.delRound}, cred);
       if(!ok && removed){ DATA.rounds.push(removed); } // desfaz se não salvou
       renderHistory();
     });
@@ -3254,37 +3815,37 @@ function renderCheckinStatus(){
 }
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('saveSettings');
+  if(!cred) return;
   const anterior = SETTINGS.checkinTravado;
   SETTINGS.checkinTravado = !anterior;
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('saveSettings');
+  if(!cred) return;
   const novaData = document.getElementById('checkin-admin-date').value;
   if(!novaData){ alert('Escolha uma data antes de abrir o check-in.'); return; }
   const anterior = SETTINGS.checkinDataAberta;
   SETTINGS.checkinDataAberta = novaData;
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
 document.getElementById('close-checkin-btn').addEventListener('click', async ()=>{
-  const pwd = await requireAdminPassword();
-  if(!pwd) return;
+  const cred = await requireAuth('saveSettings');
+  if(!cred) return;
   const anterior = SETTINGS.checkinDataAberta;
   SETTINGS.checkinDataAberta = '';
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, pwd);
+  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
@@ -4487,6 +5048,7 @@ document.addEventListener('webkitfullscreenchange', atualizarBotaoTelaCheiaPlaca
 carregarPlacarLocal();
 renderPlacar();
 
+restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
 loadData();
 </script>
 </body>
