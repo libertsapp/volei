@@ -561,6 +561,12 @@
   .usuario-sub{font-size:11px;color:var(--muted);}
   .usuario-perfil-select, .usuario-jogador-select{font-size:12px;padding:6px 8px;}
   .usuario-pendente-tag{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ball-yellow);font-weight:700;}
+  .badge-count{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:16px;height:16px;padding:0 4px;margin-left:5px;
+    background:var(--danger);color:#fff;border-radius:999px;
+    font-size:10px;font-weight:700;line-height:1;vertical-align:2px;
+  }
 
   /* Hall da Fama */
   .hall-tabs{display:flex;gap:6px;background:var(--court-navy-2);padding:5px;border-radius:10px;width:fit-content;margin-bottom:18px;}
@@ -792,7 +798,8 @@
       <button data-view="hall">Hall da Fama 🏛️</button>
       <button data-view="placar">Placar 🔢</button>
       <button data-view="info">Info ℹ️</button>
-      <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤</button>
+      <button data-view="meuperfil" id="nav-meuperfil-btn" style="display:none;">Meu Perfil 🏐</button>
+      <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
     </nav>
     <div class="header-right">
       <div id="google-signin-btn" title="Entrar com sua conta Google"></div>
@@ -833,7 +840,8 @@
         <button class="mais-item" data-view="hall"><span class="mais-item-icon">🏛️</span>Hall da Fama</button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
-        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários</button>
+        <button class="mais-item" data-view="meuperfil" id="mais-meuperfil-btn" style="display:none;"><span class="mais-item-icon">🏐</span>Meu Perfil</button>
+        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
       </div>
     </div>
   </div>
@@ -854,6 +862,9 @@
   <div id="app" style="display:none;">
 
     <section id="view-dashboard" class="active">
+      <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
+        🔔 <strong id="usuarios-pendentes-texto"></strong>
+      </div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
         <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Gerar resumo da semana</button>
       </div>
@@ -1253,6 +1264,11 @@
       <div id="usuarios-list"></div>
     </section>
 
+    <section id="view-meuperfil">
+      <h2 class="section-title">Meu Perfil</h2>
+      <div id="meuperfil-content"></div>
+    </section>
+
   </div>
 
   <footer class="app-footer">
@@ -1272,7 +1288,7 @@ let CHECKINS = [];
    'logado' falso = visitante anônimo, que continua vendo tudo e fazendo check-in. */
 let AUTH = {
   idToken: '', exp: 0, email: '', nome: '', foto: '',
-  perfil: '', jogadorId: '', logado: false,
+  perfil: '', jogadorId: '', jogadorIdPendente: '', logado: false,
   aoRenovar: null // callback temporário usado pela renovação silenciosa do token
 };
 
@@ -1292,7 +1308,9 @@ const PERMISSOES_UI = {
   listarUsuarios:     ['admin'],
   salvarUsuario:      ['admin'],
   removerUsuario:     ['admin'],
-  vincularMeuJogador: ['jogador','organizador','admin']
+  solicitarVinculo:   ['jogador','organizador','admin'],
+  aprovarVinculo:     ['admin'],
+  rejeitarVinculo:    ['admin']
 };
 
 /* ==========================================================
@@ -1474,17 +1492,19 @@ async function loginComGoogle(idToken){
     }
     AUTH.perfil = json.perfil || 'jogador';
     AUTH.jogadorId = json.jogadorId || '';
+    AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
     AUTH.nome = json.nome || AUTH.nome;
     salvarSessaoAuth();
     atualizarStatusAuth();
     aplicarPermissoesUI();
+    atualizarAvisoUsuariosPendentes();
     // aba Usuarios vazia até agora = ninguém é admin ainda: oferece o bootstrap
     if(json.totalUsuarios <= 1 && AUTH.perfil !== 'admin'){
       await pedirBootstrapAdmin();
     }
     // sem jogador vinculado mas com um palpite: pergunta "esse é você?"
     // (perguntarVinculoJogador só existe a partir da Task 12 — até lá, a sugestão é ignorada)
-    if(!AUTH.jogadorId && json.sugestao && typeof perguntarVinculoJogador === 'function'){
+    if(!AUTH.jogadorId && !AUTH.jogadorIdPendente && json.sugestao && typeof perguntarVinculoJogador === 'function'){
       perguntarVinculoJogador(json.sugestao);
     }
   }catch(e){
@@ -1498,7 +1518,7 @@ async function loginComGoogle(idToken){
 function salvarSessaoAuth(){
   sessionStorage.setItem('volei-auth-v1', JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
-    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId
+    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente
   }));
 }
 function restaurarSessaoAuth(){
@@ -1580,6 +1600,7 @@ async function pedirBootstrapAdmin(){
     atualizarStatusAuth();
     aplicarPermissoesUI();
     renderAll();
+    atualizarAvisoUsuariosPendentes();
     alert('Pronto! Agora você é administrador. A chave mestra não é mais necessária no dia a dia.');
     return true;
   }catch(e){
@@ -1630,16 +1651,18 @@ function perguntarVinculoJogador(sugestao){
   overlay.querySelector('#vinculo-confirmar-btn').addEventListener('click', async ()=>{
     const escolhido = (select.style.display === 'none' && sugestao) ? sugestao.id : select.value;
     if(!escolhido){ alert('Escolha um jogador na lista primeiro.'); return; }
-    const cred = await requireAuth('vincularMeuJogador');
+    const cred = await requireAuth('solicitarVinculo');
     if(!cred) return;
-    const ok = await postAction('vincularMeuJogador', { jogadorId: escolhido }, cred);
+    const ok = await postAction('solicitarVinculo', { jogadorId: escolhido }, cred);
     if(!ok) return;
-    AUTH.jogadorId = escolhido;
+    // NÃO vincula na hora — fica pendente até o admin aprovar (evita que um estranho
+    // se declare "dono" de um jogador de verdade antes que ele mesmo entre no app)
+    AUTH.jogadorIdPendente = escolhido;
     salvarSessaoAuth();
     aplicarPermissoesUI();
     fechar();
     const nomeJogador = (DATA.players.find(p=>p.id===escolhido) || {}).nome || '';
-    alert('Pronto! Sua conta agora está ligada ao jogador ' + nomeJogador + '.');
+    alert('Pedido enviado! Assim que o administrador aprovar, sua conta fica vinculada a ' + nomeJogador + '.');
   });
 }
 
@@ -1679,14 +1702,20 @@ async function renderUsuarios(){
   }
   const jogadoresOrdenados = sortByName(DATA.players);
   list.innerHTML = usuarios.map(u=>{
+    const aguardandoAprovacao = !u.jogadorId && !!u.jogadorIdPendente;
+    // se tem pedido pendente, o select já vem pré-selecionado nele — "Salvar" sozinho
+    // já aprova; ainda assim mostramos os botões explícitos de Aprovar/Rejeitar abaixo
+    const selecionado = u.jogadorId || u.jogadorIdPendente;
     const opcoesJogador = jogadoresOrdenados
-      .map(p=> `<option value="${p.id}"${p.id===u.jogadorId ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`)
+      .map(p=> `<option value="${p.id}"${p.id===selecionado ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`)
       .join('');
     const pendente = !u.jogadorId;
+    const jogadorSolicitado = aguardandoAprovacao ? getPlayer(u.jogadorIdPendente) : null;
     return `
     <div class="usuario-row ${pendente ? 'usuario-pendente' : ''}" data-email="${escapeHtml(u.email)}">
       <div class="usuario-email">
-        ${escapeHtml(u.email)} ${pendente ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
+        ${escapeHtml(u.email)} ${pendente && !aguardandoAprovacao ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
+        ${aguardandoAprovacao ? `<span class="usuario-pendente-tag">aguardando aprovação: ${escapeHtml(jogadorSolicitado ? jogadorSolicitado.nome : '?')}</span>` : ''}
         <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(u.criadoEm) : ''}</div>
       </div>
       <select class="usuario-perfil-select">
@@ -1699,6 +1728,10 @@ async function renderUsuarios(){
         ${opcoesJogador}
       </select>
       <button class="btn" data-salvar-usuario="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Salvar</button>
+      ${aguardandoAprovacao ? `
+        <button class="btn" data-aprovar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">✅ Aprovar</button>
+        <button class="btn secondary" data-rejeitar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Rejeitar</button>
+      ` : ''}
       <button class="icon-btn" data-remover-usuario="${escapeHtml(u.email)}" title="Remover este usuário" aria-label="Remover usuário">✕</button>
     </div>`;
   }).join('');
@@ -1720,6 +1753,7 @@ async function renderUsuarios(){
       if(usuario.email === AUTH.email){
         AUTH.perfil = usuario.perfil;
         AUTH.jogadorId = usuario.jogadorId;
+        AUTH.jogadorIdPendente = ''; // salvarUsuario no backend sempre limpa o pendente
         salvarSessaoAuth();
         updateAdminStatusBtn();
       }
@@ -1739,9 +1773,217 @@ async function renderUsuarios(){
       renderUsuarios();
     });
   });
+
+  list.querySelectorAll('[data-aprovar-vinculo]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const email = btn.dataset.aprovarVinculo;
+      const cred = await requireAuth('aprovarVinculo');
+      if(!cred) return;
+      const ok = await postAction('aprovarVinculo', { email: email }, cred);
+      if(!ok) return;
+      alert('Vínculo aprovado.');
+      renderUsuarios();
+    });
+  });
+
+  list.querySelectorAll('[data-rejeitar-vinculo]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const email = btn.dataset.rejeitarVinculo;
+      if(!confirm('Rejeitar o pedido de vínculo de ' + email + '?')) return;
+      const cred = await requireAuth('rejeitarVinculo');
+      if(!cred) return;
+      const ok = await postAction('rejeitarVinculo', { email: email }, cred);
+      if(!ok) return;
+      renderUsuarios();
+    });
+  });
+
+  atualizarAvisoUsuariosPendentes();
 }
 
+/* Avisa o admin, logo na tela inicial, quando existem pedidos de vínculo aguardando
+   aprovação — sem isso, ele só saberia entrando manualmente em "Gerenciar usuários". */
+async function atualizarAvisoUsuariosPendentes(){
+  const banner = document.getElementById('usuarios-pendentes-alerta');
+  const navBadge = document.getElementById('nav-usuarios-badge');
+  const maisBadge = document.getElementById('mais-usuarios-badge');
+  if(!temPermissao('listarUsuarios')){
+    if(banner) banner.style.display = 'none';
+    if(navBadge) navBadge.style.display = 'none';
+    if(maisBadge) maisBadge.style.display = 'none';
+    return;
+  }
+  const usuarios = await carregarUsuarios();
+  if(!usuarios) return;
+  const pendentes = usuarios.filter(u => !u.jogadorId && u.jogadorIdPendente).length;
+  [navBadge, maisBadge].forEach(el=>{
+    if(!el) return;
+    el.textContent = String(pendentes);
+    el.style.display = pendentes > 0 ? 'inline-flex' : 'none';
+  });
+  if(banner){
+    if(pendentes > 0){
+      document.getElementById('usuarios-pendentes-texto').textContent = pendentes === 1
+        ? 'Há 1 pedido de vínculo aguardando sua aprovação.'
+        : 'Há ' + pendentes + ' pedidos de vínculo aguardando sua aprovação.';
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+document.getElementById('usuarios-pendentes-alerta').addEventListener('click', ()=>{
+  document.getElementById('nav-usuarios-btn').click();
+});
+
 document.getElementById('usuarios-reload-btn').addEventListener('click', renderUsuarios);
+
+/* ---------- MEU PERFIL (pessoal — qualquer perfil logado e vinculado) ---------- */
+async function renderMeuPerfil(){
+  const container = document.getElementById('meuperfil-content');
+  if(!AUTH.logado){
+    container.innerHTML = '<div class="empty">Entre com sua conta Google pra ver seu perfil pessoal.</div>';
+    return;
+  }
+  if(!AUTH.jogadorId){
+    if(AUTH.jogadorIdPendente){
+      const pj = getPlayer(AUTH.jogadorIdPendente);
+      container.innerHTML = `
+        <div class="empty">
+          Seu pedido de vínculo com <strong>${escapeHtml(pj ? (pj.apelido||pj.nome) : 'um jogador')}</strong>
+          está aguardando aprovação do administrador.
+        </div>`;
+      return;
+    }
+    container.innerHTML = `
+      <div class="empty">
+        Você ainda não vinculou sua conta a um jogador cadastrado.
+        <br><br>
+        <button class="btn" id="meuperfil-vincular-btn">Vincular agora</button>
+      </div>`;
+    document.getElementById('meuperfil-vincular-btn').addEventListener('click', ()=>{
+      perguntarVinculoJogador(null); // sem sugestão pronta: abre direto no modo "escolher da lista"
+    });
+    return;
+  }
+  const player = getPlayer(AUTH.jogadorId);
+  if(!player){
+    container.innerHTML = '<div class="empty">O jogador vinculado à sua conta não foi encontrado (pode ter sido removido). Fale com o administrador.</div>';
+    return;
+  }
+
+  const stats = computePlayerAllTimeStats(AUTH.jogadorId);
+  const badges = computeBadges();
+  const parceiros = computeTopPartners(AUTH.jogadorId, 3);
+  const serie = computeAproveitamentoSeries(stats);
+  const ultimaVez = computeUltimaParticipacao()[AUTH.jogadorId];
+  const { melhor, pior } = computeMelhorPiorParceiroPorAproveitamento(AUTH.jogadorId, 3);
+  const diasAusencia = ultimaVez !== undefined ? Math.floor((Date.now() - ultimaVez) / DIA_MS) : null;
+  const ehDesaparecido = badges.rip.has(AUTH.jogadorId);
+  const ehDefunto = badges.aposentado.has(AUTH.jogadorId);
+  const anoAtual = new Date().getFullYear().toString();
+  const rankingAno = computeRanking(anoAtual);
+  const posicaoIdx = rankingAno.findIndex(r=>r.id===AUTH.jogadorId);
+  const posicaoRanking = posicaoIdx > -1 ? posicaoIdx + 1 : null;
+  const sequenciaAtual = computeSequenciaAtualPresenca(AUTH.jogadorId);
+  const mediaGrupo = computeMediaAproveitamentoGrupo();
+  const diferencaMedia = mediaGrupo!==null ? (stats.pct - mediaGrupo) : null;
+  const parceiroHtml = (par, rotulo)=>{
+    if(!par) return '';
+    const pj = getPlayer(par.id);
+    if(!pj) return '';
+    const sufixo = par.pct !== undefined ? `${par.pct}% em ${par.jogos} jogos` : `${par.count}× juntos`;
+    return `<div class="profile-partner">${avatarHtml(pj,'sm')} ${escapeHtml(pj.apelido||pj.nome)} <span style="margin-left:auto;color:var(--muted);">${sufixo}</span></div>`;
+  };
+
+  container.innerHTML = `
+    <div class="profile-head">
+      ${player.foto ? `<img class="profile-avatar" src="${player.foto}">` : `<div class="profile-avatar-fallback">${escapeHtml((player.apelido||player.nome||'?').charAt(0).toUpperCase())}</div>`}
+      <div>
+        <p class="profile-name">${escapeHtml(player.nome)}</p>
+        ${player.apelido ? `<div class="sub">"${escapeHtml(player.apelido)}"</div>` : ''}
+        <div class="usuario-sub">${escapeHtml(AUTH.email)}</div>
+        <div class="profile-badges">${badgeIconsHtml(AUTH.jogadorId, badges)} ${starsVisibleNow()?starsDisplay(player.estrelas):''} ${player.sexo?`<span class="badge-gender ${player.sexo}">${player.sexo==='F'?'Feminino':'Masculino'}</span>`:''}</div>
+      </div>
+    </div>
+
+    <div style="margin:14px 0;">
+      <input type="file" id="meuperfil-foto-input" accept="image/*" style="display:none;">
+      <button class="btn secondary" id="meuperfil-trocar-foto-btn">📷 Trocar minha foto</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;">
+        Use uma foto do seu rosto, de frente — ela aparece em todo o app. A foto antiga é apagada automaticamente.
+        O nome do cadastro não pode ser alterado por aqui; fale com o administrador se precisar corrigir.
+      </p>
+    </div>
+
+    ${(ehDesaparecido||ehDefunto) && diasAusencia!==null ? `
+      <div class="usuario-row usuario-pendente" style="margin-bottom:14px;">
+        ${ehDefunto?'🪦':'👻'} Você está há <strong>${diasAusencia} dia${diasAusencia===1?'':'s'}</strong> sem aparecer numa rodada — sentimos sua falta!
+      </div>` : ''}
+
+    <div class="profile-stats-grid">
+      <div class="profile-stat"><div class="profile-stat-num">${stats.jogos}</div><div class="profile-stat-cap">Rodadas jogadas</div></div>
+      <div class="profile-stat"><div class="profile-stat-num ranking-titulos-clicavel" id="meuperfil-titulos-clicavel" title="Toque para ver as datas">${stats.titulos}</div><div class="profile-stat-cap">Vezes campeão</div></div>
+      <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></div></div>
+      <div class="profile-stat"><div class="profile-stat-num">${stats.pct}%</div><div class="profile-stat-cap">Aproveitamento</div></div>
+      ${posicaoRanking ? `<div class="profile-stat"><div class="profile-stat-num">${posicaoRanking}º</div><div class="profile-stat-cap">Posição no ranking ${anoAtual}</div></div>` : ''}
+      <div class="profile-stat"><div class="profile-stat-num">${sequenciaAtual}</div><div class="profile-stat-cap">Sequência atual sem faltar</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:4px 0 16px;">Última participação: ${ultimaVez!==undefined ? formatDate(new Date(ultimaVez).toISOString().slice(0,10)) : 'ainda não jogou nenhuma rodada'}</p>
+    ${diferencaMedia!==null ? `<p style="font-size:12px;color:var(--muted);margin:-8px 0 16px;">Sua média de aproveitamento está <strong style="color:${diferencaMedia>=0?'#5fd68a':'var(--danger)'};">${diferencaMedia>=0?diferencaMedia+' pontos acima':Math.abs(diferencaMedia)+' pontos abaixo'}</strong> da média do grupo (${mediaGrupo}%).</p>` : ''}
+
+    <div class="profile-section-title">Evolução do aproveitamento</div>
+    <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais e mostra a tendência real: se está subindo, estável ou caindo. Toque no gráfico pra ver essa explicação de novo.">${renderAproveitamentoChart(serie)}</div>
+
+    ${parceiros.length ? `
+      <div class="profile-section-title">Jogadores que mais jogou junto</div>
+      ${parceiros.map(par=>parceiroHtml(par)).join('')}
+    ` : ''}
+
+    ${melhor ? `
+      <div class="profile-section-title">Melhor aproveitamento jogando junto</div>
+      ${parceiroHtml(melhor)}
+    ` : ''}
+    ${pior && (!melhor || pior.id !== melhor.id) ? `
+      <div class="profile-section-title">Menor aproveitamento jogando junto</div>
+      ${parceiroHtml(pior)}
+    ` : ''}
+  `;
+
+  const titulosEl = document.getElementById('meuperfil-titulos-clicavel');
+  if(titulosEl) titulosEl.addEventListener('click', ()=>{
+    const datasCampeao = stats.rounds.filter(r=>r.isWinner).map(r=>r.data);
+    abrirDatasCampeao(player.apelido||player.nome, datasCampeao);
+  });
+
+  document.getElementById('meuperfil-trocar-foto-btn').addEventListener('click', ()=>{
+    document.getElementById('meuperfil-foto-input').click();
+  });
+  document.getElementById('meuperfil-foto-input').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!confirm('Use uma foto do seu rosto, de frente — ela vai aparecer em todo o app. Continuar?')){
+      e.target.value = '';
+      return;
+    }
+    const cred = await requireAuth('updatePlayer');
+    if(!cred){ e.target.value = ''; return; }
+    try{
+      const novaFoto = await uploadPhoto(file, cred, extrairFileIdDaFoto(player.foto));
+      const playerAtualizado = Object.assign({}, player, { foto: novaFoto });
+      const ok = await postAction('updatePlayer', {player: playerAtualizado}, cred);
+      if(!ok){ alert('Não foi possível salvar a nova foto.'); return; }
+      const idx = DATA.players.findIndex(p=>p.id===player.id);
+      if(idx>-1) DATA.players[idx].foto = novaFoto;
+      alert('Foto atualizada!');
+      renderMeuPerfil();
+      renderPlayers();
+    }catch(err){
+      console.error('Falha ao trocar foto do perfil', err);
+      alert('Não foi possível enviar a foto: ' + (err && err.message ? err.message : 'erro desconhecido'));
+    }
+  });
+}
 
 // mostra o botão do Google OU o chip da pessoa logada — nunca os dois
 function atualizarStatusAuth(){
@@ -1760,6 +2002,12 @@ function atualizarStatusAuth(){
     chip.classList.remove('visivel');
     botao.style.display = 'flex';
   }
+  // "Meu Perfil" é sobre IDENTIDADE (estar logado), não sobre permissão de ação —
+  // por isso mora aqui, não em aplicarPermissoesUI(). Qualquer perfil vê o próprio.
+  const navMeuPerfil = document.getElementById('nav-meuperfil-btn');
+  const maisMeuPerfil = document.getElementById('mais-meuperfil-btn');
+  if(navMeuPerfil) navMeuPerfil.style.display = AUTH.logado ? '' : 'none';
+  if(maisMeuPerfil) maisMeuPerfil.style.display = AUTH.logado ? '' : 'none';
 }
 
 document.getElementById('auth-user-chip').addEventListener('click', ()=>{
@@ -2078,6 +2326,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='sorteio'){ renderSorteioList(); atualizarBotoesImportarCheckin(); }
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   if(btn.dataset.view==='usuarios') renderUsuarios();
+  if(btn.dataset.view==='meuperfil') renderMeuPerfil();
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
@@ -2288,13 +2537,22 @@ function resizeImageToBase64(file, maxSize, quality){
   });
 }
 
-async function uploadPhoto(file, cred){
+// extrai o id do arquivo do Drive a partir da URL de thumbnail salva no cadastro
+// (ex: ".../thumbnail?id=ABC123&sz=w300" -> "ABC123") — usado pra apagar a foto
+// antiga quando uma nova é enviada no lugar dela.
+function extrairFileIdDaFoto(url){
+  if(!url) return '';
+  const m = String(url).match(/[?&]id=([^&]+)/);
+  return m ? m[1] : '';
+}
+
+async function uploadPhoto(file, cred, fileIdAntigo){
   if(!sheetReady) return '';
   const base64 = await resizeImageToBase64(file);
   const res = await fetch(SHEET_API_URL, {
     method:'POST',
     headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
+    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
   });
   const json = await res.json();
   if(json.error){ throw new Error(json.error); }
@@ -2463,6 +2721,56 @@ function computeTopPartners(id, limite){
     .map(([pid,c])=>({ id: pid, count: c }))
     .sort((a,b)=> b.count - a.count)
     .slice(0, limite || 3);
+}
+
+/* Com quem "id" mais e menos teve aproveitamento (rodadas vencidas / rodadas jogadas
+   juntos) — só considera parceiros com pelo menos "minJogos" rodadas em comum, pra
+   um parceiro de 1 jogo empatado não virar "100%" ou "0%" por acaso estatístico. */
+function computeMelhorPiorParceiroPorAproveitamento(id, minJogos){
+  const porParceiro = {}; // pid -> { jogos, vitorias }
+  roundsOficiais().forEach(r=> r.times.forEach((team, idx)=>{
+    const ids = (team.playerIds||[]).filter(Boolean);
+    if(!ids.includes(id)) return;
+    const venceu = idx === r.vencedor;
+    ids.forEach(pid=>{
+      if(pid === id) return;
+      if(!porParceiro[pid]) porParceiro[pid] = { jogos:0, vitorias:0 };
+      porParceiro[pid].jogos++;
+      if(venceu) porParceiro[pid].vitorias++;
+    });
+  }));
+  const elegiveis = Object.entries(porParceiro)
+    .filter(([,v])=> v.jogos >= (minJogos || 3))
+    .map(([pid,v])=> ({ id: pid, jogos: v.jogos, vitorias: v.vitorias, pct: Math.round((v.vitorias/v.jogos)*100) }));
+  if(elegiveis.length === 0) return { melhor:null, pior:null };
+  const ordenado = [...elegiveis].sort((a,b)=> b.pct - a.pct);
+  return { melhor: ordenado[0], pior: ordenado[ordenado.length-1] };
+}
+
+// Quantas rodadas seguidas, contando da mais recente pra trás, o jogador participou
+// sem faltar nenhuma. Para no primeiro "buraco" (rodada oficial em que ele não aparece
+// em nenhum time). Se ele faltou a rodada mais recente, a sequência já começa em 0.
+function computeSequenciaAtualPresenca(id){
+  const todasOrdenadas = roundsOficiais().slice().sort((a,b)=> toTimestamp(b.data)-toTimestamp(a.data));
+  let streak = 0;
+  for(const r of todasOrdenadas){
+    const jogou = r.times.some(t=> (t.playerIds||[]).includes(id));
+    if(!jogou) break;
+    streak++;
+  }
+  return streak;
+}
+
+// Média de aproveitamento (títulos/rodadas) entre todos os jogadores que já jogaram
+// pelo menos 1 rodada — usada só pra comparação ("você está X pontos acima/abaixo").
+function computeMediaAproveitamentoGrupo(){
+  const pcts = DATA.players
+    .map(p=> computePlayerAllTimeStats(p.id))
+    .filter(s=> s.jogos > 0)
+    .map(s=> s.pct);
+  if(pcts.length === 0) return null;
+  const soma = pcts.reduce((a,b)=>a+b, 0);
+  return Math.round(soma / pcts.length);
 }
 
 function computeAproveitamentoSeries(stats){
@@ -2670,7 +2978,7 @@ function wireEditPlayerRow(){
     let novaFoto = player.foto || '';
     try{
       if(photoInput.files[0]){
-        novaFoto = await uploadPhoto(photoInput.files[0], cred);
+        novaFoto = await uploadPhoto(photoInput.files[0], cred, extrairFileIdDaFoto(player.foto));
       }
     }catch(e){
       console.error('Falha no upload da foto', e);
@@ -5050,6 +5358,7 @@ renderPlacar();
 
 restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
 loadData();
+atualizarAvisoUsuariosPendentes();
 </script>
 </body>
 </html>
