@@ -1304,13 +1304,14 @@ const PERMISSOES_UI = {
   updateRound:        ['organizador','admin'],
   removePlayer:       ['admin'],
   removeRound:        ['admin'],
-  saveSettings:       ['admin'],
-  listarUsuarios:     ['admin'],
-  salvarUsuario:      ['admin'],
+  saveSettings:        ['admin'], // visibilidade das estrelas pro público (config global)
+  saveCheckinSettings: ['organizador','admin'], // travar/abrir/fechar check-in
+  listarUsuarios:     ['organizador','admin'],
+  salvarUsuario:      ['admin'], // muda o cargo — só admin
   removerUsuario:     ['admin'],
   solicitarVinculo:   ['jogador','organizador','admin'],
-  aprovarVinculo:     ['admin'],
-  rejeitarVinculo:    ['admin']
+  aprovarVinculo:     ['organizador','admin'],
+  rejeitarVinculo:    ['organizador','admin']
 };
 
 /* ==========================================================
@@ -1502,9 +1503,10 @@ async function loginComGoogle(idToken){
     if(json.totalUsuarios <= 1 && AUTH.perfil !== 'admin'){
       await pedirBootstrapAdmin();
     }
-    // sem jogador vinculado mas com um palpite: pergunta "esse é você?"
-    // (perguntarVinculoJogador só existe a partir da Task 12 — até lá, a sugestão é ignorada)
-    if(!AUTH.jogadorId && !AUTH.jogadorIdPendente && json.sugestao && typeof perguntarVinculoJogador === 'function'){
+    // sem jogador vinculado ainda (aprovado ou pendente): sempre pergunta "esse é você?" —
+    // com um palpite de nome pronto (sugestao) OU, se não achou ninguém parecido, abrindo
+    // direto no modo "escolher da lista" (perguntarVinculoJogador já trata sugestao=null)
+    if(!AUTH.jogadorId && !AUTH.jogadorIdPendente && typeof perguntarVinculoJogador === 'function'){
       perguntarVinculoJogador(json.sugestao);
     }
   }catch(e){
@@ -1701,6 +1703,9 @@ async function renderUsuarios(){
     return;
   }
   const jogadoresOrdenados = sortByName(DATA.players);
+  // organizador vê a lista e aprova/rejeita vínculo, mas nunca vê nem muda o CARGO
+  // (perfil) de ninguém — o backend nem manda esse campo pra quem não é admin
+  const souAdmin = temPermissao('salvarUsuario');
   list.innerHTML = usuarios.map(u=>{
     const aguardandoAprovacao = !u.jogadorId && !!u.jogadorIdPendente;
     // se tem pedido pendente, o select já vem pré-selecionado nele — "Salvar" sozinho
@@ -1716,8 +1721,9 @@ async function renderUsuarios(){
       <div class="usuario-email">
         ${escapeHtml(u.email)} ${pendente && !aguardandoAprovacao ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
         ${aguardandoAprovacao ? `<span class="usuario-pendente-tag">aguardando aprovação: ${escapeHtml(jogadorSolicitado ? jogadorSolicitado.nome : '?')}</span>` : ''}
-        <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(u.criadoEm) : ''}</div>
+        <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(formatDate(u.criadoEm)) : ''}</div>
       </div>
+      ${souAdmin ? `
       <select class="usuario-perfil-select">
         <option value="jogador"${u.perfil==='jogador'?' selected':''}>jogador</option>
         <option value="organizador"${u.perfil==='organizador'?' selected':''}>organizador</option>
@@ -1728,11 +1734,16 @@ async function renderUsuarios(){
         ${opcoesJogador}
       </select>
       <button class="btn" data-salvar-usuario="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Salvar</button>
+      ` : ''}
       ${aguardandoAprovacao ? `
+        ${!souAdmin ? `
+        <select class="usuario-aprovar-jogador-select">
+          ${opcoesJogador}
+        </select>` : ''}
         <button class="btn" data-aprovar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">✅ Aprovar</button>
         <button class="btn secondary" data-rejeitar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Rejeitar</button>
       ` : ''}
-      <button class="icon-btn" data-remover-usuario="${escapeHtml(u.email)}" title="Remover este usuário" aria-label="Remover usuário">✕</button>
+      ${souAdmin ? `<button class="icon-btn" data-remover-usuario="${escapeHtml(u.email)}" title="Remover este usuário" aria-label="Remover usuário">✕</button>` : ''}
     </div>`;
   }).join('');
 
@@ -1777,9 +1788,15 @@ async function renderUsuarios(){
   list.querySelectorAll('[data-aprovar-vinculo]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const email = btn.dataset.aprovarVinculo;
+      const row = btn.closest('.usuario-row');
+      // organizador tem esse seletor pra corrigir o jogador na hora de aprovar, se precisar;
+      // admin não tem (já usa o bloco geral de edição pra isso) — nesse caso manda vazio e
+      // o backend usa o que já estava pendente
+      const seletorAprovar = row.querySelector('.usuario-aprovar-jogador-select');
+      const jogadorIdEscolhido = seletorAprovar ? seletorAprovar.value : '';
       const cred = await requireAuth('aprovarVinculo');
       if(!cred) return;
-      const ok = await postAction('aprovarVinculo', { email: email }, cred);
+      const ok = await postAction('aprovarVinculo', { email: email, jogadorId: jogadorIdEscolhido }, cred);
       if(!ok) return;
       alert('Vínculo aprovado.');
       renderUsuarios();
@@ -2019,6 +2036,12 @@ function ehAdminAgora(){
   return !!getCachedPassword() || AUTH.perfil === 'admin';
 }
 
+// organizador também vê as estrelas sempre (precisa pra cadastrar/montar rodada com
+// critério), mesmo quando o admin escondeu do público — só não pode MUDAR essa config
+function podeVerEstrelasSempre(){
+  return ehAdminAgora() || (AUTH.logado && AUTH.perfil === 'organizador');
+}
+
 /* Esconde da tela o que a pessoa não pode fazer. É conforto visual, NÃO segurança:
    quem editar o HTML no navegador consegue fazer o botão aparecer, mas o Apps Script
    recusa a gravação de qualquer jeito (defesa em profundidade). */
@@ -2029,7 +2052,7 @@ function aplicarPermissoesUI(){
   };
   mostrar('add-player-row', temPermissao('addPlayer'));
   mostrar('star-visibility-toggle', temPermissao('saveSettings'));
-  mostrar('checkin-admin-controls', temPermissao('saveSettings'));
+  mostrar('checkin-admin-controls', temPermissao('saveCheckinSettings'));
   mostrar('nav-usuarios-btn', temPermissao('listarUsuarios'));
   mostrar('mais-usuarios-btn', temPermissao('listarUsuarios'));
   // o toggle de estrelas e os controles de check-in usam flex quando visíveis
@@ -2040,7 +2063,7 @@ function aplicarPermissoesUI(){
     if(cb) cb.checked = !!SETTINGS.estrelasVisiveis;
   }
   const checkinCtrls = document.getElementById('checkin-admin-controls');
-  if(checkinCtrls && temPermissao('saveSettings')) checkinCtrls.style.display = 'flex';
+  if(checkinCtrls && temPermissao('saveCheckinSettings')) checkinCtrls.style.display = 'flex';
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
@@ -2061,7 +2084,7 @@ function updateAdminStatusBtn(){
 }
 
 function starsVisibleNow(){
-  return !!SETTINGS.estrelasVisiveis || ehAdminAgora(); // admin sempre vê, mesmo se estiver oculto pro público
+  return !!SETTINGS.estrelasVisiveis || podeVerEstrelasSempre(); // admin/organizador sempre veem, mesmo se estiver oculto pro público
 }
 
 document.getElementById('star-visibility-checkbox').addEventListener('change', async (e)=>{
@@ -2892,6 +2915,14 @@ function editPlayerRowHtml(p){
             <label>Apelido (opcional)</label>
             <input type="text" id="edit-nick-${p.id}" value="${escapeHtml(p.apelido||'')}" style="min-width:180px;">
           </div>
+          <div class="field-group" style="margin-bottom:6px;">
+            <label>Sexo</label>
+            <select id="edit-gender-${p.id}">
+              <option value="" ${!p.sexo?'selected':''}>Sexo (opcional)</option>
+              <option value="M" ${p.sexo==='M'?'selected':''}>Masculino</option>
+              <option value="F" ${p.sexo==='F'?'selected':''}>Feminino</option>
+            </select>
+          </div>
           <div class="field-group" style="margin-top:6px;">
             <label>Nota</label>
             <div class="stars-picker" id="edit-stars-${p.id}" data-value="${p.estrelas||0}">
@@ -2984,12 +3015,13 @@ function wireEditPlayerRow(){
       console.error('Falha no upload da foto', e);
       alert('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.');
     }
-    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte };
+    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte, sexo: player.sexo };
     player.estrelas = novaEstrelas;
     player.foto = novaFoto;
     player.nome = novoNome;
     player.apelido = novoApelido;
     player.porte = document.getElementById('edit-'+pid+'-porte-seletor').dataset.value || '';
+    player.sexo = document.getElementById('edit-gender-'+pid).value || '';
     const ok = await postAction('updatePlayer', {player: player}, cred);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
@@ -2997,6 +3029,7 @@ function wireEditPlayerRow(){
       player.nome = anterior.nome;
       player.apelido = anterior.apelido;
       player.porte = anterior.porte;
+      player.sexo = anterior.sexo;
     }
     EDITING_PLAYER_ID = null;
     renderPlayers();
@@ -4123,18 +4156,18 @@ function renderCheckinStatus(){
 }
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
-  const cred = await requireAuth('saveSettings');
+  const cred = await requireAuth('saveCheckinSettings');
   if(!cred) return;
   const anterior = SETTINGS.checkinTravado;
   SETTINGS.checkinTravado = !anterior;
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
+  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
-  const cred = await requireAuth('saveSettings');
+  const cred = await requireAuth('saveCheckinSettings');
   if(!cred) return;
   const novaData = document.getElementById('checkin-admin-date').value;
   if(!novaData){ alert('Escolha uma data antes de abrir o check-in.'); return; }
@@ -4142,18 +4175,18 @@ document.getElementById('open-checkin-btn').addEventListener('click', async ()=>
   SETTINGS.checkinDataAberta = novaData;
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
+  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
 document.getElementById('close-checkin-btn').addEventListener('click', async ()=>{
-  const cred = await requireAuth('saveSettings');
+  const cred = await requireAuth('saveCheckinSettings');
   if(!cred) return;
   const anterior = SETTINGS.checkinDataAberta;
   SETTINGS.checkinDataAberta = '';
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveSettings', {settings: SETTINGS}, cred);
+  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
