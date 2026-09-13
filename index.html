@@ -195,9 +195,16 @@
   section{display:none;}
   section.active{display:block;}
 
-  /* scoreboard hero */
+  /* scoreboard hero — é o momento de comemoração da semana, por isso ganha textura de
+     quadra (linhas diagonais bem fracas) + resplendor dourado + um troféu gigante em
+     marca d'água, pra não ficar com a mesma cara "cartão neutro" do resto da tela. */
   .scoreboard{
-    background:var(--court-navy-2);
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 6% -12%, color-mix(in srgb, var(--ball-yellow) 22%, transparent), transparent 55%),
+      repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 26px),
+      var(--court-navy-2);
     border:1px solid var(--line);
     border-radius:14px;
     padding:28px;
@@ -206,15 +213,33 @@
     gap:24px;
     margin-bottom:20px;
   }
+  .scoreboard::before{
+    content:'🏆';
+    position:absolute;
+    right:-14px; top:-30px;
+    font-size:170px;
+    line-height:1;
+    opacity:0.07;
+    transform:rotate(-8deg);
+    pointer-events:none;
+  }
   @media (max-width:640px){.scoreboard{grid-template-columns:1fr;}}
-  .sb-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ball-yellow);font-weight:700;margin:0 0 8px;}
-  .sb-team{font-family:'Anton',sans-serif;font-size:40px;text-transform:uppercase;margin:0 0 6px;line-height:1.05;}
-  .sb-date{color:var(--muted);font-size:13px;margin:0 0 16px;}
-  .sb-players{display:flex;flex-wrap:wrap;gap:8px;}
+  .sb-label{position:relative;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ball-yellow);font-weight:700;margin:0 0 8px;}
+  .sb-team{position:relative;font-family:'Anton',sans-serif;font-size:44px;text-transform:uppercase;margin:0 0 8px;line-height:1.02;}
+  .sb-date{
+    position:relative;display:inline-block;font-family:'Space Mono',monospace;
+    color:var(--chalk-dim);font-size:12px;letter-spacing:0.5px;
+    border:1px solid var(--line);border-radius:6px;padding:4px 10px;margin:0 0 18px;
+  }
+  .sb-avatars{position:relative;display:flex;margin-bottom:10px;}
+  .sb-avatar-wrap{margin-right:-12px;border-radius:50%;border:2px solid var(--court-navy-2);cursor:pointer;transition:transform .15s;line-height:0;}
+  .sb-avatar-wrap:hover{transform:translateY(-3px);}
+  .sb-avatar-wrap:last-child{margin-right:0;}
+  .sb-players{position:relative;display:flex;flex-wrap:wrap;gap:8px;}
   .chip{background:var(--court-navy-3);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:13px;}
-  .sb-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-content:start;}
-  .stat-card{background:var(--court-navy-3);border-radius:10px;padding:14px;}
-  .stat-num{font-family:'Space Mono',monospace;font-weight:700;font-size:26px;color:var(--ball-yellow);}
+  .sb-stats{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-content:start;}
+  .stat-card{border-bottom:2px solid var(--line);padding:0 4px 10px 0;}
+  .stat-num{font-family:'Space Mono',monospace;font-weight:700;font-size:28px;color:var(--ball-yellow);}
   .stat-cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
 
   .empty{
@@ -3381,6 +3406,7 @@ function renderDashboard(){
           <p class="sb-label">Campeão da semana</p>
           <p class="sb-team">${escapeHtml(team.nome)}</p>
           <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
+          <div class="sb-avatars">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
           <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>
         </div>
         <div class="sb-stats">
