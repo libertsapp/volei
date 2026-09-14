@@ -1297,7 +1297,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1542,31 +1542,33 @@ async function loginComGoogle(idToken){
   }
 }
 
-/* A sessão mora no sessionStorage (morre ao fechar a aba), igual à senha de admin.
+/* A sessão mora no localStorage (sobrevive a fechar a aba/app — só sai quando a
+   pessoa clica em "sair" de propósito). Diferente da senha de admin, que continua
+   no sessionStorage por ser uma chave mestra de emergência.
    O backend não guarda sessão nenhuma: cada requisição revalida o token. */
 function salvarSessaoAuth(){
-  sessionStorage.setItem('volei-auth-v1', JSON.stringify({
+  localStorage.setItem('volei-auth-v1', JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
     foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente
   }));
 }
 function restaurarSessaoAuth(){
   try{
-    const raw = sessionStorage.getItem('volei-auth-v1');
+    const raw = localStorage.getItem('volei-auth-v1');
     if(!raw) return;
     const s = JSON.parse(raw);
     if(!s || !s.idToken) return;
     Object.assign(AUTH, s, { logado:true, aoRenovar:null });
-    // token vencido enquanto a aba estava parada: mantém nome/perfil na tela e deixa
+    // token vencido enquanto o app estava fechado: mantém nome/perfil na tela e deixa
     // a renovação silenciosa do Google resolver quando a pessoa for salvar algo
   }catch(e){
     console.error('Sessão de login corrompida, descartando', e);
-    sessionStorage.removeItem('volei-auth-v1');
+    localStorage.removeItem('volei-auth-v1');
   }
 }
 function sairDaConta(silencioso){
   AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', logado:false, aoRenovar:null };
-  sessionStorage.removeItem('volei-auth-v1');
+  localStorage.removeItem('volei-auth-v1');
   if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
   }
