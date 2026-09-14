@@ -1307,6 +1307,7 @@
 let DATA = { players: [], rounds: [] };
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false };
 let CHECKINS = [];
+let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — só admin/organizador vinculados, sem e-mail (ver perfisPublicos_ no .gs)
 
 /* Quem está logado com conta Google agora. O idToken é o que prova a identidade pro
    Apps Script — ele vive ~1h e é renovado em segundo plano (ver garantirTokenFresco).
@@ -1420,6 +1421,7 @@ async function loadData(){
     }
     DATA = { players: json.players || [], rounds: json.rounds || [] };
     if(json.settings) SETTINGS = json.settings;
+    PERFIS_PUBLICOS = json.perfisPublicos || [];
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
     CHECKINS = json.checkins || [];
     reconstituirConvidadosDosCheckins();
@@ -3464,6 +3466,9 @@ function computeTopDuos(ano){
       const [id1, id2] = key.split('|');
       return { id1, id2, count };
     })
+    // dupla de 1 jogo só não é "grudento" nenhum — exige pelo menos 2 vezes juntos
+    // pra entrar na lista (e, por tabela, pro emblema Grudento, que usa a #1 daqui)
+    .filter(d=> d.count >= 2)
     .sort((a,b)=> b.count - a.count)
     .slice(0,10);
 }
@@ -3548,7 +3553,12 @@ function computeBadges(){
   // cadastro do jogador, não depende de rodada nem de ano nenhum
   const cabecaDeChave = new Set(DATA.players.filter(p=> p.estrelas === 5).map(p=>p.id));
 
-  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado };
+  // STAFF (admin/organizador) — vem de PERFIS_PUBLICOS (carregado no doGet, sem e-mail
+  // nenhum). Mesmo emblema 🎖️ pros dois perfis; só o texto da dica (title) diferencia.
+  const staffAdmin = new Set(PERFIS_PUBLICOS.filter(u=>u.perfil==='admin').map(u=>u.jogadorId));
+  const staffOrganizador = new Set(PERFIS_PUBLICOS.filter(u=>u.perfil==='organizador').map(u=>u.jogadorId));
+
+  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador };
 }
 
 function badgeIconsHtml(pid, badges){
@@ -3561,6 +3571,8 @@ function badgeIconsHtml(pid, badges){
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="DEFUNTO — mais de 100 dias sem aparecer numa rodada">🪦</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
+  if(badges.staffAdmin && badges.staffAdmin.has(pid)) html += `<span class="badge-icon" title="ADMIN">🎖️</span>`;
+  else if(badges.staffOrganizador && badges.staffOrganizador.has(pid)) html += `<span class="badge-icon" title="ORGANIZADOR">🎖️</span>`;
   return html;
 }
 
