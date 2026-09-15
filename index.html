@@ -933,7 +933,7 @@
 
     <section id="view-checkin">
       <h2 class="section-title">Check-in — quem vai jogar?</h2>
-      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Livre pra qualquer jogador se confirmar, sem precisar de senha — mas só quando o admin abrir o check-in pra uma data.</p>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Ver a lista é livre pra todo mundo — pra confirmar presença é só entrar com sua conta Google, sem senha. Só funciona quando o admin/organizador abre o check-in pra uma data.</p>
 
       <div id="checkin-status"></div>
 
@@ -943,7 +943,13 @@
         <button class="btn" id="open-checkin-btn">Abrir check-in</button>
         <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
         <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
+        <label style="color:var(--muted);font-size:13px;">Vagas</label>
+        <input type="number" id="checkin-admin-vagas" min="1" style="width:70px;">
+        <label style="color:var(--muted);font-size:13px;">Horário</label>
+        <input type="time" id="checkin-admin-horario" style="width:100px;">
       </div>
+
+      <div id="checkin-login-aviso" style="display:none;color:var(--muted);font-size:13px;margin:0 0 12px;">🔒 Entre com sua conta Google pra confirmar presença (ver a lista continua livre).</div>
 
       <div class="guest-row" id="checkin-guest-row">
         <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
@@ -965,8 +971,9 @@
 
       <div class="selected-counter" id="checkin-counter">
         <span class="selected-counter-num" id="checkin-counter-num">0</span>
-        <span class="selected-counter-label">confirmado(s)</span>
+        <span class="selected-counter-label" id="checkin-counter-label">confirmado(s)</span>
       </div>
+      <div id="checkin-ordenados"></div>
       <div class="search-box" id="checkin-search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
       <div class="select-list" id="checkin-list"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
@@ -1297,7 +1304,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1305,7 +1312,7 @@
 
 <script>
 let DATA = { players: [], rounds: [] };
-let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false };
+let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00' };
 let CHECKINS = [];
 let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — só admin/organizador vinculados, sem e-mail (ver perfisPublicos_ no .gs)
 
@@ -1525,6 +1532,8 @@ async function loginComGoogle(idToken){
     salvarSessaoAuth();
     atualizarStatusAuth();
     aplicarPermissoesUI();
+    renderCheckinStatus();
+    renderCheckinList();
     atualizarAvisoUsuariosPendentes();
     // aba Usuarios vazia até agora = ninguém é admin ainda: oferece o bootstrap
     if(json.totalUsuarios <= 1 && AUTH.perfil !== 'admin'){
@@ -4161,25 +4170,39 @@ function escapeHtml(str){
 function renderAll(){
   updateAdminStatusBtn();
   renderCheckinStatus();
+  renderCheckinList();
   renderPlayers();
   renderTeamsGrid();
   renderRodadaGuestChips();
   renderDashboard();
 }
 
-/* ---------- CHECK-IN (livre pra confirmar, mas só o admin abre/fecha a data) ---------- */
+/* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
+// só é usada pra decidir se mostra os botões de confirmar/desconfirmar habilitados —
+// a exigência de verdade é sempre revalidada no backend (verificarTokenGoogle_)
+function exigirLoginParaCheckin(){
+  if(AUTH.logado) return true;
+  alert('Você precisa entrar com sua conta Google pra confirmar presença.');
+  return false;
+}
+
 function renderCheckinStatus(){
   const statusEl = document.getElementById('checkin-status');
   const data = SETTINGS.checkinDataAberta;
   const travado = SETTINGS.checkinTravado;
+  const vagas = SETTINGS.checkinVagas || 16;
   statusEl.innerHTML = data
-    ? `<div class="checkin-open-badge">✅ Check-in aberto para <strong>${formatDate(data)}</strong>${travado ? ' — <strong>lista travada</strong>, sem novas confirmações' : ' — pode confirmar presença!'}</div>`
+    ? `<div class="checkin-open-badge">✅ Check-in aberto para <strong>${formatDate(data)}</strong> às <strong>${SETTINGS.checkinHorario || '20:00'}</strong> — ${vagas} vaga(s)${travado ? ' — <strong>lista travada</strong>, sem novas confirmações' : ' — pode confirmar presença!'}</div>`
     : `<div class="checkin-closed-badge">🔒 Check-in fechado no momento. Aguarde o admin abrir pra próxima rodada.</div>`;
 
   const adminDateInput = document.getElementById('checkin-admin-date');
   if(adminDateInput && !adminDateInput.value){
     adminDateInput.value = data || new Date().toISOString().slice(0,10);
   }
+  const adminVagasInput = document.getElementById('checkin-admin-vagas');
+  if(adminVagasInput && document.activeElement !== adminVagasInput) adminVagasInput.value = vagas;
+  const adminHorarioInput = document.getElementById('checkin-admin-horario');
+  if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
   if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar inclusões/exclusões' : '🔒 Travar inclusões/exclusões';
 
@@ -4189,10 +4212,12 @@ function renderCheckinStatus(){
   const guestRow = document.getElementById('checkin-guest-row');
   const useBtn = document.getElementById('use-checkins-sorteio-btn');
   const shareBtn = document.getElementById('share-checkins-whatsapp-btn');
+  const loginAviso = document.getElementById('checkin-login-aviso');
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
-  if(guestRow) guestRow.style.display = (data && !travado) ? 'flex' : 'none';
+  if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
   if(shareBtn) shareBtn.style.display = data ? 'inline-block' : 'none';
+  if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
 }
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
@@ -4204,6 +4229,28 @@ document.getElementById('toggle-checkin-lock-btn').addEventListener('click', asy
   renderCheckinList();
   const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
+});
+
+document.getElementById('checkin-admin-vagas').addEventListener('change', async (e)=>{
+  const cred = await requireAuth('saveCheckinSettings');
+  if(!cred){ e.target.value = SETTINGS.checkinVagas || 16; return; }
+  const anterior = SETTINGS.checkinVagas;
+  const nova = parseInt(e.target.value, 10);
+  SETTINGS.checkinVagas = (nova > 0) ? nova : 16;
+  renderCheckinStatus();
+  renderCheckinList();
+  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
+  if(!ok){ SETTINGS.checkinVagas = anterior; renderCheckinStatus(); renderCheckinList(); }
+});
+
+document.getElementById('checkin-admin-horario').addEventListener('change', async (e)=>{
+  const cred = await requireAuth('saveCheckinSettings');
+  if(!cred){ e.target.value = SETTINGS.checkinHorario || '20:00'; return; }
+  const anterior = SETTINGS.checkinHorario;
+  SETTINGS.checkinHorario = e.target.value || '20:00';
+  renderCheckinStatus();
+  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
+  if(!ok){ SETTINGS.checkinHorario = anterior; renderCheckinStatus(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
@@ -4233,6 +4280,9 @@ document.getElementById('close-checkin-btn').addEventListener('click', async ()=
 document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
   if(!SETTINGS.checkinDataAberta){ alert('O check-in está fechado no momento.'); return; }
   if(SETTINGS.checkinTravado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
+  if(!exigirLoginParaCheckin()) return;
+  const token = await garantirTokenFresco();
+  if(!token) return;
   const nameInput = document.getElementById('checkin-guest-name');
   const genderSelect = document.getElementById('checkin-guest-gender');
   const starsEl = document.getElementById('checkin-guest-stars');
@@ -4252,11 +4302,41 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
   const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo };
   CHECKINS.push(novoCheckin);
-  await postAction('addCheckin', {checkin: novoCheckin}, null);
+  await postAction('addCheckin', {checkin: novoCheckin}, {idToken: token, senha:''});
 
   renderCheckinList();
 });
 document.getElementById('checkin-search').addEventListener('input', renderCheckinList);
+
+// ordem de chegada = ordem natural do array (linhas da aba Checkins, na ordem que
+// foram gravadas); os N primeiros (N = vagas) estão dentro, o resto é reserva
+function checkinsOrdenados(data){
+  return CHECKINS.filter(c=>c.data===data);
+}
+function checkinsDentroEReserva(data){
+  const ordenados = checkinsOrdenados(data);
+  const vagas = SETTINGS.checkinVagas || 16;
+  return { dentro: ordenados.slice(0, vagas), reserva: ordenados.slice(vagas) };
+}
+
+function renderCheckinOrdenados(){
+  const data = SETTINGS.checkinDataAberta;
+  const el = document.getElementById('checkin-ordenados');
+  if(!data){ el.innerHTML = ''; return; }
+  const { dentro, reserva } = checkinsDentroEReserva(data);
+  let html = '';
+  if(dentro.length){
+    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">✅ Confirmados</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">';
+    dentro.forEach(c=>{ html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}</li>`; });
+    html += '</ol></div>';
+  }
+  if(reserva.length){
+    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">⏳ Reserva</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">';
+    reserva.forEach(c=>{ html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}</li>`; });
+    html += '</ol></div>';
+  }
+  el.innerHTML = html;
+}
 
 function renderCheckinList(){
   const data = SETTINGS.checkinDataAberta;
@@ -4265,12 +4345,20 @@ function renderCheckinList(){
   if(!data){
     list.innerHTML = '';
     document.getElementById('checkin-counter-num').textContent = '0';
+    document.getElementById('checkin-counter-label').textContent = 'confirmado(s)';
+    renderCheckinOrdenados();
     return;
   }
 
   const term = document.getElementById('checkin-search').value;
-  const confirmadosHoje = new Set(CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId));
+  const { dentro, reserva } = checkinsDentroEReserva(data);
+  const confirmadosHoje = new Set(dentro.concat(reserva).map(c=>c.jogadorId));
+  const dentroIds = new Set(dentro.map(c=>c.jogadorId));
+  const vagas = SETTINGS.checkinVagas || 16;
   document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
+  document.getElementById('checkin-counter-label').textContent =
+    `de ${vagas} vaga(s)${reserva.length ? ` (${reserva.length} na reserva)` : ''}`;
+  renderCheckinOrdenados();
 
   const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
   if(pool.length===0){
@@ -4279,33 +4367,42 @@ function renderCheckinList(){
   }
   const badges = computeBadges();
   const travado = SETTINGS.checkinTravado;
+  const podeMarcar = AUTH.logado && !travado;
   list.innerHTML = pool.map(p=>{
     const confirmado = confirmadosHoje.has(p.id);
+    const naReserva = confirmado && !dentroIds.has(p.id);
+    let rotulo = 'Vou jogar';
+    if(confirmado) rotulo = naReserva ? '⏳ Reserva' : '✅ Confirmado';
+    else if(travado) rotulo = '🔒 Travado';
+    else if(!AUTH.logado) rotulo = '🔒 Entre pra confirmar';
     return `<label class="select-row" style="cursor:pointer;" data-checkin-toggle="${p.id}">
       ${avatarHtml(p,'sm')}
       <span class="flex1">${nomeComApelidoHtml(p, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
       ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
       ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-      <button type="button" class="btn ${confirmado?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${travado?'disabled title="Check-in travado pelo admin"':''}>
-        ${confirmado ? '✅ Confirmado' : (travado ? '🔒 Travado' : 'Vou jogar')}
+      <button type="button" class="btn ${confirmado && !naReserva?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${podeMarcar?'':'disabled'}>
+        ${rotulo}
       </button>
     </label>`;
   }).join('');
-  if(travado) return; // travado: só exibe a lista, sem religar os botões (ficam desabilitados)
+  if(!podeMarcar) return; // travado ou sem login: só exibe a lista, sem religar os botões
   list.querySelectorAll('[data-checkin-btn]').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       e.preventDefault();
       const pid = btn.dataset.checkinBtn;
       const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid);
+      if(!jaConfirmado && !exigirLoginParaCheckin()) return;
+      const token = await garantirTokenFresco();
+      if(!token) return;
       btn.disabled = true;
       if(jaConfirmado){
-        const ok = await postAction('removeCheckin', {id: jaConfirmado.id}, null);
+        const ok = await postAction('removeCheckin', {id: jaConfirmado.id}, {idToken: token, senha:''});
         if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
       } else {
         const player = getPlayer(pid);
         const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'' };
         CHECKINS.push(novoCheckin);
-        const ok = await postAction('addCheckin', {checkin: novoCheckin}, null);
+        const ok = await postAction('addCheckin', {checkin: novoCheckin}, {idToken: token, senha:''});
         if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
       }
       renderCheckinList();
@@ -4315,9 +4412,9 @@ function renderCheckinList(){
 
 document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()=>{
   const data = SETTINGS.checkinDataAberta;
-  const idsConfirmados = CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
+  const idsConfirmados = checkinsDentroEReserva(data).dentro.map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
   if(idsConfirmados.length===0){
-    alert('Ninguém confirmou presença para essa data ainda.');
+    alert('Ninguém confirmou presença dentro da vaga para essa data ainda.');
     return;
   }
   SELECTED_IDS = new Set(idsConfirmados);
@@ -4328,13 +4425,14 @@ document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()
 /* ---------- IMPORTAR JOGADORES DO CHECK-IN DIRETO NA TELA DE SORTEIO ---------- */
 // mesma ideia do botão que já existe na aba Check-in, só que sem precisar sair do
 // Sorteio pra usar — aparece nos dois modos (automático e manual) só quando tem um
-// check-in aberto no momento
+// check-in aberto no momento. Só traz quem tá DENTRO da vaga — reserva fica de fora
+// do sorteio até subir sozinho, se alguém desistir.
 function importarJogadoresDoCheckin(){
   const data = SETTINGS.checkinDataAberta;
   if(!data){ alert('Não há check-in aberto no momento.'); return; }
-  const idsConfirmados = CHECKINS.filter(c=>c.data===data).map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
+  const idsConfirmados = checkinsDentroEReserva(data).dentro.map(c=>c.jogadorId).filter(id=> DATA.players.some(p=>p.id===id) || GUESTS.some(g=>g.id===id));
   if(idsConfirmados.length===0){
-    alert('Ninguém confirmou presença para essa data ainda.');
+    alert('Ninguém confirmou presença dentro da vaga para essa data ainda.');
     return;
   }
   SELECTED_IDS = new Set(idsConfirmados);
@@ -4348,16 +4446,34 @@ function atualizarBotoesImportarCheckin(){
   document.getElementById('importar-checkin-manual-btn').style.display = temCheckinAberto ? 'inline-block' : 'none';
 }
 
+const DIAS_SEMANA_EXTENSO = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+function nomeDiaSemana(iso){
+  const m = String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+  return DIAS_SEMANA_EXTENSO[d.getDay()];
+}
+function dataCurta(iso){
+  const m = String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}` : formatDate(iso);
+}
+
 document.getElementById('share-checkins-whatsapp-btn').addEventListener('click', ()=>{
   const data = SETTINGS.checkinDataAberta;
-  const confirmados = CHECKINS.filter(c=>c.data===data);
-  if(confirmados.length===0){
+  const { dentro, reserva } = checkinsDentroEReserva(data);
+  if(dentro.length===0 && reserva.length===0){
     alert('Ninguém confirmou presença para essa data ainda.');
     return;
   }
-  let texto = `✅ *Confirmados para ${formatDate(data)}* — Volei de Terça\n\n`;
-  confirmados.forEach((c,i)=>{ texto += `${i+1}. ${c.jogadorNome || 'Convidado'}\n`; });
-  texto += `\nTotal: ${confirmados.length} confirmado(s)`;
+  const vagas = SETTINGS.checkinVagas || 16;
+  const horario = SETTINGS.checkinHorario || '20:00';
+  let texto = `Vôlei ${nomeDiaSemana(data)} ${dataCurta(data)} às ${horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\n`;
+  texto += `Os ${vagas} primeiros a enviarem o nome estarão no jogo\n\n`;
+  dentro.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
+  if(reserva.length){
+    texto += `\nEspera:\n\n`;
+    reserva.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
+  }
   compartilharNoWhatsApp(texto);
 });
 
