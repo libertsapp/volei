@@ -14,6 +14,9 @@
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFkklEQVR42u3dQW4TWRSF4aqn7AExzg4YMUEMWIUltpFVsI1IXgUDxIQRO8g4YhUwISKA4yq7yq733vn+WdNSOlTOf8+9jq0eh8p4dfv+54Bu+fHwZazp+xmFHclSjEKPZBlGwUeyCKPgI1mEUfCRLMIo+EgWoQg/WmLtjI2Cj+Q2KMKP5DYowo9kCYrwI1mCIvxIlqAIP5IlKMKPZAmK8CNZgiL8SJagCD+SJSgeE5Ippj+SW6AIP5IlsALBCmT6I7UFNAA0gOmP1BbQAIhmNP0vy8P3/eKvcftm50GuyPNPkt14HPUE/dSvTYwVG8D0ryfwmuJ6LaABGg/9S98fGeZBgEuH/tvHo/969/Xz5JfY3z2S4ZIrkPVnhdBPBH2JAGuKQYa/1yANcG7wzwz8muw+vT5ZiKe/IxGsQKcHv4LQzxViSgYiEGBe8CsP/VIZ0kW4Efy+gn9MBiIcOILTDuDJ8F85+EuO4Esdz0kSxAhQW/C3FIAIYQIcDf/Gq86WAswRoXcJuhag5uDXJECyCN0K8GL4KztuaxJgSoQeJSjCj/+k/OcXbLPvKA1g5emhAZJWom4EaHXq1yxAwkpUhB/JK1ERfiRL0PQKdPDhNxb8FlagOStRq+tQEX6s0QatNkERfiRLUIQfyRIU4UeyBEX4kSxBuy+DCn/1EhDgktMffm4JAlh9rEKxAgg/CaxAwu8eSBTA3u8eiBXA6mMVsgIJv1UoUYD/poTwdyVBbS1Qqg4/3APRK5DpbxVKEcD01wIawPTXAokCmP5aQAOY/logUQDTXwtoANNfCyQKYPpj6xzU1QCmvxZwBAMBAnjPjxaoYQ3SANAAAAGsPwhcgzQANABAAOsPAtcgDQANABAAIID9H1l3gAaABgAIABAAIABAgLXxChCOsdUrQRoAGgAgAEAAgAAAAQACAAQA+uVmq//w7utnT/83+3cfPIRhGIbhXgMABAAIABAAIABAAIAAQKMC3L7Z/fXP+7tHTx9/eHt/NC8aACAAQACAAAABgJYE8EoQDrLRK0AaABrAIwABAAK4A5C1/2sAaACPAASwBiFw/dEA0AAeAQhgDULg+qMBoAFq+ma0QOb0jxVgq9pDXWyZg+pWIC1g+kcJoAVMfzeAFjD9kwXQAqa/BtACpn+yAFrA9NcAWsD0TxZAC5j+8Q3gPUJ9T//ahlwT7wUigdUnSoBDU4IE7Ye/xhW32gZwD9j7rUBawOqTLIBVyOoT3wAkEP74Fcg9YO93A2gBe3+yAFYhq098A5BA+ONXIBIIf/wNQALhjz+CSSD8azC+un3/s+WfxcP3/cE/33163czfYf/uQ7PBbzn8TTfA1MPXBsIfIQAJhD96BZqzDtW+ElW7Ah355VYvv53vSoBW74IqBeh46ne3AlmJhF8DNLwSVdMAAStPlACtiLC5AIHBjxJgSoKtRdhMgIl3cCa8DX0chmFIkaBWEa4ugOAPwzAMPx6+jHH/i6SpH+7+7rHfY/ntvfD/w80QyNMP+VgbPEnQ0lsqzp34icGPFuAcEZqTYeYntNI/bhotwCkiNCHDCR9L9DnrZ0dw2iG89FBe+3g++wg+43O4gv/nANYAM0IyV4aXDudVmmLhB86FXgNs1gw1SIyXG2B8/ockaFsGoT8t/FagFcO2hRACv+IKpAXqbQpBv8z01wCmdDxlyhCg1+l/UAAgugG0AFKmvwaABjjVGKCX6T/ZACRAz+G3AsEKtNQgoNXpP7sBSIAew3/SCkQC9Bb+k28AEqCn8J91BJMAvYT/LAFIgF7Cf7YAJEAP4V8kAAnQevgXC0ACtBz+YTjwibAl+DQZWgn+ag2gDdBq+FdvAG2AVoJ/cQGIgBa2iqutLERAjev01Xd2IqCmO3LTo5UM2CL01QhACmHfml+yjt42mFGoLgAAAABJRU5ErkJggg==">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Tabler Icons — usado nos ícones "ti ti-*" espalhados pelo app (estados vazios,
+     botões de compartilhar/copiar, etc.) -->
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css" rel="stylesheet">
 <!-- Google Identity Services: renderiza o botão "Entrar com Google" e devolve um ID Token
      assinado pelo Google. A função global window.onGoogleLibraryLoad (definida no bloco
      de script principal, mais abaixo) é o gancho oficial pra saber que a biblioteca
@@ -828,8 +831,9 @@
   .acoes-linha .btn-icon{flex:0 0 auto;}
   .btn-icon{
     display:inline-flex;align-items:center;justify-content:center;
-    width:40px;padding:0;font-size:17px;line-height:1;
+    width:40px;height:40px;padding:0;font-size:17px;line-height:1;
   }
+  .btn-icon svg{width:18px;height:18px;display:block;flex-shrink:0;}
   .btn-icon.copiado{background:#1f3a2a!important;border-color:#5fd68a!important;color:#8ff0ae!important;}
 </style>
 </head>
@@ -1186,7 +1190,10 @@
         </div>
         <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Montar grupos por nível separa os participantes por nota (mulheres sempre no(s) último(s) grupo(s)) — depois disso, o sorteio automático distribui os times respeitando as mesmas regras de sempre, garantindo ainda que nenhum time fique com 2 pessoas do mesmo grupo juntas.</p>
         <div id="auto-groups" class="draft-grid" style="margin-top:16px;"></div>
-        <button class="btn" id="sortear-com-grupos-btn" style="display:none;margin-top:16px;">🎯 Sorteio automático (respeitando os grupos)</button>
+        <div class="acoes-linha" id="auto-groups-acoes" style="display:none;margin-top:16px;">
+          <button class="btn" id="sortear-com-grupos-btn">🎯 Sorteio automático (respeitando os grupos)</button>
+          <span id="share-groups-auto-whatsapp-area"></span>
+        </div>
       </div>
 
       <div id="sorteio-manual-panel" style="display:none;">
@@ -1351,7 +1358,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.10 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5285,7 +5292,12 @@ function renderManualGroups(){
 
 function renderAutoGroups(){
   renderGroupsInto('auto-groups', AUTO_GROUPS, renderAutoGroups);
-  document.getElementById('sortear-com-grupos-btn').style.display = AUTO_GROUPS.length ? 'inline-block' : 'none';
+  document.getElementById('auto-groups-acoes').style.display = AUTO_GROUPS.length ? 'flex' : 'none';
+  const area = document.getElementById('share-groups-auto-whatsapp-area');
+  if(AUTO_GROUPS.length){
+    area.innerHTML = botoesCompartilharHtml('share-groups-auto');
+    wireBotoesCompartilhar('share-groups-auto', ()=> montarTextoWhatsApp('Grupos do sorteio', AUTO_GROUPS, 'Grupo'));
+  }
 }
 document.getElementById('montar-grupos-auto-btn').addEventListener('click', ()=>{
   if(SELECTED_IDS.size < 2){
