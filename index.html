@@ -978,6 +978,7 @@
       <div class="select-list" id="checkin-list"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
+        <button class="btn secondary" id="checkin-msg-config-btn" style="display:none;" title="Editar mensagem de compartilhar">⚙️</button>
         <button class="btn secondary" id="share-checkins-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar confirmados no WhatsApp</button>
       </div>
     </section>
@@ -1304,7 +1305,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1312,7 +1313,8 @@
 
 <script>
 let DATA = { players: [], rounds: [] };
-let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00' };
+const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
+let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
 let CHECKINS = [];
 let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — só admin/organizador vinculados, sem e-mail (ver perfisPublicos_ no .gs)
 
@@ -2091,6 +2093,7 @@ function aplicarPermissoesUI(){
   mostrar('add-player-row', temPermissao('addPlayer'));
   mostrar('star-visibility-toggle', temPermissao('saveSettings'));
   mostrar('checkin-admin-controls', temPermissao('saveCheckinSettings'));
+  mostrar('checkin-msg-config-btn', temPermissao('saveCheckinSettings'));
   mostrar('nav-usuarios-btn', temPermissao('listarUsuarios'));
   mostrar('mais-usuarios-btn', temPermissao('listarUsuarios'));
   // o toggle de estrelas e os controles de check-in usam flex quando visíveis
@@ -4458,6 +4461,17 @@ function dataCurta(iso){
   return m ? `${m[3]}/${m[2]}` : formatDate(iso);
 }
 
+// troca {diaSemana} {data} {horario} {vagas} pelos valores de verdade da data aberta
+function preencherMensagemCheckin(template, data){
+  const vagas = SETTINGS.checkinVagas || 16;
+  const horario = SETTINGS.checkinHorario || '20:00';
+  return String(template || CHECKIN_MENSAGEM_PADRAO)
+    .replace(/\{diaSemana\}/g, nomeDiaSemana(data))
+    .replace(/\{data\}/g, dataCurta(data))
+    .replace(/\{horario\}/g, horario)
+    .replace(/\{vagas\}/g, vagas);
+}
+
 document.getElementById('share-checkins-whatsapp-btn').addEventListener('click', ()=>{
   const data = SETTINGS.checkinDataAberta;
   const { dentro, reserva } = checkinsDentroEReserva(data);
@@ -4465,10 +4479,7 @@ document.getElementById('share-checkins-whatsapp-btn').addEventListener('click',
     alert('Ninguém confirmou presença para essa data ainda.');
     return;
   }
-  const vagas = SETTINGS.checkinVagas || 16;
-  const horario = SETTINGS.checkinHorario || '20:00';
-  let texto = `Vôlei ${nomeDiaSemana(data)} ${dataCurta(data)} às ${horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\n`;
-  texto += `Os ${vagas} primeiros a enviarem o nome estarão no jogo\n\n`;
+  let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n';
   dentro.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
   if(reserva.length){
     texto += `\nEspera:\n\n`;
@@ -4476,6 +4487,40 @@ document.getElementById('share-checkins-whatsapp-btn').addEventListener('click',
   }
   compartilharNoWhatsApp(texto);
 });
+
+/* ---------- engrenagem: editar o texto de abertura da mensagem de compartilhar ---------- */
+function abrirConfigMensagemCheckin(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="bugreport-card">
+      <p class="bugreport-title">⚙️ Mensagem do check-in</p>
+      <p style="color:var(--muted);font-size:12px;margin:-6px 0 12px;">Use {diaSemana}, {data}, {horario} e {vagas} onde quiser — a gente troca pelos valores de verdade na hora de compartilhar. A lista numerada de confirmados/reserva vem sempre depois, fixa.</p>
+      <textarea id="checkin-msg-textarea" rows="6">${escapeHtml(SETTINGS.checkinMensagemTemplate || CHECKIN_MENSAGEM_PADRAO)}</textarea>
+      <div class="bugreport-actions">
+        <button class="btn secondary" id="checkin-msg-restaurar-btn">Restaurar padrão</button>
+        <button class="btn secondary" id="checkin-msg-cancel-btn">Cancelar</button>
+        <button class="btn" id="checkin-msg-save-btn">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const textarea = overlay.querySelector('#checkin-msg-textarea');
+  setTimeout(()=> textarea.focus(), 50);
+  function fechar(){ overlay.remove(); }
+  overlay.querySelector('#checkin-msg-cancel-btn').addEventListener('click', fechar);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(); });
+  overlay.querySelector('#checkin-msg-restaurar-btn').addEventListener('click', ()=>{ textarea.value = CHECKIN_MENSAGEM_PADRAO; });
+  overlay.querySelector('#checkin-msg-save-btn').addEventListener('click', async ()=>{
+    const cred = await requireAuth('saveCheckinSettings');
+    if(!cred) return;
+    const anterior = SETTINGS.checkinMensagemTemplate;
+    SETTINGS.checkinMensagemTemplate = textarea.value.trim() || CHECKIN_MENSAGEM_PADRAO;
+    const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
+    if(!ok){ SETTINGS.checkinMensagemTemplate = anterior; return; }
+    fechar();
+  });
+}
+document.getElementById('checkin-msg-config-btn').addEventListener('click', abrirConfigMensagemCheckin);
 
 /* ---------- SORTEIO ---------- */
 document.getElementById('add-guest-btn').addEventListener('click', ()=>{
