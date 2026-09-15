@@ -1333,7 +1333,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1344,7 +1344,7 @@ let DATA = { players: [], rounds: [] };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
 let CHECKINS = [];
-let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — só admin/organizador vinculados, sem e-mail (ver perfisPublicos_ no .gs)
+let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a uma conta (qualquer perfil), sem e-mail (ver perfisPublicos_ no .gs)
 
 /* Quem está logado com conta Google agora. O idToken é o que prova a identidade pro
    Apps Script — ele vive ~1h e é renovado em segundo plano (ver garantirTokenFresco).
@@ -2742,7 +2742,7 @@ function renderPlayers(){
       <div class="with-avatar">
         ${avatarHtml(p)}
         <div>
-          <div class="name clickable-name" data-open-profile="${p.id}">${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
+          <div class="name clickable-name" data-open-profile="${p.id}">${contaVinculadaIconHtml(p.id)}${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
           ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
           <div class="meta-row">
             ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
@@ -3600,6 +3600,17 @@ function computeBadges(){
   const staffOrganizador = new Set(PERFIS_PUBLICOS.filter(u=>u.perfil==='organizador').map(u=>u.jogadorId));
 
   return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador };
+}
+
+// ícone ANTES do nome (diferente dos badges, que vêm depois) — indica que esse
+// jogador tem uma conta Google vinculada, seja qual for o perfil dela
+function temContaVinculada(pid){
+  return PERFIS_PUBLICOS.some(u=> u.jogadorId === pid);
+}
+function contaVinculadaIconHtml(pid){
+  return temContaVinculada(pid)
+    ? `<span class="badge-icon" title="Jogador com conta cadastrada no app">👤</span> `
+    : '';
 }
 
 function badgeIconsHtml(pid, badges){
@@ -4639,6 +4650,16 @@ function shuffleArray(arr){
 function pesoDe(p){ return (p && p.estrelas > 0) ? p.estrelas : 3; }
 function somaTime(team){ return team.reduce((s,p)=> s + pesoDe(p), 0); }
 
+// média de pontos por time — usada como base do equilíbrio EM PORCENTAGEM (não em pontos
+// fixos), porque 1 ponto de diferença é bem mais grave numa pelada pequena (poucos
+// jogadores, soma baixa) do que numa pelada grande. É a régua usada nas etapas de ajuste
+// fino abaixo pra decidir quanto elas podem "gastar" do equilíbrio de notas já alcançado.
+function mediaPontosPorTime(teams){
+  const total = teams.reduce((s,t)=> s + somaTime(t), 0);
+  return teams.length ? (total / teams.length) : 0;
+}
+const TOLERANCIA_PERCENTUAL_AJUSTE_FINO = 5; // % da média de pontos por time
+
 function trocaViolaGrupo(gruposMap, timeDestino, jogadorQueEntra, jogadorQueSai){
   // usado só quando o sorteio partiu de grupos por nível — garante que nenhuma troca
   // entre times, em nenhum passo de ajuste, deixe 2 pessoas do MESMO grupo no mesmo time
@@ -4806,9 +4827,12 @@ function pesoAltura(p){
 
 function equilibrarAltura(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // ajuste fino de altura — roda DEPOIS do equilíbrio de notas já feito, e só troca
-  // jogador se isso não piorar o equilíbrio de notas já alcançado em mais de 1 ponto.
+  // jogador se isso não piorar o equilíbrio de notas já alcançado em mais que
+  // TOLERANCIA_PERCENTUAL_AJUSTE_FINO (% da média de pontos por time — não um ponto
+  // fixo, porque 1 ponto pesa muito mais numa pelada pequena do que numa grande).
   // Ou seja: altura nunca tem força pra desfazer o que já está balanceado por nota,
   // só refina quando dá — mesmo espírito do passo que evita duplas repetidas.
+  const mediaTimes = mediaPontosPorTime(teams);
   for(let rodada=0; rodada<20; rodada++){
     let melhor = null, melhorGanho = 0;
     for(let ta=0; ta<numTeams; ta++){
@@ -4834,7 +4858,8 @@ function equilibrarAltura(teams, numTeams, tetoCincoEstrelas, gruposMap){
             const novoTa = teams[ta].slice(); novoTa[ia]=pb;
             const novoTb = teams[tb].slice(); novoTb[ib]=pa;
             const diffNotasDepois = Math.abs(somaTime(novoTa) - somaTime(novoTb));
-            if(diffNotasDepois > diffNotasAntes + 1) return; // não piora o equilíbrio de nota em mais de 1 ponto
+            const pioraPercentual = mediaTimes > 0 ? ((diffNotasDepois - diffNotasAntes) / mediaTimes) * 100 : 0;
+            if(pioraPercentual > TOLERANCIA_PERCENTUAL_AJUSTE_FINO) return; // não piora o equilíbrio de nota além da tolerância (%)
             if(ganho > melhorGanho){
               melhorGanho = ganho;
               melhor = { ta, tb, ia, ib };
@@ -4852,10 +4877,12 @@ function equilibrarAltura(teams, numTeams, tetoCincoEstrelas, gruposMap){
 
 function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // tenta separar duplas que já jogaram muito juntas nas últimas rodadas, trocando jogadores
-  // entre times — só faz a troca se ISSO NÃO piorar o equilíbrio de notas em mais de 1 ponto,
-  // pra não desfazer o trabalho da etapa de equilíbrio anterior
+  // entre times — só faz a troca se ISSO NÃO piorar o equilíbrio de notas em mais que
+  // TOLERANCIA_PERCENTUAL_AJUSTE_FINO (% da média de pontos por time), pra não desfazer
+  // o trabalho da etapa de equilíbrio anterior de um jeito desproporcional ao tamanho do jogo
   const recentCounts = contarDuplasRecentes(roundsOficiais(), 5);
   if(Object.keys(recentCounts).length===0) return; // sem histórico recente, nada a evitar
+  const mediaTimes = mediaPontosPorTime(teams);
 
   function penalidadeTime(team){
     let p=0;
@@ -4885,7 +4912,8 @@ function evitarDuplasRepetidas(teams, numTeams, tetoCincoEstrelas, gruposMap){
             const novoTb = teams[tb].slice(); novoTb[ib]=pa;
             const ganho = penAntes - (penalidadeTime(novoTa) + penalidadeTime(novoTb));
             const diffDepois = Math.abs(somaTime(novoTa) - somaTime(novoTb));
-            if(ganho > melhorGanho && diffDepois <= diffAntes + 1){
+            const pioraPercentual = mediaTimes > 0 ? ((diffDepois - diffAntes) / mediaTimes) * 100 : 0;
+            if(ganho > melhorGanho && pioraPercentual <= TOLERANCIA_PERCENTUAL_AJUSTE_FINO){
               melhorGanho = ganho;
               melhor = { ta, tb, ia, ib };
             }
@@ -4944,14 +4972,20 @@ function equilibrarTimes(teams, numTeams, tetoCincoEstrelas, gruposMap){
   // jogadores de nota parecida (inclusive 5 estrelas) no mesmo time.
   // A troca é sempre entre jogadores do MESMO sexo, pra nunca mudar a meta exata de
   // mulheres por time definida na montagem inicial. Tamanho do time também nunca muda aqui.
+  //
+  // PRIORIDADE: equilíbrio em PORCENTAGEM, não em ponto fixo — por isso não existe mais
+  // um corte tipo "para quando a diferença cai pra 1 ponto". 1 ponto numa pelada pequena
+  // (soma baixa) é um desequilíbrio bem maior, em %, do que numa pelada grande — então o
+  // laço só para quando os dois times já empataram OU quando nenhuma troca melhora mais
+  // (isso já busca o menor desequilíbrio percentual possível pra cada tamanho de jogo).
   for(let rodada=0; rodada<40; rodada++){
     let maxT=0, minT=0;
     for(let i=1;i<numTeams;i++){
       if(somaTime(teams[i]) > somaTime(teams[maxT])) maxT=i;
       if(somaTime(teams[i]) < somaTime(teams[minT])) minT=i;
     }
+    if(maxT===minT) break; // já está totalmente equilibrado
     const diffAtual = somaTime(teams[maxT]) - somaTime(teams[minT]);
-    if(maxT===minT || diffAtual <= 1) break; // já está equilibrado o suficiente
 
     let melhorTroca = null, melhorDiff = diffAtual;
     teams[maxT].forEach((pa, ia)=>{
