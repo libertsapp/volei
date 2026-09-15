@@ -810,10 +810,27 @@
   .selected-counter-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 
   .equilibrio-badge{
-    display:inline-block;background:var(--court-navy-2);border:1px solid var(--ball-yellow);
-    border-radius:20px;padding:8px 16px;font-size:13px;color:var(--chalk-dim);margin-bottom:14px;
+    display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+    background:var(--court-navy-2);border:2px solid var(--ball-yellow);
+    border-radius:14px;padding:12px 18px;font-size:14px;color:var(--chalk-dim);margin-bottom:14px;
+    text-align:center;
   }
-  .equilibrio-badge strong{color:var(--ball-yellow);}
+  .equilibrio-badge strong{font-family:'Anton',sans-serif;font-size:24px;letter-spacing:0.5px;color:var(--ball-yellow);}
+  .equilibrio-badge.nivel-alto{border-color:#5fd68a;}
+  .equilibrio-badge.nivel-alto strong{color:#5fd68a;}
+  .equilibrio-badge.nivel-baixo{border-color:#e5793a;}
+  .equilibrio-badge.nivel-baixo strong{color:#e5793a;}
+
+  /* linha de ações que deve ocupar a largura toda, com botões grandes esticando
+     e os botões de compartilhar (ícone só) ficando compactos no fim da linha */
+  .acoes-linha{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-bottom:14px;}
+  .acoes-linha .btn{flex:1 1 160px;}
+  .acoes-linha .btn-icon{flex:0 0 auto;}
+  .btn-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:40px;padding:0;font-size:17px;line-height:1;
+  }
+  .btn-icon.copiado{background:#1f3a2a!important;border-color:#5fd68a!important;color:#8ff0ae!important;}
 </style>
 </head>
 <body>
@@ -904,8 +921,9 @@
       <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
         🔔 <strong id="usuarios-pendentes-texto"></strong>
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-        <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Gerar resumo da semana</button>
+      <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Resumo da semana</button>
+        <span id="share-weekly-extra-area"></span>
       </div>
       <div id="dash-hero"></div>
       <div class="netline"></div>
@@ -1004,9 +1022,9 @@
       <div id="checkin-ordenados"></div>
       <div class="search-box" id="checkin-search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
       <div class="select-list" id="checkin-list"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+      <div class="acoes-linha" style="margin-top:12px;">
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
-        <button class="btn secondary" id="share-checkins-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar confirmados no WhatsApp</button>
+        <span id="share-checkins-whatsapp-area"></span>
       </div>
     </section>
 
@@ -1161,7 +1179,7 @@
       <div class="select-list" id="sorteio-select-list"></div>
 
       <div id="sorteio-auto-panel">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="acoes-linha">
           <button class="btn" id="sortear-btn">Sortear times equilibrados</button>
           <button class="btn secondary" id="montar-grupos-auto-btn">Montar grupos por nível</button>
           <button class="btn secondary" id="importar-checkin-auto-btn" style="display:none;">📋 Importar jogadores do check-in</button>
@@ -1172,15 +1190,15 @@
       </div>
 
       <div id="sorteio-manual-panel" style="display:none;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="acoes-linha">
           <button class="btn" id="montar-grupos-btn">Montar grupos por nível</button>
           <button class="btn secondary" id="importar-checkin-manual-btn" style="display:none;">📋 Importar jogadores do check-in</button>
         </div>
         <p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Os participantes selecionados são separados em grupos por nota (cabeças de chave primeiro), com as mulheres sempre no(s) último(s) grupo(s). Arraste pra ajustar antes de sortear.</p>
         <div id="manual-groups" class="draft-grid" style="margin-top:16px;"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+        <div class="acoes-linha" style="margin-top:16px;">
           <button class="btn" id="iniciar-sorteio-manual-btn" style="display:none;">Iniciar sorteio 🎯</button>
-          <button class="btn secondary" id="share-groups-whatsapp-btn" style="display:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar grupos no WhatsApp</button>
+          <span id="share-groups-whatsapp-area" style="display:none;"></span>
         </div>
         <div id="roleta-container"></div>
       </div>
@@ -1333,7 +1351,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4252,12 +4270,21 @@ function renderCheckinStatus(){
   const searchBox = document.getElementById('checkin-search-box');
   const guestRow = document.getElementById('checkin-guest-row');
   const useBtn = document.getElementById('use-checkins-sorteio-btn');
-  const shareBtn = document.getElementById('share-checkins-whatsapp-btn');
+  const shareArea = document.getElementById('share-checkins-whatsapp-area');
   const loginAviso = document.getElementById('checkin-login-aviso');
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
   if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
-  if(shareBtn) shareBtn.style.display = data ? 'inline-block' : 'none';
+  if(shareArea){
+    if(data && !shareArea.dataset.wired){
+      shareArea.innerHTML = botoesCompartilharHtml('share-checkins');
+      wireBotoesCompartilhar('share-checkins', montarTextoCheckinsWhatsApp);
+      shareArea.dataset.wired = '1';
+    } else if(!data){
+      shareArea.innerHTML = '';
+      delete shareArea.dataset.wired;
+    }
+  }
   if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
 }
 
@@ -4510,12 +4537,12 @@ function preencherMensagemCheckin(template, data){
     .replace(/\{vagas\}/g, vagas);
 }
 
-document.getElementById('share-checkins-whatsapp-btn').addEventListener('click', ()=>{
+function montarTextoCheckinsWhatsApp(){
   const data = SETTINGS.checkinDataAberta;
   const { dentro, reserva } = checkinsDentroEReserva(data);
   if(dentro.length===0 && reserva.length===0){
     alert('Ninguém confirmou presença para essa data ainda.');
-    return;
+    return '';
   }
   let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n';
   dentro.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
@@ -4523,8 +4550,8 @@ document.getElementById('share-checkins-whatsapp-btn').addEventListener('click',
     texto += `\nEspera:\n\n`;
     reserva.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
   }
-  compartilharNoWhatsApp(texto);
-});
+  return texto;
+}
 
 /* ---------- engrenagem: editar o texto de abertura da mensagem de compartilhar ---------- */
 function abrirConfigMensagemCheckin(){
@@ -5095,6 +5122,83 @@ function compartilharNoWhatsApp(texto){
   window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
 }
 
+/* Copia o texto pra área de transferência — existe porque o link wa.me nem sempre abre
+   direto o WhatsApp (depende do navegador/aparelho); copiando, a pessoa sempre consegue
+   colar manualmente na conversa que quiser. */
+function copiarTexto(texto, btn){
+  function marcarCopiado(){
+    btn.classList.add('copiado');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check"></i>';
+    setTimeout(()=>{ btn.innerHTML = original; btn.classList.remove('copiado'); }, 1500);
+  }
+  function falhou(){
+    alert('Não foi possível copiar automaticamente. Selecione e copie o texto manualmente.');
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(marcarCopiado).catch(falhou);
+    return;
+  }
+  // fallback pra navegador sem Clipboard API
+  const ta = document.createElement('textarea');
+  ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); marcarCopiado(); } catch(e){ falhou(); }
+  document.body.removeChild(ta);
+}
+
+// compartilhamento nativo do aparelho (abre o menu "compartilhar" do sistema, com
+// WhatsApp e qualquer outro app instalado) — só existe em navegadores compatíveis
+// (principalmente celular); em quem não suporta, o botão nem aparece
+function compartilharNativo(texto){
+  if(navigator.share){
+    navigator.share({text: texto}).catch(()=>{}); // cancelado pelo usuário: ignora
+  }
+}
+function temCompartilhamentoNativo(){
+  return typeof navigator.share === 'function';
+}
+
+const ICONE_WHATSAPP = '<svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>';
+
+// monta o trio de botões compactos (WhatsApp / compartilhar nativo / copiar) que
+// acompanha todo texto pronto pra compartilhar — reaproveitado nos lugares do app
+// que geram esse tipo de mensagem (check-in, resumo semanal, grupos, times sorteados)
+function botoesCompartilharHtml(idPrefix){
+  return `
+    <button type="button" class="btn secondary btn-icon" id="${idPrefix}-whatsapp-btn" title="Compartilhar no WhatsApp">${ICONE_WHATSAPP}</button>
+    ${botoesExtraCompartilharHtml(idPrefix)}
+  `;
+}
+// só nativo+copiar, sem o de WhatsApp — usado onde o botão do WhatsApp já existe
+// separado (com texto), como no "Resumo da semana" do dashboard
+function botoesExtraCompartilharHtml(idPrefix){
+  return `
+    ${temCompartilhamentoNativo() ? `<button type="button" class="btn secondary btn-icon" id="${idPrefix}-nativo-btn" title="Compartilhar (outros apps)"><i class="ti ti-share-3"></i></button>` : ''}
+    <button type="button" class="btn secondary btn-icon" id="${idPrefix}-copiar-btn" title="Copiar texto"><i class="ti ti-copy"></i></button>
+  `;
+}
+// liga os 3 botões gerados por botoesCompartilharHtml() a uma função que devolve o texto atual
+// (função, não string pronta, porque em alguns casos o texto muda depois do botão já estar na tela)
+function wireBotoesCompartilhar(idPrefix, getTexto){
+  // getTexto pode devolver '' quando não há nada pra compartilhar (ela mesma já avisa
+  // com alert nesse caso) — cada botão calcula o texto só uma vez por clique.
+  // O botão de WhatsApp é opcional aqui: em telas que já têm um botão de WhatsApp com
+  // texto próprio (ex: Resumo da semana), só os extras (nativo/copiar) são gerados.
+  const whatsappBtn = document.getElementById(`${idPrefix}-whatsapp-btn`);
+  if(whatsappBtn) whatsappBtn.addEventListener('click', ()=>{
+    const texto = getTexto(); if(texto) compartilharNoWhatsApp(texto);
+  });
+  const nativoBtn = document.getElementById(`${idPrefix}-nativo-btn`);
+  if(nativoBtn) nativoBtn.addEventListener('click', ()=>{
+    const texto = getTexto(); if(texto) compartilharNativo(texto);
+  });
+  const copiarBtn = document.getElementById(`${idPrefix}-copiar-btn`);
+  if(copiarBtn) copiarBtn.addEventListener('click', ()=>{
+    const texto = getTexto(); if(texto) copiarTexto(texto, copiarBtn);
+  });
+}
+
 /* ---------- RESUMO SEMANAL PRO WHATSAPP ---------- */
 function montarResumoSemanal(){
   let texto = `🏐 *Resumo da semana* — Volei de Terça\n\n`;
@@ -5137,9 +5241,8 @@ function montarResumoSemanal(){
 
   return texto;
 }
-document.getElementById('share-weekly-whatsapp-btn').addEventListener('click', ()=>{
-  compartilharNoWhatsApp(montarResumoSemanal());
-});
+document.getElementById('share-weekly-extra-area').innerHTML = botoesExtraCompartilharHtml('share-weekly');
+wireBotoesCompartilhar('share-weekly', montarResumoSemanal);
 
 let AUTO_GROUPS = [];
 
@@ -5172,11 +5275,13 @@ function renderGroupsInto(containerId, grupos, rerenderFn){
 function renderManualGroups(){
   renderGroupsInto('manual-groups', MANUAL_GROUPS, renderManualGroups);
   document.getElementById('iniciar-sorteio-manual-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
-  document.getElementById('share-groups-whatsapp-btn').style.display = MANUAL_GROUPS.length ? 'inline-block' : 'none';
+  const area = document.getElementById('share-groups-whatsapp-area');
+  area.style.display = MANUAL_GROUPS.length ? 'contents' : 'none';
+  if(MANUAL_GROUPS.length){
+    area.innerHTML = botoesCompartilharHtml('share-groups');
+    wireBotoesCompartilhar('share-groups', ()=> montarTextoWhatsApp('Grupos do sorteio', MANUAL_GROUPS, 'Grupo'));
+  }
 }
-document.getElementById('share-groups-whatsapp-btn').addEventListener('click', ()=>{
-  compartilharNoWhatsApp(montarTextoWhatsApp('Grupos do sorteio', MANUAL_GROUPS, 'Grupo'));
-});
 
 function renderAutoGroups(){
   renderGroupsInto('auto-groups', AUTO_GROUPS, renderAutoGroups);
@@ -5360,13 +5465,14 @@ function renderDraftResult(){
   const somas = DRAFT_TEAMS.map(somaTime);
   const diff = somas.length ? Math.max(...somas) - Math.min(...somas) : 0;
   const equilibrio = Math.max(0, Math.min(100, Math.round(100 - diff*12)));
+  const nivel = equilibrio >= 85 ? 'nivel-alto' : (equilibrio < 60 ? 'nivel-baixo' : '');
   container.innerHTML = `
-    <div class="equilibrio-badge" title="Baseado na diferença de soma de notas entre o time mais forte e o mais fraco">
+    <div class="equilibrio-badge ${nivel}" title="Baseado na diferença de soma de notas entre o time mais forte e o mais fraco">
       ⚖️ Equilíbrio deste sorteio: <strong>${equilibrio}%</strong>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="acoes-linha">
       <button class="btn" id="send-to-rodada-btn">Usar esses times na Nova Rodada</button>
-      <button class="btn secondary" id="share-teams-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Compartilhar times no WhatsApp</button>
+      ${botoesCompartilharHtml('share-teams')}
     </div>
     <div class="draft-grid" id="draft-grid"></div>`;
   const grid = document.getElementById('draft-grid');
@@ -5394,9 +5500,7 @@ function renderDraftResult(){
   }).join('');
   wireDragAndDrop();
   document.getElementById('send-to-rodada-btn').addEventListener('click', sendDraftToRodada);
-  document.getElementById('share-teams-whatsapp-btn').addEventListener('click', ()=>{
-    compartilharNoWhatsApp(montarTextoWhatsApp('Times sorteados', DRAFT_TEAMS, 'Time'));
-  });
+  wireBotoesCompartilhar('share-teams', ()=> montarTextoWhatsApp('Times sorteados', DRAFT_TEAMS, 'Time'));
 }
 
 function sendDraftToRodada(){
