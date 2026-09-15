@@ -1193,6 +1193,7 @@
       <div class="placar-toolbar">
         <p style="color:var(--muted);font-size:13px;margin:0;">Deite o celular pra usar melhor. O placar fica salvo neste aparelho, mesmo se a página recarregar.</p>
         <button class="btn secondary" id="placar-fullscreen-btn">⛶ Tela cheia</button>
+        <button class="btn secondary" id="placar-lock-rotation-btn">🔓 Travar rotação</button>
       </div>
       <div class="placar-board" id="placar-board">
         <button class="placar-reset-btn" id="placar-reset-btn" title="Zerar placar">↺</button>
@@ -1305,7 +1306,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5585,6 +5586,44 @@ function atualizarBotaoTelaCheiaPlacar(){
 }
 document.addEventListener('fullscreenchange', atualizarBotaoTelaCheiaPlacar);
 document.addEventListener('webkitfullscreenchange', atualizarBotaoTelaCheiaPlacar);
+
+/* Travar rotação: impede o navegador de virar a tela quando o celular já está na
+   posição certa (deitado). Usa a Screen Orientation API — só existe no Android/Chrome
+   e (na maioria dos navegadores) só funciona com a tela já em tela cheia; no iPhone
+   (Safari) essa API não existe, então o botão avisa que não dá pra travar por aqui. */
+let PLACAR_ROTACAO_TRAVADA = false;
+function atualizarBotaoTravarRotacaoPlacar(){
+  const btn = document.getElementById('placar-lock-rotation-btn');
+  btn.textContent = PLACAR_ROTACAO_TRAVADA ? '🔒 Destravar rotação' : '🔓 Travar rotação';
+}
+document.getElementById('placar-lock-rotation-btn').addEventListener('click', async ()=>{
+  if(!screen.orientation || !screen.orientation.lock){
+    alert('Seu navegador não permite travar a rotação da tela (comum no iPhone/Safari). No Android com Chrome costuma funcionar.');
+    return;
+  }
+  try{
+    if(PLACAR_ROTACAO_TRAVADA){
+      screen.orientation.unlock();
+      PLACAR_ROTACAO_TRAVADA = false;
+    } else {
+      // trava a orientação ATUAL (a que o celular já está), não força uma específica
+      const board = document.getElementById('placar-board');
+      const emTelaCheia = document.fullscreenElement || document.webkitFullscreenElement;
+      if(!emTelaCheia && board.requestFullscreen) await board.requestFullscreen();
+      await screen.orientation.lock(screen.orientation.type);
+      PLACAR_ROTACAO_TRAVADA = true;
+    }
+  }catch(e){
+    console.error('Não foi possível travar a rotação da tela', e);
+    alert('Não foi possível travar a rotação aqui — tente deixar a tela em modo cheia primeiro.');
+    PLACAR_ROTACAO_TRAVADA = false;
+  }
+  atualizarBotaoTravarRotacaoPlacar();
+});
+document.addEventListener('fullscreenchange', ()=>{
+  // sair da tela cheia costuma destravar a rotação sozinho — mantém o botão coerente
+  if(!document.fullscreenElement){ PLACAR_ROTACAO_TRAVADA = false; atualizarBotaoTravarRotacaoPlacar(); }
+});
 
 carregarPlacarLocal();
 renderPlacar();
