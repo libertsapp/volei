@@ -762,10 +762,24 @@
     padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;
   }
   .checkin-admin-controls{
-    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:10px;
     padding:12px 14px;margin-bottom:16px;
   }
+  .checkin-admin-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .checkin-admin-field{display:flex;flex-direction:column;gap:4px;}
+  .checkin-admin-field label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
+  .checkin-admin-ajustes{
+    margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+  }
+  .checkin-admin-ajustes summary{
+    list-style:none;cursor:pointer;color:var(--muted);font-size:12px;
+    text-transform:uppercase;letter-spacing:0.4px;user-select:none;
+    display:flex;align-items:center;gap:6px;
+  }
+  .checkin-admin-ajustes summary::-webkit-details-marker{display:none;}
+  .checkin-admin-ajustes summary::after{content:'▾';margin-left:2px;transition:transform .2s;}
+  .checkin-admin-ajustes[open] summary::after{transform:rotate(180deg);}
+  .checkin-admin-ajustes-body{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px;}
 
   /* interruptor de visibilidade das estrelas (somente admin) */
   .star-toggle{
@@ -938,16 +952,29 @@
       <div id="checkin-status"></div>
 
       <div class="checkin-admin-controls" id="checkin-admin-controls" style="display:none;">
-        <label style="color:var(--muted);font-size:13px;">Data do próximo jogo</label>
-        <input type="date" id="checkin-admin-date">
-        <button class="btn" id="open-checkin-btn">Abrir check-in</button>
-        <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
-        <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
-        <label style="color:var(--muted);font-size:13px;">Vagas</label>
-        <input type="number" id="checkin-admin-vagas" min="1" style="width:70px;">
-        <label style="color:var(--muted);font-size:13px;">Horário</label>
-        <input type="time" id="checkin-admin-horario" style="width:100px;">
-        <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
+        <div class="checkin-admin-row">
+          <div class="checkin-admin-field">
+            <label for="checkin-admin-date">Data do próximo jogo</label>
+            <input type="date" id="checkin-admin-date">
+          </div>
+          <button class="btn" id="open-checkin-btn">Abrir check-in</button>
+          <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
+          <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
+        </div>
+        <details class="checkin-admin-ajustes">
+          <summary>⚙️ Ajustes do check-in (vagas, horário, mensagem)</summary>
+          <div class="checkin-admin-ajustes-body">
+            <div class="checkin-admin-field">
+              <label for="checkin-admin-vagas">Vagas</label>
+              <input type="number" id="checkin-admin-vagas" min="1" style="width:70px;">
+            </div>
+            <div class="checkin-admin-field">
+              <label for="checkin-admin-horario">Horário</label>
+              <input type="time" id="checkin-admin-horario" style="width:100px;">
+            </div>
+            <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
+          </div>
+        </details>
       </div>
 
       <div id="checkin-login-aviso" style="display:none;color:var(--muted);font-size:13px;margin:0 0 12px;">🔒 Entre com sua conta Google pra confirmar presença (ver a lista continua livre).</div>
@@ -1306,7 +1333,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
