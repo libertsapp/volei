@@ -848,18 +848,18 @@
       </div>
     </div>
     <nav id="nav">
-      <button data-view="dashboard" class="active">Dashboard</button>
-      <button data-view="checkin">Check-in ✅</button>
-      <button data-view="jogadores">Jogadores</button>
-      <button data-view="sorteio">Sorteio</button>
-      <button data-view="ranking">Ranking</button>
-      <button data-view="historico">Histórico</button>
-      <button data-view="rodada">Nova rodada</button>
-      <button data-view="hall">Hall da Fama 🏛️</button>
-      <button data-view="placar">Placar 🔢</button>
-      <button data-view="info">Info ℹ️</button>
+      <button data-view="dashboard" class="active">Início</button>
       <button data-view="meuperfil" id="nav-meuperfil-btn" style="display:none;">Meu Perfil 🏐</button>
+      <button data-view="checkin">Check-in ✅</button>
+      <button data-view="sorteio">Sorteio</button>
+      <button data-view="jogadores">Jogadores</button>
+      <button data-view="ranking">Ranking</button>
+      <button data-view="hall">Hall da Fama 🏛️</button>
+      <button data-view="historico">Histórico</button>
+      <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
+      <button data-view="placar">Placar 🔢</button>
+      <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
     </nav>
     <div class="header-right">
       <div id="google-signin-btn" title="Entrar com sua conta Google"></div>
@@ -878,11 +878,13 @@
     </div>
   </header>
 
-  <!-- barra de navegação inferior — só aparece no celular, com os 4 itens mais usados.
+  <!-- barra de navegação inferior — só aparece no celular, com os itens mais usados.
        Cada botão só "clica de mentira" no botão real do menu de cima, reaproveitando
-       toda a lógica de troca de tela que já existe, sem duplicar nada. -->
+       toda a lógica de troca de tela que já existe, sem duplicar nada.
+       "Perfil" só entra na barra pra quem está logado (ver atualizarStatusAuth). -->
   <div class="bottom-tabbar" id="bottom-tabbar" role="navigation" aria-label="Navegação principal">
     <button class="tab-btn active" data-view="dashboard"><span class="tab-icon">🏠</span><span class="tab-label">Início</span></button>
+    <button class="tab-btn" data-view="meuperfil" id="tab-meuperfil-btn" style="display:none;"><span class="tab-icon">🏐</span><span class="tab-label">Perfil</span></button>
     <button class="tab-btn" data-view="checkin"><span class="tab-icon">✅</span><span class="tab-label">Check-in</span></button>
     <button class="tab-btn" data-view="sorteio"><span class="tab-icon">🎲</span><span class="tab-label">Sorteio</span></button>
     <button class="tab-btn" data-view="ranking"><span class="tab-icon">🏆</span><span class="tab-label">Ranking</span></button>
@@ -895,13 +897,12 @@
       <h3 class="mais-sheet-title">Mais opções</h3>
       <div class="mais-sheet-grid">
         <button class="mais-item" data-view="jogadores"><span class="mais-item-icon">👥</span>Jogadores</button>
-        <button class="mais-item" data-view="rodada"><span class="mais-item-icon">📝</span>Nova rodada</button>
-        <button class="mais-item" data-view="historico"><span class="mais-item-icon">📜</span>Histórico</button>
         <button class="mais-item" data-view="hall"><span class="mais-item-icon">🏛️</span>Hall da Fama</button>
+        <button class="mais-item" data-view="historico"><span class="mais-item-icon">📜</span>Histórico</button>
+        <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
+        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
-        <button class="mais-item" data-view="meuperfil" id="mais-meuperfil-btn" style="display:none;"><span class="mais-item-icon">🏐</span>Meu Perfil</button>
-        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
       </div>
     </div>
   </div>
@@ -1358,7 +1359,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.10 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.12 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2115,9 +2116,9 @@ function atualizarStatusAuth(){
   // "Meu Perfil" é sobre IDENTIDADE (estar logado), não sobre permissão de ação —
   // por isso mora aqui, não em aplicarPermissoesUI(). Qualquer perfil vê o próprio.
   const navMeuPerfil = document.getElementById('nav-meuperfil-btn');
-  const maisMeuPerfil = document.getElementById('mais-meuperfil-btn');
+  const tabMeuPerfil = document.getElementById('tab-meuperfil-btn');
   if(navMeuPerfil) navMeuPerfil.style.display = AUTH.logado ? '' : 'none';
-  if(maisMeuPerfil) maisMeuPerfil.style.display = AUTH.logado ? '' : 'none';
+  if(tabMeuPerfil) tabMeuPerfil.style.display = AUTH.logado ? '' : 'none';
 }
 
 document.getElementById('auth-user-chip').addEventListener('click', ()=>{
@@ -2148,6 +2149,9 @@ function aplicarPermissoesUI(){
   mostrar('checkin-admin-controls', temPermissao('saveCheckinSettings'));
   mostrar('nav-usuarios-btn', temPermissao('listarUsuarios'));
   mostrar('mais-usuarios-btn', temPermissao('listarUsuarios'));
+  // "Nova rodada" é uma tela de trabalho do organizador — jogador comum não vê no menu
+  mostrar('nav-rodada-btn', temPermissao('addRound'));
+  mostrar('mais-rodada-btn', temPermissao('addRound'));
   // o toggle de estrelas e os controles de check-in usam flex quando visíveis
   const toggle = document.getElementById('star-visibility-toggle');
   if(toggle && temPermissao('saveSettings')){
@@ -2474,7 +2478,7 @@ document.getElementById('mais-sheet-overlay').addEventListener('click', (e)=>{
 // principais (estão dentro do painel "Mais") deixam o botão "Mais" destacado, pra
 // dar uma pista visual de "você está em algo que não é a tela inicial de baixo"
 function atualizarBarraInferior(viewAtual){
-  const itensPrincipais = ['dashboard','checkin','sorteio','ranking'];
+  const itensPrincipais = ['dashboard','meuperfil','checkin','sorteio','ranking'];
   document.querySelectorAll('.tab-btn').forEach(b=> b.classList.remove('active'));
   if(itensPrincipais.includes(viewAtual)){
     document.querySelector('.tab-btn[data-view="'+viewAtual+'"]')?.classList.add('active');
