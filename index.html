@@ -245,6 +245,30 @@
   .stat-num{font-family:'Space Mono',monospace;font-weight:700;font-size:28px;color:var(--ball-yellow);}
   .stat-cap{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
 
+  /* card do campeão da semana — vira feito uma carta de baralho ao tocar em
+     qualquer área que não seja nome/avatar de jogador (esses continuam abrindo
+     o perfil). O quadro TEM duas faces empilhadas na mesma célula; a de trás já
+     nasce virada 180°, e um clique gira o conjunto inteiro. */
+  .flip-card-wrap{perspective:1600px;margin-bottom:20px;}
+  .flip-card-inner{
+    display:grid;width:100%;transition:transform .7s cubic-bezier(.4,.2,.2,1);
+    transform-style:preserve-3d;cursor:pointer;
+  }
+  .flip-card-wrap.virado .flip-card-inner{transform:rotateY(180deg);}
+  .flip-card-front, .flip-card-back{
+    grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    min-width:0; /* evita que o conteúdo mais largo das duas faces estique a célula do grid */
+  }
+  .flip-card-back{
+    transform:rotateY(180deg);
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:14px;
+    padding:20px;overflow-y:auto;
+  }
+  .flip-card-back-titulo{font-family:'Anton',sans-serif;font-size:15px;text-transform:uppercase;margin:0 0 12px;color:var(--ball-yellow);}
+  .flip-card-hint{
+    position:relative;font-size:11px;color:var(--muted);text-align:right;margin-top:-6px;
+  }
+
   .empty{
     text-align:center;padding:50px 20px;color:var(--muted);
   }
@@ -1359,7 +1383,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.12 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.13 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3472,21 +3496,44 @@ function renderDashboard(){
     const names = team.playerIds.map(id=> getPlayer(id));
     const yearRounds = roundsOficiais().filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
     const badges = computeBadges();
+    // depois de 7 dias, "da semana" deixa de fazer sentido — vira um rótulo mais genérico
+    const diasDesde = Math.floor((Date.now() - toTimestamp(lastRound.data)) / DIA_MS);
+    const rotuloCampeao = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
     hero.innerHTML = `
-      <div class="scoreboard">
-        <div>
-          <p class="sb-label">Campeão da semana</p>
-          <p class="sb-team">${escapeHtml(team.nome)}</p>
-          <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-          <div class="sb-avatars">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
-          <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>
-        </div>
-        <div class="sb-stats">
-          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
-          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
-          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🪦</div></div>
+      <div class="flip-card-wrap" id="dash-flip-wrap">
+        <div class="flip-card-inner" id="dash-flip-inner">
+          <div class="flip-card-front">
+            <div class="scoreboard">
+              <div>
+                <p class="sb-label">${rotuloCampeao}</p>
+                <p class="sb-team">${escapeHtml(team.nome)}</p>
+                <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
+                <div class="sb-avatars">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
+                <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>
+              </div>
+              <div class="sb-stats">
+                <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
+                <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
+                <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🪦</div></div>
+              </div>
+            </div>
+            <p class="flip-card-hint">🔄 toque no quadro para ver os times da rodada</p>
+          </div>
+          <div class="flip-card-back">
+            <p class="flip-card-back-titulo">🏐 Times de ${formatDate(lastRound.data)}</p>
+            <div class="history-teams">
+              ${lastRound.times.map((t, idx)=>`
+                <div class="history-team ${idx===lastRound.vencedor?'win':''}">
+                  <div class="tn">${escapeHtml(t.nome)} ${idx===lastRound.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
+                  <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
+                  ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </div>
       </div>`;
+    wireDashFlipCard();
   }
 
   const top5 = computeRanking(new Date().getFullYear().toString()).slice(0,5);
@@ -3502,6 +3549,25 @@ function renderDashboard(){
   renderDuos();
   renderPanelas();
   renderDefuntos();
+}
+
+// controla o flip do card de campeão — vira ao tocar em qualquer área do quadro
+// que NÃO seja nome/avatar de jogador (esses continuam abrindo o perfil, sem virar
+// a carta), e desvira sozinho depois de 5s se ninguém tocar de novo antes disso
+let DASH_FLIP_TIMER = null;
+function wireDashFlipCard(){
+  const wrap = document.getElementById('dash-flip-wrap');
+  const inner = document.getElementById('dash-flip-inner');
+  if(!wrap || !inner) return;
+  inner.addEventListener('click', (e)=>{
+    if(e.target.closest('[data-open-profile]')) return; // clique num jogador: só abre o perfil, não vira
+    clearTimeout(DASH_FLIP_TIMER);
+    const vaiVirar = !wrap.classList.contains('virado');
+    wrap.classList.toggle('virado', vaiVirar);
+    if(vaiVirar){
+      DASH_FLIP_TIMER = setTimeout(()=> wrap.classList.remove('virado'), 5000);
+    }
+  });
 }
 
 /* ---------- DUPLAS MAIS SORTEADAS JUNTAS ---------- */
