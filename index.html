@@ -229,6 +229,15 @@
   @media (max-width:640px){.scoreboard{grid-template-columns:1fr;}}
   .sb-label{position:relative;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ball-yellow);font-weight:700;margin:0 0 8px;}
   .sb-team{position:relative;font-family:'Anton',sans-serif;font-size:44px;text-transform:uppercase;margin:0 0 8px;line-height:1.02;}
+  /* empate entre até 2 times: cada time ganha um bloco compacto lado a lado (só nome + avatares),
+     com um "✕" no meio — a lista completa de jogadores fica pro verso da carta (flip), então aqui
+     não precisa repetir tudo duas vezes e o quadro não cresce muito mais que a versão de 1 campeão */
+  .sb-empate-teams{position:relative;display:flex;gap:10px;align-items:flex-start;}
+  .sb-empate-team{flex:1;min-width:0;}
+  .sb-team-mini{font-size:20px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sb-empate-x{font-family:'Anton',sans-serif;font-size:18px;color:var(--muted);align-self:center;padding-top:2px;flex:none;}
+  .sb-avatars-mini{margin-bottom:0;}
+  .sb-avatars-mini .sb-avatar-wrap{transform:scale(0.85);transform-origin:left center;}
   .sb-date{
     position:relative;display:inline-block;font-family:'Space Mono',monospace;
     color:var(--chalk-dim);font-size:12px;letter-spacing:0.5px;
@@ -1383,7 +1392,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.13 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.16 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2101,7 +2110,7 @@ async function renderMeuPerfil(){
       e.target.value = '';
       return;
     }
-    const cred = await requireAuth('updatePlayer');
+    const cred = await requireAuth('updatePlayer', player.id);
     if(!cred){ e.target.value = ''; return; }
     try{
       const novaFoto = await uploadPhoto(file, cred, extrairFileIdDaFoto(player.foto));
@@ -2318,9 +2327,14 @@ function temPermissao(acao){
    null (a pessoa desistiu / não tem permissão). O contrato de retorno é o mesmo de
    antes — objeto truthy pra seguir, null pra abortar — então todos os call sites
    continuam com a mesma forma: "const cred = await requireAuth('x'); if(!cred) return;"
-   Ordem: login do Google com perfil suficiente > chave mestra em cache > pede a chave. */
-async function requireAuth(acao){
-  if(AUTH.logado && podePerfil(acao, AUTH.perfil)){
+   Ordem: login do Google com perfil suficiente > exceção da própria foto > chave
+   mestra em cache > pede a chave.
+   'proprioJogadorId' espelha a exceção do backend (excecaoPropriaFoto_): um jogador
+   pode trocar a PRÓPRIA foto sem ser organizador/admin. Sem isso, PERMISSOES_UI nega
+   updatePlayer pra 'jogador' e a tela pede a chave mestra até pra trocar a própria foto. */
+async function requireAuth(acao, proprioJogadorId){
+  if(AUTH.logado && (podePerfil(acao, AUTH.perfil)
+      || (acao === 'updatePlayer' && proprioJogadorId && String(AUTH.jogadorId) === String(proprioJogadorId)))){
     const token = await garantirTokenFresco();
     if(token) return { idToken: token, senha: '' };
   }
@@ -2404,6 +2418,13 @@ function uid(){ return Date.now().toString(36) + Math.random().toString(36).slic
 // Rodadas "rascunho" (times já montados, mas placar ainda não lançado) não contam em
 // nenhuma estatística/ranking/gráfico — só viram rodada de verdade quando finalizadas.
 function roundsOficiais(){ return DATA.rounds.filter(r=> !r.rascunho); }
+
+// uma rodada pode ter MAIS DE UM campeão — quando até 2 times empatam na maior soma
+// de vitórias de partida naquele dia, os dois são declarados campeões (ver o handler
+// de salvar rodada). round.vencedores é sempre um array (vazio = sem campeão definido).
+function souCampeao(round, idx){
+  return Array.isArray(round.vencedores) && round.vencedores.includes(idx);
+}
 
 // paginação do Histórico — não busca menos dado do servidor (isso quebraria as
 // contas que dependem do histórico completo, tipo emblemas RIP/Aposentado e o
@@ -2845,7 +2866,7 @@ function computePlayerAllTimeStats(id){
     r.times.forEach((team, idx)=>{
       if(!(team.playerIds||[]).includes(id)) return;
       jogos++;
-      const isWinner = idx===r.vencedor;
+      const isWinner = souCampeao(r, idx);
       if(isWinner){ titulos++; vezesNaFoto++; }
       vitoriasPartidas += (team.vitorias||0);
       rounds.push({ data:r.data, teamNome:team.nome, isWinner, vitorias:team.vitorias||0 });
@@ -2875,7 +2896,7 @@ function computeMelhorPiorParceiroPorAproveitamento(id, minJogos){
   roundsOficiais().forEach(r=> r.times.forEach((team, idx)=>{
     const ids = (team.playerIds||[]).filter(Boolean);
     if(!ids.includes(id)) return;
-    const venceu = idx === r.vencedor;
+    const venceu = souCampeao(r, idx);
     ids.forEach(pid=>{
       if(pid === id) return;
       if(!porParceiro[pid]) porParceiro[pid] = { jogos:0, vitorias:0 };
@@ -3361,13 +3382,15 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
   }
   const maxWins = Math.max(...teams.map(t=>t.vitorias));
   const topTeams = teams.filter(t=>t.vitorias===maxWins);
-  let winnerCard = -1;
+  let vencedores = [];
   if(maxWins === 0){
     if(!confirm('Nenhuma vitória de partida foi lançada. Salvar mesmo assim, sem vencedor?')) return;
-  } else if(topTeams.length > 1){
-    if(!confirm('Há empate entre times com o mesmo número de vitórias. Salvar sem definir um único vencedor?')) return;
+  } else if(topTeams.length > 2){
+    // empate entre 3+ times dilui demais o "campeão" — mantém sem vencedor definido
+    if(!confirm('Há empate entre mais de dois times com o mesmo número de vitórias — não dá pra declarar todos campeões. Salvar sem definir um vencedor?')) return;
   } else {
-    winnerCard = teams.findIndex(t=>t.vitorias===maxWins);
+    // 1 vencedor claro OU empate entre exatamente 2 times: todos os empatados viram campeões juntos
+    vencedores = teams.map((t,i)=> t.vitorias===maxWins ? i : -1).filter(i=>i!==-1);
   }
   const cred = await requireAuth('addRound');
   if(!cred) return;
@@ -3377,7 +3400,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
     if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
     const anterior = DATA.rounds[idx];
-    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: winnerCard, rascunho: false };
+    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedores, rascunho: false };
     DATA.rounds[idx] = roundAtualizada;
     const ok = await postAction('updateRound', {round: roundAtualizada}, cred);
     if(!ok){
@@ -3390,7 +3413,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     return;
   }
 
-  const newRound = { id: uid(), data: date, times: teams, vencedor: winnerCard, rascunho: false };
+  const newRound = { id: uid(), data: date, times: teams, vencedores, rascunho: false };
   DATA.rounds.push(newRound);
   const ok = await postAction('addRound', {round: newRound}, cred);
   if(!ok){
@@ -3417,7 +3440,7 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
     const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
     if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
     const anterior = DATA.rounds[idx];
-    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedor: -1, rascunho: true };
+    const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedores: [], rascunho: true };
     DATA.rounds[idx] = roundAtualizada;
     const ok = await postAction('updateRound', {round: roundAtualizada}, cred);
     if(!ok){ DATA.rounds[idx] = anterior; return; }
@@ -3427,7 +3450,7 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
     return;
   }
 
-  const newRound = { id: uid(), data: date, times: teams, vencedor: -1, rascunho: true };
+  const newRound = { id: uid(), data: date, times: teams, vencedores: [], rascunho: true };
   DATA.rounds.push(newRound);
   const ok = await postAction('addRound', {round: newRound}, cred);
   if(!ok){
@@ -3489,16 +3512,36 @@ function renderDashboard(){
   const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
 
-  if(!lastRound || lastRound.vencedor===-1 || lastRound.vencedor===undefined){
+  if(!lastRound || !Array.isArray(lastRound.vencedores) || lastRound.vencedores.length===0){
     hero.innerHTML = `<div class="scoreboard"><div class="empty" style="grid-column:1/-1;"><i class="ti ti-ball-volleyball"></i>Nenhuma rodada com vencedor registrado ainda. Lance uma rodada para ver o campeão aqui.</div></div>`;
   } else {
-    const team = lastRound.times[lastRound.vencedor];
-    const names = team.playerIds.map(id=> getPlayer(id));
+    const timesCampeoes = lastRound.vencedores.map(idx=> lastRound.times[idx]);
+    const empatado = timesCampeoes.length > 1; // até 2 times empatados viram campeões juntos
     const yearRounds = roundsOficiais().filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
     const badges = computeBadges();
     // depois de 7 dias, "da semana" deixa de fazer sentido — vira um rótulo mais genérico
     const diasDesde = Math.floor((Date.now() - toTimestamp(lastRound.data)) / DIA_MS);
-    const rotuloCampeao = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
+    const rotuloBase = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
+    const rotuloCampeao = empatado ? rotuloBase.replace('Campeão','Campeões') + ' (empate)' : rotuloBase;
+
+    function blocoTimeCampeaoHtml(team, compacto){
+      const names = team.playerIds.map(id=> getPlayer(id));
+      const avatares = `<div class="sb-avatars ${compacto?'sb-avatars-mini':''}">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>`;
+      if(compacto){
+        // versão enxuta pro empate: nome do time + avatares (com tooltip do nome ao passar o mouse/tocar),
+        // sem repetir a lista completa de nomes/apelidos duas vezes lado a lado — isso é o que verso completo
+        // já mostra no verso da carta ("times da rodada"), então aqui só precisa dar pra reconhecer o time
+        return `<p class="sb-team sb-team-mini">${escapeHtml(team.nome)}</p>${avatares}`;
+      }
+      return `
+        <p class="sb-team">${escapeHtml(team.nome)}</p>
+        ${avatares}
+        <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>`;
+    }
+    const corpoCampeoesHtml = empatado
+      ? `<div class="sb-empate-teams">${timesCampeoes.map(t=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true)}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
+      : blocoTimeCampeaoHtml(timesCampeoes[0], false);
+
     hero.innerHTML = `
       <div class="flip-card-wrap" id="dash-flip-wrap">
         <div class="flip-card-inner" id="dash-flip-inner">
@@ -3506,10 +3549,8 @@ function renderDashboard(){
             <div class="scoreboard">
               <div>
                 <p class="sb-label">${rotuloCampeao}</p>
-                <p class="sb-team">${escapeHtml(team.nome)}</p>
-                <p class="sb-date">${formatDate(lastRound.data)} · ${team.vitorias||0} vitória(s) de partida</p>
-                <div class="sb-avatars">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
-                <div class="sb-players">${names.map(p=>`<span class="chip with-avatar">${avatarHtml(p,'sm')}<span><span class="clickable-name" data-open-profile="${p&&p.id}">${p?escapeHtml(p.nome):'?'}</span>${badgeIconsHtml(p&&p.id, badges)}${p&&p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}</span></span>`).join('')}</div>
+                <p class="sb-date">${formatDate(lastRound.data)} · ${timesCampeoes[0].vitorias||0} vitória(s) de partida</p>
+                ${corpoCampeoesHtml}
               </div>
               <div class="sb-stats">
                 <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
@@ -3523,8 +3564,8 @@ function renderDashboard(){
             <p class="flip-card-back-titulo">🏐 Times de ${formatDate(lastRound.data)}</p>
             <div class="history-teams">
               ${lastRound.times.map((t, idx)=>`
-                <div class="history-team ${idx===lastRound.vencedor?'win':''}">
-                  <div class="tn">${escapeHtml(t.nome)} ${idx===lastRound.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
+                <div class="history-team ${souCampeao(lastRound, idx)?'win':''}">
+                  <div class="tn">${escapeHtml(t.nome)} ${souCampeao(lastRound, idx)?'<span class="badge-win">Campeão</span>':''}</div>
                   <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
                   ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
                 </div>
@@ -3770,15 +3811,18 @@ function computeHallDaFama(){
   // olhando o histórico inteiro (independente do que está carregado no ano do filtro do ranking)
   const porMes = {}, porAno = {};
   roundsOficiais().forEach(r=>{
-    if(r.vencedor===-1 || r.vencedor===undefined) return;
-    const team = r.times[r.vencedor];
-    if(!team) return;
+    if(!Array.isArray(r.vencedores) || r.vencedores.length===0) return;
     const ano = getYearOf(r.data);
     const mes = /^\d{4}-\d{2}/.test(r.data) ? r.data.slice(0,7) : null;
     if(!ano) return;
-    (team.playerIds||[]).forEach(pid=>{
-      if(mes){ porMes[mes] = porMes[mes] || {}; porMes[mes][pid] = (porMes[mes][pid]||0) + 1; }
-      porAno[ano] = porAno[ano] || {}; porAno[ano][pid] = (porAno[ano][pid]||0) + 1;
+    // times empatados contam igual — todo mundo que foi campeão naquele dia ganha o ponto
+    r.vencedores.forEach(idx=>{
+      const team = r.times[idx];
+      if(!team) return;
+      (team.playerIds||[]).forEach(pid=>{
+        if(mes){ porMes[mes] = porMes[mes] || {}; porMes[mes][pid] = (porMes[mes][pid]||0) + 1; }
+        porAno[ano] = porAno[ano] || {}; porAno[ano][pid] = (porAno[ano][pid]||0) + 1;
+      });
     });
   });
   function topsDoGrupo(grupo){
@@ -3906,7 +3950,7 @@ function computePhotoCounts(ano){
   roundsOficiais().forEach(r=>{
     if(ano && getYearOf(r.data) !== ano) return; // filtra pelo ano selecionado, se houver
     r.times.forEach((team, idx)=>{
-      if(idx !== r.vencedor) return;
+      if(!souCampeao(r, idx)) return;
       const ts = toTimestamp(r.data);
       team.playerIds.forEach(pid=>{
         if(!counts[pid]) return;
@@ -4063,7 +4107,7 @@ function computeRanking(year){
   DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.nome, apelido:p.apelido, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0, datasCampeao:[] }; });
   roundsOficiais().filter(r=> getYearOf(r.data)===year).forEach(r=>{
     r.times.forEach((team, idx)=>{
-      const isWinner = idx === r.vencedor;
+      const isWinner = souCampeao(r, idx);
       team.playerIds.forEach(pid=>{
         if(!stats[pid]) return;
         stats[pid].jogos++;
@@ -4236,8 +4280,8 @@ function renderHistory(){
       </div>
       <div class="history-teams">
         ${r.times.map((t, idx)=>`
-          <div class="history-team ${idx===r.vencedor?'win':''}">
-            <div class="tn">${escapeHtml(t.nome)} ${idx===r.vencedor?'<span class="badge-win">Campeão</span>':''}</div>
+          <div class="history-team ${souCampeao(r, idx)?'win':''}">
+            <div class="tn">${escapeHtml(t.nome)} ${souCampeao(r, idx)?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
             ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
           </div>
@@ -5282,10 +5326,13 @@ function montarResumoSemanal(){
 
   const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
-  if(lastRound && lastRound.vencedor !== -1 && lastRound.vencedor !== undefined){
-    const team = lastRound.times[lastRound.vencedor];
-    const nomes = (team.playerIds||[]).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; });
-    texto += `🏆 *Campeão de ${formatDate(lastRound.data)}*\n${nomes.join(', ')}\n\n`;
+  if(lastRound && Array.isArray(lastRound.vencedores) && lastRound.vencedores.length){
+    const timesCampeoes = lastRound.vencedores.map(idx=> lastRound.times[idx]);
+    const rotulo = timesCampeoes.length > 1 ? 'Campeões (empate) de' : 'Campeão de';
+    const nomesPorTime = timesCampeoes.map(team=>
+      (team.playerIds||[]).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; }).join(', ')
+    );
+    texto += `🏆 *${rotulo} ${formatDate(lastRound.data)}*\n${nomesPorTime.join('\n× ')}\n\n`;
   }
 
   const badges = computeBadges();
