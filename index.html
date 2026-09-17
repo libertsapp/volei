@@ -1313,8 +1313,44 @@
     </section>
 
     <section id="view-info">
-      <h2 class="section-title">Como funciona o Volei de Terça</h2>
+      <h2 class="section-title">Informações</h2>
 
+      <div class="subtabs" id="info-subtabs">
+        <button data-infomode="changelog" class="active">📋 Log de Alterações</button>
+        <button data-infomode="comofunciona">ℹ️ Como funciona</button>
+      </div>
+
+      <div id="info-changelog">
+        <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">
+          Resumo das principais mudanças e correções do app — mais recente primeiro.
+        </p>
+
+        <details class="dash-accordion" open>
+          <summary>16/09/2026 — v5.18: Ajustar estrelas no check-in</summary>
+          <div>
+            <p style="line-height:1.6;">Organizador e admin agora podem ajustar a nota (estrelas) de quem já confirmou presença no check-in, valendo <strong>só pra aquele dia</strong> — não muda o cadastro do jogador. Útil pra quando alguém está jogando melhor ou pior do que a nota cadastrada indica, sem precisar mudar a nota "oficial" dele pra sempre.</p>
+            <p style="line-height:1.6;">Jogadores com a nota ajustada aparecem em <strong style="color:var(--danger);">vermelho</strong> no sorteio, pra facilitar identificar quem teve a estrela alterada naquele dia.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>16/09/2026 — v5.16: Correção — troca de foto pedindo senha à toa</summary>
+          <div>
+            <p style="line-height:1.6;">Jogador comum, já logado com a própria conta Google, estava sendo pedido a <strong>chave mestra do administrador</strong> só pra trocar a própria foto de perfil em "Meu Perfil". Corrigido: a troca da própria foto agora funciona só com o login, sem precisar de senha nenhuma.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>13/09/2026 — Login com Google e perfis de acesso</summary>
+          <div>
+            <p style="line-height:1.6;">Implementado o login opcional com conta Google. Continua não sendo obrigatório: quem não loga continua vendo tudo e fazendo check-in livremente, como sempre.</p>
+            <p style="line-height:1.6;">Quem loga ganha um <strong>perfil</strong> (jogador, organizador ou admin) definido pelo administrador, que passa a controlar o que a pessoa pode fazer no app (cadastrar jogador, montar rodada, remover, mexer em configurações, etc.).</p>
+            <p style="line-height:1.6;">Chegou também a tela <strong>"Meu Perfil"</strong>, com estatísticas pessoais (rodadas jogadas, aproveitamento, sequência de presença, comparação com a média do grupo), troca de foto e a possibilidade de vincular a própria conta a um cadastro de jogador já existente (sujeito à aprovação de um organizador ou admin).</p>
+          </div>
+        </details>
+      </div>
+
+      <div id="info-comofunciona" style="display:none;">
       <p style="font-size:13px;color:var(--chalk-dim);line-height:1.7;">
         <strong>Login com Google:</strong> entrar não é obrigatório — qualquer pessoa vê tudo e faz check-in sem login.
         Entrar serve pra dizer <em>quem</em> você é: o administrador define seu perfil
@@ -1381,6 +1417,7 @@
           <p style="line-height:1.6;color:var(--muted);font-size:13px;">É preciso pelo menos 2 rodadas jogadas pra o gráfico conseguir mostrar alguma tendência.</p>
         </div>
       </details>
+      </div>
     </section>
 
     <section id="view-usuarios">
@@ -1404,7 +1441,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.18 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.19 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5324,6 +5361,16 @@ document.getElementById('sorteio-subtabs').addEventListener('click', (e)=>{
   document.getElementById('sorteio-manual-panel').style.display = isManual ? 'block' : 'none';
   document.getElementById('draft-result').innerHTML = ''; // troca de modo limpa o resultado anterior
   document.getElementById('roleta-container').innerHTML = '';
+});
+
+document.getElementById('info-subtabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-infomode]');
+  if(!btn) return;
+  document.querySelectorAll('#info-subtabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const isComoFunciona = btn.dataset.infomode === 'comofunciona';
+  document.getElementById('info-changelog').style.display = isComoFunciona ? 'none' : 'block';
+  document.getElementById('info-comofunciona').style.display = isComoFunciona ? 'block' : 'none';
 });
 
 /* ---------- SORTEIO MANUAL: montagem dos grupos por nível ---------- */
