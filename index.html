@@ -111,15 +111,6 @@
   }
   nav button.active{background:var(--ball-yellow);color:var(--court-navy);}
   nav button:not(.active):hover{background:var(--court-navy-3);color:var(--chalk);}
-  /* link pra página externa do Placar ao Vivo — precisa de classe própria porque o
-     seletor "nav button" só pega <button>, e uma tag <nav> genérica sem classe
-     vazaria pra qualquer elemento novo (erro já vivido nesse projeto) */
-  .nav-link-externo{
-    background:transparent;border:none;color:var(--chalk-dim);text-decoration:none;
-    font-family:'Work Sans',sans-serif;font-weight:600;font-size:13px;
-    padding:9px 14px;border-radius:7px;cursor:pointer;transition:all .15s;display:inline-block;
-  }
-  .nav-link-externo:hover{background:var(--court-navy-3);color:var(--chalk);}
 
   /* menu mobile — hambúrguer que vira X, dropdown com borda de "onda" */
   .mobile-menu-btn{
@@ -149,7 +140,6 @@
     }
     nav.mobile-open{display:flex;}
     nav button{width:100%;text-align:left;padding:13px 16px;font-size:14px;}
-    .nav-link-externo{width:100%;text-align:left;padding:13px 16px;font-size:14px;}
     .brand h1{font-size:20px;}
     /* menu de cima e o botão hambúrguer somem no celular — a navegação vira a
        barra inferior fixa, no estilo dos apps nativos de celular */
@@ -944,7 +934,6 @@
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
-      <a href="volei-placar-ao-vivo.html" class="nav-link-externo">📺 Placar ao Vivo</a>
       <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
     </nav>
     <div class="header-right">
@@ -988,7 +977,6 @@
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
-        <a class="mais-item" href="volei-placar-ao-vivo.html" style="text-decoration:none;"><span class="mais-item-icon">📺</span>Placar ao Vivo</a>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
       </div>
     </div>
@@ -1484,7 +1472,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 6.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 6.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1532,12 +1520,7 @@ const PERMISSOES_UI = {
   solicitarVinculo:   ['jogador','organizador','admin'],
   aprovarVinculo:     ['organizador','admin'],
   rejeitarVinculo:    ['organizador','admin'],
-  salvarEstrelasAjustadas: ['organizador','admin'],
-  criarPartidaAoVivo: ['organizador','admin'],
-  configurarPartidaAoVivo: ['organizador','admin'],
-  iniciarPartidaAoVivo: ['organizador','admin'],
-  atualizarVitoriasAoVivo: ['organizador','admin'],
-  arquivarPartidaAoVivo: ['organizador','admin']
+  salvarEstrelasAjustadas: ['organizador','admin']
 };
 
 /* ==========================================================
@@ -4467,42 +4450,6 @@ document.getElementById('export-csv-btn').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-/* ---------- PLACAR AO VIVO (puxar pro editor manual de lançamento) ---------- */
-// pega o placar que estiver rolando/tiver rolado AGORA no Placar ao Vivo — só se for
-// a MESMA rodada — e preenche os campos de vitórias no editor manual. Quem confere e
-// efetivamente lança continua sendo o organizador (não salva sozinho): isso só evita
-// digitar de novo um placar que já foi acompanhado ao vivo, jogo a jogo.
-async function puxarPlacarAoVivo(roundId){
-  mostrarCarregando('Buscando placar do Ao Vivo...');
-  try{
-    const res = await fetch(SHEET_API_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'obterPartidaAoVivo' })
-    });
-    const json = await res.json();
-    if(!json || json.id !== roundId){
-      mostrarToast('Essa rodada não está (ou não esteve) ao vivo agora.', 'erro');
-      return;
-    }
-    abrirEdicaoDeRodada(roundId);
-    const grid = document.getElementById('teams-grid');
-    (json.times||[]).forEach(t=>{
-      const card = grid.querySelector(`.team-card[data-team="${t.timeIndex}"]`);
-      if(!card) return;
-      const winsInput = card.querySelector('[data-wins]');
-      if(winsInput) winsInput.value = t.vitorias || 0;
-    });
-    updateLeader();
-    mostrarToast('Placar do Ao Vivo importado! Confira e clique em "Salvar rodada".', 'sucesso');
-  }catch(e){
-    console.error('Falha ao buscar Placar ao Vivo', e);
-    mostrarToast('Não foi possível buscar o placar ao vivo agora. Verifique sua conexão.', 'erro');
-  }finally{
-    esconderCarregando();
-  }
-}
-
 /* ---------- HISTORICO ---------- */
 function renderHistory(){
   const draftsContainer = document.getElementById('history-drafts');
@@ -4530,17 +4477,11 @@ function renderHistory(){
             </div>
           `).join('')}
         </div>
-        <div class="acoes-linha" style="margin-top:12px;">
-          <button class="btn" data-lancar-placar="${r.id}">Lançar placar →</button>
-          <button class="btn secondary" data-puxar-placar-vivo="${r.id}">🔴 Puxar placar do Ao Vivo</button>
-        </div>
+        <button class="btn" data-lancar-placar="${r.id}" style="margin-top:12px;">Lançar placar →</button>
       </div>
     `).join('');
     draftsList.querySelectorAll('[data-lancar-placar]').forEach(btn=>{
       btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.lancarPlacar));
-    });
-    draftsList.querySelectorAll('[data-puxar-placar-vivo]').forEach(btn=>{
-      btn.addEventListener('click', ()=> puxarPlacarAoVivo(btn.dataset.puxarPlacarVivo));
     });
     draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
