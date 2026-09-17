@@ -46,10 +46,16 @@ Capturado na aba AoVivo (planilha) — some da lista de "disponível pra captura
    │  AoVivoLog. Rascunho original em "Rodadas" fica intocado (rascunho
    │  continua disponível pra ser capturado de novo).
    │
-   └─ [Lançar placar final →] → abre o modal de edição de rodada já
-      existente, pré-preenchido com o placar ao vivo atual, pra escolher
-      vencedor(es) → grava definitivo em "Rodadas" (rascunho:false) e
-      limpa as linhas da rodada em AoVivo e AoVivoLog.
+   └─ [Lançar placar final →] → abre a tela "Nova rodada" já existente,
+      em modo de edição (mesma função `abrirEdicaoDeRodada`, adaptada
+      pra pré-preencher com o placar ao vivo em vez do rascunho salvo).
+      Clicar em "Salvar rodada" já grava definitivo em "Rodadas" via
+      `updateRound` (vencedor calculado automaticamente pelas vitórias,
+      igual já funciona hoje) — e, como esse salvamento deu certo, a
+      mesma ação também limpa as linhas da rodada em AoVivo e AoVivoLog
+      (reaproveitando a própria `cancelarTransmissaoAoVivo`, que já faz
+      exatamente essa limpeza — não precisa de uma ação nova só pra
+      isso).
 
 Quem só assiste: a página "Ao Vivo" faz polling (POST, ~8-10s) e
 atualiza placar + log sozinha, sem precisar de F5.
@@ -112,12 +118,12 @@ organizador ou admin):
   `AoVivoLog` com o delta e o timestamp atual. Depois sobrescreve as
   vitórias em `AoVivo`.
 - **`cancelarTransmissaoAoVivo(roundId)`** — apaga linhas da rodada em
-  `AoVivo` e `AoVivoLog`. Não toca em `Rodadas`.
-- **`lancarPlacarAoVivo(roundId, vencedores)`** — chamada a partir do
-  modal de edição de rodada existente (reaproveitado): grava o
-  resultado final em `Rodadas` via `updateRound` (com as vitórias vindas
-  de `AoVivo`, `rascunho:false`, vencedores escolhidos no modal) e limpa
-  as linhas dessa rodada em `AoVivo` e `AoVivoLog`.
+  `AoVivo` e `AoVivoLog`. Não toca em `Rodadas`. Usada tanto por
+  "Cancelar transmissão" quanto, no frontend, logo depois de um
+  `updateRound` bem-sucedido vindo do fluxo "Lançar placar final →" —
+  não existe uma ação de backend separada pra "lançar": o lançamento em
+  si é o `updateRound` que já existe hoje, e essa ação só limpa o rastro
+  na `AoVivo`/`AoVivoLog` depois.
 
 Ação nova pública, **fora** do bloco autenticado (mesmo padrão de
 `addCheckin`/`incrementarAcesso` — só valida token do Google se aplicável,
@@ -169,8 +175,10 @@ Pra cada rodada ao vivo, um card com:
   primeiro. Visível pra qualquer um.
 - Botões (só organizador/admin): "💾 Salvar parcial" (flutuante, sempre
   visível), "Cancelar transmissão" (com confirmação), "Lançar placar
-  final →" (abre o modal de edição de rodada já existente, pré-preenchido
-  com o placar ao vivo atual).
+  final →" (leva pra tela "Nova rodada" já existente, em modo de edição,
+  pré-preenchida com o placar ao vivo atual — ao clicar em "Salvar
+  rodada" lá, o resultado é gravado normalmente e a transmissão é
+  encerrada).
 
 **Polling:** só ativo enquanto a página "Ao Vivo" está aberta. A cada
 ~8-10s, chama `lerAoVivo` via POST e atualiza os cards. Pra não
