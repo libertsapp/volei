@@ -365,6 +365,20 @@
   .history-team{background:var(--court-navy-3);border-radius:8px;padding:10px;font-size:13px;}
   .history-team.win{border:1px solid var(--ball-yellow);}
   .history-team .tn{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+
+  /* Ao Vivo */
+  .aovivo-card{background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:12px;padding:16px;margin-bottom:20px;}
+  .aovivo-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .aovivo-timer{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .aovivo-timer.esgotado{color:var(--danger);}
+  .aovivo-stepper{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .aovivo-stepper button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--court-navy-3);color:inherit;font-size:18px;line-height:1;cursor:pointer;}
+  .aovivo-stepper button:disabled{opacity:0.4;cursor:default;}
+  .aovivo-stepper .valor{font-size:20px;font-weight:700;min-width:24px;text-align:center;}
+  .aovivo-pendente{outline:2px solid var(--ball-yellow);}
+  .aovivo-log{margin-top:14px;font-size:12px;color:var(--muted);max-height:140px;overflow-y:auto;}
+  .aovivo-log div{padding:3px 0;border-bottom:1px solid var(--line);}
+  .aovivo-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
   .badge-win{background:var(--ball-yellow);color:var(--court-navy);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
 
   .toolbar-right{display:flex;gap:8px;margin-left:auto;}
@@ -934,6 +948,7 @@
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
+      <button data-view="aovivo">Ao Vivo 🔴<span class="badge-count" id="nav-aovivo-badge" style="display:none;"></span></button>
       <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
     </nav>
     <div class="header-right">
@@ -977,6 +992,7 @@
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
+        <button class="mais-item" data-view="aovivo"><span class="mais-item-icon">🔴</span>Ao Vivo<span class="badge-count" id="mais-aovivo-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
       </div>
     </div>
@@ -1343,6 +1359,13 @@
       </div>
     </section>
 
+    <section id="view-aovivo">
+      <h2 class="section-title">🔴 Ao Vivo</h2>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <div id="aovivo-empty" class="empty"><i class="ti ti-broadcast"></i>Nenhuma transmissão ao vivo agora.</div>
+      <div id="aovivo-list"></div>
+    </section>
+
     <section id="view-info">
       <h2 class="section-title">Informações</h2>
 
@@ -1485,7 +1508,7 @@
 <div id="toast-container" class="toast-container"></div>
 
 <script>
-let DATA = { players: [], rounds: [] };
+let DATA = { players: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
 let CHECKINS = [];
@@ -1510,6 +1533,9 @@ const PERMISSOES_UI = {
   updatePlayer:       ['organizador','admin'],
   addRound:           ['organizador','admin'],
   updateRound:        ['organizador','admin'],
+  iniciarTransmissaoAoVivo:  ['organizador','admin'],
+  salvarParcialAoVivo:       ['organizador','admin'],
+  cancelarTransmissaoAoVivo: ['organizador','admin'],
   removePlayer:       ['admin'],
   removeRound:        ['admin'],
   saveSettings:        ['admin'], // visibilidade das estrelas pro público (config global)
@@ -1602,7 +1628,7 @@ async function loadData(){
       document.getElementById('config-warning').style.display = 'block';
       document.getElementById('config-warning').innerHTML = '⚠️ O Apps Script respondeu com um erro: <strong>' + json.error + '</strong>';
     }
-    DATA = { players: json.players || [], rounds: json.rounds || [] };
+    DATA = { players: json.players || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
     if(json.settings) SETTINGS = json.settings;
     PERFIS_PUBLICOS = json.perfisPublicos || [];
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
