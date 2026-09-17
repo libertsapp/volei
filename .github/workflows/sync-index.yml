@@ -1,0 +1,31 @@
+name: Sincronizar index.html com volei-dashboard.html
+
+# Sempre que volei-dashboard.html mudar na branch principal, copia o conteúdo pro
+# index.html e sobe de novo — assim https://libertsapp.github.io/volei/ (que o GitHub
+# Pages serve a partir do index.html) nunca fica desatualizado, sem precisar copiar
+# o arquivo na mão a cada mudança.
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'volei-dashboard.html'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copiar volei-dashboard.html para index.html
+        run: cp volei-dashboard.html index.html
+
+      - name: Commitar e subir, só se algo mudou
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "chore: sincroniza index.html com volei-dashboard.html [skip ci]"
+          git push

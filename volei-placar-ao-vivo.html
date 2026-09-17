@@ -117,17 +117,52 @@
     font-weight:700;font-size:14px;
   }
 
+  /* ---------- feed "quem venceu e quando" — texto pequeno, tipo caixa de log ---------- */
+  .log-box{
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;margin-bottom:22px;max-height:150px;overflow-y:auto;
+  }
+  .log-box-titulo{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .log-linha{font-size:12px;color:var(--chalk-dim);line-height:1.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .log-linha .log-hora{font-family:'Space Mono',monospace;color:var(--muted);}
+  .log-linha .log-time{font-weight:700;color:var(--chalk);}
+  .log-linha.log-ajuste{color:var(--danger);}
+  .log-linha.log-ajuste .log-time{color:var(--danger);}
+  .log-vazio{font-size:12px;color:var(--muted);}
+
+  /* botão de ação principal do painel — ocupa a linha toda, bem chamativo */
+  .btn-destaque{
+    width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:12px;
+    background:var(--ball-yellow);color:var(--court-navy);border:none;cursor:pointer;margin-bottom:12px;
+  }
+  .btn-destaque:active{transform:scale(0.98);}
+
   /* ---------- times ---------- */
-  .times-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:26px;}
+  .times-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;align-items:stretch;}
   .time-card{
-    background:var(--court-navy-2);border:1px solid var(--line);border-radius:16px;padding:16px;
-    text-align:center;
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:16px;padding:14px;
+    text-align:left;display:flex;flex-direction:column;
   }
   .time-card.time-lider{border-color:var(--ball-yellow);}
-  .time-nome{font-family:'Anton',sans-serif;font-weight:400;font-size:18px;text-transform:uppercase;margin-bottom:8px;color:var(--chalk);}
-  .time-jogadores{color:var(--chalk-dim);font-size:13px;line-height:1.7;margin-bottom:14px;min-height:22px;}
-  .time-vitorias-num{font-family:'Space Mono',monospace;font-weight:700;font-size:40px;color:var(--ball-yellow);line-height:1;}
-  .time-vitorias-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .time-nome{font-family:'Anton',sans-serif;font-weight:400;font-size:16px;text-transform:uppercase;margin-bottom:10px;color:var(--chalk);text-align:center;}
+  .time-jogadores-lista{flex:1;margin-bottom:14px;}
+  .time-jogador-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
+  .time-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+  .time-avatar-fallback{
+    width:26px;height:26px;border-radius:50%;background:var(--court-navy-3);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
+  }
+  .time-jogador-nome{font-size:12px;color:var(--chalk-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .time-sem-jogadores{color:var(--muted);font-size:12px;text-align:center;padding:8px 0;}
+  .time-vitorias-box{
+    text-align:center;border-top:1px solid var(--line);padding-top:12px;margin-top:auto;
+  }
+  .time-vitorias-num{font-family:'Space Mono',monospace;font-weight:700;font-size:36px;color:var(--ball-yellow);line-height:1;}
+  .time-vitorias-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .time-vitorias-input{
+    width:100%;text-align:center;background:var(--court-navy-3);border:2px solid var(--ball-yellow);border-radius:10px;
+    color:var(--ball-yellow);padding:8px;font-family:'Space Mono',monospace;font-weight:700;font-size:26px;margin-bottom:4px;
+  }
 
   /* ---------- painel do organizador/admin ---------- */
   .admin-panel{
@@ -518,6 +553,49 @@ let PARTIDA = null;          // último retorno de obterPartidaAoVivo
 let RECEBIDO_EM = 0;         // Date.now() de quando a resposta chegou
 let SEGUNDOS_NA_RESPOSTA = 0;// segundosRestantes que veio naquela resposta
 let POLL_TIMER = null;
+let RASCUNHOS = [];          // rodadas aguardando placar — pra escolher qual importar
+let PLAYERS_BY_ID = {};      // só pra EXIBIR os nomes na lista de rascunhos (o backend
+                              // resolve os nomes de novo, oficialmente, ao importar)
+
+function nomeDoJogadorIdLocal(id){
+  const sId = String(id||'');
+  if(sId.indexOf('convidado:') === 0){
+    const rest = sId.slice('convidado:'.length);
+    const hashIdx = rest.lastIndexOf('#');
+    return (hashIdx>-1 ? rest.slice(0,hashIdx) : rest) || 'Convidado';
+  }
+  const p = PLAYERS_BY_ID[sId];
+  return p ? (p.apelido||p.nome) : '(removido)';
+}
+
+// avatar por jogador dentro do card do time — foto se tiver, senão a inicial do nome
+// (convidado nunca tem foto, então sempre cai na inicial)
+function avatarHtmlLocal(id){
+  const sId = String(id||'');
+  const nome = nomeDoJogadorIdLocal(sId);
+  const p = sId.indexOf('convidado:') === 0 ? null : PLAYERS_BY_ID[sId];
+  if(p && p.foto){
+    return `<img class="time-avatar" src="${p.foto}" alt="${escapeHtml(nome)}">`;
+  }
+  return `<div class="time-avatar-fallback">${escapeHtml((nome||'?').charAt(0).toUpperCase())}</div>`;
+}
+
+// os rascunhos vêm do MESMO doGet público que o dashboard já usa (nunca pede login
+// pra ler) — aqui só filtra quem ainda não teve o placar lançado
+async function carregarRascunhos(){
+  if(!sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL);
+    const json = await res.json();
+    if(json && json.error) return;
+    PLAYERS_BY_ID = {};
+    (json.players||[]).forEach(p=> PLAYERS_BY_ID[p.id] = p);
+    RASCUNHOS = (json.rounds||[]).filter(r=>r.rascunho).sort((a,b)=> new Date(b.data)-new Date(a.data));
+    if(!PARTIDA || !PARTIDA.id) render();
+  }catch(e){
+    console.error('Falha ao buscar rascunhos', e);
+  }
+}
 
 // o relógio do navegador só serve pra medir quanto tempo passou DESDE a última
 // resposta do servidor — nunca pra calcular a hora absoluta. Isso é o que garante
@@ -584,9 +662,10 @@ function render(){
     el.innerHTML = `
       <div class="empty-state">
         <h2>Nenhuma partida ativa</h2>
-        <p>Assim que o organizador salvar os times sorteados no Placar ao Vivo, a partida aparece aqui.</p>
+        <p>Assim que o organizador colocar uma rodada ao vivo, a partida aparece aqui.</p>
       </div>
       ${renderPainelAdmin()}`;
+    wireAdminAcoes();
     return;
   }
 
@@ -634,22 +713,58 @@ function render(){
     ${cronometroHtml}
     ${disputaAcirrada ? `<div class="banner-disputa">🔥 DISPUTA ACIRRADA! ${diferencaLideres===0?'Empate na liderança':'Só 1 vitória de diferença na liderança'}</div>` : ''}
     <div class="times-grid">
-      ${PARTIDA.times.map(t=>`
+      ${PARTIDA.times.map(t=>{
+        const podeEditar = temPermissao('atualizarVitoriasAoVivo') && (PARTIDA.estado==='andamento' || PARTIDA.estado==='encerrada');
+        const jogadores = (t.playerIds && t.playerIds.length) ? t.playerIds : [];
+        return `
         <div class="time-card ${t.vitorias===maxV && maxV>0 ? 'time-lider':''}">
           <div class="time-nome">${escapeHtml(t.nome)}</div>
-          <div class="time-jogadores">${escapeHtml(t.jogadoresNomes||'')}</div>
-          <div class="time-vitorias-num">${t.vitorias||0}</div>
-          <div class="time-vitorias-label">Vitórias</div>
-        </div>
-      `).join('')}
+          <div class="time-jogadores-lista">
+            ${jogadores.length ? jogadores.map(id=>`
+              <div class="time-jogador-row">
+                ${avatarHtmlLocal(id)}
+                <span class="time-jogador-nome">${escapeHtml(nomeDoJogadorIdLocal(id))}</span>
+              </div>
+            `).join('') : `<div class="time-sem-jogadores">${escapeHtml(t.jogadoresNomes||'Sem jogadores')}</div>`}
+          </div>
+          <div class="time-vitorias-box">
+            ${podeEditar
+              ? `<input type="number" class="time-vitorias-input" min="0" data-time-index="${t.timeIndex}" value="${t.vitorias||0}">`
+              : `<div class="time-vitorias-num">${t.vitorias||0}</div>`}
+            <div class="time-vitorias-label">Vitórias de partidas</div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>
+    ${renderLogFeed()}
     ${renderPainelAdmin()}
   `;
 
-  if(PARTIDA.estado === 'andamento'){
+  if(PARTIDA.estado === 'andamento' || PARTIDA.estado === 'encerrada'){
     wireAdminVitorias();
   }
   wireAdminAcoes();
+}
+
+// feed pequeno "quem venceu e quando" — serve pro espectador acompanhar a evolução em
+// tempo real, e pro organizador confirmar visualmente que o último lançamento entrou
+function renderLogFeed(){
+  const log = PARTIDA.log || [];
+  return `
+    <div class="log-box">
+      <div class="log-box-titulo">📋 Histórico da partida</div>
+      ${log.length === 0
+        ? '<div class="log-vazio">Nenhuma vitória lançada ainda.</div>'
+        : log.map(l=>{
+            // "hora" já vem formatada do servidor (fuso da planilha) — não recalcula
+            // aqui, pra não depender do relógio/fuso de quem está vendo a página
+            const time = `<span class="log-time">${escapeHtml(l.timeNome)}</span>`;
+            const texto = l.tipo === 'ajuste'
+              ? `${time}: o placar foi ajustado (${l.delta})`
+              : `${time} ${l.repetido ? 'venceu novamente' : 'venceu'} (+${l.delta})`;
+            return `<div class="log-linha ${l.tipo === 'ajuste' ? 'log-ajuste' : ''}"><span class="log-hora">${escapeHtml(l.hora)}</span> ${texto}</div>`;
+          }).join('')}
+    </div>`;
 }
 
 function renderPainelAdmin(){
@@ -657,10 +772,29 @@ function renderPainelAdmin(){
   if(!podeConfigurar) return ''; // conforto visual — quem não tem permissão nem vê o painel
 
   if(!PARTIDA || !PARTIDA.id){
+    if(RASCUNHOS.length === 0){
+      return `
+        <div class="admin-panel">
+          <h3>Painel do organizador</h3>
+          <p style="color:var(--muted);font-size:13px;">Nenhum rascunho aguardando placar. No app, monte os times na Nova Rodada e clique em "Salvar como rascunho" — ele aparece aqui pra importar.</p>
+          <div class="acoes-linha"><button class="btn secondary" id="admin-recarregar-rascunhos-btn">🔄 Atualizar lista</button></div>
+        </div>`;
+    }
     return `
       <div class="admin-panel">
-        <h3>Painel do organizador</h3>
-        <p style="color:var(--muted);font-size:13px;">Nenhuma partida salva ainda. No app, salve os times como rascunho na Nova Rodada e, no Histórico, clique em "📺 Importar pro Placar ao Vivo".</p>
+        <h3>Escolha uma rodada pra colocar ao vivo</h3>
+        ${RASCUNHOS.map(r=>`
+          <div class="admin-vitorias-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+            <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+              <span class="admin-vitorias-nome">📅 ${formatDate(r.data)}</span>
+              <button class="btn" data-importar-rascunho="${r.id}">📺 Colocar ao vivo</button>
+            </div>
+            <div style="color:var(--chalk-dim);font-size:12px;line-height:1.6;">
+              ${r.times.map(t=>`<strong>${escapeHtml(t.nome)}:</strong> ${escapeHtml((t.playerIds||[]).map(nomeDoJogadorIdLocal).join(', ') || 'sem jogadores')}`).join('<br>')}
+            </div>
+          </div>
+        `).join('')}
+        <div class="acoes-linha"><button class="btn secondary" id="admin-recarregar-rascunhos-btn">🔄 Atualizar lista</button></div>
       </div>`;
   }
 
@@ -681,19 +815,14 @@ function renderPainelAdmin(){
       </div>`;
   }
 
-  // andamento ou encerrada: edição de vitórias + arquivar
+  // andamento ou encerrada: a edição de vitórias já está dentro de cada card de time
+  // (campo "time-vitorias-input") — aqui só ficam as ações gerais da partida
   return `
     <div class="admin-panel">
       <h3>Painel do organizador</h3>
-      ${PARTIDA.estado === 'encerrada' ? '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">A partida encerrou, mas você ainda pode corrigir o placar antes de enviar pro histórico.</p>' : ''}
-      ${PARTIDA.times.map(t=>`
-        <div class="admin-vitorias-row">
-          <span class="admin-vitorias-nome">${escapeHtml(t.nome)}</span>
-          <input type="number" class="admin-vitorias-input" min="0" data-time-index="${t.timeIndex}" value="${t.vitorias||0}">
-        </div>
-      `).join('')}
+      <button class="btn-destaque" id="admin-salvar-vitorias-btn">💾 Salvar resultado parcial</button>
+      ${PARTIDA.estado === 'encerrada' ? '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">A partida encerrou, mas você ainda pode corrigir o placar acima antes de enviar pro histórico.</p>' : '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">Edite as vitórias direto no card de cada time, ali em cima.</p>'}
       <div class="acoes-linha">
-        <button class="btn secondary" id="admin-salvar-vitorias-btn">Salvar vitórias</button>
         <button class="btn danger" id="admin-arquivar-btn">📚 Enviar para o Histórico</button>
       </div>
     </div>`;
@@ -705,7 +834,7 @@ function wireAdminVitorias(){
   btn.addEventListener('click', async ()=>{
     const cred = await requireAuth('atualizarVitoriasAoVivo');
     if(!cred) return;
-    const vitorias = Array.from(document.querySelectorAll('.admin-vitorias-input')).map(inp=>({
+    const vitorias = Array.from(document.querySelectorAll('.time-vitorias-input')).map(inp=>({
       timeIndex: Number(inp.dataset.timeIndex),
       vitorias: Number(inp.value) || 0
     }));
@@ -717,6 +846,21 @@ function wireAdminVitorias(){
 }
 
 function wireAdminAcoes(){
+  const btnRecarregar = document.getElementById('admin-recarregar-rascunhos-btn');
+  if(btnRecarregar) btnRecarregar.addEventListener('click', carregarRascunhos);
+
+  document.querySelectorAll('[data-importar-rascunho]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const roundId = btn.dataset.importarRascunho;
+      const cred = await requireAuth('criarPartidaAoVivo');
+      if(!cred) return;
+      const ok = await postAction('criarPartidaAoVivo', {roundId}, cred);
+      if(!ok) return;
+      mostrarToast('Rodada ao vivo! Configure a duração e inicie quando quiser.', 'sucesso');
+      carregarPartida();
+    });
+  });
+
   const btnDuracao = document.getElementById('admin-salvar-duracao-btn');
   if(btnDuracao) btnDuracao.addEventListener('click', async ()=>{
     const duracaoMinutos = Number(document.getElementById('admin-duracao-input').value);
@@ -751,6 +895,7 @@ function wireAdminAcoes(){
     if(!ok) return;
     mostrarToast('Rodada enviada pro Histórico!', 'sucesso');
     carregarPartida();
+    carregarRascunhos(); // a rodada arquivada some da lista de "aguardando placar"
   });
 }
 
@@ -769,6 +914,7 @@ setInterval(()=>{
 restaurarSessaoAuth();
 atualizarStatusAuth();
 carregarPartida();
+carregarRascunhos();
 iniciarPolling();
 </script>
 </body>
