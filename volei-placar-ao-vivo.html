@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placar ao Vivo — Vôlei de Terça</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.85em' font-size='90'%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#101b33">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Google Identity Services — mesmo mecanismo do dashboard principal. A sessão fica em
+     localStorage (compartilhado entre páginas do mesmo domínio), então quem já está
+     logado no dashboard chega aqui já autenticado, sem precisar entrar de novo. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --court-navy: #101b33;
+    --court-navy-2: #17233f;
+    --court-navy-3: #1f2d4d;
+    --chalk: #f4f1e6;
+    --chalk-dim: #b9c0d6;
+    --muted: #7c88ac;
+    --ball-yellow: #f4b942;
+    --ball-blue: #4d7cff;
+    --line: rgba(244,241,230,0.12);
+    --danger: #e0664f;
+    --sucesso: #5fd68a;
+  }
+  body.light-mode{
+    --court-navy: #f6f3ea;
+    --court-navy-2: #ffffff;
+    --court-navy-3: #ece5d3;
+    --chalk: #16213f;
+    --chalk-dim: #33405e;
+    --muted: #5c6785;
+    --ball-yellow: #b3790a;
+    --ball-blue: #1d4ed8;
+    --line: rgba(22,33,63,0.14);
+    --danger: #c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--court-navy);color:var(--chalk);
+    font-family:'Work Sans',sans-serif;min-height:100vh;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:16px;}
+  a{color:inherit;}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .ball{width:30px;height:30px;border-radius:50%;border:3px solid var(--ball-yellow);background:repeating-linear-gradient(45deg, transparent 0 4px, var(--ball-yellow) 4px 5px);flex-shrink:0;}
+  .brand h1{font-family:'Anton',sans-serif;font-weight:400;font-size:18px;margin:0;text-transform:uppercase;letter-spacing:0.5px;}
+  .brand p{margin:0;color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+  .voltar-link{font-size:12px;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px;}
+  .voltar-link:hover{color:var(--chalk);border-color:var(--ball-yellow);}
+
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .auth-chip{
+    display:none;align-items:center;gap:8px;background:var(--court-navy-2);border:1px solid var(--line);
+    border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer;color:var(--chalk);font-family:inherit;
+  }
+  .auth-chip.visivel{display:flex;}
+  .auth-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;display:none;}
+  .auth-chip-nome{font-size:12px;font-weight:600;}
+  .auth-chip-perfil{font-size:10px;color:var(--muted);text-transform:uppercase;}
+
+  /* ---------- estado vazio ---------- */
+  .empty-state{
+    text-align:center;padding:60px 20px;color:var(--muted);
+  }
+  .empty-state h2{color:var(--chalk);font-family:'Anton',sans-serif;font-weight:400;text-transform:uppercase;}
+
+  /* ---------- indicador ao vivo ---------- */
+  .live-indicator{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
+    margin-bottom:10px;font-weight:600;
+  }
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:live-pulse 1.4s ease-in-out infinite;}
+  @keyframes live-pulse{0%,100%{opacity:1;}50%{opacity:0.25;}}
+  .live-indicator.pausado .live-dot{animation:none;background:var(--muted);}
+
+  .partida-meta{color:var(--chalk-dim);font-size:13px;margin-bottom:18px;line-height:1.8;}
+
+  /* ---------- cronômetro ---------- */
+  .cronometro-box{
+    text-align:center;border-radius:18px;padding:22px 16px;margin-bottom:22px;
+    background:var(--court-navy-2);border:1px solid var(--line);transition:border-color .3s, background .3s;
+  }
+  .cronometro-label{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .cronometro-valor{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:56px;line-height:1;color:var(--chalk);
+    letter-spacing:2px;
+  }
+  /* níveis de destaque, do mais calmo ao mais urgente */
+  .cronometro-box.nivel-destaque{border-color:var(--ball-yellow);}
+  .cronometro-box.nivel-destaque .cronometro-valor{color:var(--ball-yellow);}
+  .cronometro-box.nivel-alerta{border-color:#e5793a;background:#2a1f18;}
+  .cronometro-box.nivel-alerta .cronometro-valor{color:#e5793a;}
+  .cronometro-box.nivel-critico{border-color:var(--danger);background:#2a1a18;}
+  .cronometro-box.nivel-critico .cronometro-valor{color:var(--danger);animation:cron-pulsa 1s ease-in-out infinite;}
+  .cronometro-box.nivel-critico-extremo{border-color:var(--danger);background:#331414;}
+  .cronometro-box.nivel-critico-extremo .cronometro-valor{color:var(--danger);animation:cron-pulsa .5s ease-in-out infinite;font-size:64px;}
+  @keyframes cron-pulsa{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+
+  .banner-encerrada{
+    text-align:center;border-radius:18px;padding:24px 16px;margin-bottom:22px;
+    background:var(--court-navy-2);border:1px solid var(--sucesso);
+  }
+  .banner-encerrada strong{display:block;font-family:'Anton',sans-serif;font-size:24px;color:var(--sucesso);text-transform:uppercase;margin-top:4px;}
+
+  .banner-disputa{
+    text-align:center;border-radius:14px;padding:12px;margin-bottom:18px;
+    background:#2a1f0f;border:1px solid var(--ball-yellow);color:var(--ball-yellow);
+    font-weight:700;font-size:14px;
+  }
+
+  /* ---------- times ---------- */
+  .times-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:26px;}
+  .time-card{
+    background:var(--court-navy-2);border:1px solid var(--line);border-radius:16px;padding:16px;
+    text-align:center;
+  }
+  .time-card.time-lider{border-color:var(--ball-yellow);}
+  .time-nome{font-family:'Anton',sans-serif;font-weight:400;font-size:18px;text-transform:uppercase;margin-bottom:8px;color:var(--chalk);}
+  .time-jogadores{color:var(--chalk-dim);font-size:13px;line-height:1.7;margin-bottom:14px;min-height:22px;}
+  .time-vitorias-num{font-family:'Space Mono',monospace;font-weight:700;font-size:40px;color:var(--ball-yellow);line-height:1;}
+  .time-vitorias-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+  /* ---------- painel do organizador/admin ---------- */
+  .admin-panel{
+    background:var(--court-navy-2);border:1px solid var(--ball-blue);border-radius:16px;
+    padding:18px;margin-top:26px;
+  }
+  .admin-panel h3{margin:0 0 12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ball-blue);}
+  .admin-field-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .admin-field{display:flex;flex-direction:column;gap:4px;}
+  .admin-field label{font-size:11px;color:var(--muted);text-transform:uppercase;}
+  .admin-field input{
+    background:var(--court-navy-3);border:1px solid var(--line);border-radius:8px;color:var(--chalk);
+    padding:8px 10px;font-family:inherit;font-size:14px;
+  }
+  .admin-vitorias-row{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);}
+  .admin-vitorias-row:last-of-type{border-bottom:none;}
+  .admin-vitorias-nome{font-weight:600;font-size:13px;}
+  .admin-vitorias-input{width:70px;text-align:center;background:var(--court-navy-3);border:1px solid var(--line);border-radius:8px;color:var(--chalk);padding:8px;font-family:'Space Mono',monospace;font-size:16px;}
+
+  .btn{
+    background:var(--ball-yellow);color:var(--court-navy);border:none;border-radius:10px;
+    padding:11px 18px;font-family:'Work Sans',sans-serif;font-weight:700;font-size:14px;
+    cursor:pointer;transition:transform .1s;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn.secondary{background:transparent;border:1px solid var(--line);color:var(--chalk);}
+  .btn.danger{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+  .acoes-linha{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+
+  /* ---------- overlay "aguarde" + toasts (mesmo padrão do dashboard) ---------- */
+  .loading-overlay{
+    position:fixed;inset:0;background:rgba(8,12,24,0.55);z-index:500;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  }
+  .loading-spinner{
+    width:36px;height:36px;border-radius:50%;
+    border:3px solid var(--line);border-top-color:var(--ball-yellow);
+    animation:loading-spin 0.8s linear infinite;
+  }
+  @keyframes loading-spin{ to{ transform:rotate(360deg); } }
+  .loading-text{color:var(--chalk);font-size:14px;font-weight:600;}
+  .toast-container{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    z-index:501;display:flex;flex-direction:column;gap:8px;align-items:center;
+    width:calc(100% - 32px);max-width:420px;pointer-events:none;
+  }
+  .toast{
+    background:var(--court-navy-2);border-radius:10px;padding:12px 16px;
+    font-size:13px;line-height:1.4;box-shadow:0 12px 30px rgba(0,0,0,0.5);
+    opacity:0;transform:translateY(12px);transition:opacity 0.25s ease,transform 0.25s ease;
+    max-width:100%;
+  }
+  .toast.visivel{opacity:1;transform:translateY(0);}
+  .toast-sucesso{border:1px solid var(--sucesso);color:var(--chalk);}
+  .toast-erro{border:1px solid var(--danger);color:var(--chalk);}
+
+  .password-overlay{
+    position:fixed;inset:0;background:rgba(8,12,24,0.75);z-index:502;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .password-card{
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:16px;
+    padding:22px;max-width:320px;width:100%;text-align:center;
+  }
+  .password-title{margin:0 0 12px;font-size:14px;}
+  .password-field{
+    width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--court-navy-3);color:var(--chalk);font-size:16px;margin-bottom:12px;text-align:center;
+  }
+  .password-actions{display:flex;gap:8px;justify-content:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="ball"></div>
+      <div>
+        <h1>Placar ao Vivo</h1>
+        <p>Vôlei de Terça</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <a class="voltar-link" href="volei-dashboard.html">← Voltar pro app</a>
+      <div id="google-signin-btn" title="Entrar com sua conta Google"></div>
+      <button type="button" id="auth-user-chip" class="auth-chip" title="Sua conta — clique para sair">
+        <img id="auth-user-foto" class="auth-avatar" alt="">
+        <span>
+          <span class="auth-chip-nome" id="auth-user-nome"></span><br>
+          <span class="auth-chip-perfil" id="auth-user-perfil"></span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <div id="conteudo"></div>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-overlay-text">Aguarde...</div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+
+<script>
+/* ==========================================================
+   Configuração — precisa ser EXATAMENTE igual ao volei-dashboard.html
+   ========================================================== */
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxOqq08EU0J49bCuUlidhRimvLYZi5jISo5h5moPHCqJDpJSNMWMql6tTmmrXnJcs9G-A/exec";
+const GOOGLE_CLIENT_ID = "986000653553-d5ri8n0k3kg6f1iii2e8c3v3854uuk3d.apps.googleusercontent.com";
+let sheetReady = SHEET_API_URL.startsWith("http");
+
+/* ==========================================================
+   LOGIN COM GOOGLE — cópia trimmed do dashboard principal (mesmo padrão de
+   duplicação já usado entre Terça e Meme, aqui pra uma terceira página).
+   A sessão mora em localStorage, compartilhado entre páginas do mesmo domínio,
+   então quem já logou no dashboard chega aqui já autenticado.
+   ========================================================== */
+let AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', logado:false, aoRenovar:null };
+
+window.onGoogleLibraryLoad = function(){
+  if(!GOOGLE_CLIENT_ID) return;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true,
+    cancel_on_tap_outside: true,
+    use_fedcm_for_prompt: true
+  });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), {
+    theme: 'filled_black', size: 'medium', shape: 'pill', text: 'signin_with', locale: 'pt-BR'
+  });
+  google.accounts.id.prompt();
+};
+
+function handleGoogleCredential(resposta){
+  const idToken = resposta && resposta.credential;
+  if(!idToken) return;
+  if(AUTH.aoRenovar){
+    const avisar = AUTH.aoRenovar;
+    AUTH.aoRenovar = null;
+    const payload = decodificarJwtPayload(idToken) || {};
+    AUTH.idToken = idToken;
+    AUTH.exp = Number(payload.exp) || 0;
+    salvarSessaoAuth();
+    avisar(idToken);
+    return;
+  }
+  loginComGoogle(idToken);
+}
+
+function decodificarJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  }catch(e){
+    console.error('Não foi possível ler o token do Google', e);
+    return null;
+  }
+}
+
+async function loginComGoogle(idToken){
+  const payload = decodificarJwtPayload(idToken) || {};
+  AUTH.idToken = idToken;
+  AUTH.exp = Number(payload.exp) || 0;
+  AUTH.email = String(payload.email || '').toLowerCase();
+  AUTH.nome = String(payload.name || '');
+  AUTH.foto = String(payload.picture || '');
+  AUTH.perfil = 'jogador';
+  AUTH.logado = true;
+  atualizarStatusAuth();
+  if(!sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'loginGoogle', idToken: idToken })
+    });
+    const json = await res.json();
+    if(json && json.error){ sairDaConta(true); return; }
+    AUTH.perfil = json.perfil || 'jogador';
+    AUTH.jogadorId = json.jogadorId || '';
+    AUTH.nome = json.nome || AUTH.nome;
+    salvarSessaoAuth();
+    atualizarStatusAuth();
+    render();
+  }catch(e){
+    console.error('Falha ao confirmar login', e);
+  }
+}
+
+function salvarSessaoAuth(){
+  localStorage.setItem('volei-auth-v1', JSON.stringify({
+    idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
+    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId
+  }));
+}
+function restaurarSessaoAuth(){
+  try{
+    const raw = localStorage.getItem('volei-auth-v1');
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(!s || !s.idToken) return;
+    Object.assign(AUTH, s, { logado:true, aoRenovar:null });
+  }catch(e){
+    console.error('Sessão de login corrompida, descartando', e);
+    localStorage.removeItem('volei-auth-v1');
+  }
+}
+function sairDaConta(){
+  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', logado:false, aoRenovar:null };
+  localStorage.removeItem('volei-auth-v1');
+  if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
+    google.accounts.id.disableAutoSelect();
+  }
+  atualizarStatusAuth();
+  render();
+}
+document.getElementById('auth-user-chip').addEventListener('click', ()=>{
+  if(confirm('Sair da conta ' + (AUTH.email||'') + '?')) sairDaConta();
+});
+
+function atualizarStatusAuth(){
+  const chip = document.getElementById('auth-user-chip');
+  const botao = document.getElementById('google-signin-btn');
+  if(AUTH.logado){
+    chip.classList.add('visivel');
+    botao.style.display = 'none';
+    document.getElementById('auth-user-nome').textContent = AUTH.nome || AUTH.email;
+    document.getElementById('auth-user-perfil').textContent = (AUTH.perfil||'jogador').toUpperCase();
+    const img = document.getElementById('auth-user-foto');
+    if(AUTH.foto){ img.src = AUTH.foto; img.style.display = 'block'; } else { img.style.display = 'none'; }
+  } else {
+    chip.classList.remove('visivel');
+    botao.style.display = 'inline-block';
+  }
+}
+
+function tokenExpirado(margemSegundos){
+  if(!AUTH.idToken || !AUTH.exp) return true;
+  return (AUTH.exp * 1000) - Date.now() < (margemSegundos || 120) * 1000;
+}
+function renovarTokenGoogle(){
+  return new Promise((resolve)=>{
+    if(typeof google === 'undefined' || !google.accounts || !google.accounts.id){ resolve(null); return; }
+    let respondeu = false;
+    AUTH.aoRenovar = (token)=>{ respondeu = true; resolve(token); };
+    google.accounts.id.prompt();
+    setTimeout(()=>{ if(!respondeu){ AUTH.aoRenovar = null; resolve(null); } }, 8000);
+  });
+}
+
+/* ---------- permissões (cópia da parte que interessa nesta página) ---------- */
+const PERMISSOES_UI = {
+  criarPartidaAoVivo: ['organizador','admin'],
+  configurarPartidaAoVivo: ['organizador','admin'],
+  iniciarPartidaAoVivo: ['organizador','admin'],
+  atualizarVitoriasAoVivo: ['organizador','admin'],
+  arquivarPartidaAoVivo: ['organizador','admin']
+};
+function getCachedPassword(){ return sessionStorage.getItem('volei-admin-pwd') || ''; }
+function podePerfil(acao, perfil){
+  const lista = PERMISSOES_UI[acao];
+  return !!lista && lista.indexOf(perfil) > -1;
+}
+function temPermissao(acao){
+  if(getCachedPassword()) return true;
+  return AUTH.logado && podePerfil(acao, AUTH.perfil);
+}
+
+function pedirSenhaModal(){
+  return new Promise((resolve)=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'password-overlay';
+    overlay.innerHTML = `
+      <div class="password-card">
+        <p class="password-title">🔒 Senha de administrador</p>
+        <input type="password" id="password-input" class="password-field" placeholder="••••••" autocomplete="current-password">
+        <div class="password-actions">
+          <button class="btn" id="password-confirm-btn">Confirmar</button>
+          <button class="btn secondary" id="password-cancel-btn">Cancelar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#password-input');
+    setTimeout(()=> input.focus(), 50);
+    function fechar(valor){ overlay.remove(); resolve(valor); }
+    overlay.querySelector('#password-confirm-btn').addEventListener('click', ()=> fechar(input.value || null));
+    overlay.querySelector('#password-cancel-btn').addEventListener('click', ()=> fechar(null));
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') fechar(input.value || null);
+      if(e.key === 'Escape') fechar(null);
+    });
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(null); });
+  });
+}
+
+async function requireAuth(acao){
+  if(AUTH.logado && podePerfil(acao, AUTH.perfil)){
+    if(!tokenExpirado(120)) return { idToken: AUTH.idToken, senha:'' };
+    const novo = await renovarTokenGoogle();
+    if(novo) return { idToken: novo, senha:'' };
+  }
+  const cacheada = getCachedPassword();
+  if(cacheada) return { idToken: AUTH.idToken||'', senha: cacheada };
+  const digitada = await pedirSenhaModal();
+  if(!digitada) return null;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'ping', senha: digitada })
+    });
+    const json = await res.json();
+    if(json && json.error){ mostrarToast('Senha incorreta.', 'erro'); return null; }
+  }catch(e){
+    mostrarToast('Não foi possível confirmar a senha agora.', 'erro');
+    return null;
+  }
+  sessionStorage.setItem('volei-admin-pwd', digitada);
+  return { idToken: AUTH.idToken||'', senha: digitada };
+}
+
+/* ---------- feedback visual (mesmo padrão do dashboard) ---------- */
+let LOADING_DEPTH = 0;
+function mostrarCarregando(mensagem){
+  LOADING_DEPTH++;
+  document.getElementById('loading-overlay-text').textContent = mensagem || 'Aguarde...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function esconderCarregando(){
+  LOADING_DEPTH = Math.max(0, LOADING_DEPTH - 1);
+  if(LOADING_DEPTH === 0) document.getElementById('loading-overlay').style.display = 'none';
+}
+function mostrarToast(mensagem, tipo){
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (tipo === 'erro' ? 'toast-erro' : 'toast-sucesso');
+  toast.textContent = (tipo === 'erro' ? '⚠️ ' : '✅ ') + mensagem;
+  container.appendChild(toast);
+  requestAnimationFrame(()=> toast.classList.add('visivel'));
+  const duracao = tipo === 'erro' ? 4500 : 3000;
+  setTimeout(()=>{
+    toast.classList.remove('visivel');
+    setTimeout(()=> toast.remove(), 300);
+  }, duracao);
+}
+
+async function postAction(action, payload, cred){
+  mostrarCarregando('Salvando...');
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, senha:(cred&&cred.senha)||'', idToken:(cred&&cred.idToken)||'', ...payload })
+    });
+    const json = await res.json();
+    if(json && json.error){
+      if(String(json.error).toLowerCase().includes('senha')) sessionStorage.removeItem('volei-admin-pwd');
+      mostrarToast(json.error, 'erro');
+      return false;
+    }
+    return true;
+  }catch(e){
+    console.error('Falha ao salvar', e);
+    mostrarToast('Não foi possível salvar. Verifique sua conexão.', 'erro');
+    return false;
+  }finally{
+    esconderCarregando();
+  }
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatDate(iso){
+  if(typeof iso === 'string'){
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+  }
+  return 'Data indisponível';
+}
+
+/* ==========================================================
+   PLACAR AO VIVO — lógica principal
+   ========================================================== */
+let PARTIDA = null;          // último retorno de obterPartidaAoVivo
+let RECEBIDO_EM = 0;         // Date.now() de quando a resposta chegou
+let SEGUNDOS_NA_RESPOSTA = 0;// segundosRestantes que veio naquela resposta
+let POLL_TIMER = null;
+
+// o relógio do navegador só serve pra medir quanto tempo passou DESDE a última
+// resposta do servidor — nunca pra calcular a hora absoluta. Isso é o que garante
+// que todo espectador vê o mesmo tempo, mesmo com o relógio do celular errado.
+function segundosRestantesAgora(){
+  if(!PARTIDA || PARTIDA.estado !== 'andamento') return 0;
+  const decorrido = Math.floor((Date.now() - RECEBIDO_EM) / 1000);
+  return Math.max(0, SEGUNDOS_NA_RESPOSTA - decorrido);
+}
+
+function formatarTempo(segTotais){
+  const h = Math.floor(segTotais / 3600);
+  const m = Math.floor((segTotais % 3600) / 60);
+  const s = segTotais % 60;
+  const dois = n=> String(n).padStart(2,'0');
+  return h > 0 ? `${dois(h)}:${dois(m)}:${dois(s)}` : `${dois(m)}:${dois(s)}`;
+}
+
+// níveis visuais: normal (>30min) / destaque (30-10min) / alerta (10-5min) /
+// crítico (5min-1min) / crítico extremo (<1min) — conforme pedido
+function nivelCronometro(seg){
+  if(seg < 60) return 'nivel-critico-extremo';
+  if(seg < 300) return 'nivel-critico';
+  if(seg < 600) return 'nivel-alerta';
+  if(seg < 1800) return 'nivel-destaque';
+  return '';
+}
+
+async function carregarPartida(){
+  if(!sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'obterPartidaAoVivo' })
+    });
+    const json = await res.json();
+    if(json && json.error) return;
+    PARTIDA = json;
+    RECEBIDO_EM = Date.now();
+    SEGUNDOS_NA_RESPOSTA = json.segundosRestantes || 0;
+    render();
+  }catch(e){
+    console.error('Falha ao buscar Placar ao Vivo', e);
+  }
+}
+
+function iniciarPolling(){
+  pararPolling();
+  POLL_TIMER = setInterval(carregarPartida, 8000);
+}
+function pararPolling(){
+  if(POLL_TIMER){ clearInterval(POLL_TIMER); POLL_TIMER = null; }
+}
+// evita gastar cota do Apps Script com a aba em segundo plano — pausa e retoma
+// buscando na hora, pra quem volta pra aba já ver o dado fresco
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ pararPolling(); }
+  else { carregarPartida(); iniciarPolling(); }
+});
+
+function render(){
+  const el = document.getElementById('conteudo');
+  if(!PARTIDA || !PARTIDA.id){
+    el.innerHTML = `
+      <div class="empty-state">
+        <h2>Nenhuma partida ativa</h2>
+        <p>Assim que o organizador salvar os times sorteados no Placar ao Vivo, a partida aparece aqui.</p>
+      </div>
+      ${renderPainelAdmin()}`;
+    return;
+  }
+
+  const restantes = segundosRestantesAgora();
+  const nivel = nivelCronometro(restantes);
+  const segsDesdeAtualizacao = Math.floor((Date.now() - RECEBIDO_EM) / 1000);
+
+  const vitoriasArr = PARTIDA.times.map(t=>t.vitorias||0);
+  const maxV = Math.max(0, ...vitoriasArr);
+  // disputa acirrada = os DOIS PRIMEIROS colocados estão perto — não os times inteiros
+  // (com 3+ times, um 3º time bem atrás não pode "esconder" uma ponta apertada entre 1º e 2º)
+  const ordenadas = vitoriasArr.slice().sort((a,b)=> b-a);
+  const diferencaLideres = ordenadas.length > 1 ? ordenadas[0] - ordenadas[1] : 0;
+  const disputaAcirrada = PARTIDA.estado === 'andamento' && maxV > 0 && diferencaLideres <= 1 && PARTIDA.times.length > 1;
+
+  let cronometroHtml = '';
+  if(PARTIDA.estado === 'aguardando'){
+    cronometroHtml = `
+      <div class="cronometro-box">
+        <div class="cronometro-label">Aguardando início</div>
+        <div class="cronometro-valor" style="font-size:28px;">⏳</div>
+      </div>`;
+  } else if(PARTIDA.estado === 'andamento'){
+    const rotulo = restantes < 300 ? '⏱ FALTAM' : '⏱ TEMPO RESTANTE';
+    cronometroHtml = `
+      <div class="cronometro-box ${nivel}">
+        <div class="cronometro-label">${rotulo}</div>
+        <div class="cronometro-valor" id="cronometro-valor">${formatarTempo(restantes)}</div>
+      </div>`;
+  } else if(PARTIDA.estado === 'encerrada'){
+    cronometroHtml = `
+      <div class="banner-encerrada">
+        🏁 <strong>PARTIDA ENCERRADA</strong>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="live-indicator ${document.hidden ? 'pausado' : ''}">
+      <span class="live-dot"></span>
+      ● AO VIVO — atualizado há ${segsDesdeAtualizacao<=1 ? 'poucos segundos' : segsDesdeAtualizacao+'s'}
+    </div>
+    <div class="partida-meta">
+      📅 ${formatDate(PARTIDA.data)}${PARTIDA.duracaoMinutos ? ` · ⏳ Duração: ${PARTIDA.duracaoMinutos>=60 ? (PARTIDA.duracaoMinutos/60)+'h' : PARTIDA.duracaoMinutos+'min'}` : ''}
+    </div>
+    ${cronometroHtml}
+    ${disputaAcirrada ? `<div class="banner-disputa">🔥 DISPUTA ACIRRADA! ${diferencaLideres===0?'Empate na liderança':'Só 1 vitória de diferença na liderança'}</div>` : ''}
+    <div class="times-grid">
+      ${PARTIDA.times.map(t=>`
+        <div class="time-card ${t.vitorias===maxV && maxV>0 ? 'time-lider':''}">
+          <div class="time-nome">${escapeHtml(t.nome)}</div>
+          <div class="time-jogadores">${escapeHtml(t.jogadoresNomes||'')}</div>
+          <div class="time-vitorias-num">${t.vitorias||0}</div>
+          <div class="time-vitorias-label">Vitórias</div>
+        </div>
+      `).join('')}
+    </div>
+    ${renderPainelAdmin()}
+  `;
+
+  if(PARTIDA.estado === 'andamento'){
+    wireAdminVitorias();
+  }
+  wireAdminAcoes();
+}
+
+function renderPainelAdmin(){
+  const podeConfigurar = temPermissao('configurarPartidaAoVivo');
+  if(!podeConfigurar) return ''; // conforto visual — quem não tem permissão nem vê o painel
+
+  if(!PARTIDA || !PARTIDA.id){
+    return `
+      <div class="admin-panel">
+        <h3>Painel do organizador</h3>
+        <p style="color:var(--muted);font-size:13px;">Nenhuma partida salva ainda. Vá até o Sorteio, monte os times e clique em "Salvar no Placar ao Vivo".</p>
+      </div>`;
+  }
+
+  if(PARTIDA.estado === 'aguardando'){
+    return `
+      <div class="admin-panel">
+        <h3>Painel do organizador</h3>
+        <div class="admin-field-row">
+          <div class="admin-field">
+            <label>Duração (minutos)</label>
+            <input type="number" id="admin-duracao-input" min="1" value="${PARTIDA.duracaoMinutos || 120}">
+          </div>
+          <button class="btn secondary" id="admin-salvar-duracao-btn">Salvar duração</button>
+        </div>
+        <div class="acoes-linha">
+          <button class="btn" id="admin-iniciar-btn">▶️ INICIAR PARTIDA</button>
+        </div>
+      </div>`;
+  }
+
+  // andamento ou encerrada: edição de vitórias + arquivar
+  return `
+    <div class="admin-panel">
+      <h3>Painel do organizador</h3>
+      ${PARTIDA.estado === 'encerrada' ? '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">A partida encerrou, mas você ainda pode corrigir o placar antes de enviar pro histórico.</p>' : ''}
+      ${PARTIDA.times.map(t=>`
+        <div class="admin-vitorias-row">
+          <span class="admin-vitorias-nome">${escapeHtml(t.nome)}</span>
+          <input type="number" class="admin-vitorias-input" min="0" data-time-index="${t.timeIndex}" value="${t.vitorias||0}">
+        </div>
+      `).join('')}
+      <div class="acoes-linha">
+        <button class="btn secondary" id="admin-salvar-vitorias-btn">Salvar vitórias</button>
+        <button class="btn danger" id="admin-arquivar-btn">📚 Enviar para o Histórico</button>
+      </div>
+    </div>`;
+}
+
+function wireAdminVitorias(){
+  const btn = document.getElementById('admin-salvar-vitorias-btn');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const cred = await requireAuth('atualizarVitoriasAoVivo');
+    if(!cred) return;
+    const vitorias = Array.from(document.querySelectorAll('.admin-vitorias-input')).map(inp=>({
+      timeIndex: Number(inp.dataset.timeIndex),
+      vitorias: Number(inp.value) || 0
+    }));
+    const ok = await postAction('atualizarVitoriasAoVivo', {vitorias}, cred);
+    if(!ok) return;
+    mostrarToast('Vitórias atualizadas!', 'sucesso');
+    carregarPartida();
+  });
+}
+
+function wireAdminAcoes(){
+  const btnDuracao = document.getElementById('admin-salvar-duracao-btn');
+  if(btnDuracao) btnDuracao.addEventListener('click', async ()=>{
+    const duracaoMinutos = Number(document.getElementById('admin-duracao-input').value);
+    if(!duracaoMinutos || duracaoMinutos <= 0){ mostrarToast('Duração inválida.', 'erro'); return; }
+    const cred = await requireAuth('configurarPartidaAoVivo');
+    if(!cred) return;
+    const ok = await postAction('configurarPartidaAoVivo', {duracaoMinutos}, cred);
+    if(!ok) return;
+    mostrarToast('Duração salva!', 'sucesso');
+    carregarPartida();
+  });
+
+  const btnIniciar = document.getElementById('admin-iniciar-btn');
+  if(btnIniciar) btnIniciar.addEventListener('click', async ()=>{
+    const cred = await requireAuth('iniciarPartidaAoVivo');
+    if(!cred) return;
+    const ok = await postAction('iniciarPartidaAoVivo', {}, cred);
+    if(!ok) return;
+    mostrarToast('Partida iniciada! O cronômetro já está rodando pra todo mundo.', 'sucesso');
+    carregarPartida();
+  });
+
+  const btnArquivar = document.getElementById('admin-arquivar-btn');
+  if(btnArquivar) btnArquivar.addEventListener('click', async ()=>{
+    const aviso = PARTIDA.estado === 'andamento'
+      ? 'O cronômetro ainda não zerou. Enviar mesmo assim pro histórico? Isso encerra a partida definitivamente.'
+      : 'Enviar esta partida pro Histórico? Os times e o placar final ficam registrados, e o Placar ao Vivo fica livre pra próxima partida.';
+    if(!confirm(aviso)) return;
+    const cred = await requireAuth('arquivarPartidaAoVivo');
+    if(!cred) return;
+    const ok = await postAction('arquivarPartidaAoVivo', {}, cred);
+    if(!ok) return;
+    mostrarToast('Rodada enviada pro Histórico!', 'sucesso');
+    carregarPartida();
+  });
+}
+
+// tique local de 1 em 1s — só atualiza o número do cronômetro (não redesenha a
+// página toda, pra não atrapalhar quem está digitando no painel do organizador)
+setInterval(()=>{
+  if(!PARTIDA || PARTIDA.estado !== 'andamento') return;
+  const restantes = segundosRestantesAgora();
+  const valorEl = document.getElementById('cronometro-valor');
+  if(valorEl) valorEl.textContent = formatarTempo(restantes);
+  // virou de "andamento" pra "encerrada" só com o relógio local (chegou a zero) —
+  // busca a versão oficial do servidor pra confirmar e trocar a tela
+  if(restantes <= 0) carregarPartida();
+}, 1000);
+
+restaurarSessaoAuth();
+atualizarStatusAuth();
+carregarPartida();
+iniciarPolling();
+</script>
+</body>
+</html>
