@@ -27,6 +27,7 @@ Uma página nova dentro do dashboard (`volei-dashboard.html`) que:
 3. Atualiza sozinha pra quem só está assistindo (polling).
 4. Mantém um log público de mudanças de placar, com horário, pra
    conferência/auditoria de quem está assistindo.
+5. Mostra um cronômetro regressivo com o tempo da partida.
 
 ## Fluxo geral
 
@@ -63,10 +64,15 @@ agora" não depende de cruzar com a aba de rodadas em tempo real, e uma
 rodada só sai daqui quando cancelada ou lançada (nunca por alguém fechar
 a página).
 
-Colunas: `roundId | data | timeIndex | timeNome | jogadores | vitorias | iniciadoEm`
+Colunas: `roundId | data | timeIndex | timeNome | jogadores | vitorias | iniciadoEm | duracaoMinutos`
 
 - `jogadores`: IDs separados por vírgula, igual à aba `Rodadas`.
 - `iniciadoEm`: timestamp ISO de quando a transmissão começou.
+- `duracaoMinutos`: minutos de duração da partida, digitados pelo
+  organizador ao iniciar a transmissão. Repetido em todas as linhas
+  daquela rodada (mesmo padrão de `data`/`iniciadoEm`, que também são
+  redundantes por linha) — mantém a leitura simples, sem precisar
+  juntar com outra fonte.
 
 ### `AoVivoLog`
 
@@ -93,12 +99,13 @@ Ações novas em `doPost`, dentro do switch autenticado (mesmo padrão de
 `addRound`/`updateRound` — passam por `autorizar_`, exigem perfil
 organizador ou admin):
 
-- **`iniciarTransmissaoAoVivo(roundId)`** — valida que a rodada existe,
-  está com `rascunho:true` em `Rodadas`, e ainda não tem linhas em
-  `AoVivo`. Copia os times pra `AoVivo` (vitórias = valor atual do
-  rascunho, normalmente 0) com `iniciadoEm = agora`. Erros possíveis:
-  rodada não encontrada, rodada não é mais rascunho, rodada já está ao
-  vivo.
+- **`iniciarTransmissaoAoVivo(roundId, duracaoMinutos)`** — valida que a
+  rodada existe, está com `rascunho:true` em `Rodadas`, e ainda não tem
+  linhas em `AoVivo`. Copia os times pra `AoVivo` (vitórias = valor
+  atual do rascunho, normalmente 0) com `iniciadoEm = agora` e
+  `duracaoMinutos` = o valor informado pelo organizador. Erros
+  possíveis: rodada não encontrada, rodada não é mais rascunho, rodada
+  já está ao vivo.
 - **`salvarParcialAoVivo(roundId, vitoriasPorTime)`** — recebe um array
   com o novo valor de vitórias por `timeIndex`. Pra cada time cujo valor
   mudou em relação ao que está salvo em `AoVivo`, grava uma linha em
@@ -135,7 +142,8 @@ simultâneos se atropelem.
 **Histórico:** cada card de rascunho pendente ganha um botão novo
 "📡 Transmitir ao vivo" ao lado do já existente "Lançar placar →",
 visível só pra organizador/admin (`PERMISSOES_UI` cuida da exibição; o
-backend cuida da validação de verdade).
+backend cuida da validação de verdade). Clicar nele abre um mini-prompt
+pedindo a duração da partida em minutos antes de confirmar o início.
 
 **Nova página "Ao Vivo"** no menu do dashboard, sempre acessível (com um
 indicador 🔴 quando há alguma transmissão ativa). Se não houver nenhuma
@@ -144,6 +152,12 @@ rodada ao vivo, mostra um estado vazio simples.
 Pra cada rodada ao vivo, um card com:
 
 - Data e horário de início.
+- Cronômetro regressivo `MM:SS`, calculado no próprio navegador (sem ida
+  ao backend) a partir de `iniciadoEm + duracaoMinutos*60s − agora`,
+  atualizado a cada segundo via `setInterval` local. Ao chegar em zero,
+  para em `00:00` com um selo "tempo esgotado" — não trava nenhuma ação,
+  o organizador continua podendo somar vitórias e lançar o placar final
+  normalmente. Sem pausar/reiniciar manual, sem som/alerta.
 - Grid de quadros de time, reaproveitando as classes `.history-teams` /
   `.history-team` do Histórico (mesmo visual, se adapta a 2/3/4 times).
 - Dentro de cada quadro: nome do time, jogadores com avatar (igual ao
@@ -202,3 +216,5 @@ continuam atualizando normalmente).
 - Exigir login pra visualizar a transmissão — fica público, igual ao
   resto do app hoje.
 - Persistir o log além do fim da transmissão.
+- Pausar/retomar/reiniciar o cronômetro manualmente, ou tocar
+  som/alerta quando o tempo zera.
