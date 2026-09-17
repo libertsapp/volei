@@ -2971,6 +2971,7 @@ function avatarHtml(player, size){
 
 let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
 let EDITING_ROUND_ID = null; // id da rodada sendo editada na tela Nova Rodada (só admin)
+let EDITING_ROUND_FROM_AOVIVO = false; // true quando "Salvar rodada" também precisa encerrar a transmissão ao vivo
 
 function renderPlayers(){
   const list = document.getElementById('player-list');
@@ -3595,6 +3596,11 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
       return;
     }
     mostrarToast('Rodada atualizada!', 'sucesso');
+    if(EDITING_ROUND_FROM_AOVIVO){
+      await postAction('cancelarTransmissaoAoVivo', {roundId: EDITING_ROUND_ID}, cred);
+      EDITING_ROUND_FROM_AOVIVO = false;
+      await recarregarAoVivo();
+    }
     fecharEdicaoDeRodada();
     renderDashboard();
     return;
@@ -3683,8 +3689,26 @@ function abrirEdicaoDeRodada(roundId){
   document.getElementById('save-round-btn').textContent = round.rascunho ? 'Salvar rodada (finalizar)' : 'Salvar alterações';
 }
 
+// Igual abrirEdicaoDeRodada, mas os valores de vitórias vêm do placar AO VIVO atual
+// (que pode estar mais avançado do que o rascunho salvo em "Rodadas") — e marca que,
+// ao salvar, também precisa encerrar a transmissão.
+function abrirEdicaoDeRodadaAoVivo(roundId){
+  const aoVivo = DATA.aoVivo.rounds.find(r=>r.id===roundId);
+  if(!aoVivo) return;
+  abrirEdicaoDeRodada(roundId);
+  EDITING_ROUND_FROM_AOVIVO = true;
+  const grid = document.getElementById('teams-grid');
+  aoVivo.times.forEach((t, ti)=>{
+    const card = grid.querySelector(`.team-card[data-team="${ti}"]`);
+    const winsInput = card && card.querySelector('[data-wins]');
+    if(winsInput) winsInput.value = t.vitorias || 0;
+  });
+  updateLeader();
+}
+
 function fecharEdicaoDeRodada(){
   EDITING_ROUND_ID = null;
+  EDITING_ROUND_FROM_AOVIVO = false;
   document.getElementById('edit-round-banner').style.display = 'none';
   document.getElementById('save-round-btn').textContent = 'Salvar rodada';
   document.getElementById('round-date').valueAsDate = new Date();
@@ -3886,6 +3910,10 @@ function wireAoVivoAcoes(){
       mostrarToast('Transmissão cancelada.', 'sucesso');
       await recarregarAoVivo();
     });
+  });
+
+  document.querySelectorAll('[data-aovivo-lancar]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirEdicaoDeRodadaAoVivo(btn.dataset.aovivoLancar));
   });
 }
 
