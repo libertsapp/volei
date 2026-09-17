@@ -130,15 +130,31 @@
   .log-linha.log-ajuste .log-time{color:var(--danger);}
   .log-vazio{font-size:12px;color:var(--muted);}
 
-  /* botão de ação principal do painel — ocupa a linha toda, bem chamativo */
+  /* botão de ação principal — flutuante, fixo no rodapé da tela, pra estar sempre
+     alcançável sem precisar rolar até o fim do painel (útil com muitos times na tela) */
+  .btn-flutuante-wrap{
+    position:fixed;left:0;right:0;bottom:0;z-index:400;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--court-navy) 60%, transparent);
+  }
+  .btn-flutuante-wrap .btn-destaque{margin-bottom:0;max-width:960px;margin-left:auto;margin-right:auto;display:block;}
   .btn-destaque{
     width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:12px;
-    background:var(--ball-yellow);color:var(--court-navy);border:none;cursor:pointer;margin-bottom:12px;
+    background:var(--ball-yellow);color:var(--court-navy);border:none;cursor:pointer;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
   }
   .btn-destaque:active{transform:scale(0.98);}
+  /* espaço reservado no fim da página pra o botão flutuante nunca tampar o histórico/rodapé */
+  .espaco-botao-flutuante{height:84px;}
 
   /* ---------- times ---------- */
   .times-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;align-items:stretch;}
+  /* celular: sempre 2 times por linha, igual ao histórico de rodadas — em vez de
+     auto-fit, que empilharia 1 por linha em telas estreitas */
+  @media (max-width:520px){
+    .times-grid{grid-template-columns:1fr 1fr;gap:10px;}
+    .time-card{padding:10px;}
+  }
   .time-card{
     background:var(--court-navy-2);border:1px solid var(--line);border-radius:16px;padding:14px;
     text-align:left;display:flex;flex-direction:column;
@@ -159,9 +175,20 @@
   }
   .time-vitorias-num{font-family:'Space Mono',monospace;font-weight:700;font-size:36px;color:var(--ball-yellow);line-height:1;}
   .time-vitorias-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
-  .time-vitorias-input{
-    width:100%;text-align:center;background:var(--court-navy-3);border:2px solid var(--ball-yellow);border-radius:10px;
-    color:var(--ball-yellow);padding:8px;font-family:'Space Mono',monospace;font-weight:700;font-size:26px;margin-bottom:4px;
+  /* stepper "- 0 +" — evita digitar em celular, só toca nos botões */
+  .vitorias-stepper{
+    display:flex;align-items:center;justify-content:space-between;width:100%;
+    background:var(--court-navy-3);border:2px solid var(--ball-yellow);border-radius:10px;
+    padding:4px;margin-bottom:4px;
+  }
+  .stepper-btn{
+    background:transparent;border:none;color:var(--ball-yellow);font-size:20px;font-weight:700;
+    width:34px;height:34px;border-radius:8px;cursor:pointer;line-height:1;flex-shrink:0;
+  }
+  .stepper-btn:active{background:rgba(244,185,66,0.15);}
+  .stepper-valor{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:24px;color:var(--ball-yellow);
+    flex:1;text-align:center;
   }
 
   /* ---------- painel do organizador/admin ---------- */
@@ -423,7 +450,8 @@ const PERMISSOES_UI = {
   configurarPartidaAoVivo: ['organizador','admin'],
   iniciarPartidaAoVivo: ['organizador','admin'],
   atualizarVitoriasAoVivo: ['organizador','admin'],
-  arquivarPartidaAoVivo: ['organizador','admin']
+  arquivarPartidaAoVivo: ['organizador','admin'],
+  cancelarPartidaAoVivo: ['organizador','admin']
 };
 function getCachedPassword(){ return sessionStorage.getItem('volei-admin-pwd') || ''; }
 function podePerfil(acao, perfil){
@@ -680,6 +708,7 @@ function render(){
   const ordenadas = vitoriasArr.slice().sort((a,b)=> b-a);
   const diferencaLideres = ordenadas.length > 1 ? ordenadas[0] - ordenadas[1] : 0;
   const disputaAcirrada = PARTIDA.estado === 'andamento' && maxV > 0 && diferencaLideres <= 1 && PARTIDA.times.length > 1;
+  const podeSalvarVitorias = temPermissao('atualizarVitoriasAoVivo') && (PARTIDA.estado === 'andamento' || PARTIDA.estado === 'encerrada');
 
   let cronometroHtml = '';
   if(PARTIDA.estado === 'aguardando'){
@@ -714,7 +743,7 @@ function render(){
     ${disputaAcirrada ? `<div class="banner-disputa">🔥 DISPUTA ACIRRADA! ${diferencaLideres===0?'Empate na liderança':'Só 1 vitória de diferença na liderança'}</div>` : ''}
     <div class="times-grid">
       ${PARTIDA.times.map(t=>{
-        const podeEditar = temPermissao('atualizarVitoriasAoVivo') && (PARTIDA.estado==='andamento' || PARTIDA.estado==='encerrada');
+        const podeEditar = podeSalvarVitorias;
         const jogadores = (t.playerIds && t.playerIds.length) ? t.playerIds : [];
         return `
         <div class="time-card ${t.vitorias===maxV && maxV>0 ? 'time-lider':''}">
@@ -729,7 +758,11 @@ function render(){
           </div>
           <div class="time-vitorias-box">
             ${podeEditar
-              ? `<input type="number" class="time-vitorias-input" min="0" data-time-index="${t.timeIndex}" value="${t.vitorias||0}">`
+              ? `<div class="vitorias-stepper" data-time-index="${t.timeIndex}" data-value="${t.vitorias||0}">
+                   <button type="button" class="stepper-btn stepper-minus" aria-label="Diminuir">−</button>
+                   <span class="stepper-valor">${t.vitorias||0}</span>
+                   <button type="button" class="stepper-btn stepper-plus" aria-label="Aumentar">+</button>
+                 </div>`
               : `<div class="time-vitorias-num">${t.vitorias||0}</div>`}
             <div class="time-vitorias-label">Vitórias de partidas</div>
           </div>
@@ -738,9 +771,10 @@ function render(){
     </div>
     ${renderLogFeed()}
     ${renderPainelAdmin()}
+    ${podeSalvarVitorias ? '<div class="espaco-botao-flutuante"></div><div class="btn-flutuante-wrap"><button class="btn-destaque" id="admin-salvar-vitorias-btn">💾 Salvar resultado parcial</button></div>' : ''}
   `;
 
-  if(PARTIDA.estado === 'andamento' || PARTIDA.estado === 'encerrada'){
+  if(podeSalvarVitorias){
     wireAdminVitorias();
   }
   wireAdminAcoes();
@@ -807,7 +841,6 @@ function renderPainelAdmin(){
             <label>Duração (minutos)</label>
             <input type="number" id="admin-duracao-input" min="1" value="${PARTIDA.duracaoMinutos || 120}">
           </div>
-          <button class="btn secondary" id="admin-salvar-duracao-btn">Salvar duração</button>
         </div>
         <div class="acoes-linha">
           <button class="btn" id="admin-iniciar-btn">▶️ INICIAR PARTIDA</button>
@@ -816,27 +849,49 @@ function renderPainelAdmin(){
   }
 
   // andamento ou encerrada: a edição de vitórias já está dentro de cada card de time
-  // (campo "time-vitorias-input") — aqui só ficam as ações gerais da partida
+  // (stepper "- 0 +") — o botão de salvar vira flutuante (ver render()), fica só as
+  // ações de encerrar a partida de vez (arquivar ou cancelar)
   return `
     <div class="admin-panel">
       <h3>Painel do organizador</h3>
-      <button class="btn-destaque" id="admin-salvar-vitorias-btn">💾 Salvar resultado parcial</button>
-      ${PARTIDA.estado === 'encerrada' ? '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">A partida encerrou, mas você ainda pode corrigir o placar acima antes de enviar pro histórico.</p>' : '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">Edite as vitórias direto no card de cada time, ali em cima.</p>'}
+      ${PARTIDA.estado === 'encerrada'
+        ? '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">O tempo acabou, mas a partida continua ao vivo — corrija o placar se precisar, até enviar pro histórico ou cancelar.</p>'
+        : '<p style="color:var(--muted);font-size:12px;margin-top:-4px;">Ajuste as vitórias direto no card de cada time, ali em cima.</p>'}
       <div class="acoes-linha">
         <button class="btn danger" id="admin-arquivar-btn">📚 Enviar para o Histórico</button>
+        <button class="btn secondary" id="admin-cancelar-btn">✕ Cancelar partida</button>
       </div>
     </div>`;
 }
 
+// stepper "- 0 +" — nunca deixa o valor ficar negativo. O valor atual mora no
+// próprio data-value do container, lido na hora de montar o payload de salvar.
+function wireStepperVitorias(){
+  document.querySelectorAll('.vitorias-stepper').forEach(el=>{
+    const valorEl = el.querySelector('.stepper-valor');
+    el.querySelector('.stepper-minus').addEventListener('click', ()=>{
+      const novo = Math.max(0, (parseInt(el.dataset.value,10)||0) - 1);
+      el.dataset.value = novo;
+      valorEl.textContent = novo;
+    });
+    el.querySelector('.stepper-plus').addEventListener('click', ()=>{
+      const novo = (parseInt(el.dataset.value,10)||0) + 1;
+      el.dataset.value = novo;
+      valorEl.textContent = novo;
+    });
+  });
+}
+
 function wireAdminVitorias(){
+  wireStepperVitorias();
   const btn = document.getElementById('admin-salvar-vitorias-btn');
   if(!btn) return;
   btn.addEventListener('click', async ()=>{
     const cred = await requireAuth('atualizarVitoriasAoVivo');
     if(!cred) return;
-    const vitorias = Array.from(document.querySelectorAll('.time-vitorias-input')).map(inp=>({
-      timeIndex: Number(inp.dataset.timeIndex),
-      vitorias: Number(inp.value) || 0
+    const vitorias = Array.from(document.querySelectorAll('.vitorias-stepper')).map(el=>({
+      timeIndex: Number(el.dataset.timeIndex),
+      vitorias: parseInt(el.dataset.value,10) || 0
     }));
     const ok = await postAction('atualizarVitoriasAoVivo', {vitorias}, cred);
     if(!ok) return;
@@ -861,24 +916,21 @@ function wireAdminAcoes(){
     });
   });
 
-  const btnDuracao = document.getElementById('admin-salvar-duracao-btn');
-  if(btnDuracao) btnDuracao.addEventListener('click', async ()=>{
+  // um botão só faz as duas coisas: salva a duração e já inicia a partida em seguida
+  // (a duração precisa estar gravada ANTES de iniciar, senão iniciarPartidaAoVivo_
+  // recusa por não ter duração configurada — por isso as duas chamadas em sequência)
+  const btnIniciar = document.getElementById('admin-iniciar-btn');
+  if(btnIniciar) btnIniciar.addEventListener('click', async ()=>{
     const duracaoMinutos = Number(document.getElementById('admin-duracao-input').value);
     if(!duracaoMinutos || duracaoMinutos <= 0){ mostrarToast('Duração inválida.', 'erro'); return; }
     const cred = await requireAuth('configurarPartidaAoVivo');
     if(!cred) return;
-    const ok = await postAction('configurarPartidaAoVivo', {duracaoMinutos}, cred);
-    if(!ok) return;
-    mostrarToast('Duração salva!', 'sucesso');
-    carregarPartida();
-  });
-
-  const btnIniciar = document.getElementById('admin-iniciar-btn');
-  if(btnIniciar) btnIniciar.addEventListener('click', async ()=>{
-    const cred = await requireAuth('iniciarPartidaAoVivo');
-    if(!cred) return;
-    const ok = await postAction('iniciarPartidaAoVivo', {}, cred);
-    if(!ok) return;
+    const okDuracao = await postAction('configurarPartidaAoVivo', {duracaoMinutos}, cred);
+    if(!okDuracao) return;
+    const credIniciar = await requireAuth('iniciarPartidaAoVivo');
+    if(!credIniciar) return;
+    const okIniciar = await postAction('iniciarPartidaAoVivo', {}, credIniciar);
+    if(!okIniciar) return;
     mostrarToast('Partida iniciada! O cronômetro já está rodando pra todo mundo.', 'sucesso');
     carregarPartida();
   });
@@ -896,6 +948,18 @@ function wireAdminAcoes(){
     mostrarToast('Rodada enviada pro Histórico!', 'sucesso');
     carregarPartida();
     carregarRascunhos(); // a rodada arquivada some da lista de "aguardando placar"
+  });
+
+  const btnCancelar = document.getElementById('admin-cancelar-btn');
+  if(btnCancelar) btnCancelar.addEventListener('click', async ()=>{
+    if(!confirm('Cancelar esta partida ao vivo? O placar lançado aqui se perde, mas a rodada original continua intacta no Histórico (como rascunho), pronta pra ser reaberta depois.')) return;
+    const cred = await requireAuth('cancelarPartidaAoVivo');
+    if(!cred) return;
+    const ok = await postAction('cancelarPartidaAoVivo', {}, cred);
+    if(!ok) return;
+    mostrarToast('Partida cancelada. A rodada original continua no Histórico.', 'sucesso');
+    carregarPartida();
+    carregarRascunhos(); // volta a aparecer como rascunho disponível pra importar
   });
 }
 
