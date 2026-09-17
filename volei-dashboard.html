@@ -3832,6 +3832,63 @@ function renderAoVivo(){
   wireAoVivoAcoes();
 }
 
+// clique nos steppers +/- só ajusta o estado local (AOVIVO_PENDENTE/AOVIVO_VITORIAS_LOCAIS)
+// e re-renderiza — nada é enviado ao servidor até "Salvar parcial"
+function wireAoVivoSteppers(){
+  function ajustar(roundId, timeIndex, delta){
+    const round = DATA.aoVivo.rounds.find(r=>r.id===roundId);
+    if(!round) return;
+    if(!AOVIVO_VITORIAS_LOCAIS.has(roundId)){
+      AOVIVO_VITORIAS_LOCAIS.set(roundId, round.times.map(t=>t.vitorias));
+    }
+    const valores = AOVIVO_VITORIAS_LOCAIS.get(roundId);
+    valores[timeIndex] = Math.max(0, valores[timeIndex] + delta);
+    AOVIVO_PENDENTE.add(roundId);
+    renderAoVivo();
+  }
+  document.querySelectorAll('[data-aovivo-mais]').forEach(btn=>{
+    btn.addEventListener('click', ()=> ajustar(btn.dataset.aovivoMais, Number(btn.dataset.time), 1));
+  });
+  document.querySelectorAll('[data-aovivo-menos]').forEach(btn=>{
+    btn.addEventListener('click', ()=> ajustar(btn.dataset.aovivoMenos, Number(btn.dataset.time), -1));
+  });
+}
+
+// "Salvar parcial" e "Cancelar transmissão". ("Lançar placar final" é do Task 7 —
+// o botão já existe no DOM desde o Task 5, mas fica sem handler até lá de propósito.)
+function wireAoVivoAcoes(){
+  document.querySelectorAll('[data-aovivo-salvar]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const roundId = btn.dataset.aovivoSalvar;
+      const vitoriasPorTime = AOVIVO_VITORIAS_LOCAIS.get(roundId);
+      if(!vitoriasPorTime) return;
+      const cred = await requireAuth('salvarParcialAoVivo');
+      if(!cred) return;
+      const ok = await postAction('salvarParcialAoVivo', {roundId, vitoriasPorTime}, cred);
+      if(!ok) return;
+      AOVIVO_PENDENTE.delete(roundId);
+      AOVIVO_VITORIAS_LOCAIS.delete(roundId);
+      mostrarToast('Placar parcial salvo!', 'sucesso');
+      await recarregarAoVivo();
+    });
+  });
+
+  document.querySelectorAll('[data-aovivo-cancelar]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const roundId = btn.dataset.aovivoCancelar;
+      if(!confirm('Cancelar esta transmissão? O rascunho continua no Histórico, só a transmissão ao vivo é encerrada.')) return;
+      const cred = await requireAuth('cancelarTransmissaoAoVivo');
+      if(!cred) return;
+      const ok = await postAction('cancelarTransmissaoAoVivo', {roundId}, cred);
+      if(!ok) return;
+      AOVIVO_PENDENTE.delete(roundId);
+      AOVIVO_VITORIAS_LOCAIS.delete(roundId);
+      mostrarToast('Transmissão cancelada.', 'sucesso');
+      await recarregarAoVivo();
+    });
+  });
+}
+
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
   const hero = document.getElementById('dash-hero');
