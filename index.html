@@ -1484,7 +1484,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 6.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 6.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4467,6 +4467,42 @@ document.getElementById('export-csv-btn').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
+/* ---------- PLACAR AO VIVO (puxar pro editor manual de lançamento) ---------- */
+// pega o placar que estiver rolando/tiver rolado AGORA no Placar ao Vivo — só se for
+// a MESMA rodada — e preenche os campos de vitórias no editor manual. Quem confere e
+// efetivamente lança continua sendo o organizador (não salva sozinho): isso só evita
+// digitar de novo um placar que já foi acompanhado ao vivo, jogo a jogo.
+async function puxarPlacarAoVivo(roundId){
+  mostrarCarregando('Buscando placar do Ao Vivo...');
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'obterPartidaAoVivo' })
+    });
+    const json = await res.json();
+    if(!json || json.id !== roundId){
+      mostrarToast('Essa rodada não está (ou não esteve) ao vivo agora.', 'erro');
+      return;
+    }
+    abrirEdicaoDeRodada(roundId);
+    const grid = document.getElementById('teams-grid');
+    (json.times||[]).forEach(t=>{
+      const card = grid.querySelector(`.team-card[data-team="${t.timeIndex}"]`);
+      if(!card) return;
+      const winsInput = card.querySelector('[data-wins]');
+      if(winsInput) winsInput.value = t.vitorias || 0;
+    });
+    updateLeader();
+    mostrarToast('Placar do Ao Vivo importado! Confira e clique em "Salvar rodada".', 'sucesso');
+  }catch(e){
+    console.error('Falha ao buscar Placar ao Vivo', e);
+    mostrarToast('Não foi possível buscar o placar ao vivo agora. Verifique sua conexão.', 'erro');
+  }finally{
+    esconderCarregando();
+  }
+}
+
 /* ---------- HISTORICO ---------- */
 function renderHistory(){
   const draftsContainer = document.getElementById('history-drafts');
@@ -4494,11 +4530,17 @@ function renderHistory(){
             </div>
           `).join('')}
         </div>
-        <button class="btn" data-lancar-placar="${r.id}" style="margin-top:12px;">Lançar placar →</button>
+        <div class="acoes-linha" style="margin-top:12px;">
+          <button class="btn" data-lancar-placar="${r.id}">Lançar placar →</button>
+          <button class="btn secondary" data-puxar-placar-vivo="${r.id}">🔴 Puxar placar do Ao Vivo</button>
+        </div>
       </div>
     `).join('');
     draftsList.querySelectorAll('[data-lancar-placar]').forEach(btn=>{
       btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.lancarPlacar));
+    });
+    draftsList.querySelectorAll('[data-puxar-placar-vivo]').forEach(btn=>{
+      btn.addEventListener('click', ()=> puxarPlacarAoVivo(btn.dataset.puxarPlacarVivo));
     });
     draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
