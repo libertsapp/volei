@@ -553,6 +553,37 @@
     box-shadow:0 10px 26px rgba(0,0,0,0.5);pointer-events:none;
   }
 
+  /* overlay "Aguarde..." durante salvamentos — z-index acima do modal mais alto (300),
+     senão fica escondido atrás mesmo "existindo" no DOM (erro já vivido nesse projeto) */
+  .loading-overlay{
+    position:fixed;inset:0;background:rgba(8,12,24,0.55);z-index:500;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  }
+  .loading-spinner{
+    width:36px;height:36px;border-radius:50%;
+    border:3px solid var(--line);border-top-color:var(--ball-yellow);
+    animation:loading-spin 0.8s linear infinite;
+  }
+  @keyframes loading-spin{ to{ transform:rotate(360deg); } }
+  .loading-text{color:var(--chalk);font-size:14px;font-weight:600;}
+
+  /* toasts de sucesso/erro dentro do app — substituem o alert() do navegador nos
+     resultados de salvamento (a "tela cinza do sistema" que não combina com o app) */
+  .toast-container{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    z-index:501;display:flex;flex-direction:column;gap:8px;align-items:center;
+    width:calc(100% - 32px);max-width:420px;pointer-events:none;
+  }
+  .toast{
+    background:var(--court-navy-2);border-radius:10px;padding:12px 16px;
+    font-size:13px;line-height:1.4;box-shadow:0 12px 30px rgba(0,0,0,0.5);
+    opacity:0;transform:translateY(12px);transition:opacity 0.25s ease,transform 0.25s ease;
+    max-width:100%;
+  }
+  .toast.visivel{opacity:1;transform:translateY(0);}
+  .toast-sucesso{border:1px solid #5fd68a;color:var(--chalk);}
+  .toast-erro{border:1px solid var(--danger);color:var(--chalk);}
+
   /* modal de perfil do jogador */
   .profile-overlay{
     position:fixed;inset:0;background:rgba(8,12,24,0.75);z-index:300;
@@ -1441,11 +1472,17 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 5.19 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 5.20 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
 </div>
+
+<div id="loading-overlay" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-overlay-text">Aguarde...</div>
+</div>
+<div id="toast-container" class="toast-container"></div>
 
 <script>
 let DATA = { players: [], rounds: [] };
@@ -1772,7 +1809,7 @@ async function pedirBootstrapAdmin(){
       body: JSON.stringify({ action:'bootstrapAdmin', senha: senha, idToken: AUTH.idToken })
     });
     const json = await res.json();
-    if(json && json.error){ alert('Não deu: ' + json.error); return false; }
+    if(json && json.error){ mostrarToast('Não deu: ' + json.error, 'erro'); return false; }
     AUTH.perfil = json.perfil;
     AUTH.jogadorId = json.jogadorId || '';
     salvarSessaoAuth();
@@ -1780,11 +1817,11 @@ async function pedirBootstrapAdmin(){
     aplicarPermissoesUI();
     renderAll();
     atualizarAvisoUsuariosPendentes();
-    alert('Pronto! Agora você é administrador. A chave mestra não é mais necessária no dia a dia.');
+    mostrarToast('Pronto! Agora você é administrador. A chave mestra não é mais necessária no dia a dia.', 'sucesso');
     return true;
   }catch(e){
     console.error('Falha no bootstrap de admin', e);
-    alert('Não foi possível falar com a planilha agora. Tente de novo.');
+    mostrarToast('Não foi possível falar com a planilha agora. Tente de novo.', 'erro');
     return false;
   }
 }
@@ -1841,7 +1878,7 @@ function perguntarVinculoJogador(sugestao){
     aplicarPermissoesUI();
     fechar();
     const nomeJogador = (DATA.players.find(p=>p.id===escolhido) || {}).nome || '';
-    alert('Pedido enviado! Assim que o administrador aprovar, sua conta fica vinculada a ' + nomeJogador + '.');
+    mostrarToast('Pedido enviado! Assim que o administrador aprovar, sua conta fica vinculada a ' + nomeJogador + '.', 'sucesso');
   });
 }
 
@@ -1945,7 +1982,7 @@ async function renderUsuarios(){
         salvarSessaoAuth();
         updateAdminStatusBtn();
       }
-      alert('Usuário atualizado.');
+      mostrarToast('Usuário atualizado.', 'sucesso');
       renderUsuarios();
     });
   });
@@ -1975,7 +2012,7 @@ async function renderUsuarios(){
       if(!cred) return;
       const ok = await postAction('aprovarVinculo', { email: email, jogadorId: jogadorIdEscolhido }, cred);
       if(!ok) return;
-      alert('Vínculo aprovado.');
+      mostrarToast('Vínculo aprovado.', 'sucesso');
       renderUsuarios();
     });
   });
@@ -2166,15 +2203,15 @@ async function renderMeuPerfil(){
       const novaFoto = await uploadPhoto(file, cred, extrairFileIdDaFoto(player.foto));
       const playerAtualizado = Object.assign({}, player, { foto: novaFoto });
       const ok = await postAction('updatePlayer', {player: playerAtualizado}, cred);
-      if(!ok){ alert('Não foi possível salvar a nova foto.'); return; }
+      if(!ok){ mostrarToast('Não foi possível salvar a nova foto.', 'erro'); return; }
       const idx = DATA.players.findIndex(p=>p.id===player.id);
       if(idx>-1) DATA.players[idx].foto = novaFoto;
-      alert('Foto atualizada!');
+      mostrarToast('Foto atualizada!', 'sucesso');
       renderMeuPerfil();
       renderPlayers();
     }catch(err){
       console.error('Falha ao trocar foto do perfil', err);
-      alert('Não foi possível enviar a foto: ' + (err && err.message ? err.message : 'erro desconhecido'));
+      mostrarToast('Não foi possível enviar a foto: ' + (err && err.message ? err.message : 'erro desconhecido'), 'erro');
     }
   });
 }
@@ -2421,12 +2458,44 @@ async function requireAuth(acao, proprioJogadorId){
   return { idToken: AUTH.idToken || '', senha: digitada };
 }
 
+/* ---------- feedback visual de salvamento — substitui o alert()/confirm() cinza do
+   navegador por componentes do próprio app (pedido explícito: usuário comum estranhava
+   a "tela cinza do sistema" com "libertsapp.github.io diz") ---------- */
+
+// contador em vez de bool: se uploadPhoto() e postAction() rodam em sequência (foto +
+// cadastro), o overlay não pode "piscar" escondendo entre uma chamada e outra
+let LOADING_DEPTH = 0;
+function mostrarCarregando(mensagem){
+  LOADING_DEPTH++;
+  document.getElementById('loading-overlay-text').textContent = mensagem || 'Aguarde...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function esconderCarregando(){
+  LOADING_DEPTH = Math.max(0, LOADING_DEPTH - 1);
+  if(LOADING_DEPTH === 0) document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function mostrarToast(mensagem, tipo){
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (tipo === 'erro' ? 'toast-erro' : 'toast-sucesso');
+  toast.textContent = (tipo === 'erro' ? '⚠️ ' : '✅ ') + mensagem;
+  container.appendChild(toast);
+  requestAnimationFrame(()=> toast.classList.add('visivel'));
+  const duracao = tipo === 'erro' ? 4500 : 3000; // erro fica mais tempo — mensagem costuma ser mais longa
+  setTimeout(()=>{
+    toast.classList.remove('visivel');
+    setTimeout(()=> toast.remove(), 300); // espera a transição de saída terminar antes de remover do DOM
+  }, duracao);
+}
+
 // Envia uma AÇÃO ESPECÍFICA (só a linha que mudou), não a planilha inteira de novo —
 // isso evita que uma gravação apague o que outra pessoa acabou de salvar.
 // 'cred' é o que o requireAuth() devolveu: { idToken, senha }. Os dois vão juntos e
 // o backend decide qual usar (chave mestra primeiro, token depois).
 async function postAction(action, payload, cred){
   if(!sheetReady) return true;
+  mostrarCarregando('Salvando...');
   try{
     const res = await fetch(SHEET_API_URL, {
       method: 'POST',
@@ -2444,23 +2513,25 @@ async function postAction(action, payload, cred){
       if(erro.includes('senha') || erro.includes('chave mestra')){
         clearCachedPassword();
         updateAdminStatusBtn();
-        alert('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.');
+        mostrarToast('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.', 'erro');
       } else if(erro.includes('login do google')){
         AUTH.idToken = ''; AUTH.exp = 0;
         salvarSessaoAuth();
-        alert('Seu login do Google expirou. Entre com sua conta Google de novo e tente salvar novamente.');
+        mostrarToast('Seu login do Google expirou. Entre com sua conta Google de novo e tente salvar novamente.', 'erro');
       } else if(erro.includes('não tem permissão')){
-        alert(json.error);
+        mostrarToast(json.error, 'erro');
       } else {
-        alert('Não foi possível salvar: ' + json.error);
+        mostrarToast('Não foi possível salvar: ' + json.error, 'erro');
       }
       return false;
     }
     return true;
   }catch(e){
     console.error('Falha ao salvar na planilha', e);
-    alert('Não foi possível salvar. Verifique sua conexão e a configuração da planilha.');
+    mostrarToast('Não foi possível salvar. Verifique sua conexão e a configuração da planilha.', 'erro');
     return false;
+  }finally{
+    esconderCarregando();
   }
 }
 
@@ -2766,15 +2837,20 @@ function extrairFileIdDaFoto(url){
 
 async function uploadPhoto(file, cred, fileIdAntigo){
   if(!sheetReady) return '';
-  const base64 = await resizeImageToBase64(file);
-  const res = await fetch(SHEET_API_URL, {
-    method:'POST',
-    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
-  });
-  const json = await res.json();
-  if(json.error){ throw new Error(json.error); }
-  return json.url || '';
+  mostrarCarregando('Enviando foto...');
+  try{
+    const base64 = await resizeImageToBase64(file);
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
+    });
+    const json = await res.json();
+    if(json.error){ throw new Error(json.error); }
+    return json.url || '';
+  }finally{
+    esconderCarregando();
+  }
 }
 
 document.getElementById('add-player-btn').addEventListener('click', async ()=>{
@@ -2800,7 +2876,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
     const msg = (e && e.message && e.message.includes('fetch'))
       ? 'Não foi possível conectar ao Apps Script para enviar a foto (verifique sua internet e se a URL está correta). Jogador será salvo sem foto.'
       : 'A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. Jogador será salvo sem foto.';
-    alert(msg);
+    mostrarToast(msg, 'erro');
   }
   const newPlayer = {
     id: uid(), nome: name, apelido: nickInput.value.trim(), foto,
@@ -3208,7 +3284,7 @@ function wireEditPlayerRow(){
       }
     }catch(e){
       console.error('Falha no upload da foto', e);
-      alert('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.');
+      mostrarToast('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.', 'erro');
     }
     const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte, sexo: player.sexo };
     player.estrelas = novaEstrelas;
@@ -3451,7 +3527,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
 
   if(EDITING_ROUND_ID){
     const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
-    if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
+    if(idx === -1){ mostrarToast('Essa rodada não foi encontrada (pode já ter sido removida).', 'erro'); fecharEdicaoDeRodada(); return; }
     const anterior = DATA.rounds[idx];
     const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedores, rascunho: false };
     DATA.rounds[idx] = roundAtualizada;
@@ -3460,7 +3536,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
       DATA.rounds[idx] = anterior; // desfaz localmente, já que não foi salvo
       return;
     }
-    alert('Rodada atualizada!');
+    mostrarToast('Rodada atualizada!', 'sucesso');
     fecharEdicaoDeRodada();
     renderDashboard();
     return;
@@ -3473,7 +3549,7 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id); // desfaz localmente, já que não foi salvo
     return;
   }
-  alert('Rodada salva!');
+  mostrarToast('Rodada salva!', 'sucesso');
   document.getElementById('round-team-count').value = '4';
   renderTeamsGrid();
   renderDashboard();
@@ -3491,13 +3567,13 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
 
   if(EDITING_ROUND_ID){
     const idx = DATA.rounds.findIndex(r=>r.id===EDITING_ROUND_ID);
-    if(idx === -1){ alert('Essa rodada não foi encontrada (pode já ter sido removida).'); fecharEdicaoDeRodada(); return; }
+    if(idx === -1){ mostrarToast('Essa rodada não foi encontrada (pode já ter sido removida).', 'erro'); fecharEdicaoDeRodada(); return; }
     const anterior = DATA.rounds[idx];
     const roundAtualizada = { id: EDITING_ROUND_ID, data: date, times: teams, vencedores: [], rascunho: true };
     DATA.rounds[idx] = roundAtualizada;
     const ok = await postAction('updateRound', {round: roundAtualizada}, cred);
     if(!ok){ DATA.rounds[idx] = anterior; return; }
-    alert('Rascunho atualizado! Volte aqui quando quiser lançar o placar.');
+    mostrarToast('Rascunho atualizado! Volte aqui quando quiser lançar o placar.', 'sucesso');
     fecharEdicaoDeRodada();
     renderDashboard();
     return;
@@ -3510,7 +3586,7 @@ document.getElementById('save-draft-btn').addEventListener('click', async ()=>{
     DATA.rounds = DATA.rounds.filter(r=>r.id!==newRound.id);
     return;
   }
-  alert('Rascunho salvo! Os times ficam guardados, sem entrar nas estatísticas — quando quiser lançar o placar, é só abrir no Histórico.');
+  mostrarToast('Rascunho salvo! Os times ficam guardados, sem entrar nas estatísticas — quando quiser lançar o placar, é só abrir no Histórico.', 'sucesso');
   document.getElementById('round-team-count').value = '4';
   renderTeamsGrid();
   renderDashboard();
@@ -4288,13 +4364,13 @@ function abrirAjustarEstrelasCheckin(){
       };
     });
     const ok = await postAction('salvarEstrelasAjustadas', {checkins: alteracoes}, cred);
-    if(!ok){ alert('Não foi possível salvar os ajustes.'); return; }
+    if(!ok){ mostrarToast('Não foi possível salvar os ajustes.', 'erro'); return; }
     // reflete localmente sem precisar recarregar a planilha inteira
     alteracoes.forEach(a=>{
       const c = CHECKINS.find(x=>x.id===a.id);
       if(c) c.estrelasAjustadas = a.estrelasAjustadas;
     });
-    alert('Estrelas ajustadas salvas! Valem só pro sorteio deste check-in.');
+    mostrarToast('Estrelas ajustadas salvas! Valem só pro sorteio deste check-in.', 'sucesso');
     fechar();
   });
 }
