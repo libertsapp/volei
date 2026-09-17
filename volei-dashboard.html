@@ -2425,6 +2425,37 @@ function pedirSenhaModal(){
   });
 }
 
+function pedirDuracaoModal(){
+  return new Promise((resolve)=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'profile-overlay';
+    overlay.innerHTML = `
+      <div class="password-card">
+        <p class="password-title">⏱️ Duração da partida (minutos)</p>
+        <input type="number" id="duracao-input" class="password-field" placeholder="Ex: 12" min="1" inputmode="numeric">
+        <div class="password-actions">
+          <button class="btn" id="duracao-confirm-btn">Iniciar transmissão</button>
+          <button class="btn secondary" id="duracao-cancel-btn">Cancelar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#duracao-input');
+    setTimeout(()=> input.focus(), 50);
+    function fechar(valor){ overlay.remove(); resolve(valor); }
+    function confirmar(){
+      const minutos = parseInt(input.value, 10);
+      fechar(Number.isFinite(minutos) && minutos > 0 ? minutos : null);
+    }
+    overlay.querySelector('#duracao-confirm-btn').addEventListener('click', confirmar);
+    overlay.querySelector('#duracao-cancel-btn').addEventListener('click', ()=> fechar(null));
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') confirmar();
+      if(e.key === 'Escape') fechar(null);
+    });
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(null); });
+  });
+}
+
 function podePerfil(acao, perfil){
   const lista = PERMISSOES_UI[acao];
   return !!lista && lista.indexOf(perfil) > -1;
@@ -4503,11 +4534,28 @@ function renderHistory(){
             </div>
           `).join('')}
         </div>
-        <button class="btn" data-lancar-placar="${r.id}" style="margin-top:12px;">Lançar placar →</button>
+        <div class="acoes-linha" style="margin-top:12px;">
+          <button class="btn" data-lancar-placar="${r.id}">Lançar placar →</button>
+          <button class="btn secondary" data-transmitir-aovivo="${r.id}" ${DATA.aoVivo.rounds.some(av=>av.id===r.id) ? 'disabled title="Essa rodada já está ao vivo"' : ''}>📡 Transmitir ao vivo</button>
+        </div>
       </div>
     `).join('');
     draftsList.querySelectorAll('[data-lancar-placar]').forEach(btn=>{
       btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.lancarPlacar));
+    });
+    draftsList.querySelectorAll('[data-transmitir-aovivo]:not([disabled])').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const roundId = btn.dataset.transmitirAovivo;
+        const minutos = await pedirDuracaoModal();
+        if(!minutos) return;
+        const cred = await requireAuth('iniciarTransmissaoAoVivo');
+        if(!cred) return;
+        const ok = await postAction('iniciarTransmissaoAoVivo', {roundId, duracaoMinutos: minutos}, cred);
+        if(!ok) return;
+        mostrarToast('Transmissão iniciada! Abrindo a tela Ao Vivo...', 'sucesso');
+        await recarregarAoVivo(); // função do Task 5 — busca o estado fresco de DATA.aoVivo
+        abrirTelaVia('aovivo');
+      });
     });
     draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
