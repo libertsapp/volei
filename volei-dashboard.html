@@ -3597,7 +3597,10 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
     }
     mostrarToast('Rodada atualizada!', 'sucesso');
     if(EDITING_ROUND_FROM_AOVIVO){
-      await postAction('cancelarTransmissaoAoVivo', {roundId: EDITING_ROUND_ID}, cred);
+      const limpou = await postAction('cancelarTransmissaoAoVivo', {roundId: EDITING_ROUND_ID}, cred);
+      if(!limpou){
+        mostrarToast('Placar salvo! Mas não deu pra encerrar a transmissão ao vivo automaticamente — cancele manualmente na página "Ao Vivo".', 'erro');
+      }
       EDITING_ROUND_FROM_AOVIVO = false;
       await recarregarAoVivo();
     }
