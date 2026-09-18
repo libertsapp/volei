@@ -365,6 +365,20 @@
   .history-team{background:var(--court-navy-3);border-radius:8px;padding:10px;font-size:13px;}
   .history-team.win{border:1px solid var(--ball-yellow);}
   .history-team .tn{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+
+  /* Ao Vivo */
+  .aovivo-card{background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:12px;padding:16px;margin-bottom:20px;}
+  .aovivo-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .aovivo-timer{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .aovivo-timer.esgotado{color:var(--danger);}
+  .aovivo-stepper{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .aovivo-stepper button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--court-navy-3);color:inherit;font-size:18px;line-height:1;cursor:pointer;}
+  .aovivo-stepper button:disabled{opacity:0.4;cursor:default;}
+  .aovivo-stepper .valor{font-size:20px;font-weight:700;min-width:24px;text-align:center;}
+  .aovivo-pendente{outline:2px solid var(--ball-yellow);}
+  .aovivo-log{margin-top:14px;font-size:12px;color:var(--muted);max-height:140px;overflow-y:auto;}
+  .aovivo-log div{padding:3px 0;border-bottom:1px solid var(--line);}
+  .aovivo-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
   .badge-win{background:var(--ball-yellow);color:var(--court-navy);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
 
   .toolbar-right{display:flex;gap:8px;margin-left:auto;}
@@ -934,6 +948,7 @@
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
+      <button data-view="aovivo">Ao Vivo 🔴<span class="badge-count" id="nav-aovivo-badge" style="display:none;"></span></button>
       <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
     </nav>
     <div class="header-right">
@@ -977,6 +992,7 @@
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
+        <button class="mais-item" data-view="aovivo"><span class="mais-item-icon">🔴</span>Ao Vivo<span class="badge-count" id="mais-aovivo-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
       </div>
     </div>
@@ -1343,6 +1359,13 @@
       </div>
     </section>
 
+    <section id="view-aovivo">
+      <h2 class="section-title">🔴 Ao Vivo</h2>
+      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <div id="aovivo-empty" class="empty"><i class="ti ti-broadcast"></i>Nenhuma transmissão ao vivo agora.</div>
+      <div id="aovivo-list"></div>
+    </section>
+
     <section id="view-info">
       <h2 class="section-title">Informações</h2>
 
@@ -1357,6 +1380,15 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/09/2026 — v7.0: Placar Ao Vivo</summary>
+          <div>
+            <p style="line-height:1.6;">Nova tela <strong>"Ao Vivo 🔴"</strong>: rodadas com placar ainda não lançado (rascunhos) podem ser transmitidas ao vivo direto do Histórico, com os times em quadros, cronômetro regressivo da duração da partida e um contador de vitórias controlado por organizador/admin.</p>
+            <p style="line-height:1.6;">Toda mudança de placar fica registrada num log público com horário (ex: "20:15 Time 1 venceu (+1)"), inclusive quando um ponto lançado errado é corrigido — serve de conferência pra quem está assistindo.</p>
+            <p style="line-height:1.6;">Quem só está assistindo vê o placar e o log atualizarem sozinhos, sem precisar recarregar a página.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>16/09/2026 — v5.18: Ajustar estrelas no check-in</summary>
           <div>
             <p style="line-height:1.6;">Organizador e admin agora podem ajustar a nota (estrelas) de quem já confirmou presença no check-in, valendo <strong>só pra aquele dia</strong> — não muda o cadastro do jogador. Útil pra quando alguém está jogando melhor ou pior do que a nota cadastrada indica, sem precisar mudar a nota "oficial" dele pra sempre.</p>
@@ -1472,7 +1504,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 6.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 7.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1485,7 +1517,7 @@
 <div id="toast-container" class="toast-container"></div>
 
 <script>
-let DATA = { players: [], rounds: [] };
+let DATA = { players: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
 let CHECKINS = [];
@@ -1510,6 +1542,9 @@ const PERMISSOES_UI = {
   updatePlayer:       ['organizador','admin'],
   addRound:           ['organizador','admin'],
   updateRound:        ['organizador','admin'],
+  iniciarTransmissaoAoVivo:  ['organizador','admin'],
+  salvarParcialAoVivo:       ['organizador','admin'],
+  cancelarTransmissaoAoVivo: ['organizador','admin'],
   removePlayer:       ['admin'],
   removeRound:        ['admin'],
   saveSettings:        ['admin'], // visibilidade das estrelas pro público (config global)
@@ -1602,7 +1637,7 @@ async function loadData(){
       document.getElementById('config-warning').style.display = 'block';
       document.getElementById('config-warning').innerHTML = '⚠️ O Apps Script respondeu com um erro: <strong>' + json.error + '</strong>';
     }
-    DATA = { players: json.players || [], rounds: json.rounds || [] };
+    DATA = { players: json.players || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
     if(json.settings) SETTINGS = json.settings;
     PERFIS_PUBLICOS = json.perfisPublicos || [];
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
@@ -2399,6 +2434,38 @@ function pedirSenhaModal(){
   });
 }
 
+function pedirDuracaoModal(){
+  return new Promise((resolve)=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'profile-overlay';
+    overlay.innerHTML = `
+      <div class="password-card">
+        <p class="password-title">⏱️ Duração da partida (minutos)</p>
+        <input type="number" id="duracao-input" class="password-field" placeholder="Ex: 120" value="120" min="1" inputmode="numeric">
+        <div class="password-actions">
+          <button class="btn" id="duracao-confirm-btn">Iniciar transmissão</button>
+          <button class="btn secondary" id="duracao-cancel-btn">Cancelar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#duracao-input');
+    // já vem com 120 (duração padrão); select() deixa o valor marcado pra que digitar outro número substitua em vez de somar
+    setTimeout(()=>{ input.focus(); input.select(); }, 50);
+    function fechar(valor){ overlay.remove(); resolve(valor); }
+    function confirmar(){
+      const minutos = parseInt(input.value, 10);
+      fechar(Number.isFinite(minutos) && minutos > 0 ? minutos : null);
+    }
+    overlay.querySelector('#duracao-confirm-btn').addEventListener('click', confirmar);
+    overlay.querySelector('#duracao-cancel-btn').addEventListener('click', ()=> fechar(null));
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') confirmar();
+      if(e.key === 'Escape') fechar(null);
+    });
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(null); });
+  });
+}
+
 function podePerfil(acao, perfil){
   const lista = PERMISSOES_UI[acao];
   return !!lista && lista.indexOf(perfil) > -1;
@@ -2614,6 +2681,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   if(btn.dataset.view==='usuarios') renderUsuarios();
   if(btn.dataset.view==='meuperfil') renderMeuPerfil();
+  if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
@@ -2913,6 +2981,7 @@ function avatarHtml(player, size){
 
 let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
 let EDITING_ROUND_ID = null; // id da rodada sendo editada na tela Nova Rodada (só admin)
+let EDITING_ROUND_FROM_AOVIVO = false; // true quando "Salvar rodada" também precisa encerrar a transmissão ao vivo
 
 function renderPlayers(){
   const list = document.getElementById('player-list');
@@ -3537,6 +3606,20 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
       return;
     }
     mostrarToast('Rodada atualizada!', 'sucesso');
+    if(EDITING_ROUND_FROM_AOVIVO){
+      const limpou = await postAction('cancelarTransmissaoAoVivo', {roundId: EDITING_ROUND_ID}, cred);
+      if(!limpou){
+        mostrarToast('Placar salvo! Mas não deu pra encerrar a transmissão ao vivo automaticamente — cancele manualmente na página "Ao Vivo".', 'erro');
+      }
+      // Limpa o rastreamento local independente do resultado do cancelamento acima:
+      // a rodada já foi finalizada em "Rodadas", então não pode continuar marcada como
+      // pendente com valores locais desatualizados (senão "Salvar parcial" ficaria
+      // habilitado mostrando números que não valem mais nada).
+      AOVIVO_PENDENTE.delete(EDITING_ROUND_ID);
+      AOVIVO_VITORIAS_LOCAIS.delete(EDITING_ROUND_ID);
+      EDITING_ROUND_FROM_AOVIVO = false;
+      await recarregarAoVivo();
+    }
     fecharEdicaoDeRodada();
     renderDashboard();
     return;
@@ -3625,8 +3708,30 @@ function abrirEdicaoDeRodada(roundId){
   document.getElementById('save-round-btn').textContent = round.rascunho ? 'Salvar rodada (finalizar)' : 'Salvar alterações';
 }
 
+// Igual abrirEdicaoDeRodada, mas os valores de vitórias vêm do placar AO VIVO atual
+// (que pode estar mais avançado do que o rascunho salvo em "Rodadas") — e marca que,
+// ao salvar, também precisa encerrar a transmissão.
+function abrirEdicaoDeRodadaAoVivo(roundId){
+  const aoVivo = DATA.aoVivo.rounds.find(r=>r.id===roundId);
+  if(!aoVivo) return;
+  abrirEdicaoDeRodada(roundId);
+  EDITING_ROUND_FROM_AOVIVO = true;
+  // Prioriza os valores pendentes ainda não salvos (cliques no +/- que o organizador
+  // deu antes de clicar "Salvar parcial") — senão, usa o placar confirmado no servidor.
+  // Sem isso, "Lançar placar final →" descartava silenciosamente cliques recentes.
+  const vitorias = AOVIVO_PENDENTE.has(roundId) ? AOVIVO_VITORIAS_LOCAIS.get(roundId) : aoVivo.times.map(t=>t.vitorias);
+  const grid = document.getElementById('teams-grid');
+  aoVivo.times.forEach((t, ti)=>{
+    const card = grid.querySelector(`.team-card[data-team="${ti}"]`);
+    const winsInput = card && card.querySelector('[data-wins]');
+    if(winsInput) winsInput.value = vitorias[ti] || 0;
+  });
+  updateLeader();
+}
+
 function fecharEdicaoDeRodada(){
   EDITING_ROUND_ID = null;
+  EDITING_ROUND_FROM_AOVIVO = false;
   document.getElementById('edit-round-banner').style.display = 'none';
   document.getElementById('save-round-btn').textContent = 'Salvar rodada';
   document.getElementById('round-date').valueAsDate = new Date();
@@ -3634,6 +3739,206 @@ function fecharEdicaoDeRodada(){
   renderTeamsGrid();
 }
 document.getElementById('cancel-edit-round-btn').addEventListener('click', fecharEdicaoDeRodada);
+
+/* ---------- AO VIVO ---------- */
+let AOVIVO_POLL_TIMER = null;
+let AOVIVO_CRONOMETRO_TIMER = null;
+const AOVIVO_PENDENTE = new Set(); // roundIds com stepper alterado mas ainda não salvo
+const AOVIVO_VITORIAS_LOCAIS = new Map(); // roundId -> array de vitórias local (inclui as pendentes)
+
+// Busca o estado mais recente da transmissão via POST (nunca GET — GET pode ficar em
+// cache e essa tela depende de dado sempre fresco). Silenciosa em caso de falha de
+// rede: um poll que falhou tenta de novo sozinho no próximo ciclo, sem incomodar
+// quem só está assistindo com um toast de erro a cada 8s de instabilidade.
+async function recarregarAoVivo(){
+  if(!sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'lerAoVivo' })
+    });
+    const json = await res.json();
+    if(!json || json.error) return;
+    DATA.aoVivo = { rounds: json.rounds || [], log: json.log || [] };
+  }catch(e){
+    console.error('Falha ao atualizar o Ao Vivo', e);
+    return;
+  }
+  atualizarBadgeAoVivo();
+  if(document.getElementById('view-aovivo').classList.contains('active')) renderAoVivo();
+}
+
+function atualizarBadgeAoVivo(){
+  const total = DATA.aoVivo.rounds.length;
+  ['nav-aovivo-badge', 'mais-aovivo-badge'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = String(total);
+    el.style.display = total > 0 ? 'inline-flex' : 'none';
+  });
+}
+
+// O cronômetro tem seu PRÓPRIO timer (1x por segundo), separado do polling do placar
+// (a cada 9s) — os dois começam/terminam juntos porque só fazem sentido enquanto a
+// tela "Ao Vivo" está aberta, mas rodam em frequências diferentes.
+function iniciarPollingAoVivo(){
+  pararPollingAoVivo();
+  AOVIVO_POLL_TIMER = setInterval(recarregarAoVivo, 9000);
+  AOVIVO_CRONOMETRO_TIMER = setInterval(atualizarCronometrosAoVivo, 1000);
+}
+function pararPollingAoVivo(){
+  if(AOVIVO_POLL_TIMER){ clearInterval(AOVIVO_POLL_TIMER); AOVIVO_POLL_TIMER = null; }
+  if(AOVIVO_CRONOMETRO_TIMER){ clearInterval(AOVIVO_CRONOMETRO_TIMER); AOVIVO_CRONOMETRO_TIMER = null; }
+}
+
+// Puro: dado o horário de início (ISO) e a duração em minutos, devolve quantos
+// segundos faltam (pode ser negativo — usado só pra formatar "00:00" no fim).
+function segundosRestantesAoVivo(iniciadoEm, duracaoMinutos){
+  const inicio = new Date(iniciadoEm).getTime();
+  if(!Number.isFinite(inicio)) return duracaoMinutos * 60;
+  const fim = inicio + duracaoMinutos * 60000;
+  return Math.round((fim - Date.now()) / 1000);
+}
+
+function formatarCronometro(segundos){
+  const zerado = Math.max(0, segundos);
+  const mm = String(Math.floor(zerado / 60)).padStart(2, '0');
+  const ss = String(zerado % 60).padStart(2, '0');
+  return mm + ':' + ss;
+}
+
+// Atualiza todos os cronômetros visíveis a partir de UM timer global (ligado em
+// iniciarPollingAoVivo), em vez de um setInterval por card — um setInterval por card
+// vazaria a cada renderAoVivo() (poll ou clique no stepper), já que o card antigo é
+// substituído no DOM mas o timer dele continuaria rodando escondido pra sempre.
+function atualizarCronometrosAoVivo(){
+  DATA.aoVivo.rounds.forEach(round=>{
+    const el = document.querySelector(`[data-aovivo-timer="${round.id}"]`);
+    if(!el) return;
+    const restantes = segundosRestantesAoVivo(round.iniciadoEm, round.duracaoMinutos);
+    el.textContent = formatarCronometro(restantes);
+    el.classList.toggle('esgotado', restantes <= 0);
+  });
+}
+
+function renderAoVivo(){
+  const container = document.getElementById('aovivo-list');
+  const empty = document.getElementById('aovivo-empty');
+  const rounds = DATA.aoVivo.rounds;
+  empty.style.display = rounds.length === 0 ? 'block' : 'none';
+  const podeControlar = temPermissao('salvarParcialAoVivo');
+
+  container.innerHTML = rounds.map(r=>{
+    // enquanto há alteração pendente pra essa rodada, mostra os valores locais (ainda
+    // não salvos) em vez dos que vieram do servidor — evita o polling "engolir" o
+    // clique do organizador antes dele apertar "Salvar parcial"
+    const vitoriasAtuais = AOVIVO_PENDENTE.has(r.id) ? AOVIVO_VITORIAS_LOCAIS.get(r.id) : r.times.map(t=>t.vitorias);
+    const logDaRodada = DATA.aoVivo.log.filter(l=>l.roundId===r.id);
+    return `
+    <div class="aovivo-card ${AOVIVO_PENDENTE.has(r.id)?'aovivo-pendente':''}" data-aovivo-round="${r.id}">
+      <div class="aovivo-card-head">
+        <span class="history-date">${formatDate(r.data)} — início ${new Date(r.iniciadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+        <span class="aovivo-timer" data-aovivo-timer="${r.id}"></span>
+      </div>
+      <div class="history-teams">
+        ${r.times.map((t, idx)=>`
+          <div class="history-team">
+            <div class="tn">${escapeHtml(t.nome)}</div>
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+            ${podeControlar ? `
+              <div class="aovivo-stepper">
+                <button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" ${vitoriasAtuais[idx]<=0?'disabled':''}>−</button>
+                <span class="valor">${vitoriasAtuais[idx]}</span>
+                <button type="button" data-aovivo-mais="${r.id}" data-time="${idx}">+</button>
+              </div>
+            ` : `<div class="aovivo-stepper"><span class="valor">${vitoriasAtuais[idx]}</span></div>`}
+          </div>
+        `).join('')}
+      </div>
+      <div class="aovivo-log">
+        ${logDaRodada.length === 0 ? 'Nenhuma mudança registrada ainda.' : logDaRodada.map(l=>{
+          const hora = new Date(l.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+          return l.delta > 0
+            ? `<div>${hora} ${escapeHtml(l.timeNome)} venceu (+${l.delta})</div>`
+            : `<div>${hora} ${escapeHtml(l.timeNome)} teve ${Math.abs(l.delta)} ponto(s) retirado(s)</div>`;
+        }).join('')}
+      </div>
+      ${podeControlar ? `
+        <div class="aovivo-acoes">
+          <button class="btn" data-aovivo-salvar="${r.id}" ${AOVIVO_PENDENTE.has(r.id)?'':'disabled'}>💾 Salvar parcial</button>
+          <button class="btn secondary" data-aovivo-lancar="${r.id}">Lançar placar final →</button>
+          <button class="btn secondary" data-aovivo-cancelar="${r.id}">Cancelar transmissão</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+
+  atualizarCronometrosAoVivo(); // desenha o valor inicial assim que os cards existem no DOM
+  wireAoVivoSteppers();
+  wireAoVivoAcoes();
+}
+
+// clique nos steppers +/- só ajusta o estado local (AOVIVO_PENDENTE/AOVIVO_VITORIAS_LOCAIS)
+// e re-renderiza — nada é enviado ao servidor até "Salvar parcial"
+function wireAoVivoSteppers(){
+  function ajustar(roundId, timeIndex, delta){
+    const round = DATA.aoVivo.rounds.find(r=>r.id===roundId);
+    if(!round) return;
+    if(!AOVIVO_VITORIAS_LOCAIS.has(roundId)){
+      AOVIVO_VITORIAS_LOCAIS.set(roundId, round.times.map(t=>t.vitorias));
+    }
+    const valores = AOVIVO_VITORIAS_LOCAIS.get(roundId);
+    valores[timeIndex] = Math.max(0, valores[timeIndex] + delta);
+    AOVIVO_PENDENTE.add(roundId);
+    renderAoVivo();
+  }
+  document.querySelectorAll('[data-aovivo-mais]').forEach(btn=>{
+    btn.addEventListener('click', ()=> ajustar(btn.dataset.aovivoMais, Number(btn.dataset.time), 1));
+  });
+  document.querySelectorAll('[data-aovivo-menos]').forEach(btn=>{
+    btn.addEventListener('click', ()=> ajustar(btn.dataset.aovivoMenos, Number(btn.dataset.time), -1));
+  });
+}
+
+// "Salvar parcial" e "Cancelar transmissão". ("Lançar placar final" é do Task 7 —
+// o botão já existe no DOM desde o Task 5, mas fica sem handler até lá de propósito.)
+function wireAoVivoAcoes(){
+  document.querySelectorAll('[data-aovivo-salvar]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const roundId = btn.dataset.aovivoSalvar;
+      const vitoriasPorTime = AOVIVO_VITORIAS_LOCAIS.get(roundId);
+      if(!vitoriasPorTime) return;
+      const cred = await requireAuth('salvarParcialAoVivo');
+      if(!cred) return;
+      const ok = await postAction('salvarParcialAoVivo', {roundId, vitoriasPorTime}, cred);
+      if(!ok) return;
+      AOVIVO_PENDENTE.delete(roundId);
+      AOVIVO_VITORIAS_LOCAIS.delete(roundId);
+      mostrarToast('Placar parcial salvo!', 'sucesso');
+      await recarregarAoVivo();
+    });
+  });
+
+  document.querySelectorAll('[data-aovivo-cancelar]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const roundId = btn.dataset.aovivoCancelar;
+      if(!confirm('Cancelar esta transmissão? O rascunho continua no Histórico, só a transmissão ao vivo é encerrada.')) return;
+      const cred = await requireAuth('cancelarTransmissaoAoVivo');
+      if(!cred) return;
+      const ok = await postAction('cancelarTransmissaoAoVivo', {roundId}, cred);
+      if(!ok) return;
+      AOVIVO_PENDENTE.delete(roundId);
+      AOVIVO_VITORIAS_LOCAIS.delete(roundId);
+      mostrarToast('Transmissão cancelada.', 'sucesso');
+      await recarregarAoVivo();
+    });
+  });
+
+  document.querySelectorAll('[data-aovivo-lancar]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirEdicaoDeRodadaAoVivo(btn.dataset.aovivoLancar));
+  });
+}
 
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
@@ -4477,11 +4782,28 @@ function renderHistory(){
             </div>
           `).join('')}
         </div>
-        <button class="btn" data-lancar-placar="${r.id}" style="margin-top:12px;">Lançar placar →</button>
+        <div class="acoes-linha" style="margin-top:12px;">
+          <button class="btn" data-lancar-placar="${r.id}">Lançar placar →</button>
+          <button class="btn secondary" data-transmitir-aovivo="${r.id}" ${DATA.aoVivo.rounds.some(av=>av.id===r.id) ? 'disabled title="Essa rodada já está ao vivo"' : ''}>📡 Transmitir ao vivo</button>
+        </div>
       </div>
     `).join('');
     draftsList.querySelectorAll('[data-lancar-placar]').forEach(btn=>{
       btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.lancarPlacar));
+    });
+    draftsList.querySelectorAll('[data-transmitir-aovivo]:not([disabled])').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const roundId = btn.dataset.transmitirAovivo;
+        const minutos = await pedirDuracaoModal();
+        if(!minutos) return;
+        const cred = await requireAuth('iniciarTransmissaoAoVivo');
+        if(!cred) return;
+        const ok = await postAction('iniciarTransmissaoAoVivo', {roundId, duracaoMinutos: minutos}, cred);
+        if(!ok) return;
+        mostrarToast('Transmissão iniciada! Abrindo a tela Ao Vivo...', 'sucesso');
+        await recarregarAoVivo(); // função do Task 5 — busca o estado fresco de DATA.aoVivo
+        abrirTelaVia('aovivo');
+      });
     });
     draftsList.querySelectorAll('[data-del-draft]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
@@ -4592,6 +4914,9 @@ function renderAll(){
   renderTeamsGrid();
   renderRodadaGuestChips();
   renderDashboard();
+  // O doGet inicial já manda DATA.aoVivo, então o badge 🔴 precisa refletir isso
+  // desde a primeira pintura — sem esperar o primeiro poll da página Ao Vivo.
+  atualizarBadgeAoVivo();
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
