@@ -950,6 +950,38 @@
   }
   .btn-icon svg{width:18px;height:18px;display:block;flex-shrink:0;}
   .btn-icon.copiado{background:#1f3a2a!important;border-color:#5fd68a!important;color:#8ff0ae!important;}
+  /* ===== VIDRO FOSCO ===== */
+  /* Nível A — com blur: poucas superfícies grandes e de destaque */
+  .bottom-tabbar, .mais-sheet, .profile-card, .password-card, .bugreport-card{
+    background:var(--glass-modal-bg);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    border-color:var(--glass-borda);
+  }
+  .aovivo-card, .podium-empate-faixa{
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  }
+  /* Nível B — só translúcido, SEM blur: cartões que aparecem em lista (blur em cada um pesa no celular) */
+  .history-item, .team-card, .draft-team, .group-card, .panela-card, .player-row, .duo-row{
+    background:var(--glass-bg);
+    border-color:var(--glass-borda);
+  }
+  /* verso do card que gira: translúcido mas SEM backdrop-filter (blur + preserve-3d falha no Safari) */
+  .flip-card-back{background:var(--glass-modal-bg);border-color:var(--glass-borda);}
+  /* navegador sem backdrop-filter: volta ao fundo sólido de antes */
+  @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+    .aovivo-card, .podium-empate-faixa{background:var(--court-navy-2);}
+  }
+
+  /* ===== card do campeão: brilho dourado (mantém o gradiente/textura que já existe) ===== */
+  .scoreboard{
+    border-color:color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+    box-shadow:var(--ouro-brilho);
+  }
+  .sb-team{text-shadow:0 0 14px color-mix(in srgb, var(--ball-yellow) 55%, transparent);}
+  body.light-mode .sb-team{text-shadow:none;}
+  /* a regra "body.light-mode .scoreboard, ..." lá em cima tem especificidade maior e apagaria o brilho no claro */
+  body.light-mode .scoreboard{box-shadow:var(--ouro-brilho);}
 </style>
 </head>
 <body>
