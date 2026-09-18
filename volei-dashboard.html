@@ -1504,7 +1504,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 7.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 7.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2441,7 +2441,7 @@ function pedirDuracaoModal(){
     overlay.innerHTML = `
       <div class="password-card">
         <p class="password-title">⏱️ Duração da partida (minutos)</p>
-        <input type="number" id="duracao-input" class="password-field" placeholder="Ex: 12" min="1" inputmode="numeric">
+        <input type="number" id="duracao-input" class="password-field" placeholder="Ex: 120" value="120" min="1" inputmode="numeric">
         <div class="password-actions">
           <button class="btn" id="duracao-confirm-btn">Iniciar transmissão</button>
           <button class="btn secondary" id="duracao-cancel-btn">Cancelar</button>
@@ -2449,7 +2449,8 @@ function pedirDuracaoModal(){
       </div>`;
     document.body.appendChild(overlay);
     const input = overlay.querySelector('#duracao-input');
-    setTimeout(()=> input.focus(), 50);
+    // já vem com 120 (duração padrão); select() deixa o valor marcado pra que digitar outro número substitua em vez de somar
+    setTimeout(()=>{ input.focus(); input.select(); }, 50);
     function fechar(valor){ overlay.remove(); resolve(valor); }
     function confirmar(){
       const minutos = parseInt(input.value, 10);
