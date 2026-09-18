@@ -1,1 +1,8 @@
 .worktrees/
+
+# Os arquivos .gs (backend Apps Script) NUNCA são versionados de propósito — vivem só
+# no editor do Google Apps Script (copiar/colar manual) e contêm segredos em texto puro
+# (ADMIN_PASSWORD, DRIVE_FOLDER_ID). Esta regra existe pra um "git add" acidental de um
+# plano futuro não repetir o vazamento que a revisão final do Placar Ao Vivo encontrou
+# e corrigiu (história reescrita) em 2026-09-18.
+*.gs
