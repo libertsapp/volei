@@ -1504,7 +1504,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 7.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 7.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3610,6 +3610,12 @@ document.getElementById('save-round-btn').addEventListener('click', async ()=>{
       if(!limpou){
         mostrarToast('Placar salvo! Mas não deu pra encerrar a transmissão ao vivo automaticamente — cancele manualmente na página "Ao Vivo".', 'erro');
       }
+      // Limpa o rastreamento local independente do resultado do cancelamento acima:
+      // a rodada já foi finalizada em "Rodadas", então não pode continuar marcada como
+      // pendente com valores locais desatualizados (senão "Salvar parcial" ficaria
+      // habilitado mostrando números que não valem mais nada).
+      AOVIVO_PENDENTE.delete(EDITING_ROUND_ID);
+      AOVIVO_VITORIAS_LOCAIS.delete(EDITING_ROUND_ID);
       EDITING_ROUND_FROM_AOVIVO = false;
       await recarregarAoVivo();
     }
@@ -3709,11 +3715,15 @@ function abrirEdicaoDeRodadaAoVivo(roundId){
   if(!aoVivo) return;
   abrirEdicaoDeRodada(roundId);
   EDITING_ROUND_FROM_AOVIVO = true;
+  // Prioriza os valores pendentes ainda não salvos (cliques no +/- que o organizador
+  // deu antes de clicar "Salvar parcial") — senão, usa o placar confirmado no servidor.
+  // Sem isso, "Lançar placar final →" descartava silenciosamente cliques recentes.
+  const vitorias = AOVIVO_PENDENTE.has(roundId) ? AOVIVO_VITORIAS_LOCAIS.get(roundId) : aoVivo.times.map(t=>t.vitorias);
   const grid = document.getElementById('teams-grid');
   aoVivo.times.forEach((t, ti)=>{
     const card = grid.querySelector(`.team-card[data-team="${ti}"]`);
     const winsInput = card && card.querySelector('[data-wins]');
-    if(winsInput) winsInput.value = t.vitorias || 0;
+    if(winsInput) winsInput.value = vitorias[ti] || 0;
   });
   updateLeader();
 }
@@ -4903,6 +4913,9 @@ function renderAll(){
   renderTeamsGrid();
   renderRodadaGuestChips();
   renderDashboard();
+  // O doGet inicial já manda DATA.aoVivo, então o badge 🔴 precisa refletir isso
+  // desde a primeira pintura — sem esperar o primeiro poll da página Ao Vivo.
+  atualizarBadgeAoVivo();
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
