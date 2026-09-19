@@ -1081,6 +1081,8 @@
     box-shadow:0 0 14px rgba(255,59,59,0.18);
   }
   .aovivo-alerta-ir{margin-left:auto;font-size:12px;color:var(--muted);}
+  /* no título da tela Ao Vivo o ponto fica em linha com o texto (no aviso do Início ele é item de flex) */
+  .section-title .ponto-ao-vivo{display:inline-block;margin-right:12px;vertical-align:middle;}
 
   /* ===== RADAR ===== */
   .radar-svg{width:100%;max-width:340px;display:block;margin:4px auto 0;overflow:visible;}
@@ -1536,7 +1538,7 @@
     </section>
 
     <section id="view-aovivo">
-      <h2 class="section-title">🔴 Ao Vivo</h2>
+      <h2 class="section-title"><span class="ponto-ao-vivo" aria-hidden="true"></span>Ao Vivo</h2>
       <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
       <div id="aovivo-empty" class="empty"><i class="ti ti-broadcast"></i>Nenhuma transmissão ao vivo agora.</div>
       <div id="aovivo-list"></div>
@@ -1556,6 +1558,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.5: Título "Ao Vivo" pulsando</summary>
+          <div>
+            <p style="line-height:1.6;">O título da tela <strong>Ao Vivo</strong> agora tem a mesma bolinha vermelha pulsando do aviso da tela Início.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.4: Aviso de jogo ao vivo</summary>
           <div>
             <p style="line-height:1.6;">Quando há uma partida sendo transmitida, a tela <strong>Início</strong> mostra um aviso com uma bolinha vermelha pulsando — é só tocar nele pra acompanhar o placar. O aviso aparece e some sozinho.</p>
@@ -1717,7 +1726,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
