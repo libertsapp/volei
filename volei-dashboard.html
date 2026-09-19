@@ -1125,6 +1125,7 @@
   .jc-icones .badge-icon{font-size:18px;margin-left:0;padding:0 2px;}
   .jc-icones > .badge-icon + .badge-icon{margin-left:8px;}
   .jc-sexo{font-size:20px;}
+  .jc-hex, .jc-icone-conta, .jc-sexo{cursor:help;} /* têm dica (hover e toque) */
   .jc-sexo-M{color:var(--accent);}
   .jc-sexo-F{color:#ff8fc0;}
   body.light-mode .jc-sexo-F{color:#c2255c;}
@@ -1688,6 +1689,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.8: Dicas do hexágono, do "G" e do ♂/♀ voltaram</summary>
+          <div>
+            <p style="line-height:1.6;">Ao passar o mouse (na hora) ou tocar no <strong>hexágono</strong> (posição no ranking), no <strong>"G"</strong> do Google (jogador com conta) e no símbolo <strong>♂/♀</strong> do cartão, a explicação aparece de novo, igual à dos emblemas.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.7: Quadro de campeões sem rotação</summary>
           <div>
             <p style="line-height:1.6;">O quadro de campeões da tela <strong>Início</strong> não gira mais: ele fica fixo, mostrando só a equipe campeã da última rodada e os números do ano. Os times completos de cada rodada continuam na aba <strong>Histórico</strong>.</p>
@@ -1944,7 +1952,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.8 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3277,7 +3285,7 @@ function atualizarBarraInferior(viewAtual){
 // clique em qualquer nome marcado como "clicável" (Jogadores, Ranking, etc.) abre o perfil —
 // um único listener global, então funciona em qualquer tela nova sem precisar religar nada
 document.addEventListener('click', (e)=>{
-  if(e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger')) return; // clique no emblema/ícone de info/gráfico só mostra a dica, não abre o perfil
+  if(e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger, .jc-hex, .jc-icone-conta, .jc-sexo')) return; // clique no emblema/ícone de info/gráfico/cartão só mostra a dica, não abre o perfil
   const el = e.target.closest('[data-open-profile]');
   if(el) openPlayerProfile(el.dataset.openProfile);
 });
@@ -3564,7 +3572,7 @@ function jogadorCardHtml(d, opcoes){
     ? `<img class="jc-foto" src="${escapeHtml(d.foto)}" alt="">`
     : `<div class="jc-foto jc-foto-inicial">${inicial}</div>`;
   // o reduzido é o cartão das telas de time/listas: sem hexágono
-  const hex = (!reduzido && d.posicao) ? `<div class="jc-hex" title="Posição no ranking do ano"><span>${d.posicao}</span></div>` : '';
+  const hex = (!reduzido && d.posicao) ? `<div class="jc-hex" data-dica="Posição no ranking do ano" role="img" aria-label="Posição no ranking do ano"><span>${d.posicao}</span></div>` : '';
   // o nome abre o perfil, exceto na variação 'perfil' (dentro do modal reabriria o próprio perfil) e onde quem
   // chama pede (Check-in e Sorteio: tocar na linha alterna o check-in/seleção, não pode abrir o perfil)
   const abrePerfil = op.nomeAbrePerfil != null ? op.nomeAbrePerfil : !perfil;
@@ -3573,9 +3581,9 @@ function jogadorCardHtml(d, opcoes){
   const nome = `<span class="jc-nome"${abrePerfil ? ` data-open-profile="${escapeHtml(d.id)}"` : ''}>${nomeTxt}</span>`;
 
   const partesIcones = [];
-  if(d.sexo === 'M') partesIcones.push('<i class="ti ti-gender-male jc-sexo jc-sexo-M" title="Masculino"></i>');
-  if(d.sexo === 'F') partesIcones.push('<i class="ti ti-gender-female jc-sexo jc-sexo-F" title="Feminino"></i>');
-  if(!reduzido && d.temConta) partesIcones.push(`<span class="jc-icone-conta" title="Jogador com conta cadastrada no app">${jcIconeGoogle()}</span>`);
+  if(d.sexo === 'M') partesIcones.push('<i class="ti ti-gender-male jc-sexo jc-sexo-M" data-dica="Masculino" role="img" aria-label="Masculino"></i>');
+  if(d.sexo === 'F') partesIcones.push('<i class="ti ti-gender-female jc-sexo jc-sexo-F" data-dica="Feminino" role="img" aria-label="Feminino"></i>');
+  if(!reduzido && d.temConta) partesIcones.push(`<span class="jc-icone-conta" data-dica="Jogador com conta cadastrada no app" role="img" aria-label="Jogador com conta cadastrada no app">${jcIconeGoogle()}</span>`);
   // no reduzido só sobra o símbolo de sexo: emblemas ficam de fora de propósito
   const iconesInterno = partesIcones.join('') + (reduzido ? '' : (d.emblemasHtml || ''));
   const icones = iconesInterno ? `<span class="jc-icones">${iconesInterno}</span>` : '';
@@ -7076,7 +7084,7 @@ function closeBadgeTooltip(){
 }
 function showBadgeTooltip(icon){
   closeBadgeTooltip();
-  const text = icon.getAttribute('title');
+  const text = icon.getAttribute('title') || icon.getAttribute('data-dica');
   if(!text) return;
   const rect = icon.getBoundingClientRect();
   const bubble = document.createElement('div');
@@ -7094,10 +7102,28 @@ function showBadgeTooltip(icon){
   clearTimeout(window._badgeTooltipTimer);
   window._badgeTooltipTimer = setTimeout(closeBadgeTooltip, 3500);
 }
+// ícones do cartão do jogador que explicam algo (posição no ranking, conta Google, sexo): mesma dica dos emblemas
+const JC_DICA_SEL = '.jc-hex, .jc-icone-conta, .jc-sexo';
 document.addEventListener('click', (e)=>{
-  const icon = e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger');
+  const icon = e.target.closest('.badge-icon, .info-icon, .chart-tooltip-trigger, ' + JC_DICA_SEL);
   if(icon){ e.stopPropagation(); showBadgeTooltip(icon); }
   else { closeBadgeTooltip(); }
+});
+// mouse: a dica aparece na hora ao passar por cima (o title nativo demora ~1s) e some ao sair;
+// só em aparelho com mouse de verdade — no toque quem manda é o clique acima
+let JC_DICA_ATUAL = null;
+document.addEventListener('mouseover', (e)=>{
+  if(!window.matchMedia('(hover:hover)').matches) return;
+  const icon = e.target.closest && e.target.closest(JC_DICA_SEL);
+  if(!icon || icon === JC_DICA_ATUAL) return; // filhos do mesmo ícone (o <path> do "G") disparam mouseover de novo
+  JC_DICA_ATUAL = icon;
+  showBadgeTooltip(icon);
+});
+document.addEventListener('mouseout', (e)=>{
+  const icon = e.target.closest && e.target.closest(JC_DICA_SEL);
+  if(!icon || (e.relatedTarget && icon.contains(e.relatedTarget))) return; // ainda dentro do mesmo ícone
+  JC_DICA_ATUAL = null;
+  closeBadgeTooltip();
 });
 window.addEventListener('scroll', closeBadgeTooltip, true);
 
