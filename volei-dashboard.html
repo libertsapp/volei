@@ -1233,6 +1233,18 @@
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
+  /* Hall, Duplas, Panelas e Defuntos com cartão completo */
+  .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;}
+  .panela-cartoes, .defuntos-cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin:8px 0;}
+  .duo-cartoes{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:10px;}
+  .duo-cartao{min-width:0;}
+  .duo-removido{color:var(--muted);font-size:13px;padding:10px;}
+  @media (max-width:700px){
+    /* celular: um cartão embaixo do outro, com o "+" no meio */
+    .duo-cartoes{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+    .duo-cartoes .duo-rank, .duo-cartoes .duo-count{align-self:flex-start;}
+    .duo-cartoes .duo-plus{align-self:center;}
+  }
 </style>
 </head>
 <body>
@@ -1696,6 +1708,14 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.1: Cartão do jogador no Ranking, Hall e estatísticas</summary>
+          <div>
+            <p style="line-height:1.6;">O <strong>Ranking</strong> (e o Top 5 do Início) agora é uma lista de cartões abertos: o número no hexágono é a posição no ano escolhido e as métricas são desse ano. O toque em <strong>Títulos</strong> continua mostrando as datas de campeão.</p>
+            <p style="line-height:1.6;">O <strong>Hall da Fama</strong>, as <strong>Duplas</strong>, as <strong>Maiores Panelas</strong> e os <strong>Defuntos</strong> também usam o cartão do jogador.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.0: Cartão do jogador nas listas e times</summary>
           <div>
             <p style="line-height:1.6;">O cartão do jogador agora aparece também no <strong>Check-in</strong>, no <strong>Sorteio</strong> (lista, grupos e times sorteados), no <strong>Histórico de rodadas</strong> e na <strong>Nova Rodada</strong>, numa versão reduzida: só o símbolo ♂/♀ e as estrelinhas (para quem pode vê-las), sem hexágono nem emblemas.</p>
@@ -1901,7 +1921,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4976,22 +4996,16 @@ function renderDuos(){
     container.innerHTML = `<div class="empty"><i class="ti ti-users"></i>Nenhuma dupla formada em ${ano} ainda.</div>`;
     return;
   }
-  container.innerHTML = `<div class="duo-list">${duos.map((d,i)=>{
-    const p1 = getPlayer(d.id1);
-    const p2 = getPlayer(d.id2);
-    const nome1 = p1 ? (p1.apelido||p1.nome) : '(removido)';
-    const nome2 = p2 ? (p2.apelido||p2.nome) : '(removido)';
-    const badges = computeBadges();
-    return `<div class="duo-row">
+  const ctx = contextoCards();
+  // jogador removido continua aparecendo como texto: a dupla é histórica, não some da lista
+  const cartao = pid => { const p = getPlayer(pid); return p ? cartaoDaTela('duplas', p, ctx) : '<div class="duo-removido">(removido)</div>'; };
+  container.innerHTML = `<div class="duo-list">${duos.map((d,i)=>`<div class="duo-row duo-cartoes">
       <span class="duo-rank">${i+1}º</span>
-      <span class="duo-pair">
-        ${avatarHtml(p1,'sm')}<span class="clickable-name" data-open-profile="${d.id1}">${escapeHtml(nome1)}</span>${badgeIconsHtml(d.id1, badges)}
-        <span class="duo-plus">+</span>
-        ${avatarHtml(p2,'sm')}<span class="clickable-name" data-open-profile="${d.id2}">${escapeHtml(nome2)}</span>${badgeIconsHtml(d.id2, badges)}
-      </span>
+      <div class="duo-cartao">${cartao(d.id1)}</div>
+      <span class="duo-plus">+</span>
+      <div class="duo-cartao">${cartao(d.id2)}</div>
       <span class="duo-count">${d.count}×</span>
-    </div>`;
-  }).join('')}</div>`;
+    </div>`).join('')}</div>`;
 }
 
 /* ---------- MAIORES PANELAS JÁ FORMADAS ---------- */
@@ -5047,6 +5061,7 @@ function renderHallDaFama(modo){
     container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Ainda sem rodadas com vencedor definido pra montar o Hall da Fama.</div>';
     return;
   }
+  const ctx = contextoCards();
   container.innerHTML = `<div class="hall-grid">${lista.map(item=>{
     const rotulo = modo === 'anual' ? item.periodo : formatarPeriodoMensal(item.periodo);
     return `<div class="hall-card">
@@ -5054,12 +5069,8 @@ function renderHallDaFama(modo){
       <div class="hall-winners">${item.vencedores.map(v=>{
         const p = getPlayer(v.id);
         if(!p) return '';
-        return `<div class="hall-winner">
-          <div class="hall-trophy">🏆</div>
-          ${avatarHtml(p)}
-          <div class="hall-winner-name clickable-name" data-open-profile="${v.id}">${escapeHtml(p.apelido||p.nome)}</div>
-          <div class="hall-count">${v.count}× na foto</div>
-        </div>`;
+        // o 🏆 e o "N× na foto" que ficavam soltos ao lado do avatar agora vão numa tag do cartão
+        return cartaoDaTela('hall', p, ctx, { tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">🏆 ${v.count}× na foto</span>` });
       }).join('')}</div>
     </div>`;
   }).join('')}</div>`;
@@ -5108,15 +5119,16 @@ function renderPanelas(){
     container.innerHTML = `<div class="empty"><i class="ti ti-scale"></i>Nenhuma panela formada em ${ano} ainda (times precisam ter jogadores com nota de estrelas para calcular isso).</div>`;
     return;
   }
+  const ctx = contextoCards();
   container.innerHTML = panelas.map((p,i)=>{
-    const players = p.playerIds.map(pid=> getPlayer(pid));
-    const badges = computeBadges();
+    // jogador removido é omitido da grade (o cartão precisa de um jogador de verdade)
+    const cartoes = p.playerIds.map(pid=> getPlayer(pid)).filter(Boolean).map(pl=> cartaoDaTela('panelas', pl, ctx)).join('');
     return `<div class="panela-card">
       <div class="panela-head">
         <span class="panela-rank">${i+1}º — ${escapeHtml(p.teamNome)}</span>
         <span class="panela-date">${formatDate(p.data)}</span>
       </div>
-      <div class="panela-players">${players.map((pl,idx)=>`<span class="chip with-avatar">${avatarHtml(pl,'sm')}<span class="clickable-name" data-open-profile="${p.playerIds[idx]}">${escapeHtml(pl ? (pl.apelido||pl.nome) : '(removido)')}</span>${badgeIconsHtml(p.playerIds[idx], badges)}</span>`).join('')}</div>
+      <div class="panela-cartoes">${cartoes}</div>
       <div class="panela-vs">Média do time: <span class="panela-gap">★${p.mediaTime.toFixed(1)}</span> · demais times: ★${p.mediaOutros.toFixed(1)} · diferença: <span class="panela-gap">+${p.diff.toFixed(1)}</span></div>
     </div>`;
   }).join('');
@@ -5127,7 +5139,8 @@ document.getElementById('panelas-year').addEventListener('change', renderPanelas
 /* ---------- DEFUNTOS — jogadores com mais de 100 dias sem jogar ---------- */
 function renderDefuntos(){
   const container = document.getElementById('dash-defuntos');
-  const badges = computeBadges();
+  const ctx = contextoCards();
+  const badges = ctx.badges; // o mesmo computeBadges que o cartão usa: calculado uma vez só
   const ultimaVez = computeUltimaParticipacao();
   const agora = Date.now();
   const lista = DATA.players
@@ -5138,12 +5151,9 @@ function renderDefuntos(){
     container.innerHTML = '<div class="empty"><i class="ti ti-ghost-2"></i>Ninguém sumiu por mais de 100 dias até agora — cemitério vazio! 🪦</div>';
     return;
   }
-  container.innerHTML = lista.map(({p,dias})=>`
-    <div class="profile-partner clickable-name" data-open-profile="${p.id}">
-      ${avatarHtml(p,'sm')} ${nomeComApelidoHtml(p)}
-      <span style="margin-left:auto;color:var(--muted);">${dias} dias sem jogar</span>
-    </div>
-  `).join('');
+  container.innerHTML = `<div class="defuntos-cartoes">${lista.map(({p,dias})=>
+    cartaoDaTela('defuntos', p, ctx, { tagsExtraHtml: `<span class="jc-tag-alerta">${dias} dias sem jogar</span>` })
+  ).join('')}</div>`;
 }
 
 /* ---------- GRÁFICO: TOP 10 MAIS VEZES NA FOTO (todos os anos) ---------- */
