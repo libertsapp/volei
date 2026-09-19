@@ -1117,7 +1117,7 @@
   .jc-perfil{margin-bottom:16px;}
   .profile-card .jc-perfil{margin-top:12px;} /* dá folga pro botão ✕ do modal, que fica no canto */
 
-  .jc-topo{position:relative;display:flex;align-items:center;gap:14px;padding:14px 14px 14px 16px;}
+  .jc-topo{position:relative;display:flex;align-items:center;gap:14px;padding:14px 14px 18px 20px;}
   .jc-avatar-bloco{position:relative;flex:none;}
   .jc-anel{
     padding:3px;border-radius:50%;background:linear-gradient(135deg, var(--accent), var(--neon-purple));
@@ -1128,7 +1128,8 @@
   .jc-perfil .jc-foto{width:68px;height:68px;}
   /* hexágono: um clip-path de contorno (degradê) com outro, menor e escuro, por cima */
   .jc-hex{
-    position:absolute;left:-4px;bottom:-8px;width:32px;height:36px;display:grid;place-items:center;
+    /* fica no canto, com só uma pontinha sobre o anel: cobre pouco da foto */
+    position:absolute;left:-12px;bottom:-12px;width:32px;height:36px;display:grid;place-items:center;
     background:linear-gradient(135deg, var(--accent), var(--neon-purple));
     clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
@@ -1155,7 +1156,6 @@
   .jc-icone-conta{display:inline-flex;align-items:center;}
   .jc-apelido{font-size:12px;color:var(--muted);margin-top:2px;}
   .jc-linha-tags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;}
-  .jc-linha-tags .badge-gender{padding:3px 12px;border-radius:20px;font-size:12px;}
 
   .jc-acoes{display:flex;align-items:center;gap:4px;flex:none;}
   .jc-toggle{
@@ -1658,6 +1658,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.7: Cartão do jogador mais limpo</summary>
+          <div>
+            <p style="line-height:1.6;">O cartão não repete mais a palavra "Masculino/Feminino" (o símbolo ♂/♀ já mostra, e o texto aparece ao segurar o dedo), e o hexágono da posição ficou mais afastado do círculo da foto, cobrindo menos o rosto.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.6: Cartão do jogador</summary>
           <div>
             <p style="line-height:1.6;">Jogadores agora aparecem em <strong>cartões</strong> com anel neon no avatar, hexágono com a posição no ranking do ano e emblemas separados. Na lista <strong>Jogadores</strong> o cartão vem compacto, com as estrelinhas à vista: toque no <strong>&gt;</strong> para ver Partidas, Títulos, Aproveitamento e Estrelas.</p>
@@ -1834,7 +1841,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3463,10 +3470,10 @@ function jogadorCardHtml(d, opcoes){
   const icones = iconesInterno ? `<span class="jc-icones">${iconesInterno}</span>` : '';
 
   const apelido = d.apelido ? `<div class="jc-apelido">"${escapeHtml(d.apelido)}"</div>` : '';
-  const pilula = d.sexo ? `<span class="badge-gender ${d.sexo}">${d.sexo === 'F' ? 'Feminino' : 'Masculino'}</span>` : '';
   // estrelinhas de relance: a lista fechada não mostra a coluna "Estrelas"; no perfil com painel a coluna já mostra a nota
   const glifos = (d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
-  const tagsInterno = pilula + glifos + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
+  // o sexo já aparece como símbolo ♂/♀ ao lado do nome (com o texto no tooltip), então não repete em pílula
+  const tagsInterno = glifos + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
   const tags = tagsInterno ? `<div class="jc-linha-tags">${tagsInterno}</div>` : '';
 
   const toggle = (!perfil && d.metricas)

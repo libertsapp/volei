@@ -121,3 +121,5 @@ Refinamentos descobertos ao ler o código; valem no lugar do que estiver dito ac
 4. **Responsivo por *container query*** (cartão com menos de 480px → métricas em 2×2), no lugar das faixas 360/340px por tela: o modal de perfil tem 440px em qualquer aparelho.
 5. **`data-open-profile` só na variação `lista`:** na variação `perfil` (dentro do modal) o clique global reabriria o próprio perfil.
 6. **Estrelinhas de relance (pedido do usuário):** campo `estrelasHtml` (as 5 estrelinhas de `starsDisplay`) ao lado da pílula de sexo. Na `lista` aparecem sempre (fechada ou aberta), para quem confere notas sem expandir; no `perfil` só quando não há painel de métricas (com painel a coluna "Estrelas" já mostra a nota). Seguem a mesma regra de visibilidade: somem quando o admin oculta as estrelas.
+7. **Sem pílula "Masculino/Feminino" (pedido do usuário, v8.7):** o símbolo ♂/♀ ao lado do nome já diz o sexo (texto no tooltip). A linha de tags só existe quando há estrelinhas, ausência ou emblema extra.
+8. **Hexágono mais afastado da foto (v8.7):** `left/bottom: -12px` (era -4/-8) e `padding` do topo maior (`14px 14px 18px 20px`), para cobrir só uma pontinha do anel.
