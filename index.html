@@ -385,11 +385,26 @@
   .aovivo-stepper{display:flex;align-items:center;gap:10px;margin-top:8px;}
   .aovivo-stepper button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--court-navy-3);color:inherit;font-size:18px;line-height:1;cursor:pointer;}
   .aovivo-stepper button:disabled{opacity:0.4;cursor:default;}
-  .aovivo-stepper .valor{font-size:20px;font-weight:700;min-width:24px;text-align:center;}
   .aovivo-pendente{outline:2px solid var(--ball-yellow);}
   .aovivo-log{margin-top:14px;font-size:12px;color:var(--muted);max-height:140px;overflow-y:auto;}
   .aovivo-log div{padding:3px 0;border-bottom:1px solid var(--line);}
-  .aovivo-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  /* "Salvar parcial": linha inteira e flutuante — cola no rodapé da tela enquanto o cartão estiver à vista (sticky) e,
+     no fim do cartão, assenta no lugar natural, acima dos outros dois botões. No celular sobe o tamanho da barra
+     inferior fixa (~57px + área segura) pra não ficar escondido atrás dela. */
+  .aovivo-salvar{position:sticky;bottom:12px;z-index:20;margin-top:14px;}
+  @media (max-width:640px){ .aovivo-salvar{bottom:calc(69px + env(safe-area-inset-bottom));} }
+  .aovivo-salvar .btn{display:block;width:100%;padding:14px 18px;font-size:15px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,0.5);}
+  /* cor de destaque: o amarelo do tema com brilho (o ciano padrão dos botões não se distinguia dos demais).
+     "button.btn" na frente só pra ganhar do hover global (button.btn:hover troca o box-shadow) */
+  .aovivo-salvar button.btn:not(:disabled){
+    background:var(--ball-yellow);color:var(--court-navy);
+    box-shadow:0 8px 22px rgba(0,0,0,0.5), 0 0 20px color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+  }
+  /* desabilitado fica opaco de propósito: o padrão (opacity .4) deixaria os cartões aparecerem por baixo do botão flutuante */
+  .aovivo-salvar .btn:disabled{opacity:1;background:var(--court-navy-3);color:var(--muted);border:1px solid var(--line);}
+  /* os outros dois dividem a linha ao meio, no fim do cartão */
+  .aovivo-acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .aovivo-acoes .btn{width:100%;padding:10px 6px;font-size:12px;}
   .badge-win{background:var(--ball-yellow);color:var(--court-navy);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
 
   .toolbar-right{display:flex;gap:8px;margin-left:auto;}
@@ -1222,6 +1237,40 @@
   .jc-tag-alerta{font-size:11px;color:var(--danger);border:1px solid var(--danger);padding:2px 7px;border-radius:10px;font-weight:700;}
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  /* ===== AO VIVO: dois times por linha, com os pontos de cada time embaixo dele =====
+     (fica depois da regra acima de propósito: mesma especificidade, e aqui as colunas são sempre 2) */
+  .aovivo-card .history-teams{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .aovivo-card .history-team .tn{justify-content:center;text-align:center;}
+  /* borda transparente o tempo todo pra o destaque não empurrar o conteúdo quando aparece/some */
+  .aovivo-card .history-team{border:1.5px solid transparent;transition:border-color .2s ease, box-shadow .2s ease;}
+  .aovivo-card .history-team.lider{border-color:var(--ball-yellow);box-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  body.light-mode .aovivo-card .history-team.lider{box-shadow:none;}
+  .aovivo-pontos{display:flex;flex-direction:column;align-items:center;margin-top:6px;}
+  .aovivo-pontos-valor{font-family:'Anton',sans-serif;font-size:72px;line-height:1.05;color:var(--ball-yellow);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb, var(--ball-yellow) 55%, transparent);}
+  body.light-mode .aovivo-pontos-valor{text-shadow:none;}
+  .aovivo-pontos .aovivo-stepper{margin-top:4px;gap:12px;}
+  .aovivo-pontos .aovivo-stepper button{width:44px;height:40px;font-size:22px;}
+  @media (max-width:640px){
+    /* celular: cada coluna sobra ~125px de cartão, então tira folga das bordas */
+    .aovivo-card{padding:12px;}
+    .aovivo-card .history-team{padding:6px;}
+    .aovivo-pontos-valor{font-size:64px;}
+  }
+  /* cartão do jogador em coluna estreita (decidido pela largura do PRÓPRIO cartão, como o painel de métricas):
+     foto em cima, nome e estrelas centralizados embaixo. Sem o ">" e sem emblemas — o nome ainda abre o perfil. */
+  @container jc (max-width:260px){
+    .aovivo-card .jc-lista .jc-topo{flex-direction:column;text-align:center;gap:12px;padding:12px 8px 10px;}
+    .aovivo-card .jc-lista .jc-foto{width:44px;height:44px;}
+    .aovivo-card .jc-lista .jc-hex{left:-10px;bottom:-10px;width:26px;height:30px;}
+    .aovivo-card .jc-lista .jc-hex span{width:22px;height:26px;font-size:12px;}
+    .aovivo-card .jc-lista .jc-info{width:100%;}
+    .aovivo-card .jc-lista .jc-linha-nome{justify-content:center;}
+    .aovivo-card .jc-lista .jc-nome{font-size:14px;margin-right:0;}
+    .aovivo-card .jc-lista .jc-icones{padding-left:0;border-left:none;margin-left:6px;}
+    .aovivo-card .jc-lista .jc-icones > :not(.jc-sexo){display:none;}
+    .aovivo-card .jc-lista .jc-linha-tags{justify-content:center;}
+    .aovivo-card .jc-lista .jc-acoes{display:none;}
+  }
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
   .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(var(--sb-cols,2),minmax(0,1fr));grid-auto-rows:auto;align-items:start;gap:10px;margin-top:6px;}
@@ -1711,6 +1760,15 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v10.4: Ao Vivo com placar em destaque e dois times por linha</summary>
+          <div>
+            <p style="line-height:1.6;">Na tela <strong>Ao Vivo</strong>, os pontos de cada time aparecem grandes e centralizados embaixo do próprio time, com os botões de <strong>−</strong> e <strong>+</strong> logo abaixo do número. Os times ficam <strong>lado a lado</strong>, dois por linha, e no celular os cartões dos jogadores ficam compactos (foto em cima, nome e estrelas embaixo) para caberem nas duas colunas.</p>
+            <p style="line-height:1.6;">Para quem controla o placar, o botão <strong>Salvar parcial</strong> agora ocupa a linha toda, em amarelo, e fica <strong>flutuando</strong> na parte de baixo da tela enquanto o cartão está à vista. "Lançar placar final" e "Cancelar transmissão" dividem a linha logo abaixo, no fim do cartão.</p>
+            <p style="line-height:1.6;">O time com a <strong>maior pontuação</strong> ganha uma borda amarela em volta da coluna (em caso de empate, os times empatados no topo ficam destacados). Com o placar em 0 × 0 ninguém é destacado.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v10.1: Barra de progresso também no 2º e no 3º do Top 10 de fotos</summary>
           <div>
             <p style="line-height:1.6;">No <strong>Top 10 de fotos</strong>, quando há empate no 1º lugar, os cartões do 2º e do 3º agora também mostram a barra de progresso (quanto falta para o líder), igual à dos demais, e a etiqueta ficou padronizada ("2º · 5× na foto").</p>
@@ -1996,7 +2054,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 10.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 10.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4781,6 +4839,8 @@ function renderAoVivo(){
     // clique do organizador antes dele apertar "Salvar parcial"
     const vitoriasAtuais = AOVIVO_PENDENTE.has(r.id) ? AOVIVO_VITORIAS_LOCAIS.get(r.id) : r.times.map(t=>t.vitorias);
     const logDaRodada = DATA.aoVivo.log.filter(l=>l.roundId===r.id);
+    // quem tem a maior pontuação (todos os empatados no topo) ganha a borda de destaque; 0 x 0 não destaca ninguém
+    const maiorPontuacao = Math.max(0, ...vitoriasAtuais);
     return `
     <div class="aovivo-card ${AOVIVO_PENDENTE.has(r.id)?'aovivo-pendente':''}" data-aovivo-round="${r.id}">
       <div class="aovivo-card-head">
@@ -4789,16 +4849,18 @@ function renderAoVivo(){
       </div>
       <div class="history-teams">
         ${r.times.map((t, idx)=>`
-          <div class="history-team">
+          <div class="history-team ${vitoriasAtuais[idx] > 0 && vitoriasAtuais[idx] === maiorPontuacao ? 'lider' : ''}">
             <div class="tn">${escapeHtml(t.nome)}</div>
             ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? cartaoDaTela('aovivo', p, ctxCards, null, { semAnimacao: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
-            ${podeControlar ? `
-              <div class="aovivo-stepper">
-                <button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" ${vitoriasAtuais[idx]<=0?'disabled':''}>−</button>
-                <span class="valor">${vitoriasAtuais[idx]}</span>
-                <button type="button" data-aovivo-mais="${r.id}" data-time="${idx}">+</button>
-              </div>
-            ` : `<div class="aovivo-stepper"><span class="valor">${vitoriasAtuais[idx]}</span></div>`}
+            <div class="aovivo-pontos">
+              <span class="aovivo-pontos-valor">${vitoriasAtuais[idx]}</span>
+              ${podeControlar ? `
+                <div class="aovivo-stepper">
+                  <button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" aria-label="Tirar um ponto de ${escapeHtml(t.nome)}" ${vitoriasAtuais[idx]<=0?'disabled':''}>−</button>
+                  <button type="button" data-aovivo-mais="${r.id}" data-time="${idx}" aria-label="Dar um ponto para ${escapeHtml(t.nome)}">+</button>
+                </div>
+              ` : ''}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -4811,8 +4873,10 @@ function renderAoVivo(){
         }).join('')}
       </div>
       ${podeControlar ? `
-        <div class="aovivo-acoes">
+        <div class="aovivo-salvar">
           <button class="btn" data-aovivo-salvar="${r.id}" ${AOVIVO_PENDENTE.has(r.id)?'':'disabled'}>💾 Salvar parcial</button>
+        </div>
+        <div class="aovivo-acoes">
           <button class="btn secondary" data-aovivo-lancar="${r.id}">Lançar placar final →</button>
           <button class="btn secondary" data-aovivo-cancelar="${r.id}">Cancelar transmissão</button>
         </div>
