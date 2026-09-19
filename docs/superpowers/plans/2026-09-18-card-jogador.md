@@ -8,7 +8,7 @@
 
 **Tech Stack:** HTML + CSS + JS puro; Tabler Icons (já carregado); container queries CSS; sem biblioteca nova.
 
-**Spec:** `docs/superpowers/specs/2026-09-18-card-jogador-design.md` (a Task 1 acrescenta ao spec a seção "Ajustes feitos no planejamento" com 5 refinamentos).
+**Spec:** `docs/superpowers/specs/2026-09-18-card-jogador-design.md` (a Task 1 acrescenta ao spec a seção "Ajustes feitos no planejamento" com 6 refinamentos).
 
 ## Global Constraints
 
@@ -49,6 +49,7 @@
 d = { id, nome, apelido, foto, sexo /*'M'|'F'|''*/, temConta /*bool*/,
       emblemasHtml /*string*/, posicao /*number|null*/,
       metricas /*{partidas, titulos, pct}|null*/, estrelas /*number|null*/,
+      estrelasHtml /*string: as 5 estrelinhas; '' = ocultas*/,
       ausenciaHtml /*string*/, tagsExtraHtml /*string*/, acoesHtml /*string*/ }
 opcoes = { variante: 'lista'|'perfil', aberto: bool, tituloId: string|null }
 ```
@@ -66,7 +67,7 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&l
 const { jogadorCardHtml } = new Function('escapeHtml', trecho + '; return { jogadorCardHtml };')(escapeHtml);
 
 const base = { id:'p1', nome:'Ana', apelido:'', foto:'', sexo:'F', temConta:false, emblemasHtml:'', posicao:null,
-  metricas:{ partidas:24, titulos:16, pct:67 }, estrelas:null, ausenciaHtml:'', tagsExtraHtml:'', acoesHtml:'' };
+  metricas:{ partidas:24, titulos:16, pct:67 }, estrelas:null, estrelasHtml:'', ausenciaHtml:'', tagsExtraHtml:'', acoesHtml:'' };
 const c = (over, op) => jogadorCardHtml(Object.assign({}, base, over), op || { variante:'lista' });
 const n = (h, re) => (h.match(new RegExp(re, 'g')) || []).length;
 
@@ -91,6 +92,14 @@ assert.ok(c({ estrelas:4.5 }).includes('--jc-cols:4') && c({ estrelas:4.5 }).inc
 assert.ok(c({ estrelas:4 }).includes('>4<'));
 assert.ok(c({ estrelas:null }).includes('--jc-cols:3'));
 assert.ok(c({ estrelas:0 }).includes('--jc-cols:3'));
+
+// --- estrelinhas ao lado da pílula: sempre na lista; no perfil só quando não há painel (a coluna já mostra a nota)
+const glifos = '<span class="stars-display">★★★★★</span>';
+assert.ok(c({ estrelasHtml:glifos }, { variante:'lista' }).includes(glifos));
+assert.ok(c({ estrelasHtml:glifos }, { variante:'lista', aberto:true }).includes(glifos));
+assert.ok(!c({ estrelasHtml:glifos }, { variante:'perfil' }).includes(glifos));
+assert.ok(c({ estrelasHtml:glifos, metricas:null }, { variante:'perfil' }).includes(glifos));
+assert.ok(!c({ estrelasHtml:'' }).includes('stars-display'));
 
 // --- hexágono
 assert.ok(!c({ posicao:null }).includes('jc-hex'));
@@ -188,7 +197,9 @@ function jogadorCardHtml(d, opcoes){
 
   const apelido = d.apelido ? `<div class="jc-apelido">"${escapeHtml(d.apelido)}"</div>` : '';
   const pilula = d.sexo ? `<span class="badge-gender ${d.sexo}">${d.sexo === 'F' ? 'Feminino' : 'Masculino'}</span>` : '';
-  const tagsInterno = pilula + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
+  // estrelinhas de relance: a lista fechada não mostra a coluna "Estrelas"; no perfil com painel a coluna já mostra a nota
+  const glifos = (d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
+  const tagsInterno = pilula + glifos + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
   const tags = tagsInterno ? `<div class="jc-linha-tags">${tagsInterno}</div>` : '';
 
   const toggle = (!perfil && d.metricas)
@@ -369,6 +380,7 @@ Refinamentos descobertos ao ler o código; valem no lugar do que estiver dito ac
 3. **Fundo do cartão opaco** (`--court-navy-2`), não `--glass-bg`: o degradê da borda fica numa camada por baixo e vazaria por um miolo translúcido.
 4. **Responsivo por *container query*** (cartão com menos de 480px → métricas em 2×2), no lugar das faixas 360/340px por tela: o modal de perfil tem 440px em qualquer aparelho.
 5. **`data-open-profile` só na variação `lista`:** na variação `perfil` (dentro do modal) o clique global reabriria o próprio perfil.
+6. **Estrelinhas de relance (pedido do usuário):** campo `estrelasHtml` (as 5 estrelinhas de `starsDisplay`) ao lado da pílula de sexo. Na `lista` aparecem sempre (fechada ou aberta), para quem confere notas sem expandir; no `perfil` só quando não há painel de métricas (com painel a coluna "Estrelas" já mostra a nota). Seguem a mesma regra de visibilidade: somem quando o admin oculta as estrelas.
 EOF
 ```
 
@@ -411,11 +423,12 @@ const trecho = html.split('// <card-dados>')[1].split('// </card-dados>')[0];
 const stats = { a:{ jogos:24, titulos:16, pct:67 }, b:{ jogos:0, titulos:0, pct:0 } };
 let estrelasVisiveis = true;
 const { contextoCards, montarDadosCard } = new Function(
-  'computePlayerAllTimeStats', 'temContaVinculada', 'badgeIconsHtml', 'computeRanking', 'computeBadges', 'starsVisibleNow',
+  'computePlayerAllTimeStats', 'temContaVinculada', 'badgeIconsHtml', 'computeRanking', 'computeBadges', 'starsVisibleNow', 'starsDisplay',
   trecho + '; return { contextoCards, montarDadosCard };'
 )(
   id => stats[id], id => id === 'a', (id, b) => '<badges:' + id + ':' + b + '>',
-  ano => [{ id:'z' }, { id:'a' }], () => 'BADGES', () => estrelasVisiveis
+  ano => [{ id:'z' }, { id:'a' }], () => 'BADGES', () => estrelasVisiveis,
+  n => (parseFloat(n) > 0 ? '<estrelas:' + n + '>' : '')
 );
 
 const ctx = contextoCards();
@@ -428,6 +441,7 @@ assert.deepStrictEqual(ana.metricas, { partidas:24, titulos:16, pct:67 });
 assert.strictEqual(ana.posicao, 2);
 assert.strictEqual(ana.temConta, true);
 assert.strictEqual(ana.estrelas, 4.5);
+assert.strictEqual(ana.estrelasHtml, '<estrelas:4.5>');
 assert.strictEqual(ana.emblemasHtml, '<badges:a:BADGES>');
 assert.strictEqual(ana.apelido, 'An');
 
@@ -437,7 +451,9 @@ assert.strictEqual(bia.metricas, null);
 assert.strictEqual(bia.posicao, null);
 assert.strictEqual(bia.temConta, false);
 
-// estrelas: oculta pelo admin, zero e texto vindo da planilha
+// estrelas: oculta pelo admin, zero e texto vindo da planilha (as estrelinhas seguem a mesma regra)
+assert.strictEqual(montarDadosCard({ id:'a', nome:'A', estrelas:4 }, Object.assign({}, ctx, { mostrarEstrelas:false })).estrelasHtml, '');
+assert.strictEqual(montarDadosCard({ id:'a', nome:'A', estrelas:0 }, ctx).estrelasHtml, '');
 assert.strictEqual(montarDadosCard({ id:'a', nome:'A', estrelas:4 }, Object.assign({}, ctx, { mostrarEstrelas:false })).estrelas, null);
 assert.strictEqual(montarDadosCard({ id:'a', nome:'A', estrelas:0 }, ctx).estrelas, null);
 assert.strictEqual(montarDadosCard({ id:'a', nome:'A', estrelas:'3.5' }, ctx).estrelas, 3.5);
@@ -483,6 +499,7 @@ function montarDadosCard(p, ctx, extras){
     posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
     metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct } : null,
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
+    estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
   }, extras || {});
 }
@@ -805,4 +822,4 @@ EOF
 
 Conforme o CLAUDE.md: **parar aqui** e mostrar o resultado só no Terça. O Meme só recebe o cartão depois de autorização explícita, pelo mesmo procedimento da réplica anterior: merge de 3 vias (base = Terça antes do cartão; `git show <commit-base>:volei-dashboard.html`, versão LF) com o `volei-meme-dashboard.html`. Como o cartão é todo feito de tokens (`--accent`, `--neon-purple`, `--glass-*`), o Meme só precisa de ajuste de texto/comentários. Sem mudança de backend: nenhuma aba nova nem `.gs` a reimplantar.
 
-Ponto para decidir depois (registrado, não implementado): na lista fechada a **nota em estrelas** deixa de aparecer de relance (ela vive na coluna "Estrelas" do painel aberto). Quem usa a lista para conferir notas terá que expandir. Se isso incomodar, uma alternativa barata é mostrar as 5 estrelinhas pequenas na linha de tags do cartão fechado, só para quem `starsVisibleNow()`.
+Decisão já tomada: as **estrelinhas** aparecem ao lado da pílula na lista (fechada ou aberta), para quem confere notas de relance; no perfil só quando não há painel de métricas.
