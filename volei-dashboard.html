@@ -1204,11 +1204,12 @@
   .jc-reduzido .jc-topo{padding:8px 12px;gap:10px;}
   .jc-reduzido .jc-foto{width:38px;height:38px;}
   .jc-reduzido .jc-anel{padding:2px;box-shadow:0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);}
-  .jc-reduzido .jc-nome{font-size:14px;margin-right:6px;white-space:nowrap;}
+  .jc-reduzido .jc-nome{font-size:14px;margin-right:0;white-space:nowrap;}
   .jc-reduzido .jc-icones{padding-left:0;border-left:none;}
-  .jc-reduzido .jc-linha-nome{gap:2px 0;}
+  /* o espaço entre nome, símbolo e estrelas é "gap" (e não margem): se as estrelas quebrarem pra linha de baixo, ficam alinhadas ao nome */
+  .jc-reduzido .jc-linha-nome{gap:2px 8px;}
   .jc-reduzido .jc-sexo{font-size:16px;}
-  .jc-estrelas{display:inline-flex;align-items:center;margin-left:6px;}
+  .jc-estrelas{display:inline-flex;align-items:center;}
   .jc-leading{flex:none;display:flex;align-items:center;}
   .jc-leading input[type=checkbox]{width:18px;height:18px;cursor:pointer;}
   /* <label> que envolve o cartão nas listas (Check-in/Sorteio): tocar em qualquer ponto aciona o botão/checkbox */
@@ -5869,7 +5870,7 @@ function renderCheckinList(){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador encontrado.</div>';
     return;
   }
-  const badges = computeBadges();
+  const mostrarEstrelas = starsVisibleNow();
   const travado = SETTINGS.checkinTravado;
   const podeMarcar = AUTH.logado && !travado;
   list.innerHTML = pool.map(p=>{
@@ -5879,15 +5880,20 @@ function renderCheckinList(){
     if(confirmado) rotulo = naReserva ? '⏳ Reserva' : '✅ Confirmado';
     else if(travado) rotulo = '🔒 Travado';
     else if(!AUTH.logado) rotulo = '🔒 Entre pra confirmar';
-    return `<label class="select-row" style="cursor:pointer;" data-checkin-toggle="${p.id}">
-      ${avatarHtml(p,'sm')}
-      <span class="flex1">${nomeComApelidoHtml(p, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
-      ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
-      ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-      <button type="button" class="btn ${confirmado && !naReserva?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${podeMarcar?'':'disabled'}>
+    const botao = `<button type="button" class="btn ${confirmado && !naReserva?'':'secondary'}" style="padding:6px 12px;font-size:12px;" data-checkin-btn="${p.id}" ${podeMarcar?'':'disabled'}>
         ${rotulo}
-      </button>
-    </label>`;
+      </button>`;
+    // o <label> continua em volta: tocar em qualquer ponto da linha aciona o botão, como antes.
+    // O nome NÃO abre o perfil aqui (tocar na linha é pra marcar presença).
+    return `<label class="jc-linha" data-checkin-toggle="${p.id}">${jogadorCardHtml(
+      montarDadosReduzido(p, mostrarEstrelas, {
+        nomeHtml: highlightMatch(p.nome, term),
+        apelidoHtml: p.apelido ? highlightMatch(p.apelido, term) : '',
+        tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '',
+        acoesHtml: botao
+      }),
+      { variante: 'reduzido', nomeAbrePerfil: false }
+    )}</label>`;
   }).join('');
   if(!podeMarcar) return; // travado ou sem login: só exibe a lista, sem religar os botões
   list.querySelectorAll('[data-checkin-btn]').forEach(btn=>{
@@ -6087,16 +6093,17 @@ function renderSorteioList(){
     list.innerHTML = '<div class="picker-empty">Nenhum nome bate com essa busca 🔎</div>';
     return;
   }
-  const badges = computeBadges();
-  list.innerHTML = pool.map(p=>`
-    <label class="select-row">
-      <input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>
-      ${avatarHtml(p,'sm')}
-      <span class="flex1">${nomeComApelidoHtml(p, term)}${badgeIconsHtml(p.id, badges)}${p.isGuest ? ' <span class="badge-guest">convidado</span>' : ''}</span>
-      ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
-      ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-    </label>
-  `).join('');
+  const mostrarEstrelas = starsVisibleNow();
+  // o checkbox vai no "leadingHtml" e o <label> envolve o cartão: tocar na linha alterna a seleção, como antes
+  list.innerHTML = pool.map(p=>`<label class="jc-linha">${jogadorCardHtml(
+    montarDadosReduzido(p, mostrarEstrelas, {
+      nomeHtml: highlightMatch(p.nome, term),
+      apelidoHtml: p.apelido ? highlightMatch(p.apelido, term) : '',
+      tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '',
+      leadingHtml: `<input type="checkbox" data-id="${p.id}" ${SELECTED_IDS.has(p.id) ? 'checked' : ''}>`
+    }),
+    { variante: 'reduzido', nomeAbrePerfil: false }
+  )}</label>`).join('');
 }
 
 let DRAFT_TEAMS = []; // [[player, player...], [...], ...] — estado local do sorteio, ajustável por drag-and-drop
