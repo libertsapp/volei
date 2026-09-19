@@ -1210,6 +1210,8 @@
   .jc-reduzido .jc-linha-nome{gap:2px 8px;}
   .jc-reduzido .jc-sexo{font-size:16px;}
   .jc-estrelas{display:inline-flex;align-items:center;}
+  /* a etiqueta "convidado" só tinha estilo dentro do .draft-chip; agora vale em qualquer cartão */
+  .jc-linha-tags .badge-guest{font-size:9px;color:var(--muted);border:1px solid var(--line);padding:1px 5px;border-radius:8px;}
   .jc-leading{flex:none;display:flex;align-items:center;}
   .jc-leading input[type=checkbox]{width:18px;height:18px;cursor:pointer;}
   /* <label> que envolve o cartão nas listas (Check-in/Sorteio): tocar em qualquer ponto aciona o botão/checkbox */
@@ -1220,6 +1222,8 @@
   .history-team .jogador-card{margin-bottom:6px;}
   .picker-trigger .jogador-card{flex:1;min-width:0;}
   .picker-trigger:has(.jogador-card){padding:3px;}
+  /* convidados da Nova Rodada: o cartão tem largura própria (container-type), então não pode ficar num flex-wrap de "chips" */
+  #rodada-guest-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
 </style>
 </head>
 <body>
@@ -1683,6 +1687,14 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.0: Cartão do jogador nas listas e times</summary>
+          <div>
+            <p style="line-height:1.6;">O cartão do jogador agora aparece também no <strong>Check-in</strong>, no <strong>Sorteio</strong> (lista, grupos e times sorteados), no <strong>Histórico de rodadas</strong> e na <strong>Nova Rodada</strong>, numa versão reduzida: só o símbolo ♂/♀ e as estrelinhas (para quem pode vê-las), sem hexágono nem emblemas.</p>
+            <p style="line-height:1.6;">Marcar presença, selecionar para o sorteio e arrastar jogadores entre times funcionam como antes.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v8.9: Estrela dourada</summary>
           <div>
             <p style="line-height:1.6;">O ícone de estrela da coluna <strong>Estrelas</strong> do cartão do jogador agora é amarelo, igual às estrelinhas do app.</p>
@@ -1880,7 +1892,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.9 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4173,10 +4185,14 @@ function renderRodadaGuestChips(){
   const container = document.getElementById('rodada-guest-chips');
   if(!container) return;
   if(GUESTS.length===0){ container.innerHTML=''; return; }
-  container.innerHTML = GUESTS.map(g=>`
-    <span class="chip with-avatar">${avatarHtml(g,'sm')}<span class="clickable-name" data-open-profile="${g.id}">${escapeHtml(g.nome)}</span>${starsVisibleNow() ? starsDisplay(g.estrelas) : ''}<span class="badge-guest" style="margin-left:6px;">convidado</span>
-      <button type="button" class="icon-btn" data-remove-guest="${g.id}" style="margin-left:4px;" title="Remover convidado">✕</button>
-    </span>`).join('');
+  const mostrarEstrelas = starsVisibleNow();
+  container.innerHTML = GUESTS.map(g=> jogadorCardHtml(
+    montarDadosReduzido(g, mostrarEstrelas, {
+      tagsExtraHtml: '<span class="badge-guest">convidado</span>',
+      acoesHtml: `<button type="button" class="icon-btn" data-remove-guest="${g.id}" title="Remover convidado">✕</button>`
+    }),
+    { variante: 'reduzido' }
+  )).join('');
   container.querySelectorAll('[data-remove-guest]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       GUESTS = GUESTS.filter(g=>g.id!==btn.dataset.removeGuest);
@@ -4203,7 +4219,8 @@ function updateLeader(){
 /* combobox de jogador com busca, usado nos slots de Nova Rodada */
 function playerTriggerHtml(p){
   if(!p) return '<span class="picker-placeholder">🔍 Escolher jogador…</span>';
-  return `${avatarHtml(p,'sm')}<span>${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, computeBadges())}</span>`;
+  // dentro do botão do slot: tocar no nome tem que abrir o seletor, não o perfil
+  return jogadorCardHtml(montarDadosReduzido(p, starsVisibleNow()), { variante: 'reduzido', nomeAbrePerfil: false });
 }
 
 function wirePickers(){
@@ -5527,7 +5544,7 @@ function renderHistory(){
           ${r.times.map(t=>`
             <div class="history-team">
               <div class="tn">${escapeHtml(t.nome)}</div>
-              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', nomeAbrePerfil: false }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
             </div>
           `).join('')}
         </div>
@@ -5576,7 +5593,7 @@ function renderHistory(){
     return;
   }
   const visiveis = sorted.slice(0, HISTORICO_LIMITE);
-  const badges = computeBadges();
+  const mostrarEstrelas = starsVisibleNow(); // o cartão reduzido só precisa saber se pode mostrar as estrelas
   list.innerHTML = visiveis.map(r=>`
     <div class="history-item">
       <div class="history-head">
@@ -5591,7 +5608,7 @@ function renderHistory(){
           <div class="history-team ${souCampeao(r, idx)?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${souCampeao(r, idx)?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span>${badgeIconsHtml(pid, badges)}</div>`; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido' }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
           </div>
         `).join('')}
       </div>
