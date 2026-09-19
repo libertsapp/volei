@@ -1661,6 +1661,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v8.9: Estrela dourada</summary>
+          <div>
+            <p style="line-height:1.6;">O ícone de estrela da coluna <strong>Estrelas</strong> do cartão do jogador agora é amarelo, igual às estrelinhas do app.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v8.8: Média de vitórias por partida</summary>
           <div>
             <p style="line-height:1.6;">O cartão do jogador ganhou a coluna <strong>Vit./partida</strong> (ícone de bola de vôlei): as vitórias somadas divididas pelas partidas jogadas — por exemplo, 93 vitórias em 19 partidas dá <strong>4,9</strong>. Aparece na linha aberta do cartão, com a conta escrita embaixo.</p>
@@ -1851,7 +1858,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.8 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.9 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3513,7 +3520,7 @@ function jogadorCardHtml(d, opcoes){
     }
     // estrelas ocultas pelo admin (ou nota zero): a coluna some e as outras se redistribuem
     if(d.estrelas != null && d.estrelas > 0){
-      colunas.push(jcMetricaHtml('ti-star', 'jc-cor-roxo', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
+      colunas.push(jcMetricaHtml('ti-star', 'jc-cor-ouro', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
     }
     painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
   }
