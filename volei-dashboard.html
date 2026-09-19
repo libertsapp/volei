@@ -1224,6 +1224,14 @@
   .picker-trigger:has(.jogador-card){padding:3px;}
   /* convidados da Nova Rodada: o cartão tem largura própria (container-type), então não pode ficar num flex-wrap de "chips" */
   #rodada-guest-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
+  /* ===== FASE 2: cartão completo em outras telas ===== */
+  .jc-sem-anim{animation:none !important;}
+  .aovivo-card .jc-lista{animation:none;} /* cinto de segurança: nada dentro do Ao Vivo anima de entrada */
+  .jc-tag{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 7px;border-radius:10px;}
+  .jc-tag-ouro{color:var(--ball-yellow);border-color:color-mix(in srgb, var(--ball-yellow) 45%, transparent);font-weight:700;}
+  .jc-tag-alerta{font-size:11px;color:var(--danger);border:1px solid var(--danger);padding:2px 7px;border-radius:10px;font-weight:700;}
+  /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
+  .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
 </style>
 </head>
 <body>
@@ -3550,9 +3558,12 @@ function jogadorCardHtml(d, opcoes){
   if(d.metricas && !reduzido){
     const m = d.metricas;
     // o número de Títulos só é clicável no perfil (abre as datas de campeão) — o id vem de quem chama
+    // Títulos clicável (abre as datas de campeão): no perfil por id; no Ranking por atributos que quem chama monta
     const titulo = (perfil && op.tituloId)
       ? `<span class="jc-valor ranking-titulos-clicavel" id="${escapeHtml(op.tituloId)}" title="Toque para ver as datas">${m.titulos}</span>`
-      : `<span class="jc-valor">${m.titulos}</span>`;
+      : (op.tituloAtributos
+        ? `<span class="jc-valor ranking-titulos-clicavel" ${op.tituloAtributos} title="Toque para ver as datas">${m.titulos}</span>`
+        : `<span class="jc-valor">${m.titulos}</span>`);
     const colunas = [
       jcMetricaHtml('ti-calendar', 'jc-cor-accent', 'Partidas', `<span class="jc-valor">${m.partidas}</span>`),
       jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo),
@@ -3573,8 +3584,10 @@ function jogadorCardHtml(d, opcoes){
   const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
   if(op.classesExtra) classes.push(op.classesExtra); // ex.: 'draft-chip', pro cartão SER o chip arrastável do sorteio
   if(!perfil && !reduzido && op.aberto && d.metricas) classes.push('aberto');
-  // "atributos" vem pronto e confiável de quem chama (ids do próprio app: draggable, data-player-id...)
-  const atributos = op.atributos ? ' ' + op.atributos : '';
+  if(op.semAnimacao) classes.push('jc-sem-anim'); // Ao Vivo: a tela re-renderiza a cada poll, uma animação de entrada faria o cartão piscar
+  // "atributos" vem pronto e confiável de quem chama (ids do próprio app: draggable, data-player-id...);
+  // "tela" isola o estado aberto/fechado do cartão por tela (ver jcChave)
+  const atributos = (op.tela ? ` data-jc-tela="${escapeHtml(op.tela)}"` : '') + (op.atributos ? ' ' + op.atributos : '');
   return `<div class="${classes.join(' ')}" data-jc-id="${escapeHtml(d.id)}"${atributos}>
     <div class="jc-topo">
       ${leading}<div class="jc-avatar-bloco"><div class="jc-anel">${foto}</div>${hex}</div>
@@ -3623,6 +3636,31 @@ function montarDadosReduzido(p, mostrarEstrelas, extras){
   }, extras || {});
 }
 // </card-dados>
+/* ---------- ESTADO "ABERTO" DOS CARTÕES, POR TELA ----------
+   A chave é "<tela>:<id>": abrir o Fábio no Ranking não abre o Fábio na aba Jogadores. */
+function jcChave(tela, id){ return tela + ':' + id; }
+function jcAberto(tela, id){ return JOGADOR_CARD_ABERTOS.has(jcChave(tela, id)); }
+// Cartão completo (variante 'lista') de um jogador numa tela: monta os dados e lê o "aberto" daquela tela.
+// "extras" sobrescreve campos de dados (ex.: posicao/metricas do ano no Ranking); "opcoes" as opções do cartão.
+function cartaoDaTela(tela, p, ctx, extras, opcoes){
+  return jogadorCardHtml(
+    montarDadosCard(p, ctx, extras),
+    Object.assign({ variante: 'lista', tela: tela, aberto: jcAberto(tela, p.id) }, opcoes || {})
+  );
+}
+// Um listener só, no document, vale para TODAS as telas. Só troca uma classe: chamar o render aqui
+// reiniciaria a animação de entrada e o cartão "piscaria".
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest && e.target.closest('.jc-toggle');
+  if(!btn) return;
+  const card = btn.closest('.jogador-card');
+  if(!card) return;
+  const abrir = !card.classList.contains('aberto');
+  card.classList.toggle('aberto', abrir);
+  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  const chave = jcChave(card.dataset.jcTela || 'jogadores', card.dataset.jcId);
+  if(abrir) JOGADOR_CARD_ABERTOS.add(chave); else JOGADOR_CARD_ABERTOS.delete(chave);
+});
 
 function renderPlayers(){
   const list = document.getElementById('player-list');
@@ -3656,7 +3694,7 @@ function renderPlayers(){
     // sem participações: a própria "ausência" já diz isso e o cartão nasce sem painel de métricas
     return jogadorCardHtml(
       montarDadosCard(p, ctxCards, { ausenciaHtml, acoesHtml }),
-      { variante: 'lista', aberto: JOGADOR_CARD_ABERTOS.has(p.id) }
+      { variante: 'lista', tela: 'jogadores', aberto: jcAberto('jogadores', p.id) }
     );
   }).join('');
 
@@ -3684,17 +3722,7 @@ function renderPlayers(){
   });
 }
 
-// Delegado na lista (um listener só, que sobrevive aos re-renders). Só troca uma classe:
-// chamar renderPlayers() aqui reiniciaria a animação de entrada e o cartão "piscaria".
-document.getElementById('player-list').addEventListener('click', (e)=>{
-  const btn = e.target.closest('.jc-toggle');
-  if(!btn) return;
-  const card = btn.closest('.jogador-card');
-  const abrir = !card.classList.contains('aberto');
-  card.classList.toggle('aberto', abrir);
-  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-  if(abrir) JOGADOR_CARD_ABERTOS.add(card.dataset.jcId); else JOGADOR_CARD_ABERTOS.delete(card.dataset.jcId);
-});
+
 
 /* ---------- EDIÇÃO DE JOGADOR (estrelas e foto — só admin) ---------- */
 /* ---------- PERFIL INDIVIDUAL DO JOGADOR (modal) ---------- */
