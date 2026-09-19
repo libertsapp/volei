@@ -1062,6 +1062,26 @@
   body.light-mode .medal-1{color:#b3790a;} body.light-mode .medal-2{color:#7b8794;} body.light-mode .medal-3{color:#a3622a;}
   @media (max-width:640px){ .rk-podio{gap:6px;} .rk-podio-avatar{width:46px;height:46px;} }
 
+  /* ===== BOTÕES DO CABEÇALHO SÓ COM ÍCONE ===== */
+  .admin-status-icone{padding:8px 11px;font-size:15px;line-height:1;}
+
+  /* ===== AVISO "AO VIVO" NA TELA INICIAL (mesma pulsação do ponto dourado da marca, em vermelho) ===== */
+  @keyframes pulso-vermelho{
+    0%{box-shadow:0 0 0 0 rgba(255,59,59,0.75);}
+    70%{box-shadow:0 0 0 9px rgba(255,59,59,0);}
+    100%{box-shadow:0 0 0 0 rgba(255,59,59,0);}
+  }
+  .ponto-ao-vivo{
+    flex:none;width:10px;height:10px;border-radius:50%;background:#ff3b3b;
+    animation:pulso-vermelho 1.8s infinite;
+  }
+  .aovivo-alerta{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 16px;border-radius:10px;cursor:pointer;
+    background:var(--glass-bg);border:1px solid rgba(255,59,59,0.55);font-size:14px;
+    box-shadow:0 0 14px rgba(255,59,59,0.18);
+  }
+  .aovivo-alerta-ir{margin-left:auto;font-size:12px;color:var(--muted);}
+
   /* ===== RADAR ===== */
   .radar-svg{width:100%;max-width:340px;display:block;margin:4px auto 0;overflow:visible;}
   .radar-jogador{transform-box:view-box;transform-origin:150px 135px;animation:radar-abrir .7s cubic-bezier(.22,1.2,.4,1) both;}
@@ -1109,9 +1129,9 @@
           <span class="auth-chip-perfil" id="auth-user-perfil"></span>
         </span>
       </button>
-      <button type="button" id="theme-toggle-btn" class="admin-status" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)">☀️ Modo claro</button>
-      <button type="button" id="som-toggle-btn" class="admin-status" aria-pressed="true" title="Ligar/desligar os sons do app">🔊 Som</button>
-      <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
+      <button type="button" id="theme-toggle-btn" class="admin-status admin-status-icone" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)" aria-label="Alternar modo claro/escuro">☀️</button>
+      <button type="button" id="som-toggle-btn" class="admin-status admin-status-icone" aria-pressed="true" title="Ligar/desligar os sons do app" aria-label="Ligar/desligar os sons do app">🔊</button>
+      <button type="button" id="admin-status-btn" class="admin-status admin-status-icone" title="Visitante" aria-label="Visitante">🔒</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -1164,6 +1184,12 @@
   <div id="app" style="display:none;">
 
     <section id="view-dashboard" class="active">
+      <!-- aviso de partida em transmissão: só aparece enquanto existe algo ao vivo (ver atualizarBadgeAoVivo) -->
+      <div id="aovivo-alerta" class="aovivo-alerta" style="display:none;" role="button" tabindex="0" title="Toque para acompanhar o placar">
+        <span class="ponto-ao-vivo" aria-hidden="true"></span>
+        <strong id="aovivo-alerta-texto"></strong>
+        <span class="aovivo-alerta-ir">Acompanhar ›</span>
+      </div>
       <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
         🔔 <strong id="usuarios-pendentes-texto"></strong>
       </div>
@@ -1530,6 +1556,14 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.4: Aviso de jogo ao vivo</summary>
+          <div>
+            <p style="line-height:1.6;">Quando há uma partida sendo transmitida, a tela <strong>Início</strong> mostra um aviso com uma bolinha vermelha pulsando — é só tocar nele pra acompanhar o placar. O aviso aparece e some sozinho.</p>
+            <p style="line-height:1.6;">Os botões do cabeçalho (modo claro, som e acesso) agora mostram só o ícone; o texto aparece ao passar o mouse ou segurar o dedo.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.3: Radar no Meu Perfil</summary>
           <div>
             <p style="line-height:1.6;">Em <strong>Meu Perfil</strong>, um gráfico de radar mostra seu desempenho em 6 eixos — aproveitamento, fase atual, títulos, vitórias, presença e sequência — comparado com a <strong>média do grupo</strong>.</p>
@@ -1683,7 +1717,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2529,7 +2563,11 @@ function updateAdminStatusBtn(){
   const comChaveMestra = !!getCachedPassword();
   // o botão antigo agora é só o indicador da CHAVE MESTRA — a identidade individual
   // mora no chip do Google, ao lado
-  btn.textContent = comChaveMestra ? '🔑 Chave mestra' : (AUTH.logado ? '🔓 ' + (AUTH.perfil || 'jogador') : '🔒 Visitante');
+  // só o ícone no botão (cabeçalho enxuto); o texto completo vai no tooltip e no aria-label
+  const rotulo = comChaveMestra ? 'Chave mestra ativa (toque para parar de usar)' : (AUTH.logado ? 'Perfil: ' + (AUTH.perfil || 'jogador') : 'Visitante');
+  btn.textContent = comChaveMestra ? '🔑' : (AUTH.logado ? '🔓' : '🔒');
+  btn.title = rotulo;
+  btn.setAttribute('aria-label', rotulo);
   btn.classList.toggle('is-admin', comChaveMestra || AUTH.perfil === 'admin');
   atualizarStatusAuth();
   aplicarPermissoesUI();
@@ -2840,7 +2878,8 @@ function atualizarBotaoSom(){
   const btn = document.getElementById('som-toggle-btn');
   if(!btn) return;
   const ligado = somAtivo();
-  btn.textContent = ligado ? '🔊 Som' : '🔇 Sem som';
+  btn.textContent = ligado ? '🔊' : '🔇';
+  btn.title = ligado ? 'Sons ligados (toque para desligar)' : 'Sons desligados (toque para ligar)';
   btn.setAttribute('aria-pressed', ligado ? 'true' : 'false');
 }
 document.getElementById('som-toggle-btn').addEventListener('click', ()=>{
@@ -4153,7 +4192,27 @@ function atualizarBadgeAoVivo(){
     el.textContent = String(total);
     el.style.display = total > 0 ? 'inline-flex' : 'none';
   });
+  // aviso na primeira tela (Início): some sozinho quando a transmissão termina
+  const alerta = document.getElementById('aovivo-alerta');
+  if(alerta){
+    alerta.style.display = total > 0 ? 'flex' : 'none';
+    document.getElementById('aovivo-alerta-texto').textContent =
+      total === 1 ? 'Jogo ao vivo agora' : total + ' jogos ao vivo agora';
+  }
 }
+function irParaAoVivo(){ document.querySelector('#nav button[data-view="aovivo"]').click(); }
+document.getElementById('aovivo-alerta').addEventListener('click', irParaAoVivo);
+document.getElementById('aovivo-alerta').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); irParaAoVivo(); }
+});
+// Quem está parado em outra tela (ex: Início) também precisa ver a transmissão começar/terminar:
+// um poll bem mais espaçado (30s) que o da tela Ao Vivo (9s, que cuida de si mesma). Pausa com a
+// aba escondida pra não gastar cota do Apps Script à toa.
+setInterval(()=>{
+  if(document.hidden) return;
+  if(document.getElementById('view-aovivo').classList.contains('active')) return;
+  recarregarAoVivo();
+}, 30000);
 
 // O cronômetro tem seu PRÓPRIO timer (1x por segundo), separado do polling do placar
 // (a cada 9s) — os dois começam/terminam juntos porque só fazem sentido enquanto a
@@ -6722,7 +6781,9 @@ window.addEventListener('scroll', closeBadgeTooltip, true);
 function aplicarTema(){
   const claro = localStorage.getItem('volei-theme') === 'light';
   document.body.classList.toggle('light-mode', claro);
-  document.getElementById('theme-toggle-btn').textContent = claro ? '🌙 Modo escuro' : '☀️ Modo claro';
+  const btnTema = document.getElementById('theme-toggle-btn');
+  btnTema.textContent = claro ? '🌙' : '☀️'; // mostra pra qual modo o toque leva
+  btnTema.title = claro ? 'Voltar ao modo escuro' : 'Modo claro (bom pra usar ao ar livre, sob sol)';
 }
 document.getElementById('theme-toggle-btn').addEventListener('click', ()=>{
   const claroAtual = document.body.classList.contains('light-mode');
