@@ -1180,11 +1180,14 @@
   .jc-cor-accent{color:var(--accent);}
   .jc-cor-ouro{color:var(--ball-yellow);}
   .jc-cor-roxo{color:var(--neon-purple);}
+  .jc-cor-verde{color:#5fd68a;} /* o mesmo verde de "positivo" que o perfil já usa (média do grupo) */
+  body.light-mode .jc-cor-verde{color:#1a8f4d;}
+  .jc-sub{font-size:10px;color:var(--muted);white-space:nowrap;margin-top:2px;}
   .jc-metrica-txt{display:flex;flex-direction:column;min-width:0;}
   .jc-rotulo{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);white-space:nowrap;}
   .jc-valor{font-size:24px;font-weight:800;line-height:1.1;}
   /* responsivo pela largura do PRÓPRIO cartão (e não da tela): o modal de perfil tem 440px em qualquer aparelho */
-  @container jc (max-width: 479px){
+  @container jc (max-width: 699px){ /* 5 colunas só cabem em cartão largo; abaixo disso, 2 por linha */
     .jc-metricas{grid-template-columns:1fr 1fr;row-gap:12px;}
     .jc-metrica + .jc-metrica{border-left:none;}
     .jc-metrica:nth-child(even){border-left:1px solid var(--line);}
@@ -1658,6 +1661,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v8.8: Média de vitórias por partida</summary>
+          <div>
+            <p style="line-height:1.6;">O cartão do jogador ganhou a coluna <strong>Vit./partida</strong> (ícone de bola de vôlei): as vitórias somadas divididas pelas partidas jogadas — por exemplo, 93 vitórias em 19 partidas dá <strong>4,9</strong>. Aparece na linha aberta do cartão, com a conta escrita embaixo.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.7: Cartão do jogador mais limpo</summary>
           <div>
             <p style="line-height:1.6;">O cartão não repete mais a palavra "Masculino/Feminino" (o símbolo ♂/♀ já mostra, e o texto aparece ao segurar o dedo), e o hexágono da posição ficou mais afastado do círculo da foto, cobrindo menos o rosto.</p>
@@ -1841,7 +1851,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.8 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3448,6 +3458,8 @@ function jcIconeGoogle(){
     + '</svg>';
 }
 function jcFormatarEstrelas(n){ return (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace('.', ','); }
+// média de vitórias por partida: sempre 1 casa decimal com vírgula (4,9 / 0,0), pra colunas diferentes não "dançarem"
+function jcFormatarMedia(vitorias, partidas){ return (vitorias / partidas).toFixed(1).replace('.', ','); }
 function jcMetricaHtml(icone, cor, rotulo, valorHtml){
   return `<div class="jc-metrica"><i class="ti ${icone} jc-metrica-icone ${cor}"></i><div class="jc-metrica-txt"><span class="jc-rotulo">${rotulo}</span>${valorHtml}</div></div>`;
 }
@@ -3494,6 +3506,11 @@ function jogadorCardHtml(d, opcoes){
       jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo),
       jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`)
     ];
+    // média de vitórias por partida (ex.: 93 vitórias em 19 partidas = 4,9). Sem "vitorias" (chamador antigo) a coluna não existe.
+    if(m.vitorias != null && m.partidas > 0){
+      colunas.push(jcMetricaHtml('ti-ball-volleyball', 'jc-cor-verde', 'Vit./partida',
+        `<span class="jc-valor">${jcFormatarMedia(m.vitorias, m.partidas)}</span><span class="jc-sub">${m.vitorias} vit. em ${m.partidas} partidas</span>`));
+    }
     // estrelas ocultas pelo admin (ou nota zero): a coluna some e as outras se redistribuem
     if(d.estrelas != null && d.estrelas > 0){
       colunas.push(jcMetricaHtml('ti-star', 'jc-cor-roxo', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
@@ -3533,7 +3550,7 @@ function montarDadosCard(p, ctx, extras){
     temConta: temContaVinculada(p.id),
     emblemasHtml: badgeIconsHtml(p.id, ctx.badges),
     posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
-    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct } : null,
+    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas } : null,
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
     estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
