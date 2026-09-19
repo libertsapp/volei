@@ -1110,7 +1110,7 @@
   /* raio de luz diagonal (só no escuro) — pointer-events:none pra nunca capturar clique */
   .jogador-card::before{
     content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-    background:linear-gradient(115deg, transparent 0 58%, color-mix(in srgb, var(--accent) 9%, transparent) 58% 64%, transparent 64% 100%);
+    background:linear-gradient(115deg, transparent 0 62%, color-mix(in srgb, var(--accent) 6%, transparent) 62% 65%, transparent 65% 100%);
   }
   body.light-mode .jogador-card::before{display:none;}
   .jc-lista{animation:entrar .35s ease both;}
@@ -1191,6 +1191,9 @@
     .jc-valor{font-size:20px;}
   }
 
+
+  /* celular: o botão do Google (~220px) + 3 ícones não cabem em 390px — quebra de linha em vez de cortar o 🔒 */
+  .header-right{flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -3417,6 +3420,7 @@ function avatarHtml(player, size){
 }
 
 let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
+const JOGADOR_CARD_ABERTOS = new Set(); // ids dos cartões da lista que estão expandidos (só na memória)
 let EDITING_ROUND_ID = null; // id da rodada sendo editada na tela Nova Rodada (só admin)
 let EDITING_ROUND_FROM_AOVIVO = false; // true quando "Salvar rodada" também precisa encerrar a transmissão ao vivo
 
@@ -3503,6 +3507,30 @@ function jogadorCardHtml(d, opcoes){
 }
 // </jogador-card-puro>
 
+// <card-dados>
+/* Camada fina entre o app (DATA) e o cartão puro. contextoCards() é chamado UMA vez por render
+   (e não uma vez por jogador): computeRanking e computeBadges percorrem todas as rodadas. */
+function contextoCards(){
+  const posicoes = {};
+  computeRanking(new Date().getFullYear().toString()).forEach((r, i)=>{ posicoes[r.id] = i + 1; });
+  return { badges: computeBadges(), posicoes, mostrarEstrelas: starsVisibleNow() };
+}
+function montarDadosCard(p, ctx, extras){
+  const s = computePlayerAllTimeStats(p.id);
+  const nota = parseFloat(p.estrelas);
+  return Object.assign({
+    id: p.id, nome: p.nome, apelido: p.apelido || '', foto: p.foto || '', sexo: p.sexo || '',
+    temConta: temContaVinculada(p.id),
+    emblemasHtml: badgeIconsHtml(p.id, ctx.badges),
+    posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
+    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct } : null,
+    estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
+    estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
+    ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
+  }, extras || {});
+}
+// </card-dados>
+
 function renderPlayers(){
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
@@ -3510,7 +3538,7 @@ function renderPlayers(){
     return;
   }
   const sorted = sortByName(DATA.players);
-  const badges = computeBadges();
+  const ctxCards = contextoCards();
   const ultimaVez = computeUltimaParticipacao();
   const agora = Date.now();
   const podeEditar = temPermissao('updatePlayer');
@@ -3529,26 +3557,14 @@ function renderPlayers(){
         ausenciaHtml = ''; // jogou recentemente (15 dias ou menos) — não exibe nada
       }
     }
-    return `
-    <div class="player-row">
-      <div class="with-avatar">
-        ${avatarHtml(p)}
-        <div>
-          <div class="name clickable-name" data-open-profile="${p.id}">${contaVinculadaIconHtml(p.id)}${escapeHtml(p.nome)}${badgeIconsHtml(p.id, badges)}</div>
-          ${p.apelido ? `<div class="sub">"${escapeHtml(p.apelido)}"</div>` : ''}
-          <div class="meta-row">
-            ${starsVisibleNow() ? starsDisplay(p.estrelas) : ''}
-            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo==='F'?'Feminino':'Masculino'}</span>` : ''}
-            ${ausenciaHtml}
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:2px;">
-        ${podeEditar ? `<button class="icon-btn" data-edit="${p.id}" title="Editar jogador" aria-label="Editar jogador">✏️</button>` : ''}
-        ${podeRemover ? `<button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>` : ''}
-      </div>
-    </div>
-  `;
+    const acoesHtml =
+      (podeEditar ? `<button class="icon-btn" data-edit="${p.id}" title="Editar jogador" aria-label="Editar jogador">✏️</button>` : '')
+      + (podeRemover ? `<button class="icon-btn" data-remove="${p.id}" title="Remover" aria-label="Remover jogador">✕</button>` : '');
+    // sem participações: a própria "ausência" já diz isso e o cartão nasce sem painel de métricas
+    return jogadorCardHtml(
+      montarDadosCard(p, ctxCards, { ausenciaHtml, acoesHtml }),
+      { variante: 'lista', aberto: JOGADOR_CARD_ABERTOS.has(p.id) }
+    );
   }).join('');
 
   list.querySelectorAll('[data-edit]').forEach(btn=>{
@@ -3574,6 +3590,18 @@ function renderPlayers(){
     });
   });
 }
+
+// Delegado na lista (um listener só, que sobrevive aos re-renders). Só troca uma classe:
+// chamar renderPlayers() aqui reiniciaria a animação de entrada e o cartão "piscaria".
+document.getElementById('player-list').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.jc-toggle');
+  if(!btn) return;
+  const card = btn.closest('.jogador-card');
+  const abrir = !card.classList.contains('aberto');
+  card.classList.toggle('aberto', abrir);
+  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(abrir) JOGADOR_CARD_ABERTOS.add(card.dataset.jcId); else JOGADOR_CARD_ABERTOS.delete(card.dataset.jcId);
+});
 
 /* ---------- EDIÇÃO DE JOGADOR (estrelas e foto — só admin) ---------- */
 /* ---------- PERFIL INDIVIDUAL DO JOGADOR (modal) ---------- */
@@ -4799,11 +4827,6 @@ function computeBadges(){
 // jogador tem uma conta Google vinculada, seja qual for o perfil dela
 function temContaVinculada(pid){
   return PERFIS_PUBLICOS.some(u=> u.jogadorId === pid);
-}
-function contaVinculadaIconHtml(pid){
-  return temContaVinculada(pid)
-    ? `<span class="badge-icon" title="Jogador com conta cadastrada no app">👤</span> `
-    : '';
 }
 
 function badgeIconsHtml(pid, badges){
