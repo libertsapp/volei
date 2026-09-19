@@ -305,6 +305,15 @@
   button.btn:disabled{opacity:0.4;cursor:not-allowed;}
 
   .player-list{display:flex;flex-direction:column;gap:8px;}
+  /* celular/tablet (toque sem hover): editar/excluir jogador saem do cartão e passam a ser por pressão longa
+     (ver ligarPressaoLongaJogadores). No computador nada muda: os botões continuam no cartão e o aviso não aparece. */
+  .player-list-aviso{display:none;color:var(--danger);font-size:11px;opacity:.85;margin:0 2px;}
+  @media (hover:none) and (pointer:coarse){
+    .player-list-aviso{display:block;}
+    .player-list .icon-btn[data-edit], .player-list .icon-btn[data-remove]{display:none;}
+    /* sem isso o segurar do dedo seleciona o texto / abre o menu do navegador antes dos 2 segundos */
+    .player-list .jogador-card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  }
   .player-row{
     display:flex;align-items:center;justify-content:space-between;
     background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;
@@ -1120,11 +1129,16 @@
   .jc-lista .jc-nome{cursor:pointer;}
   .jc-lista .jc-nome:hover{color:var(--accent);}
   .jc-perfil .jc-nome{font-size:24px;}
-  .jc-icones{display:flex;align-items:center;flex-wrap:wrap;padding-left:12px;border-left:1px solid var(--glass-borda);}
-  .jc-icones > * + *{margin-left:8px;padding-left:8px;border-left:1px solid var(--glass-borda);}
-  .jc-icones .badge-icon{font-size:18px;margin-left:0;padding:0 2px;}
-  .jc-icones > .badge-icon + .badge-icon{margin-left:8px;}
+  /* Todo ícone ocupa uma caixa de mesma altura (--jc-ic-h) e todo espaço entre ícone e barra é o mesmo (--jc-ic-esp).
+     A barra é a borda dessa caixa, então todas saem do mesmo tamanho. Nada de margin/padding próprio por tipo de ícone
+     (o emblema tinha o seu e ficava mais longe da barra que o ♂ e o G). */
+  .jc-icones{--jc-ic-h:22px;--jc-ic-esp:6px;display:flex;align-items:center;flex-wrap:wrap;row-gap:4px;padding-left:var(--jc-ic-esp);border-left:1px solid var(--glass-borda);}
+  .jc-icones > *{display:inline-flex;align-items:center;justify-content:center;box-sizing:content-box;height:var(--jc-ic-h);margin:0;padding:0;line-height:1;vertical-align:baseline;}
+  .jc-icones > * + *{margin-left:var(--jc-ic-esp);padding-left:var(--jc-ic-esp);border-left:1px solid var(--glass-borda);}
+  /* larguras justas: a caixa da fonte/emoji é mais larga que o desenho e criava um "respiro" extra ao lado da barra */
+  .jc-icones .badge-icon{font-size:18px;width:20px;}
   .jc-sexo{font-size:20px;}
+  .jc-icones > .jc-sexo{width:15px;}
   .jc-hex, .jc-icone-conta, .jc-sexo{cursor:help;} /* têm dica (hover e toque) */
   .jc-sexo-M{color:var(--accent);}
   .jc-sexo-F{color:#ff8fc0;}
@@ -1697,6 +1711,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v10.1: Barra de progresso também no 2º e no 3º do Top 10 de fotos</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Top 10 de fotos</strong>, quando há empate no 1º lugar, os cartões do 2º e do 3º agora também mostram a barra de progresso (quanto falta para o líder), igual à dos demais, e a etiqueta ficou padronizada ("2º · 5× na foto").</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v10.0: Cada cartão abre sozinho</summary>
           <div>
             <p style="line-height:1.6;">Corrigido: ao tocar no <strong>&gt;</strong> de um cartão no quadro de campeões, no Hall da Fama, nas Maiores Panelas e nos Defuntos, os outros cartões da mesma linha também cresciam e pareciam abertos. Agora só o cartão tocado abre; os demais ficam do tamanho de antes.</p>
@@ -1975,7 +1996,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 10.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 10.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3751,7 +3772,11 @@ function renderPlayers(){
   const agora = Date.now();
   const podeEditar = temPermissao('updatePlayer');
   const podeRemover = temPermissao('removePlayer');
-  list.innerHTML = sorted.map(p=>{
+  // só aparece em celular/tablet (CSS) e só pra quem tem permissão de editar ou remover
+  const avisoHtml = (podeEditar || podeRemover)
+    ? `<div class="player-list-aviso">Segure o dedo no card por 2 segundos para editar ou excluir.</div>`
+    : '';
+  list.innerHTML = avisoHtml + sorted.map(p=>{
     if(p.id === EDITING_PLAYER_ID) return editPlayerRowHtml(p);
     let ausenciaHtml;
     if(ultimaVez[p.id]===undefined){
@@ -3776,28 +3801,99 @@ function renderPlayers(){
   }).join('');
 
   list.querySelectorAll('[data-edit]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const cred = await requireAuth('updatePlayer');
-      if(!cred) return;
-      EDITING_PLAYER_ID = btn.dataset.edit;
-      renderPlayers();
-    });
+    btn.addEventListener('click', ()=> editarJogadorNaLista(btn.dataset.edit));
   });
   wireEditPlayerRow();
 
   list.querySelectorAll('[data-remove]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
-      const cred = await requireAuth('removePlayer');
-      if(!cred) return;
-      const removed = DATA.players.find(p=>p.id===btn.dataset.remove);
-      DATA.players = DATA.players.filter(p=>p.id!==btn.dataset.remove);
-      const ok = await postAction('removePlayer', {id: btn.dataset.remove}, cred);
-      if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
-      renderPlayers();
-    });
+    btn.addEventListener('click', ()=> removerJogadorDaLista(btn.dataset.remove));
   });
 }
+
+// Editar/remover são chamados tanto pelos botões do cartão (computador) quanto pelo menu da pressão longa (celular/tablet)
+async function editarJogadorNaLista(id){
+  const cred = await requireAuth('updatePlayer');
+  if(!cred) return;
+  EDITING_PLAYER_ID = id;
+  renderPlayers();
+}
+async function removerJogadorDaLista(id){
+  if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
+  const cred = await requireAuth('removePlayer');
+  if(!cred) return;
+  const removed = DATA.players.find(p=>p.id===id);
+  DATA.players = DATA.players.filter(p=>p.id!==id);
+  const ok = await postAction('removePlayer', {id}, cred);
+  if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
+  renderPlayers();
+}
+
+// Menu "EDITAR / EXCLUIR" que abre depois de segurar o dedo no cartão. Só oferece o que o perfil pode fazer
+// (a checagem de verdade continua no requireAuth e no backend).
+function abrirMenuAcoesJogador(id){
+  const p = DATA.players.find(x=>x.id===id);
+  const podeEditar = temPermissao('updatePlayer');
+  const podeRemover = temPermissao('removePlayer');
+  if(!p || (!podeEditar && !podeRemover)) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">${escapeHtml(p.apelido || p.nome || '')}</p>
+      <div class="password-actions">
+        ${podeEditar ? '<button class="btn" data-acao="editar">EDITAR</button>' : ''}
+        ${podeRemover ? '<button class="btn danger" data-acao="excluir">EXCLUIR</button>' : ''}
+        <button class="btn secondary" data-acao="cancelar">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const abertoEm = Date.now();
+  overlay.addEventListener('click', (e)=>{
+    const acao = e.target.dataset && e.target.dataset.acao;
+    if(e.target !== overlay && !acao) return;
+    // o "click" de quando o dedo solta logo depois dos 2s não pode fechar o menu recém-aberto
+    if(e.target === overlay && Date.now() - abertoEm < 500) return;
+    overlay.remove();
+    if(acao === 'editar') editarJogadorNaLista(id);
+    else if(acao === 'excluir') removerJogadorDaLista(id);
+  });
+}
+
+// Pressão longa (2s) no cartão, só com toque. Ligado uma vez na #player-list (o renderPlayers troca o innerHTML,
+// então listener por cartão se perderia). Mexeu o dedo ou soltou antes do tempo = era rolagem/toque normal, cancela.
+(function ligarPressaoLongaJogadores(){
+  const list = document.getElementById('player-list');
+  const TEMPO_MS = 2000, TOLERANCIA_PX = 10;
+  let timer = null, origem = null, disparou = false;
+  function cancelar(){ clearTimeout(timer); timer = null; }
+  list.addEventListener('pointerdown', (e)=>{
+    if(e.pointerType !== 'touch') return;
+    const card = e.target.closest('.jogador-card');
+    if(!card) return;
+    if(!temPermissao('updatePlayer') && !temPermissao('removePlayer')) return;
+    disparou = false;
+    origem = { x: e.clientX, y: e.clientY };
+    cancelar();
+    timer = setTimeout(()=>{
+      timer = null;
+      disparou = true;
+      if(navigator.vibrate) navigator.vibrate(30);
+      abrirMenuAcoesJogador(card.dataset.jcId);
+    }, TEMPO_MS);
+  });
+  list.addEventListener('pointermove', (e)=>{
+    if(timer && origem && Math.hypot(e.clientX-origem.x, e.clientY-origem.y) > TOLERANCIA_PX) cancelar();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=> list.addEventListener(ev, cancelar));
+  // soltar o dedo depois do menu aberto geraria um "click" no cartão (abriria perfil/estatísticas por baixo): engole esse
+  list.addEventListener('click', (e)=>{
+    if(!disparou) return;
+    disparou = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+  list.addEventListener('contextmenu', (e)=>{ if(e.target.closest('.jogador-card')) e.preventDefault(); });
+})();
 
 
 
@@ -5254,7 +5350,8 @@ function renderPhotoChart(){
     const p = getPlayer(d.id);
     if(!p) return '';
     return cartaoDaTela('fotos', p, ctxCards, {
-      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span></span>`
+      // mesma barra de progresso do 4º em diante (largura = vezes do jogador ÷ vezes do líder), ids podium-fill-N
+      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span> na foto</span><div class="leaderboard-track jc-barra"><div class="leaderboard-fill" id="podium-fill-${posicaoReal}"></div></div>`
     });
   }
 
@@ -5328,6 +5425,11 @@ function renderPhotoChart(){
     grupoPrimeiro.forEach((d,gi)=> animarContador(document.getElementById('podium-count-1-'+gi), d.vezes, '×'));
     if(segundo) animarContador(document.getElementById('podium-count-2'), segundo.vezes, '×');
     if(terceiro) animarContador(document.getElementById('podium-count-3'), terceiro.vezes, '×');
+    // barras do 2º/3º (só existem na faixa de empate; no pódio clássico o id não existe e nada acontece)
+    [[segundo, 2], [terceiro, 3]].forEach(([d, pos])=>{
+      const fill = d && document.getElementById('podium-fill-' + pos);
+      if(fill) fill.style.width = (d.vezes / max * 100) + '%';
+    });
     restanteLista.forEach((d,i)=>{
       const fill = document.getElementById('lb-fill-'+i);
       if(fill) fill.style.width = (d.vezes / max * 100) + '%';
