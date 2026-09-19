@@ -1245,6 +1245,9 @@
     .duo-cartoes .duo-rank, .duo-cartoes .duo-count{align-self:flex-start;}
     .duo-cartoes .duo-plus{align-self:center;}
   }
+  /* Top 10 de fotos: 4º em diante em cartões; a barra de progresso ocupa a linha de baixo da tag */
+  .leaderboard-cartoes{display:flex;flex-direction:column;gap:8px;}
+  .jc-linha-tags .jc-barra{flex:1 1 100%;height:6px;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -5195,7 +5198,7 @@ function renderPhotoChart(){
     container.innerHTML = `<div class="empty"><i class="ti ti-camera"></i>Nenhuma rodada com vencedor definido em ${ano} ainda.</div>`;
     return;
   }
-  const badges = computeBadges();
+  const ctxCards = contextoCards(); // uma vez por render; o cartão precisa de emblemas e posição
   const max = data[0].vezes;
   // todo mundo empatado no topo entra junto no 1º lugar — não escolhe só um
   const grupoPrimeiro = data.filter(d=>d.vezes===max);
@@ -5213,13 +5216,14 @@ function renderPhotoChart(){
       <div class="podium-block block-${posicaoReal}">${posicaoReal}º</div>
     </div>`;
   }
+  // 2º/3º da faixa de empate: viram cartão. O contador animado continua com o MESMO id (podium-count-N),
+  // agora dentro da tag do cartão; a animação (animarContador) escreve "N×" nele.
   function blocoSecundario(d, posicaoReal){
-    return `<div class="podium-secundaria-item clickable-name" data-open-profile="${d.id}">
-      <div class="podium-secundaria-rank">${posicaoReal}º</div>
-      ${avatarHtml({foto:d.foto, nome:d.nome},'sm')}
-      <div class="podium-secundaria-nome">${nomeComApelidoHtml(d)}</div>
-      <div class="podium-secundaria-count" id="podium-count-${posicaoReal}">0×</div>
-    </div>`;
+    const p = getPlayer(d.id);
+    if(!p) return '';
+    return cartaoDaTela('fotos', p, ctxCards, {
+      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span></span>`
+    });
   }
 
   const empatado = grupoPrimeiro.length > 1;
@@ -5274,15 +5278,14 @@ function renderPhotoChart(){
   }
 
   // 4º em diante — lista com barra em degradê e emblema de posição
-  const listaHtml = restanteLista.length ? `<div class="leaderboard-list">${restanteLista.map((d,i)=>{
+  const listaHtml = restanteLista.length ? `<div class="leaderboard-list leaderboard-cartoes">${restanteLista.map((d,i)=>{
+    const p = getPlayer(d.id);
+    if(!p) return ''; // jogador removido: sem cartão (a animação ignora ids que não existem)
     const posicao = i + 4;
-    return `<div class="leaderboard-row">
-      <div class="leaderboard-rank">${posicao}º</div>
-      ${avatarHtml({foto:d.foto, nome:d.nome},'sm')}
-      <div class="leaderboard-name clickable-name" data-open-profile="${d.id}">${nomeComApelidoHtml(d)}${badgeIconsHtml(d.id, badges)}</div>
-      <div class="leaderboard-track"><div class="leaderboard-fill" id="lb-fill-${i}"></div></div>
-      <div class="leaderboard-count" id="lb-count-${i}">0</div>
-    </div>`;
+    // ids lb-count-N / lb-fill-N preservados: a animação do gráfico continua apontando pra eles
+    return cartaoDaTela('fotos', p, ctxCards, {
+      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicao}º · <span id="lb-count-${i}">0</span>× na foto</span><div class="leaderboard-track jc-barra"><div class="leaderboard-fill" id="lb-fill-${i}"></div></div>`
+    });
   }).join('')}</div>` : '';
 
   container.innerHTML = podioHtml + listaHtml;
