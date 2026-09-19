@@ -1697,6 +1697,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v10.1: Barra de progresso também no 2º e no 3º do Top 10 de fotos</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Top 10 de fotos</strong>, quando há empate no 1º lugar, os cartões do 2º e do 3º agora também mostram a barra de progresso (quanto falta para o líder), igual à dos demais, e a etiqueta ficou padronizada ("2º · 5× na foto").</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v10.0: Cada cartão abre sozinho</summary>
           <div>
             <p style="line-height:1.6;">Corrigido: ao tocar no <strong>&gt;</strong> de um cartão no quadro de campeões, no Hall da Fama, nas Maiores Panelas e nos Defuntos, os outros cartões da mesma linha também cresciam e pareciam abertos. Agora só o cartão tocado abre; os demais ficam do tamanho de antes.</p>
@@ -1975,7 +1982,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 10.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 10.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5254,7 +5261,8 @@ function renderPhotoChart(){
     const p = getPlayer(d.id);
     if(!p) return '';
     return cartaoDaTela('fotos', p, ctxCards, {
-      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span></span>`
+      // mesma barra de progresso do 4º em diante (largura = vezes do jogador ÷ vezes do líder), ids podium-fill-N
+      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span> na foto</span><div class="leaderboard-track jc-barra"><div class="leaderboard-fill" id="podium-fill-${posicaoReal}"></div></div>`
     });
   }
 
@@ -5328,6 +5336,11 @@ function renderPhotoChart(){
     grupoPrimeiro.forEach((d,gi)=> animarContador(document.getElementById('podium-count-1-'+gi), d.vezes, '×'));
     if(segundo) animarContador(document.getElementById('podium-count-2'), segundo.vezes, '×');
     if(terceiro) animarContador(document.getElementById('podium-count-3'), terceiro.vezes, '×');
+    // barras do 2º/3º (só existem na faixa de empate; no pódio clássico o id não existe e nada acontece)
+    [[segundo, 2], [terceiro, 3]].forEach(([d, pos])=>{
+      const fill = d && document.getElementById('podium-fill-' + pos);
+      if(fill) fill.style.width = (d.vezes / max * 100) + '%';
+    });
     restanteLista.forEach((d,i)=>{
       const fill = document.getElementById('lb-fill-'+i);
       if(fill) fill.style.width = (d.vezes / max * 100) + '%';
