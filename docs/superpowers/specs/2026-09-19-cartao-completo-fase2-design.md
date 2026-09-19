@@ -133,3 +133,9 @@ Assim abrir o Fábio no Ranking não abre o Fábio no Hall. `renderPlayers` pass
   `contextoCards()` é montado uma vez por render. Aceitável nos volumes atuais (~46 jogadores, ~15 rodadas/ano).
 - **Estado compartilhado:** a migração da chave do `Set` (`"tela:id"`) mexe em `renderPlayers` (Fase anterior);
   coberta pelo teste de que a aba Jogadores continua abrindo/fechando e sobrevivendo a re-render.
+
+## Ajustes feitos no planejamento (2026-09-19)
+
+1. **Quadro do Início não vira ao tocar em QUALQUER parte de um cartão** (não só no `>`): senão tocar nas métricas ou no hexágono viraria o quadro. O resto do quadro continua virando, e o nome do jogador continua abrindo o perfil.
+2. **`wireRankingTitulosClicks` passa a receber o container:** hoje ela varre o `document` inteiro; com o Ranking e o Top 5 do Início renderizados ao mesmo tempo, os cartões de um lugar ganhavam o listener duas vezes e a janela de datas abria em dobro.
+3. **`renderPhotoChart` não precisa mais do `computeBadges()` próprio** (o cartão traz os emblemas pelo `contextoCards()`).
