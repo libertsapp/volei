@@ -1028,6 +1028,39 @@
       transition-duration:0.01ms !important; scroll-behavior:auto !important;
     }
   }
+
+  /* ===== PÓDIO DO RANKING ===== */
+  .rk-podio{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:20px;}
+  .rk-podio-item{
+    --cor:#ffd700;
+    flex:1;max-width:190px;text-align:center;padding:14px 8px 10px;border-radius:16px;cursor:pointer;
+    background:var(--glass-bg);border:1px solid var(--cor);
+    box-shadow:0 0 14px color-mix(in srgb, var(--cor) 35%, transparent);
+    animation:entrar .5s ease both;
+  }
+  .rk-podio-item.ouro{--cor:#ffd700;padding-top:22px;}
+  .rk-podio-item.prata{--cor:#e2e8f0;}
+  .rk-podio-item.bronze{--cor:#cd7f32;}
+  body.light-mode .rk-podio-item.ouro{--cor:#b3790a;}
+  body.light-mode .rk-podio-item.prata{--cor:#7b8794;}
+  body.light-mode .rk-podio-item.bronze{--cor:#a3622a;}
+  .rk-podio-coroa{font-size:20px;line-height:1;margin-bottom:6px;}
+  .rk-podio-avatar{
+    width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 8px;
+    border:3px solid var(--cor);animation:brilho-podio 2.6s ease-in-out infinite;
+  }
+  .rk-podio-avatar-fallback{display:flex;align-items:center;justify-content:center;background:var(--court-navy-3);font-family:'Anton',sans-serif;font-size:22px;color:var(--muted);}
+  @keyframes brilho-podio{
+    0%,100%{box-shadow:0 0 5px color-mix(in srgb, var(--cor) 60%, transparent);}
+    50%{box-shadow:0 0 18px var(--cor);}
+  }
+  .rk-podio-nome{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rk-podio-titulos{font-family:'Space Mono',monospace;font-weight:700;color:var(--cor);font-size:15px;margin:4px 0 2px;}
+  .rk-podio-sub{font-size:10px;color:var(--muted);}
+  .rk-podio-pos{font-family:'Anton',sans-serif;font-size:18px;color:var(--cor);margin-top:6px;}
+  .medal-1{color:#ffd700;} .medal-2{color:#e2e8f0;} .medal-3{color:#cd7f32;}
+  body.light-mode .medal-1{color:#b3790a;} body.light-mode .medal-2{color:#7b8794;} body.light-mode .medal-3{color:#a3622a;}
+  @media (max-width:640px){ .rk-podio{gap:6px;} .rk-podio-avatar{width:46px;height:46px;} }
 </style>
 </head>
 <body>
@@ -1485,6 +1518,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.2: Pódio no Ranking</summary>
+          <div>
+            <p style="line-height:1.6;">O <strong>Ranking</strong> ganhou um pódio com os 3 primeiros do ano — contorno dourado, prateado e bronze, avatar com brilho — acima da tabela de sempre. Tocar em um deles abre o perfil.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.1: Sons</summary>
           <div>
             <p style="line-height:1.6;">Cliques em abas, botões, troféus e nos controles do <strong>Ao Vivo</strong> agora fazem um som curto (sintetizado, sem baixar nada). Dá pra desligar no botão <strong>🔊 Som</strong> do cabeçalho — a escolha fica salva neste aparelho.</p>
@@ -1624,7 +1664,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4894,13 +4934,39 @@ function abrirAjustarEstrelasCheckin(){
 }
 document.getElementById('ajustar-estrelas-checkin-btn').addEventListener('click', abrirAjustarEstrelasCheckin);
 
+// <podio-puro>
+/* Top 3 do ranking do ano. Os rows já vêm ordenados por computeRanking (que inclui o desempate),
+   então a posição de cada um é a do próprio índice. Ordem visual clássica: 2º, 1º, 3º. */
+function rankingPodioHtml(rows){
+  const top = rows.slice(0, 3);
+  if(top.length === 0) return '';
+  const cores = ['ouro', 'prata', 'bronze'];
+  const coroas = ['👑', '🥈', '🥉'];
+  const ordemVisual = top.length >= 3 ? [1, 0, 2] : top.map((_, i)=> i);
+  return `<div class="rk-podio">${ordemVisual.map(i=>{
+    const p = top[i];
+    const avatar = p.foto
+      ? `<img class="rk-podio-avatar" src="${escapeHtml(p.foto)}" alt="">`
+      : `<div class="rk-podio-avatar rk-podio-avatar-fallback">${escapeHtml((p.nome||'?').charAt(0).toUpperCase())}</div>`;
+    return `<div class="rk-podio-item ${cores[i]}" data-open-profile="${p.id}">
+      <div class="rk-podio-coroa">${coroas[i]}</div>
+      ${avatar}
+      <div class="rk-podio-nome">${escapeHtml(p.apelido || p.nome)}</div>
+      <div class="rk-podio-titulos">${p.titulos} 🏆</div>
+      <div class="rk-podio-sub">${p.jogos} rodadas · ${p.pct}%</div>
+      <div class="rk-podio-pos">${i+1}º</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+// </podio-puro>
+
 function rankingTableHtml(rows){
   const badges = computeBadges();
   return `<div style="overflow-x:auto;"><table>
     <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></th><th class="num">%</th></tr></thead>
     <tbody>
       ${rows.map((r,i)=>`<tr>
-        <td class="medal">${i+1}º</td>
+        <td class="medal medal-${i+1}">${i+1}º</td>
         <td><div class="with-avatar clickable-name" data-open-profile="${r.id}">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${nomeComApelidoHtml(r)}${badgeIconsHtml(r.id, badges)}</div></td>
         <td class="num">${r.jogos}</td>
         <td class="num"><span class="ranking-titulos-clicavel" data-ranking-titulos="${r.id}" title="Toque para ver as datas">${r.titulos}</span></td>
@@ -4938,7 +5004,7 @@ function renderRanking(){
     container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Sem rodadas registradas para este ano.</div>';
     return;
   }
-  container.innerHTML = rankingTableHtml(rows);
+  container.innerHTML = rankingPodioHtml(rows) + rankingTableHtml(rows);
   wireRankingTitulosClicks(rows);
 }
 document.getElementById('ranking-year').addEventListener('change', renderRanking);
