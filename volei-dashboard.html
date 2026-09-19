@@ -1065,6 +1065,7 @@
         </span>
       </button>
       <button type="button" id="theme-toggle-btn" class="admin-status" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)">☀️ Modo claro</button>
+      <button type="button" id="som-toggle-btn" class="admin-status" aria-pressed="true" title="Ligar/desligar os sons do app">🔊 Som</button>
       <button type="button" id="admin-status-btn" class="admin-status">🔒 Visitante</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -1484,6 +1485,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.1: Sons</summary>
+          <div>
+            <p style="line-height:1.6;">Cliques em abas, botões, troféus e nos controles do <strong>Ao Vivo</strong> agora fazem um som curto (sintetizado, sem baixar nada). Dá pra desligar no botão <strong>🔊 Som</strong> do cabeçalho — a escolha fica salva neste aparelho.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.0: Visual futurista</summary>
           <div>
             <p style="line-height:1.6;">O app ganhou um visual novo: <strong>vidro fosco</strong> nos painéis, acentos em <strong>ciano neon</strong> nos botões e abas, dourado elétrico nas conquistas e animações suaves ao passar o mouse ou tocar. O modo claro continua funcionando, com cores próprias pra ler ao ar livre.</p>
@@ -1616,7 +1624,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2657,6 +2665,7 @@ function esconderCarregando(){
 function mostrarToast(mensagem, tipo){
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
+  tocarSom(tipo === 'erro' ? 'erro' : 'sucesso');
   toast.className = 'toast ' + (tipo === 'erro' ? 'toast-erro' : 'toast-sucesso');
   toast.textContent = (tipo === 'erro' ? '⚠️ ' : '✅ ') + mensagem;
   container.appendChild(toast);
@@ -2667,6 +2676,98 @@ function mostrarToast(mensagem, tipo){
     setTimeout(()=> toast.remove(), 300); // espera a transição de saída terminar antes de remover do DOM
   }, duracao);
 }
+
+/* ---------- SONS (Web Audio sintetizado — sem arquivo de áudio) ----------
+   Um ÚNICO AudioContext pro app todo: criar um por clique (como no mockup) vaza memória e
+   estoura o limite de contextos do navegador. O som nunca pode quebrar o app: try/catch em tudo. */
+let SOM_CTX = null;
+function somAtivo(){
+  try{ return localStorage.getItem('volei-som') !== 'off'; }catch(e){ return true; }
+}
+function definirSomAtivo(ligado){
+  try{ localStorage.setItem('volei-som', ligado ? 'on' : 'off'); }catch(e){}
+  atualizarBotaoSom();
+}
+const SONS = {
+  'nav':        [{ tipo:'sine',     de:700, ate:520,  dur:0.06, vol:0.08 }],
+  'click':      [{ tipo:'sine',     de:900, ate:450,  dur:0.08, vol:0.12 }],
+  'tick':       [{ tipo:'square',   de:520, ate:520,  dur:0.04, vol:0.05 }],
+  'tick-baixo': [{ tipo:'square',   de:340, ate:340,  dur:0.04, vol:0.05 }],
+  'confirmar':  [{ tipo:'sine', de:520, ate:520, dur:0.09, vol:0.10 }, { tipo:'sine', de:780, ate:780, dur:0.12, vol:0.10, atraso:0.09 }],
+  'trofeu':     [{ tipo:'triangle', de:400, ate:1400, dur:0.30, vol:0.16 }],
+  'sucesso':    [{ tipo:'sine', de:600, ate:600, dur:0.08, vol:0.10 }, { tipo:'sine', de:900, ate:900, dur:0.14, vol:0.10, atraso:0.08 }],
+  'erro':       [{ tipo:'sawtooth', de:220, ate:140,  dur:0.22, vol:0.09 }],
+  'ao-vivo':    [{ tipo:'sine', de:440, ate:440, dur:0.10, vol:0.10 }, { tipo:'sine', de:660, ate:660, dur:0.10, vol:0.10, atraso:0.10 }, { tipo:'sine', de:880, ate:880, dur:0.16, vol:0.10, atraso:0.20 }]
+};
+function tocarSom(nome){
+  if(!somAtivo()) return;
+  const notas = SONS[nome];
+  if(!notas) return;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    if(!SOM_CTX) SOM_CTX = new Ctx();
+    if(SOM_CTX.state === 'suspended') SOM_CTX.resume(); // iOS/Chrome só liberam áudio depois de um toque
+    const t0 = SOM_CTX.currentTime;
+    notas.forEach(n=>{
+      const osc = SOM_CTX.createOscillator();
+      const gain = SOM_CTX.createGain();
+      const ini = t0 + (n.atraso || 0);
+      osc.type = n.tipo;
+      osc.frequency.setValueAtTime(n.de, ini);
+      if(n.ate !== n.de) osc.frequency.exponentialRampToValueAtTime(n.ate, ini + n.dur);
+      gain.gain.setValueAtTime(n.vol, ini);
+      gain.gain.exponentialRampToValueAtTime(0.001, ini + n.dur);
+      osc.connect(gain); gain.connect(SOM_CTX.destination);
+      osc.start(ini); osc.stop(ini + n.dur + 0.02);
+    });
+  }catch(e){ /* som é enfeite */ }
+}
+
+// <som-puro>
+// Ordem importa: o mais específico vem antes do genérico ("Transmitir ao vivo" também é button.btn).
+// Ficam DE FORA de propósito: campos de texto, rolagem, hover, poll do Ao Vivo e o fim do cronômetro.
+const SONS_POR_SELETOR = [
+  ['[data-aovivo-mais]', 'tick'],
+  ['[data-aovivo-menos]', 'tick-baixo'],
+  ['[data-aovivo-salvar]', 'confirmar'],
+  ['[data-transmitir-aovivo]', 'ao-vivo'],
+  ['.flip-card-inner', 'trofeu'],
+  ['.ranking-titulos-clicavel', 'trofeu'],
+  ['.rk-podio-item', 'trofeu'],
+  ['.podium-place', 'trofeu'],
+  ['.tab-btn, #nav button, .mais-item', 'nav'],
+  ['button.btn', 'click']
+];
+function nomeDoSomParaElemento(alvo){
+  const marcado = alvo.closest('[data-som]');
+  if(marcado) return marcado.dataset.som; // data-som="..." vence o mapa
+  for(const [seletor, nome] of SONS_POR_SELETOR){
+    if(alvo.closest(seletor)) return nome;
+  }
+  return null;
+}
+// </som-puro>
+
+// captura: toca antes do handler do botão, que pode re-renderizar e remover o elemento clicado
+document.addEventListener('click', (e)=>{
+  if(!e.target || !e.target.closest) return;
+  const nome = nomeDoSomParaElemento(e.target);
+  if(nome) tocarSom(nome);
+}, true);
+
+function atualizarBotaoSom(){
+  const btn = document.getElementById('som-toggle-btn');
+  if(!btn) return;
+  const ligado = somAtivo();
+  btn.textContent = ligado ? '🔊 Som' : '🔇 Sem som';
+  btn.setAttribute('aria-pressed', ligado ? 'true' : 'false');
+}
+document.getElementById('som-toggle-btn').addEventListener('click', ()=>{
+  definirSomAtivo(!somAtivo());
+  if(somAtivo()) tocarSom('click'); // confirma que ligou (o toque do usuário já liberou o áudio)
+});
+atualizarBotaoSom();
 
 // Envia uma AÇÃO ESPECÍFICA (só a linha que mudou), não a planilha inteira de novo —
 // isso evita que uma gravação apague o que outra pessoa acabou de salvar.
