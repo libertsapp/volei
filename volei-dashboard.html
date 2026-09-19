@@ -1198,6 +1198,27 @@
 
   /* celular: o botão do Google (~220px) + 3 ícones não cabem em 390px — quebra de linha em vez de cortar o 🔒 */
   .header-right{flex-wrap:wrap;}
+  /* ===== CARTÃO REDUZIDO (Check-in, Sorteio, Histórico, Nova Rodada) ===== */
+  /* sem animação de entrada de propósito: essas listas re-renderizam inteiras a cada clique */
+  .jogador-card.jc-reduzido{border-radius:12px;box-shadow:none;}
+  .jc-reduzido .jc-topo{padding:8px 12px;gap:10px;}
+  .jc-reduzido .jc-foto{width:38px;height:38px;}
+  .jc-reduzido .jc-anel{padding:2px;box-shadow:0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);}
+  .jc-reduzido .jc-nome{font-size:14px;margin-right:6px;white-space:nowrap;}
+  .jc-reduzido .jc-icones{padding-left:0;border-left:none;}
+  .jc-reduzido .jc-linha-nome{gap:2px 0;}
+  .jc-reduzido .jc-sexo{font-size:16px;}
+  .jc-estrelas{display:inline-flex;align-items:center;margin-left:6px;}
+  .jc-leading{flex:none;display:flex;align-items:center;}
+  .jc-leading input[type=checkbox]{width:18px;height:18px;cursor:pointer;}
+  /* <label> que envolve o cartão nas listas (Check-in/Sorteio): tocar em qualquer ponto aciona o botão/checkbox */
+  .jc-linha{display:block;margin-bottom:8px;cursor:pointer;}
+  /* cartão reduzido que também é o .draft-chip arrastável: a caixa do cartão manda, o padding/flex do chip antigo sai */
+  .jogador-card.draft-chip{display:block;padding:0;margin-bottom:6px;cursor:grab;font-size:inherit;}
+  .jogador-card.draft-chip:active{cursor:grabbing;}
+  .history-team .jogador-card{margin-bottom:6px;}
+  .picker-trigger .jogador-card{flex:1;min-width:0;}
+  .picker-trigger:has(.jogador-card){padding:3px;}
 </style>
 </head>
 <body>
@@ -3473,36 +3494,47 @@ function jcMetricaHtml(icone, cor, rotulo, valorHtml){
 function jogadorCardHtml(d, opcoes){
   const op = opcoes || {};
   const perfil = op.variante === 'perfil';
+  const reduzido = op.variante === 'reduzido';
   const inicial = escapeHtml((d.apelido || d.nome || '?').charAt(0).toUpperCase());
   const foto = d.foto
     ? `<img class="jc-foto" src="${escapeHtml(d.foto)}" alt="">`
     : `<div class="jc-foto jc-foto-inicial">${inicial}</div>`;
-  const hex = d.posicao ? `<div class="jc-hex" title="Posição no ranking do ano"><span>${d.posicao}</span></div>` : '';
-  // na variação 'perfil' o nome NÃO é data-open-profile: dentro do modal isso reabriria o próprio perfil
-  const nome = `<span class="jc-nome"${perfil ? '' : ` data-open-profile="${escapeHtml(d.id)}"`}>${escapeHtml(d.nome || '')}</span>`;
+  // o reduzido é o cartão das telas de time/listas: sem hexágono
+  const hex = (!reduzido && d.posicao) ? `<div class="jc-hex" title="Posição no ranking do ano"><span>${d.posicao}</span></div>` : '';
+  // o nome abre o perfil, exceto na variação 'perfil' (dentro do modal reabriria o próprio perfil) e onde quem
+  // chama pede (Check-in e Sorteio: tocar na linha alterna o check-in/seleção, não pode abrir o perfil)
+  const abrePerfil = op.nomeAbrePerfil != null ? op.nomeAbrePerfil : !perfil;
+  // nomeHtml/apelidoHtml: HTML JÁ ESCAPADO por quem chama (o destaque da busca devolve <mark>)
+  const nomeTxt = d.nomeHtml != null ? d.nomeHtml : escapeHtml(d.nome || '');
+  const nome = `<span class="jc-nome"${abrePerfil ? ` data-open-profile="${escapeHtml(d.id)}"` : ''}>${nomeTxt}</span>`;
 
   const partesIcones = [];
   if(d.sexo === 'M') partesIcones.push('<i class="ti ti-gender-male jc-sexo jc-sexo-M" title="Masculino"></i>');
   if(d.sexo === 'F') partesIcones.push('<i class="ti ti-gender-female jc-sexo jc-sexo-F" title="Feminino"></i>');
-  if(d.temConta) partesIcones.push(`<span class="jc-icone-conta" title="Jogador com conta cadastrada no app">${jcIconeGoogle()}</span>`);
-  const iconesInterno = partesIcones.join('') + (d.emblemasHtml || '');
+  if(!reduzido && d.temConta) partesIcones.push(`<span class="jc-icone-conta" title="Jogador com conta cadastrada no app">${jcIconeGoogle()}</span>`);
+  // no reduzido só sobra o símbolo de sexo: emblemas ficam de fora de propósito
+  const iconesInterno = partesIcones.join('') + (reduzido ? '' : (d.emblemasHtml || ''));
   const icones = iconesInterno ? `<span class="jc-icones">${iconesInterno}</span>` : '';
+  // reduzido: as estrelinhas ficam logo depois do nome/símbolo (uma linha só, que quebra em coluna estreita)
+  const estrelasInline = (reduzido && d.estrelasHtml) ? `<span class="jc-estrelas">${d.estrelasHtml}</span>` : '';
 
-  const apelido = d.apelido ? `<div class="jc-apelido">"${escapeHtml(d.apelido)}"</div>` : '';
+  const apelidoTxt = d.apelidoHtml != null ? d.apelidoHtml : (d.apelido ? escapeHtml(d.apelido) : '');
+  const apelido = apelidoTxt ? `<div class="jc-apelido">"${apelidoTxt}"</div>` : '';
   // estrelinhas de relance: a lista fechada não mostra a coluna "Estrelas"; no perfil com painel a coluna já mostra a nota
-  const glifos = (d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
+  const glifos = (!reduzido && d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
   // o sexo já aparece como símbolo ♂/♀ ao lado do nome (com o texto no tooltip), então não repete em pílula
   const tagsInterno = glifos + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
   const tags = tagsInterno ? `<div class="jc-linha-tags">${tagsInterno}</div>` : '';
 
-  const toggle = (!perfil && d.metricas)
+  const toggle = (!perfil && !reduzido && d.metricas)
     ? `<button type="button" class="jc-toggle" aria-expanded="${op.aberto ? 'true' : 'false'}" aria-label="Mostrar estatísticas" data-som="nav"><i class="ti ti-chevron-right"></i></button>`
     : '';
   const acoesInterno = (d.acoesHtml || '') + toggle;
   const acoes = acoesInterno ? `<div class="jc-acoes">${acoesInterno}</div>` : '';
+  const leading = d.leadingHtml ? `<div class="jc-leading">${d.leadingHtml}</div>` : '';
 
   let painel = '';
-  if(d.metricas){
+  if(d.metricas && !reduzido){
     const m = d.metricas;
     // o número de Títulos só é clicável no perfil (abre as datas de campeão) — o id vem de quem chama
     const titulo = (perfil && op.tituloId)
@@ -3525,13 +3557,16 @@ function jogadorCardHtml(d, opcoes){
     painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
   }
 
-  const classes = ['jogador-card', perfil ? 'jc-perfil' : 'jc-lista'];
-  if(!perfil && op.aberto && d.metricas) classes.push('aberto');
-  return `<div class="${classes.join(' ')}" data-jc-id="${escapeHtml(d.id)}">
+  const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
+  if(op.classesExtra) classes.push(op.classesExtra); // ex.: 'draft-chip', pro cartão SER o chip arrastável do sorteio
+  if(!perfil && !reduzido && op.aberto && d.metricas) classes.push('aberto');
+  // "atributos" vem pronto e confiável de quem chama (ids do próprio app: draggable, data-player-id...)
+  const atributos = op.atributos ? ' ' + op.atributos : '';
+  return `<div class="${classes.join(' ')}" data-jc-id="${escapeHtml(d.id)}"${atributos}>
     <div class="jc-topo">
-      <div class="jc-avatar-bloco"><div class="jc-anel">${foto}</div>${hex}</div>
+      ${leading}<div class="jc-avatar-bloco"><div class="jc-anel">${foto}</div>${hex}</div>
       <div class="jc-info">
-        <div class="jc-linha-nome">${nome}${icones}</div>
+        <div class="jc-linha-nome">${nome}${icones}${estrelasInline}</div>
         ${apelido}${tags}
       </div>
       ${acoes}
@@ -3561,6 +3596,17 @@ function montarDadosCard(p, ctx, extras){
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
     estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
+  }, extras || {});
+}
+/* Versão BARATA de montarDadosCard, pro cartão reduzido (Check-in, Sorteio, Histórico, Nova Rodada):
+   não calcula emblemas, ranking nem estatísticas — o reduzido não mostra nada disso. Serve também para
+   convidados (GUESTS), que não têm foto nem estatísticas. */
+function montarDadosReduzido(p, mostrarEstrelas, extras){
+  const nota = parseFloat(p.estrelas);
+  return Object.assign({
+    id: p.id, nome: p.nome, apelido: p.apelido || '', foto: p.foto || '', sexo: p.sexo || '',
+    // _estrelaAjustada só existe no sorteio: a estrela fica vermelha (nota ajustada só pra este check-in)
+    estrelasHtml: (mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas, p._estrelaAjustada) : ''
   }, extras || {});
 }
 // </card-dados>
