@@ -1234,6 +1234,20 @@
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
+  /* ===== CARTÃO COMPACTO (verso do quadro do Início e Histórico): ~40px de altura, cabem 4 times lado a lado ===== */
+  .jogador-card.jc-mini{border-radius:8px;border-width:1px;}
+  .jc-mini .jc-topo{padding:4px 5px;gap:5px;}
+  .jc-mini .jc-foto{width:22px;height:22px;border-width:1px;}
+  .jc-mini .jc-foto-inicial{font-size:11px;}
+  .jc-mini .jc-anel{padding:1.5px;box-shadow:none;}
+  .jc-mini .jc-nome{font-size:11px;margin-right:0;}
+  .jc-mini .jc-sexo{font-size:13px;}
+  .jc-mini .jc-linha-nome{gap:0 5px;}
+  .jc-mini .jc-estrelas .stars-display{font-size:9px;letter-spacing:0;}
+  .jc-mini .jc-apelido, .jc-mini .jc-linha-tags{display:none;} /* sem espaço pra apelido/tags; o nome abre o perfil completo */
+  .history-teams:has(.jc-mini){grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;}
+  .history-team:has(.jc-mini){padding:5px;}
+  .history-team:has(.jc-mini) .jogador-card{margin-bottom:4px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
   .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
@@ -1714,6 +1728,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.3: Cartões compactos no verso do quadro e no Histórico</summary>
+          <div>
+            <p style="line-height:1.6;">No verso do quadro de campeões (Início) e no <strong>Histórico de rodadas</strong>, os jogadores agora aparecem em cartões bem compactos: cabem os <strong>4 times lado a lado</strong> e muito mais jogadores na mesma altura. Tocar no nome continua abrindo o perfil completo.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.2: Cartão do jogador no Início, no Top 10 de fotos e no Ao Vivo</summary>
           <div>
             <p style="line-height:1.6;">No <strong>Início</strong>, a equipe campeã e os times do verso do quadro aparecem como cartões de jogador (tocar no <strong>&gt;</strong> não vira o quadro). O <strong>Top 10 de fotos</strong> mantém o pódio e mostra do 4º em diante em cartões, com os contadores animados de sempre.</p>
@@ -1935,7 +1956,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3619,6 +3640,7 @@ function jogadorCardHtml(d, opcoes){
   const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
   if(op.classesExtra) classes.push(op.classesExtra); // ex.: 'draft-chip', pro cartão SER o chip arrastável do sorteio
   if(!perfil && !reduzido && op.aberto && d.metricas) classes.push('aberto');
+  if(op.compacto) classes.push('jc-mini'); // bem reduzido: cabem 4 times lado a lado (verso do quadro do Início e Histórico)
   if(op.semAnimacao) classes.push('jc-sem-anim'); // Ao Vivo: a tela re-renderiza a cada poll, uma animação de entrada faria o cartão piscar
   // "atributos" vem pronto e confiável de quem chama (ids do próprio app: draggable, data-player-id...);
   // "tela" isola o estado aberto/fechado do cartão por tela (ver jcChave)
@@ -4811,7 +4833,7 @@ function renderDashboard(){
                 <div class="history-team ${souCampeao(lastRound, idx)?'win':''}">
                   <div class="tn">${escapeHtml(t.nome)} ${souCampeao(lastRound, idx)?'<span class="badge-win">Campeão</span>':''}</div>
                   <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-                  ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? cartaoDaTela('inicio', p, ctxCards) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
+                  ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, starsVisibleNow()), { variante: 'reduzido', compacto: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
                 </div>
               `).join('')}
             </div>
@@ -5602,7 +5624,7 @@ function renderHistory(){
           ${r.times.map(t=>`
             <div class="history-team">
               <div class="tn">${escapeHtml(t.nome)}</div>
-              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', nomeAbrePerfil: false }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', compacto: true, nomeAbrePerfil: false }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
             </div>
           `).join('')}
         </div>
@@ -5665,7 +5687,7 @@ function renderHistory(){
           <div class="history-team ${souCampeao(r, idx)?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${souCampeao(r, idx)?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido' }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', compacto: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
           </div>
         `).join('')}
       </div>
