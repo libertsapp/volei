@@ -135,3 +135,10 @@ Modo claro e 360px sem rolagem horizontal, como no cartão completo.
 - **Listas mais longas:** ~46px → ~56px por linha (~20%). Aceito.
 - **Slot da Nova Rodada** (`div` dentro de `button`): fora da especificação, mas comportado; se aparecer
   algum problema de foco/teclado, o plano prevê trocar o `<button>` por um `div role="button"`.
+
+## Ajuste posterior (2026-09-19, v9.5)
+
+**Histórico de rodadas voltou ao estilo antigo** (pedido do usuário): linha simples com avatar pequeno + nome (e o apelido em cinza),
+sem os emblemas que a linha antiga tinha. O nome continua abrindo o perfil nas rodadas oficiais e não abre nos rascunhos, como antes da
+Fase 1. Nesta tela o cartão reduzido **não é mais usado** (a tabela "Onde entra" acima vale para as demais telas). O cartão compacto
+(`jc-mini`) segue no verso do quadro do Início.

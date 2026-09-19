@@ -1729,6 +1729,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.5: Histórico de rodadas volta ao estilo simples</summary>
+          <div>
+            <p style="line-height:1.6;">O <strong>Histórico de rodadas</strong> (inclusive os rascunhos) voltou a mostrar cada jogador numa linha simples, com avatar pequeno e nome, como era antes do visual novo — agora sem os emblemas. Tocar no nome continua abrindo o perfil.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.4: 4 times lado a lado no cartão de rascunho</summary>
           <div>
             <p style="line-height:1.6;">As colunas de time do Histórico e do verso do quadro ficaram um pouco mais estreitas, e agora os <strong>4 times cabem lado a lado</strong> também no cartão de rascunho (antes o 4º caía para a linha de baixo).</p>
@@ -1964,7 +1971,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5608,9 +5615,6 @@ document.getElementById('export-csv-btn').addEventListener('click', ()=>{
 
 /* ---------- HISTORICO ---------- */
 function renderHistory(){
-  // no TOPO da função: o bloco dos rascunhos (logo abaixo) também usa; declarar mais adiante dava erro de
-  // "acessar antes de inicializar" sempre que existia um rascunho pendente
-  const mostrarEstrelas = starsVisibleNow();
   const draftsContainer = document.getElementById('history-drafts');
   const rascunhos = DATA.rounds.filter(r=>r.rascunho).sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   if(rascunhos.length===0){
@@ -5632,7 +5636,7 @@ function renderHistory(){
           ${r.times.map(t=>`
             <div class="history-team">
               <div class="tn">${escapeHtml(t.nome)}</div>
-              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', compacto: true, nomeAbrePerfil: false }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
             </div>
           `).join('')}
         </div>
@@ -5695,7 +5699,7 @@ function renderHistory(){
           <div class="history-team ${souCampeao(r, idx)?'win':''}">
             <div class="tn">${escapeHtml(t.nome)} ${souCampeao(r, idx)?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, mostrarEstrelas), { variante: 'reduzido', compacto: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
+            ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('')}
           </div>
         `).join('')}
       </div>
