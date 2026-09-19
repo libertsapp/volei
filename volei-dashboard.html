@@ -6717,7 +6717,7 @@ let AUTO_GROUPS = [];
 
 function renderGroupsInto(containerId, grupos, rerenderFn){
   const container = document.getElementById(containerId);
-  const badges = computeBadges();
+  const mostrarEstrelas = starsVisibleNow();
   container.innerHTML = grupos.map((grupo, gi)=>{
     const souMulheres = grupo.length>0 && grupo.every(p=>p.sexo==='F');
     return `<div class="group-card ${souMulheres?'group-women':''}" data-group-index="${gi}">
@@ -6726,15 +6726,11 @@ function renderGroupsInto(containerId, grupos, rerenderFn){
         <span class="draft-team-stats">${grupo.length} jog</span>
       </div>
       <div class="draft-players" data-group-index="${gi}">
-        ${grupo.length===0 ? '<div class="group-empty-hint">Arraste alguém pra cá</div>' : grupo.map(p=>`
-          <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-group="${gi}">
-            ${avatarHtml(p,'sm')}
-            <span class="flex1 clickable-name" data-open-profile="${p.id}">${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, badges)}</span>
-            ${starsVisibleNow() ? starsDisplay(p.estrelas, p._estrelaAjustada) : ''}
-            ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
-            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-          </div>
-        `).join('')}
+        ${grupo.length===0 ? '<div class="group-empty-hint">Arraste alguém pra cá</div>' : grupo.map(p=> jogadorCardHtml(
+          montarDadosReduzido(p, mostrarEstrelas, { tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '' }),
+          // o cartão É o .draft-chip: mesma classe e mesmos data-* que wireGroupDragAndDrop espera
+          { variante: 'reduzido', classesExtra: 'draft-chip', atributos: `draggable="true" data-player-id="${p.id}" data-from-group="${gi}"` }
+        )).join('')}
       </div>
     </div>`;
   }).join('');
@@ -6950,7 +6946,7 @@ function renderDraftResult(){
     </div>
     <div class="draft-grid" id="draft-grid"></div>`;
   const grid = document.getElementById('draft-grid');
-  const badges = computeBadges();
+  const mostrarEstrelas = starsVisibleNow();
   grid.innerHTML = DRAFT_TEAMS.map((team, ti)=>{
     const stars = somaTime(team);
     const fem = team.filter(p=>p.sexo==='F').length;
@@ -6961,15 +6957,10 @@ function renderDraftResult(){
         <span class="draft-team-stats">${team.length} jog · ${fem}F${starsVisibleNow() ? ' · ★'+stars : ''}</span>
       </div>
       <div class="draft-players" data-team-index="${ti}">
-        ${ordemExibicao.map(p=>`
-          <div class="draft-chip" draggable="true" data-player-id="${p.id}" data-from-team="${ti}">
-            ${avatarHtml(p,'sm')}
-            <span class="flex1 clickable-name" data-open-profile="${p.id}">${nomeComApelidoHtml(p)}${badgeIconsHtml(p.id, badges)}</span>
-            ${starsVisibleNow() ? starsDisplay(p.estrelas, p._estrelaAjustada) : ''}
-            ${p.isGuest ? '<span class="badge-guest">convidado</span>' : ''}
-            ${p.sexo ? `<span class="badge-gender ${p.sexo}">${p.sexo}</span>` : ''}
-          </div>
-        `).join('')}
+        ${ordemExibicao.map(p=> jogadorCardHtml(
+          montarDadosReduzido(p, mostrarEstrelas, { tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '' }),
+          { variante: 'reduzido', classesExtra: 'draft-chip', atributos: `draggable="true" data-player-id="${p.id}" data-from-team="${ti}"` }
+        )).join('')}
       </div>
     </div>`;
   }).join('');
