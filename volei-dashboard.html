@@ -1210,7 +1210,13 @@
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
-  .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
+  .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(var(--sb-cols,2),minmax(0,1fr));grid-auto-rows:1fr;gap:10px;margin-top:6px;} /* linhas de altura igual: cartões sempre do mesmo tamanho */
+  @media (min-width:641px){
+    /* computador: os números do ano viram uma coluna estreita à direita e os cartões ocupam o resto */
+    .scoreboard{grid-template-columns:minmax(0,1fr) 210px;}
+    .sb-stats{grid-template-columns:1fr;}
+  }
+  @media (max-width:640px){ .sb-jogadores{grid-template-columns:1fr;} }
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
   .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;}
   .panela-cartoes, .defuntos-cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin:8px 0;}
@@ -1689,6 +1695,14 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.9: Apelido no lugar do nome e quadro de campeões maior</summary>
+          <div>
+            <p style="line-height:1.6;">Em todo o app, quem tem <strong>apelido</strong> agora aparece pelo apelido. Tocar (ou clicar) no apelido abre o perfil com os dados completos: nome inteiro e apelido. No Check-in e no Sorteio, tocar na linha continua marcando presença/seleção, como antes.</p>
+            <p style="line-height:1.6;">No computador, o quadro de campeões usa mais espaço: os cartões da equipe campeã ficam todos do <strong>mesmo tamanho</strong> (4 jogadores em 2×2, 5 ou 6 em 3 colunas) e os números do ano vão para uma coluna à direita.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.8: Dicas do hexágono, do "G" e do ♂/♀ voltaram</summary>
           <div>
             <p style="line-height:1.6;">Ao passar o mouse (na hora) ou tocar no <strong>hexágono</strong> (posição no ranking), no <strong>"G"</strong> do Google (jogador com conta) e no símbolo <strong>♂/♀</strong> do cartão, a explicação aparece de novo, igual à dos emblemas.</p>
@@ -1952,7 +1966,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.8 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.9 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3577,8 +3591,12 @@ function jogadorCardHtml(d, opcoes){
   // chama pede (Check-in e Sorteio: tocar na linha alterna o check-in/seleção, não pode abrir o perfil)
   const abrePerfil = op.nomeAbrePerfil != null ? op.nomeAbrePerfil : !perfil;
   // nomeHtml/apelidoHtml: HTML JÁ ESCAPADO por quem chama (o destaque da busca devolve <mark>)
-  const nomeTxt = d.nomeHtml != null ? d.nomeHtml : escapeHtml(d.nome || '');
-  const nome = `<span class="jc-nome"${abrePerfil ? ` data-open-profile="${escapeHtml(d.id)}"` : ''}>${nomeTxt}</span>`;
+  const nomeCompleto = d.nomeHtml != null ? d.nomeHtml : escapeHtml(d.nome || '');
+  const apelidoTxt = d.apelidoHtml != null ? d.apelidoHtml : (d.apelido ? escapeHtml(d.apelido) : '');
+  // quem tem apelido aparece PELO APELIDO (o nome completo fica no perfil, que abre ao clicar); na variação
+  // 'perfil' (Meu Perfil e o modal) aparece o nome completo, com o apelido embaixo
+  const nomeExibido = (!perfil && apelidoTxt) ? apelidoTxt : nomeCompleto;
+  const nome = `<span class="jc-nome"${abrePerfil ? ` data-open-profile="${escapeHtml(d.id)}"` : ''}>${nomeExibido}</span>`;
 
   const partesIcones = [];
   if(d.sexo === 'M') partesIcones.push('<i class="ti ti-gender-male jc-sexo jc-sexo-M" data-dica="Masculino" role="img" aria-label="Masculino"></i>');
@@ -3590,8 +3608,7 @@ function jogadorCardHtml(d, opcoes){
   // reduzido: as estrelinhas ficam logo depois do nome/símbolo (uma linha só, que quebra em coluna estreita)
   const estrelasInline = (reduzido && d.estrelasHtml) ? `<span class="jc-estrelas">${d.estrelasHtml}</span>` : '';
 
-  const apelidoTxt = d.apelidoHtml != null ? d.apelidoHtml : (d.apelido ? escapeHtml(d.apelido) : '');
-  const apelido = apelidoTxt ? `<div class="jc-apelido">"${apelidoTxt}"</div>` : '';
+  const apelido = (perfil && apelidoTxt) ? `<div class="jc-apelido">"${apelidoTxt}"</div>` : '';
   // estrelinhas de relance: a lista fechada não mostra a coluna "Estrelas"; no perfil com painel a coluna já mostra a nota
   const glifos = (!reduzido && d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
   // o sexo já aparece como símbolo ♂/♀ ao lado do nome (com o texto no tooltip), então não repete em pílula
@@ -4195,9 +4212,8 @@ function highlightMatch(label, term){
 // aparece depois, menor e entre aspas — nunca mais o apelido sozinho no lugar do nome.
 function nomeComApelidoHtml(p, term){
   if(!p) return '?';
-  let html = highlightMatch(p.nome, term||'');
-  if(p.apelido) html += ` <span class="apelido-tag">"${highlightMatch(p.apelido, term||'')}"</span>`;
-  return html;
+  // quem tem apelido aparece pelo apelido; o nome completo fica no perfil (abre ao clicar no nome)
+  return highlightMatch(p.apelido || p.nome, term||'');
 }
 
 /* ---------- NOVA RODADA ---------- */
@@ -4766,6 +4782,9 @@ function wireAoVivoAcoes(){
 }
 
 /* ---------- DASHBOARD ---------- */
+// Colunas dos cartões da equipe campeã: 4 jogadores viram 2x2 (não 3+1), 5 ou 6 viram 3 colunas — assim
+// as linhas ficam completas e todos os cartões do quadro têm o mesmo tamanho.
+function colunasQuadroCampeao(n){ return n <= 3 ? Math.max(1, n) : (n === 4 ? 2 : 3); }
 function renderDashboard(){
   const ctxCards = contextoCards(); // uma vez por render: o cartão precisa de emblemas e da posição no ranking
   const hero = document.getElementById('dash-hero');
@@ -4796,7 +4815,7 @@ function renderDashboard(){
       return `
         <p class="sb-team">${escapeHtml(team.nome)}</p>
         ${avatares}
-        <div class="sb-jogadores">${names.filter(Boolean).map(p=> cartaoDaTela('inicio', p, ctxCards)).join('')}</div>`;
+        <div class="sb-jogadores" style="--sb-cols:${colunasQuadroCampeao(names.filter(Boolean).length)}">${names.filter(Boolean).map(p=> cartaoDaTela('inicio', p, ctxCards)).join('')}</div>`;
     }
     const corpoCampeoesHtml = empatado
       ? `<div class="sb-empate-teams">${timesCampeoes.map(t=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true)}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
@@ -5201,7 +5220,7 @@ function renderPhotoChart(){
     const cls = posicaoReal===2 ? 'place-2' : 'place-3';
     return `<div class="podium-place ${cls} clickable-name" data-open-profile="${d.id}">
       ${d.foto ? `<img class="podium-avatar" src="${d.foto}">` : `<div class="podium-avatar podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-      <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
+      <div class="podium-name">${escapeHtml(d.apelido || d.nome)}</div>
       <div class="podium-count" id="podium-count-${posicaoReal}">0×</div>
       <div class="podium-block block-${posicaoReal}">${posicaoReal}º</div>
     </div>`;
@@ -5233,7 +5252,7 @@ function renderPhotoChart(){
           ${grupoPrimeiro.map((d,gi)=>`
             <div class="podium-empate-pessoa clickable-name" data-open-profile="${d.id}">
               ${d.foto ? `<img class="podium-avatar" src="${d.foto}">` : `<div class="podium-avatar podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-              <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
+              <div class="podium-name">${escapeHtml(d.apelido || d.nome)}</div>
               <div class="podium-count" id="podium-count-1-${gi}">0×</div>
             </div>
           `).join('')}
@@ -5253,7 +5272,7 @@ function renderPhotoChart(){
         ${grupoPrimeiro.map((d,gi)=>`
           <div class="podium-primeiro-pessoa clickable-name" data-open-profile="${d.id}">
             ${d.foto ? `<img class="podium-avatar big" src="${d.foto}">` : `<div class="podium-avatar big podium-avatar-fallback">${escapeHtml((d.nome||'?').charAt(0).toUpperCase())}</div>`}
-            <div class="podium-name">${escapeHtml(d.nome)}${d.apelido ? `<div class="sub" style="font-size:10px;">"${escapeHtml(d.apelido)}"</div>` : ''}</div>
+            <div class="podium-name">${escapeHtml(d.apelido || d.nome)}</div>
             <div class="podium-count" id="podium-count-1-${gi}">0×</div>
           </div>
         `).join('')}
@@ -5575,7 +5594,7 @@ function renderHistory(){
           ${r.times.map(t=>`
             <div class="history-team">
               <div class="tn">${escapeHtml(t.nome)}</div>
-              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span>${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
+              ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
             </div>
           `).join('')}
         </div>
