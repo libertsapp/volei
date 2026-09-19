@@ -957,6 +957,9 @@
   .fin-resumo-linha{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;font-size:13px;}
   .fin-resumo-linha strong{color:var(--ball-yellow);}
   .fin-resumo-sub{font-size:12px;color:var(--muted);margin-top:8px;}
+  /* ações em massa (só admin/organizador): duas pílulas pequenas no rodapé do resumo, a de cancelar em vermelho */
+  .fin-massa{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .fin-massa .btn{padding:6px 14px;font-size:12px;}
   .fin-barra{height:6px;border-radius:6px;background:var(--line);margin-top:10px;overflow:hidden;}
   .fin-barra-fill{height:100%;border-radius:6px;background:linear-gradient(90deg, var(--accent), var(--ball-yellow));transition:width .3s ease;}
   .fin-pix{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:'Space Mono',monospace;color:var(--chalk);background:transparent;border:1px dashed var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;}
@@ -1991,6 +1994,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v11.7: Confirmar todos e Cancelar todos os pagamentos</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Check-in</strong>, o resumo do dia ganhou dois botões (só para admin/organizador): <strong>Confirmar todos</strong> marca como pago todo confirmado que ainda não pagou, e <strong>Cancelar todos</strong> estorna todos os pagamentos do dia automaticamente (nada é apagado: cada um fica riscado no extrato, com quem estornou e quando, e a ação inteira entra na auditoria). Os botões mostram quantos pagamentos serão afetados e pedem confirmação antes. O organizador não estorna o pagamento de quem já saiu da lista (só o admin), e o app avisa quantos ficaram.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v11.6: Página renomeada para "Financeiro"</summary>
           <div>
             <p style="line-height:1.6;">A página <strong>Controle Financeiro $</strong> agora se chama apenas <strong>Financeiro 💲</strong>, no menu, no painel "Mais" e no título da página. Nada mudou no funcionamento.</p>
@@ -2349,7 +2359,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 11.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 11.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2407,6 +2417,8 @@ const PERMISSOES_UI = {
   salvarFinDia:        ['organizador','admin'],
   marcarPagamento:     ['organizador','admin'],
   estornarPagamento:   ['organizador','admin'], // backend: quem saiu da lista só admin (o botão só aparece pro admin)
+  marcarTodosPagamentos:   ['organizador','admin'],
+  estornarTodosPagamentos: ['organizador','admin'], // backend: organizador não estorna o de quem saiu da lista
   addLancamento:       ['organizador','admin'],
   estornarLancamento:  ['admin']
 };
@@ -6742,17 +6754,52 @@ function renderFinResumoCheckin(){
   const arrecadado = finArrecadadoDia(FINANCEIRO, data);
   const previsto = finPrevistoDia(FINANCEIRO, data, dentro.length);
   const pct = previsto > 0 ? Math.min(100, Math.round(arrecadado / previsto * 100)) : 0;
+  const pendentes = finPendentes(FINANCEIRO, data, dentro).length;          // confirmados que ainda não pagaram
+  const validos = finPagamentosValidos(FINANCEIRO, data).length;            // pagamentos que o "Cancelar todos" estornaria
   el.innerHTML = `<div class="fin-resumo">
     <div class="fin-resumo-linha"><span>💰 <strong>${finFormatar(finCentavos(dia.valorPessoa))}</strong> por pessoa</span>
       ${dia.pix ? `<button type="button" class="fin-pix" data-fin-copiar-pix="${escapeHtml(dia.pix)}" title="Copiar a chave PIX">📌 PIX ${escapeHtml(dia.pix)} <i class="ti ti-copy"></i></button>` : ''}</div>
     <div class="fin-barra"><div class="fin-barra-fill" style="width:${pct}%"></div></div>
     <div class="fin-resumo-sub fin-resumo-linha"><span>Arrecadado <strong>${finFormatar(arrecadado)}</strong> de ${finFormatar(previsto)}</span><span>Saída do dia ${finFormatar(finSaidaDia(FINANCEIRO, data))}</span></div>
+    ${temPermissao('marcarTodosPagamentos') ? `<div class="fin-massa">
+      <button type="button" class="btn secondary" data-fin-massa="marcar" ${pendentes ? '' : 'disabled'} title="Marca como pago quem está confirmado e ainda não pagou">Confirmar todos (${pendentes})</button>
+      <button type="button" class="btn danger" data-fin-massa="cancelar" ${validos ? '' : 'disabled'} title="Estorna todos os pagamentos deste dia">Cancelar todos (${validos})</button>
+    </div>` : ''}
   </div>`;
 }
 document.getElementById('fin-resumo-checkin').addEventListener('click', (e)=>{
   const b = e.target.closest('[data-fin-copiar-pix]');
-  if(b) copiarTexto(b.dataset.finCopiarPix, b);
+  if(b){ copiarTexto(b.dataset.finCopiarPix, b); return; }
+  const massa = e.target.closest('[data-fin-massa]');
+  if(massa && !massa.disabled) pagamentosEmMassa(massa.dataset.finMassa);
 });
+
+// "Confirmar todos" / "Cancelar todos" pagamentos do dia (só admin/organizador). Cancelar = ESTORNAR (nada é apagado):
+// o servidor faz tudo numa ação só e devolve quantos foram estornados e quantos ficaram (organizador não estorna quem saiu da lista).
+async function pagamentosEmMassa(tipo){
+  const data = SETTINGS.checkinDataAberta;
+  const dia = data ? finDia(FINANCEIRO, data) : null;
+  if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ alert('Cadastre o valor por pessoa do dia antes de marcar pagamentos.'); return; }
+  const { dentro } = checkinsDentroEReserva(data);
+  if(tipo === 'marcar'){
+    const n = finPendentes(FINANCEIRO, data, dentro).length;
+    if(!n) return;
+    const valor = finCentavos(dia.valorPessoa);
+    if(!confirm('Marcar como PAGO os ' + n + ' confirmado(s) que ainda não pagaram?\n\n' + n + ' × ' + finFormatar(valor) + ' = ' + finFormatar(n * valor))) return;
+    if(await finPost('marcarTodosPagamentos', { data })) mostrarToast(n + ' pagamento(s) marcado(s).', 'sucesso');
+    return;
+  }
+  const validos = finPagamentosValidos(FINANCEIRO, data);
+  if(!validos.length) return;
+  const total = validos.reduce((s, p) => s + finCentavos(p.valor), 0);
+  let msg = 'CANCELAR TODOS os ' + validos.length + ' pagamentos deste dia (' + finFormatar(total) + ')?\n\nEles são estornados automaticamente e o valor sai do caixa. Nada é apagado: fica registrado na auditoria.';
+  if(!ehAdminAgora()) msg += '\n\nComo organizador, os pagamentos de quem já saiu da lista NÃO são estornados (só o admin faz isso).';
+  if(!confirm(msg)) return;
+  if(await finPost('estornarTodosPagamentos', { data })){
+    const r = ULTIMA_RESPOSTA_POST || {};
+    mostrarToast((r.estornados || 0) + ' pagamento(s) estornado(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin estorna).' : ''), 'sucesso');
+  }
+}
 
 /* ---------- PÁGINA Controle Financeiro ---------- */
 const FIN_ACOES_ROTULO = {
