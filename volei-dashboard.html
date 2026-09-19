@@ -1234,21 +1234,6 @@
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
-  /* ===== CARTÃO COMPACTO (verso do quadro do Início e Histórico): ~40px de altura, cabem 4 times lado a lado ===== */
-  .jogador-card.jc-mini{border-radius:8px;border-width:1px;}
-  .jc-mini .jc-topo{padding:4px 5px;gap:5px;}
-  .jc-mini .jc-foto{width:22px;height:22px;border-width:1px;}
-  .jc-mini .jc-foto-inicial{font-size:11px;}
-  .jc-mini .jc-anel{padding:1.5px;box-shadow:none;}
-  .jc-mini .jc-nome{font-size:11px;margin-right:0;}
-  .jc-mini .jc-sexo{font-size:13px;}
-  .jc-mini .jc-linha-nome{gap:0 5px;}
-  .jc-mini .jc-estrelas .stars-display{font-size:9px;letter-spacing:0;}
-  .jc-mini .jc-apelido, .jc-mini .jc-linha-tags{display:none;} /* sem espaço pra apelido/tags; o nome abre o perfil completo */
-  /* mínimo de 96px: 4 times precisam caber lado a lado até nos ~460px úteis do cartão de rascunho (4x96 + 3 espaços de 6 = 402px) */
-  .history-teams:has(.jc-mini){grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;}
-  .history-team:has(.jc-mini){padding:5px;}
-  .history-team:has(.jc-mini) .jogador-card{margin-bottom:4px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
   .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
@@ -1729,6 +1714,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v9.6: Verso do quadro de campeões no estilo do Histórico</summary>
+          <div>
+            <p style="line-height:1.6;">O verso do quadro de campeões ("Times de ...") agora mostra os jogadores exatamente como o Histórico: linha simples com avatar pequeno e nome, nos mesmos tamanhos, com os 4 times em linha. A frente do quadro continua com os cartões dos campeões.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.5: Histórico de rodadas volta ao estilo simples</summary>
           <div>
             <p style="line-height:1.6;">O <strong>Histórico de rodadas</strong> (inclusive os rascunhos) voltou a mostrar cada jogador numa linha simples, com avatar pequeno e nome, como era antes do visual novo — agora sem os emblemas. Tocar no nome continua abrindo o perfil.</p>
@@ -1971,7 +1963,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 9.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3655,7 +3647,6 @@ function jogadorCardHtml(d, opcoes){
   const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
   if(op.classesExtra) classes.push(op.classesExtra); // ex.: 'draft-chip', pro cartão SER o chip arrastável do sorteio
   if(!perfil && !reduzido && op.aberto && d.metricas) classes.push('aberto');
-  if(op.compacto) classes.push('jc-mini'); // bem reduzido: cabem 4 times lado a lado (verso do quadro do Início e Histórico)
   if(op.semAnimacao) classes.push('jc-sem-anim'); // Ao Vivo: a tela re-renderiza a cada poll, uma animação de entrada faria o cartão piscar
   // "atributos" vem pronto e confiável de quem chama (ids do próprio app: draggable, data-player-id...);
   // "tela" isola o estado aberto/fechado do cartão por tela (ver jcChave)
@@ -4848,7 +4839,7 @@ function renderDashboard(){
                 <div class="history-team ${souCampeao(lastRound, idx)?'win':''}">
                   <div class="tn">${escapeHtml(t.nome)} ${souCampeao(lastRound, idx)?'<span class="badge-win">Campeão</span>':''}</div>
                   <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida</div>
-                  ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? jogadorCardHtml(montarDadosReduzido(p, starsVisibleNow()), { variante: 'reduzido', compacto: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('')}
+                  ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('')}
                 </div>
               `).join('')}
             </div>
