@@ -1061,6 +1061,18 @@
   .medal-1{color:#ffd700;} .medal-2{color:#e2e8f0;} .medal-3{color:#cd7f32;}
   body.light-mode .medal-1{color:#b3790a;} body.light-mode .medal-2{color:#7b8794;} body.light-mode .medal-3{color:#a3622a;}
   @media (max-width:640px){ .rk-podio{gap:6px;} .rk-podio-avatar{width:46px;height:46px;} }
+
+  /* ===== RADAR ===== */
+  .radar-svg{width:100%;max-width:340px;display:block;margin:4px auto 0;overflow:visible;}
+  .radar-jogador{transform-box:view-box;transform-origin:150px 135px;animation:radar-abrir .7s cubic-bezier(.22,1.2,.4,1) both;}
+  @keyframes radar-abrir{ from{transform:scale(0);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .radar-legenda{display:flex;justify-content:center;gap:18px;font-size:11px;color:var(--muted);margin:6px 0 10px;}
+  .radar-amostra{display:inline-block;width:16px;height:0;vertical-align:middle;margin-right:4px;}
+  .radar-amostra-voce{border-top:3px solid var(--accent);}
+  .radar-amostra-media{border-top:2px dashed var(--muted);}
+  .radar-explica{font-size:12px;color:var(--chalk-dim);margin-bottom:16px;}
+  .radar-explica summary{cursor:pointer;color:var(--muted);}
+  .radar-explica ul{margin:8px 0 0;padding-left:18px;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -1518,6 +1530,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/09/2026 — v8.3: Radar no Meu Perfil</summary>
+          <div>
+            <p style="line-height:1.6;">Em <strong>Meu Perfil</strong>, um gráfico de radar mostra seu desempenho em 6 eixos — aproveitamento, fase atual, títulos, vitórias, presença e sequência — comparado com a <strong>média do grupo</strong>.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/09/2026 — v8.2: Pódio no Ranking</summary>
           <div>
             <p style="line-height:1.6;">O <strong>Ranking</strong> ganhou um pódio com os 3 primeiros do ano — contorno dourado, prateado e bronze, avatar com brilho — acima da tabela de sempre. Tocar em um deles abre o perfil.</p>
@@ -1664,7 +1683,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 8.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 8.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2314,6 +2333,8 @@ async function renderMeuPerfil(){
   const sequenciaAtual = computeSequenciaAtualPresenca(AUTH.jogadorId);
   const mediaGrupo = computeMediaAproveitamentoGrupo();
   const diferencaMedia = mediaGrupo!==null ? (stats.pct - mediaGrupo) : null;
+  const radarCtx = computeRadarContexto();
+  const radarDoJogador = radarCtx.porJogador[AUTH.jogadorId] || null;
   const parceiroHtml = (par, rotulo)=>{
     if(!par) return '';
     const pj = getPlayer(par.id);
@@ -2357,6 +2378,25 @@ async function renderMeuPerfil(){
     </div>
     <p style="font-size:12px;color:var(--muted);margin:4px 0 16px;">Última participação: ${ultimaVez!==undefined ? formatDate(new Date(ultimaVez).toISOString().slice(0,10)) : 'ainda não jogou nenhuma rodada'}</p>
     ${diferencaMedia!==null ? `<p style="font-size:12px;color:var(--muted);margin:-8px 0 16px;">Sua média de aproveitamento está <strong style="color:${diferencaMedia>=0?'#5fd68a':'var(--danger)'};">${diferencaMedia>=0?diferencaMedia+' pontos acima':Math.abs(diferencaMedia)+' pontos abaixo'}</strong> da média do grupo (${mediaGrupo}%).</p>` : ''}
+
+    <div class="profile-section-title">Seu perfil em 6 eixos</div>
+    ${radarDoJogador ? `
+      ${radarSvg(radarDoJogador, radarCtx.media)}
+      <div class="radar-legenda">
+        <span><i class="radar-amostra radar-amostra-voce"></i> você</span>
+        <span><i class="radar-amostra radar-amostra-media"></i> média do grupo</span>
+      </div>
+      <details class="radar-explica">
+        <summary>Como cada eixo é calculado</summary>
+        <ul>
+          <li><strong>Aproveitamento:</strong> títulos ÷ rodadas jogadas.</li>
+          <li><strong>Fase atual:</strong> títulos nas suas últimas 5 rodadas.</li>
+          <li><strong>Títulos e Vitórias:</strong> comparado a quem mais tem no grupo (100 = o líder).</li>
+          <li><strong>Presença:</strong> rodadas que você jogou ÷ rodadas do grupo.</li>
+          <li><strong>Sequência:</strong> rodadas seguidas sem faltar, comparada à maior do grupo.</li>
+        </ul>
+      </details>
+    ` : '<div style="color:var(--muted);font-size:12px;margin-bottom:16px;">O radar aparece depois da sua primeira rodada.</div>'}
 
     <div class="profile-section-title">Evolução do aproveitamento</div>
     <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais e mostra a tendência real: se está subindo, estável ou caindo. Toque no gráfico pra ver essa explicação de novo.">${renderAproveitamentoChart(serie)}</div>
@@ -3399,6 +3439,89 @@ function computeAproveitamentoSeries(stats){
     const vitorias = recorte.filter(x=>x.isWinner).length;
     return { data: r.data, pct: Math.round((vitorias / recorte.length) * 100) };
   });
+}
+
+// <radar-puro>
+const RADAR_EIXOS = ['Aproveitamento', 'Fase atual', 'Títulos', 'Vitórias', 'Presença', 'Sequência'];
+
+function radarPct(valor, maximo){ return maximo > 0 ? Math.round((valor / maximo) * 100) : 0; }
+
+// % de títulos nas últimas 5 rodadas jogadas ("rounds" vem do mais recente pro mais antigo)
+function faseAtualPct(rounds){
+  const recentes = rounds.slice(0, 5);
+  if(recentes.length === 0) return 0;
+  return Math.round((recentes.filter(r=> r.isWinner).length / recentes.length) * 100);
+}
+
+// j = números do jogador; g = referências do grupo. Nada de DATA/DOM aqui — é o que deixa testar no Node.
+function radarValores(j, g){
+  return [
+    Math.min(100, j.pct),
+    Math.min(100, j.fase),
+    radarPct(j.titulos, g.maxTitulos),
+    radarPct(j.vitorias, g.maxVitorias),
+    radarPct(j.jogos, g.totalRodadas),
+    radarPct(j.sequencia, g.maxSequencia)
+  ];
+}
+
+function radarMedia(lista){
+  if(lista.length === 0) return null;
+  return RADAR_EIXOS.map((_, i)=> Math.round(lista.reduce((soma, v)=> soma + v[i], 0) / lista.length));
+}
+
+// eixo 0 no topo, sentido horário
+function radarPontos(valores, cx, cy, raio){
+  const n = valores.length;
+  return valores.map((v, i)=>{
+    const ang = -Math.PI / 2 + (2 * Math.PI * i) / n;
+    const r = raio * (v / 100);
+    return [Math.round((cx + r * Math.cos(ang)) * 10) / 10, Math.round((cy + r * Math.sin(ang)) * 10) / 10];
+  });
+}
+
+function radarSvg(valores, media){
+  const cx = 150, cy = 135, raio = 90;
+  const cem = RADAR_EIXOS.map(()=> 100);
+  const grade = [25, 50, 75, 100].map(nivel=>{
+    const pts = radarPontos(RADAR_EIXOS.map(()=> nivel), cx, cy, raio).map(p=> p.join(',')).join(' ');
+    return `<polygon points="${pts}" style="fill:none;stroke:var(--line);stroke-width:1"/>`;
+  }).join('');
+  const eixos = radarPontos(cem, cx, cy, raio)
+    .map(p=> `<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" style="stroke:var(--line);stroke-width:1"/>`).join('');
+  const rotulos = radarPontos(cem, cx, cy, raio * 1.24)
+    .map((p, i)=> `<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" font-size="9" style="fill:var(--muted)">${RADAR_EIXOS[i]}</text>`).join('');
+  const linhaMedia = media
+    ? `<polygon points="${radarPontos(media, cx, cy, raio).map(p=> p.join(',')).join(' ')}" stroke-dasharray="4 3" style="fill:none;stroke:var(--muted);stroke-width:1.5"/>`
+    : '';
+  const pts = radarPontos(valores, cx, cy, raio);
+  const poligono = `<g class="radar-jogador">
+      <polygon points="${pts.map(p=> p.join(',')).join(' ')}" style="fill:var(--accent);fill-opacity:.22;stroke:var(--accent);stroke-width:2"/>
+      ${pts.map(p=> `<circle cx="${p[0]}" cy="${p[1]}" r="3" style="fill:var(--accent)"/>`).join('')}
+    </g>`;
+  return `<svg class="radar-svg" viewBox="0 0 300 270" role="img" aria-label="Gráfico de radar com o seu desempenho nos 6 eixos">${grade}${eixos}${linhaMedia}${poligono}${rotulos}</svg>`;
+}
+// </radar-puro>
+
+// Reúne os números de todos os jogadores que já jogaram e devolve o radar de cada um + a média do grupo.
+function computeRadarContexto(){
+  const ativos = DATA.players
+    .map(p=> ({ id: p.id, s: computePlayerAllTimeStats(p.id), sequencia: computeSequenciaAtualPresenca(p.id) }))
+    .filter(x=> x.s.jogos > 0);
+  const g = {
+    maxTitulos: Math.max(0, ...ativos.map(x=> x.s.titulos)),
+    maxVitorias: Math.max(0, ...ativos.map(x=> x.s.vitoriasPartidas)),
+    totalRodadas: roundsOficiais().length,
+    maxSequencia: Math.max(0, ...ativos.map(x=> x.sequencia))
+  };
+  const porJogador = {};
+  ativos.forEach(x=>{
+    porJogador[x.id] = radarValores({
+      pct: x.s.pct, fase: faseAtualPct(x.s.rounds), titulos: x.s.titulos,
+      vitorias: x.s.vitoriasPartidas, jogos: x.s.jogos, sequencia: x.sequencia
+    }, g);
+  });
+  return { porJogador, media: radarMedia(Object.values(porJogador)) };
 }
 
 function renderAproveitamentoChart(pontos){
