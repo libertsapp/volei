@@ -1210,7 +1210,8 @@
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
-  .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(var(--sb-cols,2),minmax(0,1fr));grid-auto-rows:1fr;gap:10px;margin-top:6px;} /* linhas de altura igual: cartões sempre do mesmo tamanho */
+  .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(var(--sb-cols,2),minmax(0,1fr));grid-auto-rows:auto;align-items:start;gap:10px;margin-top:6px;}
+  .sb-jogadores .jogador-card:not(.aberto){min-height:var(--sb-h,0px);} /* fechados sempre do mesmo tamanho; o aberto cresce sem esticar os vizinhos */
   @media (min-width:641px){
     /* computador: os números do ano viram uma coluna estreita à direita e os cartões ocupam o resto */
     .scoreboard{grid-template-columns:minmax(0,1fr) 210px;}
@@ -1218,8 +1219,9 @@
   }
   @media (max-width:640px){ .sb-jogadores{grid-template-columns:1fr;} }
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
-  .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;}
-  .panela-cartoes, .defuntos-cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin:8px 0;}
+  /* align-items:start: abrir um cartão (o ">") NÃO estica os vizinhos da mesma linha (o padrão "stretch" fazia parecer que todos abriam) */
+  .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;align-items:start;}
+  .panela-cartoes, .defuntos-cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin:8px 0;align-items:start;}
   .duo-cartoes{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:10px;}
   .duo-cartao{min-width:0;}
   .duo-removido{color:var(--muted);font-size:13px;padding:10px;}
@@ -1695,6 +1697,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v10.0: Cada cartão abre sozinho</summary>
+          <div>
+            <p style="line-height:1.6;">Corrigido: ao tocar no <strong>&gt;</strong> de um cartão no quadro de campeões, no Hall da Fama, nas Maiores Panelas e nos Defuntos, os outros cartões da mesma linha também cresciam e pareciam abertos. Agora só o cartão tocado abre; os demais ficam do tamanho de antes.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v9.9: Apelido no lugar do nome e quadro de campeões maior</summary>
           <div>
             <p style="line-height:1.6;">Em todo o app, quem tem <strong>apelido</strong> agora aparece pelo apelido. Tocar (ou clicar) no apelido abre o perfil com os dados completos: nome inteiro e apelido. No Check-in e no Sorteio, tocar na linha continua marcando presença/seleção, como antes.</p>
@@ -1966,7 +1975,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 9.9 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 10.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4785,6 +4794,19 @@ function wireAoVivoAcoes(){
 // Colunas dos cartões da equipe campeã: 4 jogadores viram 2x2 (não 3+1), 5 ou 6 viram 3 colunas — assim
 // as linhas ficam completas e todos os cartões do quadro têm o mesmo tamanho.
 function colunasQuadroCampeao(n){ return n <= 3 ? Math.max(1, n) : (n === 4 ? 2 : 3); }
+// Iguala a altura dos cartões FECHADOS do quadro de campeões medindo o maior deles (--sb-h). Cartão aberto não
+// entra na conta e cresce sozinho: abrir um não muda os outros.
+function igualarCartoesDoQuadro(){
+  const g = document.querySelector('#dash-hero .sb-jogadores');
+  if(!g) return;
+  g.style.removeProperty('--sb-h');                       // mede a altura natural
+  const fechados = [...g.querySelectorAll('.jogador-card:not(.aberto)')];
+  const maior = Math.max(0, ...fechados.map(c=> c.getBoundingClientRect().height));
+  if(maior) g.style.setProperty('--sb-h', Math.ceil(maior) + 'px');   // 0 = tela escondida: não trava nada
+}
+let QUADRO_RESIZE_TIMER = null;
+window.addEventListener('resize', ()=>{ clearTimeout(QUADRO_RESIZE_TIMER); QUADRO_RESIZE_TIMER = setTimeout(igualarCartoesDoQuadro, 120); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(igualarCartoesDoQuadro); // a fonte carregada muda a altura do texto
 function renderDashboard(){
   const ctxCards = contextoCards(); // uma vez por render: o cartão precisa de emblemas e da posição no ranking
   const hero = document.getElementById('dash-hero');
@@ -4836,6 +4858,7 @@ function renderDashboard(){
       </div>`;
   }
 
+  requestAnimationFrame(igualarCartoesDoQuadro); // depois do layout: precisa das alturas reais
   const top5 = computeRanking(new Date().getFullYear().toString()).slice(0,5);
   const top5container = document.getElementById('dash-top5');
   if(top5.length===0){
