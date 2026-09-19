@@ -110,3 +110,14 @@ Verificação visual humana: lista com muitos jogadores (escuro/claro, 360px), e
 - Perda do toque "Vezes campeão → datas" se o id/classe do Títulos não for preservado (coberto pelo teste da variação `perfil`).
 - Re-render do `renderPlayers` durante o uso do `>` (mitigado: toggle por classe + `Set`).
 - Altura da lista fechada (~90px) ainda maior que a linha atual (~70px): aceitável, é o compromisso escolhido.
+
+## Ajustes feitos no planejamento (2026-09-18)
+
+Refinamentos descobertos ao ler o código; valem no lugar do que estiver dito acima:
+
+1. **`estrelas` (número | null) no lugar de `estrelasHtml`:** a coluna mostra o valor ("4,5"), não as 5 estrelinhas, que não cabem numa coluna. `null` ou `0` = coluna oculta.
+2. **Novo campo `tagsExtraHtml`:** o modal de perfil já mostra o emblema de *porte* ao lado do sexo; ele passa por aqui para não sumir.
+3. **Fundo do cartão opaco** (`--court-navy-2`), não `--glass-bg`: o degradê da borda fica numa camada por baixo e vazaria por um miolo translúcido.
+4. **Responsivo por *container query*** (cartão com menos de 480px → métricas em 2×2), no lugar das faixas 360/340px por tela: o modal de perfil tem 440px em qualquer aparelho.
+5. **`data-open-profile` só na variação `lista`:** na variação `perfil` (dentro do modal) o clique global reabriria o próprio perfil.
+6. **Estrelinhas de relance (pedido do usuário):** campo `estrelasHtml` (as 5 estrelinhas de `starsDisplay`) ao lado da pílula de sexo. Na `lista` aparecem sempre (fechada ou aberta), para quem confere notas sem expandir; no `perfil` só quando não há painel de métricas (com painel a coluna "Estrelas" já mostra a nota). Seguem a mesma regra de visibilidade: somem quando o admin oculta as estrelas.

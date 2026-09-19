@@ -1095,6 +1095,102 @@
   .radar-explica{font-size:12px;color:var(--chalk-dim);margin-bottom:16px;}
   .radar-explica summary{cursor:pointer;color:var(--muted);}
   .radar-explica ul{margin:8px 0 0;padding-left:18px;line-height:1.6;}
+  /* ===== CARTÃO DO JOGADOR ===== */
+  .jogador-card{
+    /* fundo OPACO de propósito: o degradê da borda vive numa camada "border-box" por baixo, e um fundo
+       translúcido deixaria o degradê vazar pelo miolo do cartão */
+    --jc-fundo:var(--court-navy-2);
+    position:relative;container-type:inline-size;container-name:jc;
+    border:1.5px solid transparent;border-radius:16px;
+    background:
+      linear-gradient(var(--jc-fundo), var(--jc-fundo)) padding-box,
+      linear-gradient(120deg, var(--accent), var(--neon-purple)) border-box;
+    box-shadow:var(--glass-brilho);
+  }
+  /* raio de luz diagonal (só no escuro) — pointer-events:none pra nunca capturar clique */
+  .jogador-card::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(115deg, transparent 0 58%, color-mix(in srgb, var(--accent) 9%, transparent) 58% 64%, transparent 64% 100%);
+  }
+  body.light-mode .jogador-card::before{display:none;}
+  .jc-lista{animation:entrar .35s ease both;}
+  .jc-perfil{margin-bottom:16px;}
+
+  .jc-topo{position:relative;display:flex;align-items:center;gap:14px;padding:14px 14px 14px 16px;}
+  .jc-avatar-bloco{position:relative;flex:none;}
+  .jc-anel{
+    padding:3px;border-radius:50%;background:linear-gradient(135deg, var(--accent), var(--neon-purple));
+    box-shadow:0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .jc-foto{display:block;width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--jc-fundo);}
+  .jc-foto-inicial{display:flex;align-items:center;justify-content:center;background:var(--court-navy-3);font-family:'Anton',sans-serif;font-size:22px;color:var(--muted);}
+  .jc-perfil .jc-foto{width:68px;height:68px;}
+  /* hexágono: um clip-path de contorno (degradê) com outro, menor e escuro, por cima */
+  .jc-hex{
+    position:absolute;left:-4px;bottom:-8px;width:32px;height:36px;display:grid;place-items:center;
+    background:linear-gradient(135deg, var(--accent), var(--neon-purple));
+    clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+  .jc-hex span{
+    display:grid;place-items:center;width:28px;height:32px;background:var(--jc-fundo);
+    clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    font-weight:800;font-size:14px;
+  }
+
+  .jc-info{flex:1;min-width:0;}
+  .jc-linha-nome{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;}
+  .jc-nome{font-weight:800;font-size:18px;line-height:1.15;margin-right:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .jc-lista .jc-nome{cursor:pointer;}
+  .jc-lista .jc-nome:hover{color:var(--accent);}
+  .jc-perfil .jc-nome{font-size:24px;}
+  .jc-icones{display:flex;align-items:center;flex-wrap:wrap;padding-left:12px;border-left:1px solid var(--glass-borda);}
+  .jc-icones > * + *{margin-left:8px;padding-left:8px;border-left:1px solid var(--glass-borda);}
+  .jc-icones .badge-icon{font-size:18px;margin-left:0;padding:0 2px;}
+  .jc-icones > .badge-icon + .badge-icon{margin-left:8px;}
+  .jc-sexo{font-size:20px;}
+  .jc-sexo-M{color:var(--accent);}
+  .jc-sexo-F{color:#ff8fc0;}
+  body.light-mode .jc-sexo-F{color:#c2255c;}
+  .jc-icone-conta{display:inline-flex;align-items:center;}
+  .jc-apelido{font-size:12px;color:var(--muted);margin-top:2px;}
+  .jc-linha-tags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;}
+  .jc-linha-tags .badge-gender{padding:3px 12px;border-radius:20px;font-size:12px;}
+
+  .jc-acoes{display:flex;align-items:center;gap:4px;flex:none;}
+  .jc-toggle{
+    width:44px;height:30px;border-radius:20px;border:1px solid var(--glass-borda);cursor:pointer;
+    background:color-mix(in srgb, var(--accent) 7%, transparent);color:var(--accent);
+    display:grid;place-items:center;
+  }
+  .jc-toggle i{transition:transform .25s ease;}
+  .jogador-card.aberto .jc-toggle i{transform:rotate(90deg);}
+
+  /* painel das métricas: abre por altura suave (grid 0fr -> 1fr), sem medir conteúdo em JS */
+  .jc-painel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease;}
+  .jogador-card.aberto .jc-painel, .jc-perfil .jc-painel{grid-template-rows:1fr;}
+  .jc-painel-int{overflow:hidden;min-height:0;}
+  .jc-metricas{
+    display:grid;grid-template-columns:repeat(var(--jc-cols,4), 1fr);padding:14px 16px;
+    border-top:1px solid transparent;border-image:linear-gradient(90deg, transparent, var(--accent), transparent) 1;
+  }
+  .jc-metrica{display:flex;align-items:center;gap:10px;padding:0 10px;min-width:0;}
+  .jc-metrica + .jc-metrica{border-left:1px solid var(--line);}
+  .jc-metrica-icone{font-size:26px;flex:none;}
+  .jc-cor-accent{color:var(--accent);}
+  .jc-cor-ouro{color:var(--ball-yellow);}
+  .jc-cor-roxo{color:var(--neon-purple);}
+  .jc-metrica-txt{display:flex;flex-direction:column;min-width:0;}
+  .jc-rotulo{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);white-space:nowrap;}
+  .jc-valor{font-size:24px;font-weight:800;line-height:1.1;}
+  /* responsivo pela largura do PRÓPRIO cartão (e não da tela): o modal de perfil tem 440px em qualquer aparelho */
+  @container jc (max-width: 479px){
+    .jc-metricas{grid-template-columns:1fr 1fr;row-gap:12px;}
+    .jc-metrica + .jc-metrica{border-left:none;}
+    .jc-metrica:nth-child(even){border-left:1px solid var(--line);}
+    .jc-metrica-icone{font-size:22px;}
+    .jc-valor{font-size:20px;}
+  }
+
 </style>
 </head>
 <body>
@@ -3323,6 +3419,89 @@ function avatarHtml(player, size){
 let EDITING_PLAYER_ID = null; // id do jogador com a edição aberta na lista (só admin)
 let EDITING_ROUND_ID = null; // id da rodada sendo editada na tela Nova Rodada (só admin)
 let EDITING_ROUND_FROM_AOVIVO = false; // true quando "Salvar rodada" também precisa encerrar a transmissão ao vivo
+
+// <jogador-card-puro>
+/* Cartão do jogador (visual futurista). PURO: não lê DATA nem o DOM — quem chama monta o "d".
+   Duas variações: 'lista' (fechado, com ">" que abre as métricas) e 'perfil' (sempre aberto).
+   Function declaration (e não const) de propósito: renderPlayers pode rodar antes desta linha
+   ser avaliada e uma const cairia na "zona morta temporal". */
+function jcIconeGoogle(){
+  return '<svg class="jc-google" viewBox="0 0 48 48" width="16" height="16" aria-hidden="true">'
+    + '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'
+    + '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'
+    + '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'
+    + '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>'
+    + '</svg>';
+}
+function jcFormatarEstrelas(n){ return (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace('.', ','); }
+function jcMetricaHtml(icone, cor, rotulo, valorHtml){
+  return `<div class="jc-metrica"><i class="ti ${icone} jc-metrica-icone ${cor}"></i><div class="jc-metrica-txt"><span class="jc-rotulo">${rotulo}</span>${valorHtml}</div></div>`;
+}
+function jogadorCardHtml(d, opcoes){
+  const op = opcoes || {};
+  const perfil = op.variante === 'perfil';
+  const inicial = escapeHtml((d.apelido || d.nome || '?').charAt(0).toUpperCase());
+  const foto = d.foto
+    ? `<img class="jc-foto" src="${escapeHtml(d.foto)}" alt="">`
+    : `<div class="jc-foto jc-foto-inicial">${inicial}</div>`;
+  const hex = d.posicao ? `<div class="jc-hex" title="Posição no ranking do ano"><span>${d.posicao}</span></div>` : '';
+  // na variação 'perfil' o nome NÃO é data-open-profile: dentro do modal isso reabriria o próprio perfil
+  const nome = `<span class="jc-nome"${perfil ? '' : ` data-open-profile="${escapeHtml(d.id)}"`}>${escapeHtml(d.nome || '')}</span>`;
+
+  const partesIcones = [];
+  if(d.sexo === 'M') partesIcones.push('<i class="ti ti-gender-male jc-sexo jc-sexo-M" title="Masculino"></i>');
+  if(d.sexo === 'F') partesIcones.push('<i class="ti ti-gender-female jc-sexo jc-sexo-F" title="Feminino"></i>');
+  if(d.temConta) partesIcones.push(`<span class="jc-icone-conta" title="Jogador com conta cadastrada no app">${jcIconeGoogle()}</span>`);
+  const iconesInterno = partesIcones.join('') + (d.emblemasHtml || '');
+  const icones = iconesInterno ? `<span class="jc-icones">${iconesInterno}</span>` : '';
+
+  const apelido = d.apelido ? `<div class="jc-apelido">"${escapeHtml(d.apelido)}"</div>` : '';
+  const pilula = d.sexo ? `<span class="badge-gender ${d.sexo}">${d.sexo === 'F' ? 'Feminino' : 'Masculino'}</span>` : '';
+  // estrelinhas de relance: a lista fechada não mostra a coluna "Estrelas"; no perfil com painel a coluna já mostra a nota
+  const glifos = (d.estrelasHtml && (!perfil || !d.metricas)) ? d.estrelasHtml : '';
+  const tagsInterno = pilula + glifos + (d.ausenciaHtml || '') + (d.tagsExtraHtml || '');
+  const tags = tagsInterno ? `<div class="jc-linha-tags">${tagsInterno}</div>` : '';
+
+  const toggle = (!perfil && d.metricas)
+    ? `<button type="button" class="jc-toggle" aria-expanded="${op.aberto ? 'true' : 'false'}" aria-label="Mostrar estatísticas" data-som="nav"><i class="ti ti-chevron-right"></i></button>`
+    : '';
+  const acoesInterno = (d.acoesHtml || '') + toggle;
+  const acoes = acoesInterno ? `<div class="jc-acoes">${acoesInterno}</div>` : '';
+
+  let painel = '';
+  if(d.metricas){
+    const m = d.metricas;
+    // o número de Títulos só é clicável no perfil (abre as datas de campeão) — o id vem de quem chama
+    const titulo = (perfil && op.tituloId)
+      ? `<span class="jc-valor ranking-titulos-clicavel" id="${escapeHtml(op.tituloId)}" title="Toque para ver as datas">${m.titulos}</span>`
+      : `<span class="jc-valor">${m.titulos}</span>`;
+    const colunas = [
+      jcMetricaHtml('ti-calendar', 'jc-cor-accent', 'Partidas', `<span class="jc-valor">${m.partidas}</span>`),
+      jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo),
+      jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`)
+    ];
+    // estrelas ocultas pelo admin (ou nota zero): a coluna some e as outras se redistribuem
+    if(d.estrelas != null && d.estrelas > 0){
+      colunas.push(jcMetricaHtml('ti-star', 'jc-cor-roxo', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
+    }
+    painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
+  }
+
+  const classes = ['jogador-card', perfil ? 'jc-perfil' : 'jc-lista'];
+  if(!perfil && op.aberto && d.metricas) classes.push('aberto');
+  return `<div class="${classes.join(' ')}" data-jc-id="${escapeHtml(d.id)}">
+    <div class="jc-topo">
+      <div class="jc-avatar-bloco"><div class="jc-anel">${foto}</div>${hex}</div>
+      <div class="jc-info">
+        <div class="jc-linha-nome">${nome}${icones}</div>
+        ${apelido}${tags}
+      </div>
+      ${acoes}
+    </div>
+    ${painel}
+  </div>`;
+}
+// </jogador-card-puro>
 
 function renderPlayers(){
   const list = document.getElementById('player-list');
