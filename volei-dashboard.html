@@ -1232,6 +1232,7 @@
   .jc-tag-alerta{font-size:11px;color:var(--danger);border:1px solid var(--danger);padding:2px 7px;border-radius:10px;font-weight:700;}
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
 </style>
 </head>
 <body>
@@ -4789,8 +4790,8 @@ function renderDashboard(){
   if(top5.length===0){
     top5container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Ainda sem dados suficientes para o ranking deste ano.</div>';
   } else {
-    top5container.innerHTML = rankingTableHtml(top5);
-    wireRankingTitulosClicks(top5);
+    top5container.innerHTML = rankingCartoesHtml(top5);
+    wireRankingTitulosClicks(top5, top5container);
   }
 
   renderPhotoChart();
@@ -5475,24 +5476,23 @@ function rankingPodioHtml(rows){
 }
 // </podio-puro>
 
-function rankingTableHtml(rows){
-  const badges = computeBadges();
-  return `<div style="overflow-x:auto;"><table>
-    <thead><tr><th>#</th><th>Jogador</th><th class="num">Rodadas</th><th class="num">Campeões (foto)</th><th class="num"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></th><th class="num">%</th></tr></thead>
-    <tbody>
-      ${rows.map((r,i)=>`<tr>
-        <td class="medal medal-${i+1}">${i+1}º</td>
-        <td><div class="with-avatar clickable-name" data-open-profile="${r.id}">${avatarHtml({foto:r.foto, nome:r.nome},'sm')}${nomeComApelidoHtml(r)}${badgeIconsHtml(r.id, badges)}</div></td>
-        <td class="num">${r.jogos}</td>
-        <td class="num"><span class="ranking-titulos-clicavel" data-ranking-titulos="${r.id}" title="Toque para ver as datas">${r.titulos}</span></td>
-        <td class="num">${r.vitoriasPartidas}</td>
-        <td class="num">${r.pct}%</td>
-      </tr>`).join('')}
-    </tbody>
-  </table></div>`;
+/* Ranking em cartões (variante lista, ABERTOS). As métricas são as do ANO escolhido e o hexágono é a posição
+   nele — por isso passam por "extras" e não vêm do ctx (que é do ano corrente). "rows" já vem ordenada por
+   computeRanking, então o índice é a posição. O toque em Títulos abre as datas (data-ranking-titulos). */
+function rankingCartoesHtml(rows){
+  const ctx = contextoCards();
+  return `<div class="rk-cartoes">${rows.map((r, i)=>{
+    const p = getPlayer(r.id);
+    if(!p) return '';
+    return cartaoDaTela('ranking', p, ctx,
+      { posicao: i + 1, metricas: { partidas: r.jogos, titulos: r.titulos, pct: r.pct, vitorias: r.vitoriasPartidas } },
+      { aberto: true, tituloAtributos: `data-ranking-titulos="${r.id}"` });
+  }).join('')}</div>`;
 }
-function wireRankingTitulosClicks(rows){
-  document.querySelectorAll('[data-ranking-titulos]').forEach(el=>{
+function wireRankingTitulosClicks(rows, raiz){
+  // limitado ao container que acabou de ser renderizado: varrer o document inteiro religava os
+  // cartões do outro lugar (Ranking x Top 5 do Início) e o clique abria a janela de datas duas vezes
+  (raiz || document).querySelectorAll('[data-ranking-titulos]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const row = rows.find(r=>r.id===el.dataset.rankingTitulos);
       if(!row) return;
@@ -5519,8 +5519,8 @@ function renderRanking(){
     container.innerHTML = '<div class="empty"><i class="ti ti-trophy"></i>Sem rodadas registradas para este ano.</div>';
     return;
   }
-  container.innerHTML = rankingPodioHtml(rows) + rankingTableHtml(rows);
-  wireRankingTitulosClicks(rows);
+  container.innerHTML = rankingPodioHtml(rows) + rankingCartoesHtml(rows);
+  wireRankingTitulosClicks(rows, container);
 }
 document.getElementById('ranking-year').addEventListener('change', renderRanking);
 
