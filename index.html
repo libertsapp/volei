@@ -1333,6 +1333,14 @@
     .jc-metrica-icone{font-size:22px;}
     .jc-valor{font-size:20px;}
   }
+  /* 6 colunas (com Sequência) só cabem a partir de ~900px: entre 700 e 899 repete o layout de 2 por linha */
+  @container jc (min-width: 700px) and (max-width: 899px){
+    .jc-metricas.jc-seis{grid-template-columns:1fr 1fr;row-gap:12px;}
+    .jc-metricas.jc-seis .jc-metrica + .jc-metrica{border-left:none;}
+    .jc-metricas.jc-seis .jc-metrica:nth-child(even){border-left:1px solid var(--line);}
+    .jc-metricas.jc-seis .jc-metrica-icone{font-size:22px;}
+    .jc-metricas.jc-seis .jc-valor{font-size:20px;}
+  }
 
 
   /* celular: o botão do Google (~220px) + 3 ícones não cabem em 390px — quebra de linha em vez de cortar o 🔒 */
@@ -2012,6 +2020,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v12.1: Sequência no cartão do jogador</summary>
+          <div>
+            <p style="line-height:1.6;">Ao abrir o cartão de um jogador (no <strong>&gt;</strong>), as estatísticas ganharam a coluna <strong>Sequência 🔥</strong>, antes do Aproveitamento: quantas rodadas seguidas ele jogou sem faltar, contando da mais recente para trás. É o mesmo número da "Sequência atual sem faltar" do Meu Perfil.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v12.0: Dia sem jogo e crédito de jogadores</summary>
           <div>
             <p style="line-height:1.6;">Quando <strong>não há jogo</strong> (chuva, poucos jogadores), o admin/organizador usa <strong>🌧️ Dia sem jogo</strong> no "Financeiro do dia" do Check-in. A <strong>quadra e o brinde deixam de contar</strong> naquele dia (acabou o valor negativo de uma quadra que não foi paga) e o app pergunta o que fazer com o dinheiro já recolhido: <strong>guardar como crédito</strong> (padrão) ou <strong>devolver</strong> (estornar todos). O dia pode ser reaberto enquanto nenhum crédito dele tiver sido usado.</p>
@@ -2385,7 +2400,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 12.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 12.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4349,9 +4364,13 @@ function jogadorCardHtml(d, opcoes){
         : `<span class="jc-valor">${m.titulos}</span>`);
     const colunas = [
       jcMetricaHtml('ti-calendar', 'jc-cor-accent', 'Partidas', `<span class="jc-valor">${m.partidas}</span>`),
-      jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo),
-      jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`)
+      jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo)
     ];
+    // rodadas seguidas sem faltar (0 = faltou a mais recente). Sem "sequencia" (chamador antigo) a coluna não existe.
+    if(m.sequencia != null){
+      colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-accent', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
+    }
+    colunas.push(jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`));
     // média de vitórias por partida (ex.: 93 vitórias em 19 partidas = 4,9). Sem "vitorias" (chamador antigo) a coluna não existe.
     if(m.vitorias != null && m.partidas > 0){
       colunas.push(jcMetricaHtml('ti-ball-volleyball', 'jc-cor-verde', 'Vit./partida',
@@ -4361,7 +4380,7 @@ function jogadorCardHtml(d, opcoes){
     if(d.estrelas != null && d.estrelas > 0){
       colunas.push(jcMetricaHtml('ti-star', 'jc-cor-ouro', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
     }
-    painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
+    painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas${colunas.length >= 6 ? ' jc-seis' : ''}" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
   }
 
   const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
@@ -4401,7 +4420,7 @@ function montarDadosCard(p, ctx, extras){
     temConta: temContaVinculada(p.id),
     emblemasHtml: badgeIconsHtml(p.id, ctx.badges),
     posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
-    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas } : null,
+    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas, sequencia: computeSequenciaAtualPresenca(p.id) } : null,
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
     estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
