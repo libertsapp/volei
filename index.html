@@ -947,6 +947,13 @@
   .fin-campo{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
   .fin-campo input[type=number], .fin-campo input[type=text]{width:100%;}
   /* seletor discreto do ícone de "pagou": duas pílulas pequenas ao lado do Salvar, sem ocupar linha própria */
+  .fin-semjogo-linha{grid-column:1 / -1;}
+  .fin-semjogo-linha .btn{padding:6px 14px;font-size:12px;}
+  .fin-semjogo{border-color:color-mix(in srgb, var(--accent) 45%, transparent);}
+  .fin-credito-tag{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .fin-opcao{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px;line-height:1.45;}
+  .fin-opcao input{margin-top:3px;flex:none;}
+  .fin-opcao small{color:var(--muted);}
   .fin-rodape-card{display:flex;align-items:center;gap:8px;}
   .fin-rodape-card .btn{flex:1;}
   .fin-icone{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:999px;flex:none;}
@@ -1014,6 +1021,10 @@
   .fin-linha-meta{flex-basis:100%;font-size:11px;color:var(--muted);}
   .fin-linha.fin-estornado .fin-linha-nome, .fin-linha.fin-estornado .fin-linha-valor{text-decoration:line-through;opacity:.55;}
   .fin-selo{font-size:10px;font-weight:700;color:var(--danger);border:1px solid var(--danger);border-radius:999px;padding:1px 7px;}
+  .fin-selo-info{color:var(--accent);border-color:color-mix(in srgb, var(--accent) 55%, transparent);}
+  .fin-dia-semjogo{border-style:dashed;}
+  .fin-creditos{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:10px;font-size:13px;color:var(--muted);}
+  .fin-creditos strong{color:var(--accent);}
   .fin-linha .btn{padding:3px 10px;font-size:12px;}
   .fin-pendentes{display:flex;flex-wrap:wrap;gap:6px;}
   .fin-pendentes span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--chalk-dim);}
@@ -1683,6 +1694,9 @@
               </div>
               <button type="button" class="btn" id="fin-salvar-dia-btn">Salvar</button>
             </div>
+            <div class="fin-semjogo-linha" id="fin-semjogo-linha" style="display:none;">
+              <button type="button" class="btn secondary" id="fin-semjogo-btn" title="Marcar quando não houve jogo (chuva, poucos jogadores)">🌧️ Dia sem jogo</button>
+            </div>
           </div>
         </details>
       </div>
@@ -1732,6 +1746,10 @@
         <div class="fin-barra-acoes" id="fin-acoes"></div>
         <h3 class="fin-subtitulo">Extrato por dia</h3>
         <div id="fin-extrato"></div>
+        <details class="dash-accordion" id="fin-creditos-sec" style="display:none;">
+          <summary>🎟️ Créditos de jogadores</summary>
+          <div id="fin-creditos-lista"></div>
+        </details>
         <details class="dash-accordion" id="fin-auditoria">
           <summary>🔍 Auditoria — últimas ações</summary>
           <div id="fin-auditoria-lista"></div>
@@ -1994,6 +2012,14 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>19/09/2026 — v12.0: Dia sem jogo e crédito de jogadores</summary>
+          <div>
+            <p style="line-height:1.6;">Quando <strong>não há jogo</strong> (chuva, poucos jogadores), o admin/organizador usa <strong>🌧️ Dia sem jogo</strong> no "Financeiro do dia" do Check-in. A <strong>quadra e o brinde deixam de contar</strong> naquele dia (acabou o valor negativo de uma quadra que não foi paga) e o app pergunta o que fazer com o dinheiro já recolhido: <strong>guardar como crédito</strong> (padrão) ou <strong>devolver</strong> (estornar todos). O dia pode ser reaberto enquanto nenhum crédito dele tiver sido usado.</p>
+            <p style="line-height:1.6;"><strong>Crédito:</strong> no próximo check-in, quem tinha pago aparece <strong>já pago, com "(Crédito)"</strong>, assim que estiver entre os confirmados dentro das vagas (o app aplica sozinho ao salvar o dia, ao confirmar presença e quando a espera sobe; quem sai da lista devolve o crédito). O dinheiro do crédito continua no caixa, mas é dos jogadores: a página Financeiro mostra <strong>Créditos de jogadores</strong> e o <strong>Saldo livre</strong> (caixa − créditos), e o admin pode devolver o dinheiro de um crédito ainda não usado. Um pagamento por crédito conta como pago, mas não é dinheiro novo no caixa. Crédito menor que o valor do dia não é aplicado; maior que o valor sobra saldo para os próximos.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v11.7: Confirmar todos e Cancelar todos os pagamentos</summary>
           <div>
             <p style="line-height:1.6;">No <strong>Check-in</strong>, o resumo do dia ganhou dois botões (só para admin/organizador): <strong>Confirmar todos</strong> marca como pago todo confirmado que ainda não pagou, e <strong>Cancelar todos</strong> estorna todos os pagamentos do dia automaticamente (nada é apagado: cada um fica riscado no extrato, com quem estornou e quando, e a ação inteira entra na auditoria). Os botões mostram quantos pagamentos serão afetados e pedem confirmação antes. O organizador não estorna o pagamento de quem já saiu da lista (só o admin), e o app avisa quantos ficaram.</p>
@@ -2359,7 +2385,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 11.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 12.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2419,6 +2445,10 @@ const PERMISSOES_UI = {
   estornarPagamento:   ['organizador','admin'], // backend: quem saiu da lista só admin (o botão só aparece pro admin)
   marcarTodosPagamentos:   ['organizador','admin'],
   estornarTodosPagamentos: ['organizador','admin'], // backend: organizador não estorna o de quem saiu da lista
+  marcarDiaSemJogo:    ['organizador','admin'],
+  reabrirDia:          ['organizador','admin'],
+  aplicarCreditosDoDia:['organizador','admin'],
+  devolverCredito:     ['admin'],                   // devolver o DINHEIRO de um crédito é do admin
   addLancamento:       ['organizador','admin'],
   estornarLancamento:  ['admin']
 };
@@ -2429,8 +2459,12 @@ const PERMISSOES_UI = {
    (ex.: 16 x 13,60 em decimal pode dar 217.60000000000002). O formato de "fin" está no plano/spec. */
 function finNormalizar(f){
   const x = f || {};
-  return { dias: x.dias || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [] };
+  return { dias: x.dias || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [] };
 }
+// dia marcado como "sem jogo" (chuva, poucos jogadores): a quadra e o brinde não foram pagos, então a saída não conta
+function finSemJogo(d){ return !!d && d.status === 'semjogo'; }
+// "dinheiro" (padrão) = entrou dinheiro novo; "credito" = pago com crédito de um dia sem jogo (o dinheiro JÁ estava no caixa)
+function finTipoPagamento(p){ return p && p.tipo === 'credito' ? 'credito' : 'dinheiro'; }
 function finCentavos(v){
   const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
@@ -2457,13 +2491,19 @@ function finPagamentosValidos(fin, data){
 function finPagamentoDe(fin, data, jogadorId){
   return finPagamentosValidos(fin, data).find(p => String(p.jogadorId) === String(jogadorId)) || null;
 }
+// tudo o que está PAGO no dia (dinheiro + crédito): serve pro "arrecadado de previsto", pendentes e a lista
 function finArrecadadoDia(fin, data){
   return finPagamentosValidos(fin, data).reduce((s, p) => s + finCentavos(p.valor), 0);
 }
-// a saída do dia (quadra + brinde) conta assim que o dia é salvo, antes de qualquer pagamento
+// só o dinheiro NOVO que entrou no dia (é isso que mexe no caixa; o crédito já tinha entrado no dia sem jogo)
+function finRecebidoDinheiroDia(fin, data){
+  return finPagamentosValidos(fin, data).filter(p => finTipoPagamento(p) === 'dinheiro')
+    .reduce((s, p) => s + finCentavos(p.valor), 0);
+}
+// a saída do dia (quadra + brinde) conta assim que o dia é salvo, antes de qualquer pagamento; dia SEM JOGO não tem saída
 function finSaidaDia(fin, data){
   const d = finDia(fin, data);
-  if(!d) return 0;
+  if(!d || finSemJogo(d)) return 0;
   return finCentavos(d.valorQuadra) + (d.temBrinde ? finCentavos(d.valorBrinde) : 0);
 }
 function finAvulsosDia(fin, data){
@@ -2471,7 +2511,7 @@ function finAvulsosDia(fin, data){
     .reduce((s, l) => s + (l.tipo === 'entrada' ? 1 : -1) * finCentavos(l.valor), 0);
 }
 function finResultadoDia(fin, data){
-  return finArrecadadoDia(fin, data) - finSaidaDia(fin, data);
+  return finRecebidoDinheiroDia(fin, data) - finSaidaDia(fin, data);
 }
 function finDatas(fin){
   const s = new Set();
@@ -2489,7 +2529,37 @@ function finPrevistoDia(fin, data, qtdDentro){
   return d ? finCentavos(d.valorPessoa) * qtdDentro : 0;
 }
 function finPendentes(fin, data, dentro){
+  if(finSemJogo(finDia(fin, data))) return [];  // dia sem jogo: não há o que cobrar
   return dentro.filter(c => !finPagamentoDe(fin, data, c.jogadorId));
+}
+/* ---------- créditos de jogadores (dinheiro recolhido num dia sem jogo, a abater no próximo check-in) ---------- */
+// crédito.status: 'ativo' | 'devolvido' (admin devolveu o dinheiro) | 'cancelado' (o dia sem jogo foi reaberto).
+// O SALDO não é gravado: é o valor menos o que já foi usado em pagamentos por crédito AINDA VÁLIDOS. Assim, estornar um
+// pagamento por crédito devolve o saldo sozinho, e um crédito maior que o valor do dia pode ser usado em partes.
+function finSaldoCredito(fin, c){
+  const usado = (fin.pagamentos || [])
+    .filter(p => !p.estornado && finTipoPagamento(p) === 'credito' && String(p.creditoId) === String(c.id))
+    .reduce((s, p) => s + finCentavos(p.valor), 0);
+  return finCentavos(c.valor) - usado;
+}
+function finCreditosDisponiveis(fin){
+  return (fin.creditos || []).filter(c => c.status === 'ativo' && finSaldoCredito(fin, c) > 0);
+}
+function finTotalCreditos(fin){
+  return finCreditosDisponiveis(fin).reduce((s, c) => s + finSaldoCredito(fin, c), 0);
+}
+function finCreditoDe(fin, jogadorId){
+  return finCreditosDisponiveis(fin).filter(c => String(c.jogadorId) === String(jogadorId))
+    .reduce((s, c) => s + finSaldoCredito(fin, c), 0);
+}
+// o dinheiro dos créditos está no caixa mas é dos jogadores: o que sobra "de verdade" pro grupo é caixa − créditos
+function finSaldoLivre(fin){
+  return finCaixa(fin) - finTotalCreditos(fin);
+}
+// 'Crédito' se o pagamento válido dessa pessoa no dia foi feito com crédito (aparece como "(Crédito)" na lista)
+function finRotuloCredito(fin, data, jogadorId){
+  const p = finPagamentoDe(fin, data, jogadorId);
+  return p && finTipoPagamento(p) === 'credito' ? 'Crédito' : '';
 }
 // pagou mas não está mais entre os confirmados (saiu da lista ou foi pra espera): continua contando no caixa;
 // só o admin decide estornar
@@ -2529,7 +2599,7 @@ function finCabecalhoWhatsApp(fin, data){
 // então não entra em "pendentes". Devolve null se o dia não tem valor por pessoa (sem isso não dá pra prever).
 function finSaldoPrevisto(fin, data, dentro){
   const d = finDia(fin, data);
-  if(!d || !(finCentavos(d.valorPessoa) > 0)) return null;
+  if(!d || finSemJogo(d) || !(finCentavos(d.valorPessoa) > 0)) return null;
   const pendentes = finPendentes(fin, data, dentro).length;
   const aReceber = pendentes * finCentavos(d.valorPessoa);
   const caixa = finCaixa(fin);
@@ -2563,11 +2633,29 @@ function finResumoFechamento(fin, data){
   const dia = finDia(fin, data);
   const money = (c) => finFormatar(c);
   const pagos = finPagamentosRecentesPrimeiro(finPagamentosValidos(fin, data)).reverse(); // do primeiro pro último a pagar
-  const totalPag = pagos.reduce((s, p) => s + finCentavos(p.valor), 0);
-  const valores = new Set(pagos.map(p => finCentavos(p.valor)));
+  // dia SEM JOGO: em vez do fechamento, um aviso curto (a saída não conta e o dinheiro recolhido fica como crédito)
+  if(finSemJogo(dia)){
+    const linhas = ['🏐 VÔLEI — SEM JOGO', '📅 ' + finDataCurtaComDia(data), '', '🌧️ Hoje não houve jogo.'];
+    const dinheiro = pagos.filter(p => finTipoPagamento(p) === 'dinheiro');
+    if(pagos.length){
+      if(dinheiro.length) linhas.push('', '💳 Pagamentos já recebidos: ' + dinheiro.length + ' (' + money(dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0)) + '), guardados como crédito para o próximo check-in.');
+      linhas.push('', '📋 Lista:', pagos.map(p => p.jogadorNome || 'Convidado').join(', ') + '.');
+    }
+    return linhas.join('\n');
+  }
+  // quem pagou com CRÉDITO está na lista e conta como pago, mas não é dinheiro novo: o total recebido é só o dinheiro
+  const emDinheiro = pagos.filter(p => finTipoPagamento(p) === 'dinheiro');
+  const comCredito = pagos.filter(p => finTipoPagamento(p) === 'credito');
+  const soma = (l) => l.reduce((s, p) => s + finCentavos(p.valor), 0);
+  const resumoGrupo = (l) => {
+    const vals = new Set(l.map(p => finCentavos(p.valor)));
+    return vals.size === 1 ? l.length + ' × ' + money(Array.from(vals)[0]) + ' = ' + money(soma(l))
+                           : l.length + ' pagamentos = ' + money(soma(l));
+  };
+  const totalPag = soma(emDinheiro);
   const linhaPag = !pagos.length ? 'Nenhum pagamento registrado.'
-    : (valores.size === 1 ? pagos.length + ' × ' + money(Array.from(valores)[0]) + ' = ' + money(totalPag)
-                          : pagos.length + ' pagamentos = ' + money(totalPag));
+    : (!emDinheiro.length ? 'Nenhum pagamento em dinheiro.' : resumoGrupo(emDinheiro));
+  const linhaCredito = comCredito.length ? ['🎟️ Com crédito: ' + resumoGrupo(comCredito) + ' (já ' + (comCredito.length === 1 ? 'estava' : 'estavam') + ' no caixa)'] : [];
   const avulsos = (fin.lancamentos || []).filter(l => l.data === data && !l.estornado);
   const entradasAv = avulsos.filter(l => l.tipo === 'entrada');
   const saidasAv = avulsos.filter(l => l.tipo !== 'entrada');
@@ -2587,6 +2675,7 @@ function finResumoFechamento(fin, data){
     '',
     '💰 Total recebido:',
     linhaPag,
+    ...linhaCredito,
     ...entradasAv.map(l => '* ' + l.descricao + ': ' + money(finCentavos(l.valor))),
     '',
     'Total recebido: ' + money(recebido),
@@ -6623,7 +6712,7 @@ function renderCheckinOrdenados(){
   if(!data){ el.innerHTML = ''; return; }
   const { dentro, reserva } = checkinsDentroEReserva(data);
   const dia = finDia(FINANCEIRO, data);
-  const cobrando = !!dia && finCentavos(dia.valorPessoa) > 0;
+  const cobrando = !!dia && !finSemJogo(dia) && finCentavos(dia.valorPessoa) > 0; // dia sem jogo não cobra
   const podeMarcar = cobrando && temPermissao('marcarPagamento'); // só admin/organizador tocam; os demais só veem os ícones
   let html = '';
   if(dentro.length){
@@ -6631,8 +6720,14 @@ function renderCheckinOrdenados(){
     dentro.forEach(c=>{
       const nome = c.jogadorNome || 'Convidado';
       const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
-      const atrib = podeMarcar ? ` class="fin-toque" role="button" tabindex="0" data-fin-jogador="${escapeHtml(c.jogadorId)}" data-fin-nome="${escapeHtml(nome)}" title="Toque para ${marcas ? 'desmarcar' : 'marcar'} o pagamento"` : '';
-      html += `<li${atrib}>${escapeHtml(nome)}${marcas ? `<span class="fin-marca" title="Pago">${marcas}</span>` : ''}</li>`;
+      const porCredito = !!finRotuloCredito(FINANCEIRO, data, c.jogadorId);   // pago com crédito de um dia sem jogo
+      const creditoDisp = (!marcas && cobrando) ? finCreditoDe(FINANCEIRO, c.jogadorId) : 0; // tem crédito mas ainda não foi aplicado
+      const dica = marcas ? (porCredito ? 'desmarcar o pagamento por crédito (o crédito volta ao saldo)' : 'desmarcar o pagamento') : 'marcar o pagamento';
+      const atrib = podeMarcar ? ` class="fin-toque" role="button" tabindex="0" data-fin-jogador="${escapeHtml(c.jogadorId)}" data-fin-nome="${escapeHtml(nome)}" title="Toque para ${dica}"` : '';
+      html += `<li${atrib}>${escapeHtml(nome)}${marcas ? `<span class="fin-marca" title="Pago">${marcas}</span>` : ''}`
+        + (porCredito ? '<span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo">(Crédito)</span>' : '')
+        + (creditoDisp ? `<span class="fin-credito-tag" title="Tem crédito de um dia sem jogo que ainda não cobre este dia">🎟️ crédito ${finFormatar(creditoDisp)}</span>` : '')
+        + '</li>';
     });
     html += '</ol></div>';
   }
@@ -6661,7 +6756,8 @@ async function alternarPagamentoCheckin(jogadorId, nome){
   if(!data) return;
   const pago = finPagamentoDe(FINANCEIRO, data, jogadorId);
   if(pago){
-    if(!confirm('Desmarcar o pagamento de ' + nome + '?')) return;
+    const porCredito = finTipoPagamento(pago) === 'credito';
+    if(!confirm(porCredito ? 'Desmarcar o pagamento por CRÉDITO de ' + nome + '? O crédito volta ao saldo dela(e).' : 'Desmarcar o pagamento de ' + nome + '?')) return;
     await finPost('estornarPagamento', { id: pago.id });
   } else {
     await finPost('marcarPagamento', { data, jogadorId, jogadorNome: nome });
@@ -6704,8 +6800,48 @@ function renderFinDiaCard(){
   preencher('fin-valor-brinde', dia && dia.valorBrinde ? dia.valorBrinde : '');
   marcarIconeAtivoNoCartao(finIconeDoCartao(dia));
   const chip = document.getElementById('fin-dia-chip');
-  chip.textContent = herdado ? 'sugestão do dia anterior — salve' : (dia ? 'salvo' : 'não configurado');
-  chip.classList.toggle('ok', !!dia && !herdado);
+  const semJogo = !herdado && finSemJogo(dia);
+  chip.textContent = semJogo ? 'sem jogo 🌧️' : (herdado ? 'sugestão do dia anterior — salve' : (dia ? 'salvo' : 'não configurado'));
+  chip.classList.toggle('ok', !!dia && !herdado && !semJogo);
+  // "Dia sem jogo" só existe pra um dia já salvo; num dia sem jogo o mesmo botão vira "Reabrir dia"
+  const linha = document.getElementById('fin-semjogo-linha');
+  linha.style.display = (dia && !herdado) ? '' : 'none';
+  const btn = document.getElementById('fin-semjogo-btn');
+  btn.textContent = semJogo ? '☀️ Reabrir dia' : '🌧️ Dia sem jogo';
+  btn.dataset.acao = semJogo ? 'reabrir' : 'marcar';
+}
+document.getElementById('fin-semjogo-btn').addEventListener('click', (e)=>{
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  if(e.currentTarget.dataset.acao === 'reabrir') reabrirDiaFinanceiro(data); else abrirDiaSemJogo();
+});
+
+// Dia sem jogo (chuva, poucos jogadores): a quadra/brinde deixam de contar e o dinheiro já recolhido vira crédito (padrão) ou é devolvido
+function abrirDiaSemJogo(){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+  const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+  const corpo = `<p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5;">Use quando <strong>não houve jogo</strong> (chuva, poucos jogadores). A <strong>quadra e o brinde deixam de contar</strong> neste dia.</p>`
+    + (dinheiro.length
+      ? `<div class="fin-campo">O que fazer com os ${dinheiro.length} pagamento(s) já recebido(s) (${finFormatar(total)})?</div>
+         <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="credito" checked><span><strong>Guardar como crédito</strong> (recomendado)<br><small>Cada pessoa aparece já paga, com "(Crédito)", no próximo check-in em que confirmar presença.</small></span></label>
+         <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="devolver"><span><strong>Devolver</strong> (estornar todos)<br><small>O valor sai do caixa.${ehAdminAgora() ? '' : ' Como organizador, quem já saiu da lista não é estornado (só o admin).'}</small></span></label>`
+      : `<p style="margin:0;font-size:13px;color:var(--muted);">Ninguém pagou neste dia, então não há nada a guardar ou devolver.</p>`);
+  finAbrirModal('Dia sem jogo 🌧️ — ' + formatDate(data), corpo, async (ov)=>{
+    const sel = ov.querySelector('input[name="fin-sj-destino"]:checked');
+    const destino = sel ? sel.value : 'credito';
+    if(!(await finPost('marcarDiaSemJogo', { data, destino }))) return false;
+    const r = ULTIMA_RESPOSTA_POST || {};
+    mostrarToast(destino === 'devolver'
+      ? (r.estornados || 0) + ' pagamento(s) devolvido(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin devolve).' : '')
+      : (r.creditos ? r.creditos + ' pagamento(s) guardado(s) como crédito.' : 'Dia marcado como sem jogo.'), 'sucesso');
+    return true;
+  }, 'Marcar sem jogo');
+}
+async function reabrirDiaFinanceiro(data){
+  if(!confirm('Reabrir este dia?\n\nA quadra e o brinde voltam a contar, e os créditos deste dia (que ainda não foram usados) voltam a ser pagamentos comuns.')) return;
+  if(await finPost('reabrirDia', { data })) mostrarToast('Dia reaberto.', 'sucesso');
 }
 // ícone escolhido no cartão e ainda NÃO salvo (null = vale o do dia); só grava quando toca em Salvar, como os outros campos
 let FIN_ICONE_ESCOLHIDO = null;
@@ -6749,6 +6885,16 @@ function renderFinResumoCheckin(){
   if(!el) return;
   const data = SETTINGS.checkinDataAberta;
   const dia = data ? finDia(FINANCEIRO, data) : null;
+  // dia SEM JOGO: em vez do resumo de cobrança, uma faixa explicando o que aconteceu (visível a todos)
+  if(dia && finSemJogo(dia)){
+    const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+    const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+    el.innerHTML = `<div class="fin-resumo fin-semjogo">
+      <div class="fin-resumo-linha"><span>🌧️ <strong>Dia sem jogo</strong></span></div>
+      <div class="fin-resumo-sub">A quadra e o brinde não contam neste dia.${dinheiro.length ? ' ' + dinheiro.length + ' pagamento(s) já recebido(s) (' + finFormatar(total) + ') ficaram como crédito para o próximo check-in.' : ''}</div>
+    </div>`;
+    return;
+  }
   if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ el.innerHTML = ''; return; }
   const { dentro } = checkinsDentroEReserva(data);
   const arrecadado = finArrecadadoDia(FINANCEIRO, data);
@@ -6804,7 +6950,10 @@ async function pagamentosEmMassa(tipo){
 /* ---------- PÁGINA Controle Financeiro ---------- */
 const FIN_ACOES_ROTULO = {
   salvarFinDia: 'configurou o dia', marcarPagamento: 'marcou pagamento', estornarPagamento: 'estornou pagamento',
-  addLancamento: 'fez um lançamento', estornarLancamento: 'estornou um lançamento'
+  addLancamento: 'fez um lançamento', estornarLancamento: 'estornou um lançamento',
+  marcarTodosPagamentos: 'confirmou todos os pagamentos', estornarTodosPagamentos: 'cancelou todos os pagamentos',
+  marcarDiaSemJogo: 'marcou o dia como sem jogo', reabrirDia: 'reabriu o dia', aplicarCreditos: 'aplicou créditos',
+  devolverCredito: 'devolveu um crédito'
 };
 // "18/09 19:05" a partir do ISO; texto vazio se não der pra ler
 function finQuando(iso){
@@ -6821,6 +6970,15 @@ function finDetalheLegivel(acao, detalhe){
     return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))} (${quando})${d.motivo ? ' · ' + escapeHtml(d.motivo) : ''}`;
   if(acao === 'addLancamento' || acao === 'estornarLancamento')
     return `${d.tipo === 'entrada' ? 'entrada' : 'saída'} de ${finFormatar(finCentavos(d.valor))} — ${escapeHtml(d.descricao || '')} (${quando})`;
+  if(acao === 'marcarTodosPagamentos')
+    return `${d.quantidade} pagamento(s) de ${finFormatar(finCentavos(d.valorCada))} (${quando}): ${escapeHtml((d.nomes || []).join(', '))}`;
+  if(acao === 'estornarTodosPagamentos')
+    return `${d.quantidade} pagamento(s) estornado(s) (${quando})` + ((d.ignoradosForaDaLista || []).length ? ` · ${d.ignoradosForaDaLista.length} de quem saiu da lista ficaram` : '');
+  if(acao === 'marcarDiaSemJogo')
+    return `${quando}: ` + (d.destino === 'devolver' ? `${d.estornados} pagamento(s) devolvido(s)` : `${d.creditos} pagamento(s) viraram crédito`);
+  if(acao === 'reabrirDia') return `${quando}: ${d.creditosCancelados} crédito(s) cancelado(s)`;
+  if(acao === 'aplicarCreditos') return `${d.quantidade} pagamento(s) por crédito em ${quando}: ${escapeHtml((d.nomes || []).join(', '))}`;
+  if(acao === 'devolverCredito') return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))} (crédito de ${d.dataOrigem ? formatDate(d.dataOrigem) : ''})`;
   if(acao === 'salvarFinDia' && d.depois)
     return `${quando}: ${finFormatar(finCentavos(d.depois.valorPessoa))}/pessoa · quadra ${finFormatar(finCentavos(d.depois.valorQuadra))}${d.depois.temBrinde ? ' · brinde ' + finFormatar(finCentavos(d.depois.valorBrinde)) : ''}${d.antes ? ' (antes: ' + finFormatar(finCentavos(d.antes.valorPessoa)) + '/pessoa)' : ''}`;
   return '';
@@ -6837,12 +6995,20 @@ function finDiaHtml(data, pode, admin){
   const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
   const pendentes = dia && finCentavos(dia.valorPessoa) > 0 ? finPendentes(fin, data, dentro) : [];
 
-  let h = `<details class="fin-dia"><summary><span class="fin-dia-data">${formatDate(data)}</span>
+  const semJogo = finSemJogo(dia);
+  let h = `<details class="fin-dia ${semJogo ? 'fin-dia-semjogo' : ''}"><summary><span class="fin-dia-data">${formatDate(data)}</span>
+    ${semJogo ? '<span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}
     <span class="fin-dia-n">${validos} pagamento${validos === 1 ? '' : 's'}</span>
     ${dia ? `<button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>` : ''}
     <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
 
-  if(dia){
+  if(semJogo){
+    // dia sem jogo: a saída (quadra/brinde) NÃO conta; o dinheiro já recolhido virou crédito (ou foi devolvido)
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Dia sem jogo 🌧️</div>
+      <div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(dia.valorQuadra))})${dia.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(dia.valorBrinde)) + ')' : ''} não contam neste dia. O dinheiro já recebido ficou como crédito para os próximos check-ins (ou foi devolvido).</span></div>
+      ${pode ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}">☀️ Reabrir dia</button>
+        <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button></div>` : ''}</div>`;
+  } else if(dia){
     h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Saídas do dia</div>
       <div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorQuadra))}</span></div>
       ${dia.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorBrinde))}</span></div>` : ''}
@@ -6853,11 +7019,20 @@ function finDiaHtml(data, pode, admin){
     h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>`;
     pagamentos.forEach(p=>{
       const marcas = !p.estornado ? finMarcas(fin, data, p.jogadorId) : '';
+      const porCredito = finTipoPagamento(p) === 'credito';
+      // dinheiro de um dia sem jogo que virou crédito: mostra o estado do crédito
+      const cred = !porCredito ? (fin.creditos || []).find(c => c.origemPagamentoId === p.id && c.status !== 'cancelado') : null;
+      let selo = '';
+      if(cred && cred.status === 'devolvido') selo = '<span class="fin-selo fin-selo-info">crédito devolvido</span>';
+      else if(cred) selo = finSaldoCredito(fin, cred) > 0
+        ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>'
+        : '<span class="fin-selo fin-selo-info">crédito usado</span>';
       h += `<div class="fin-linha ${p.estornado ? 'fin-estornado' : ''}">
-        <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Convidado')} ${marcas}</span>
+        <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Convidado')} ${marcas}${porCredito ? ' <span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo: não é dinheiro novo (já estava no caixa)">(Crédito)</span>' : ''}</span>
+        ${selo}
         ${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
         ${admin && sinal.has(p.id) ? `<button type="button" class="btn secondary" data-fin-estornar="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || 'Convidado')}" data-fin-valor="${finCentavos(p.valor)}">Estornar</button>` : ''}
-        <span class="fin-linha-valor fin-pos">+${finFormatar(finCentavos(p.valor))}</span>
+        ${porCredito ? `<span class="fin-linha-valor" style="color:var(--muted);">🎟️ ${finFormatar(finCentavos(p.valor))}</span>` : `<span class="fin-linha-valor fin-pos">+${finFormatar(finCentavos(p.valor))}</span>`}
         <span class="fin-linha-meta">${p.estornado ? `estornado por ${escapeHtml(p.estornadoPor)} em ${finQuando(p.estornadoEm)} · ` : ''}marcado por ${escapeHtml(p.marcadoPor)} em ${finQuando(p.marcadoEm)}</span></div>`;
     });
     h += '</div>';
@@ -6888,7 +7063,7 @@ function renderFinanceiro(){
   document.getElementById('fin-bloqueado').style.display = liberado ? 'none' : '';
   document.getElementById('fin-conteudo').style.display = liberado ? '' : 'none';
   if(!liberado){
-    ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+    ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
     return;
   }
   const fin = FINANCEIRO;
@@ -6910,15 +7085,33 @@ function renderFinanceiro(){
         ? `quando os <strong>${n} pendente${n === 1 ? '' : 's'}</strong> do check-in de ${formatDate(dataAberta)} pagarem (<span class="fin-pos">+${finFormatar(prev.aReceber)}</span> a receber)`
         : `todos do check-in de ${formatDate(dataAberta)} já pagaram — nada a receber`}</div>
     </div>`;
+  } else if(dataAberta && finSemJogo(finDia(fin, dataAberta))){
+    previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: o check-in de ${formatDate(dataAberta)} está marcado como <strong>sem jogo</strong>, então não há o que cobrar.</div>`;
   } else if(dataAberta){
     previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: cadastre o valor por pessoa do check-in de ${formatDate(dataAberta)} para ver a previsão.</div>`;
   }
+  // o dinheiro dos créditos está no caixa, mas é dos jogadores: o "saldo livre" é o que sobra de verdade pro grupo
+  const totalCred = finTotalCreditos(fin);
+  const creditosHtml = totalCred > 0
+    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(fin))}</strong></span></div>` : '';
   topo.innerHTML = `<div class="fin-saldo">
     <div class="fin-saldo-rotulo">Saldo do caixa</div>
     <div class="fin-saldo-valor ${caixa < 0 ? 'neg' : ''}">${finFormatar(caixa)}</div>
     <div class="fin-saldo-mes"><span>Este mês: <span class="fin-pos">+${finFormatar(mes.entradas)}</span></span><span><span class="fin-neg">−${finFormatar(mes.saidas)}</span> saídas</span></div>
+    ${creditosHtml}
     ${previstoHtml}
   </div>`;
+  // créditos disponíveis por pessoa; só o admin devolve o dinheiro (e só de crédito ainda não usado)
+  const creds = finCreditosDisponiveis(fin);
+  document.getElementById('fin-creditos-sec').style.display = creds.length ? '' : 'none';
+  document.getElementById('fin-creditos-lista').innerHTML = creds.map(c => {
+    const saldo = finSaldoCredito(fin, c);
+    const inteiro = saldo === finCentavos(c.valor);
+    return `<div class="fin-linha"><span class="fin-linha-nome">${escapeHtml(c.jogadorNome || 'Convidado')}</span>
+      <span class="fin-linha-meta" style="flex-basis:auto;">de ${formatDate(c.dataOrigem)}${inteiro ? '' : ' · já usado em parte'}</span>
+      ${admin && inteiro ? `<button type="button" class="btn secondary" data-fin-devolver-credito="${escapeHtml(c.id)}" data-fin-nome="${escapeHtml(c.jogadorNome || 'Convidado')}" data-fin-valor="${saldo}">Devolver</button>` : ''}
+      <span class="fin-linha-valor" style="color:var(--accent);">${finFormatar(saldo)}</span></div>`;
+  }).join('');
   document.getElementById('fin-acoes').innerHTML = pode
     ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button>' : '';
   const datas = finDatas(fin);
@@ -6931,11 +7124,11 @@ function renderFinanceiro(){
 }
 
 // modal genérico (reaproveita o visual dos modais de senha); aoSalvar(overlay) devolve true pra fechar
-function finAbrirModal(titulo, corpoHtml, aoSalvar){
+function finAbrirModal(titulo, corpoHtml, aoSalvar, rotuloOk){
   const overlay = document.createElement('div');
   overlay.className = 'profile-overlay';
   overlay.innerHTML = `<div class="password-card fin-modal"><p class="password-title">${titulo}</p><div class="fin-modal-corpo">${corpoHtml}</div>
-    <div class="password-actions"><button type="button" class="btn" data-fin-ok>Salvar</button><button type="button" class="btn secondary" data-fin-cancelar>Cancelar</button></div></div>`;
+    <div class="password-actions"><button type="button" class="btn" data-fin-ok>${rotuloOk || 'Salvar'}</button><button type="button" class="btn secondary" data-fin-cancelar>Cancelar</button></div></div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', async (e)=>{
     if(e.target === overlay || e.target.closest('[data-fin-cancelar]')){ overlay.remove(); return; }
@@ -6998,6 +7191,13 @@ document.getElementById('view-financeiro').addEventListener('click', async (e)=>
     e.preventDefault(); e.stopPropagation();
     copiarTexto(finResumoFechamento(FINANCEIRO, cp.dataset.finCopiarResumo), cp);
     return;
+  }
+  const reab = e.target.closest('[data-fin-reabrir-dia]');
+  if(reab) return reabrirDiaFinanceiro(reab.dataset.finReabrirDia);
+  const dev = e.target.closest('[data-fin-devolver-credito]');
+  if(dev){
+    if(!confirm('Devolver o crédito de ' + dev.dataset.finNome + ' (' + finFormatar(Number(dev.dataset.finValor)) + ')?\n\nO dinheiro é devolvido: o pagamento de origem é estornado e o valor sai do caixa.')) return;
+    return finPost('devolverCredito', { id: dev.dataset.finDevolverCredito });
   }
   if(e.target.closest('#fin-lancar-btn')) return finAbrirLancar();
   if(e.target.closest('#fin-ajustar-btn')) return finAbrirAjustarCaixa();
@@ -7167,7 +7367,8 @@ function montarTextoCheckinsWhatsApp(){
   let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + finCabecalhoWhatsApp(FINANCEIRO, data);
   dentro.forEach((c,i)=>{
     const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
-    texto += `${i+1}- ${c.jogadorNome || 'Convidado'}${marcas ? ' ' + marcas : ''}\n`;
+    const credito = finRotuloCredito(FINANCEIRO, data, c.jogadorId) ? ' (Crédito)' : '';   // pago com crédito de um dia sem jogo
+    texto += `${i+1}- ${c.jogadorNome || 'Convidado'}${marcas ? ' ' + marcas : ''}${credito}\n`;
   });
   if(reserva.length){
     texto += `\nEspera:\n\n`;
