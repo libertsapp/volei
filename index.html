@@ -340,7 +340,15 @@
   }
 
   /* nova rodada */
-  .round-form-top{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+  /* data (2/3) e nº de times (1/3) sempre na mesma linha, com o rótulo em cima de cada campo */
+  .round-form-top{display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:end;margin-bottom:16px;max-width:520px;}
+  .round-form-top input, .round-form-top select{width:100%;min-height:44px;}
+  /* ações do fim da página: "Salvar rodada" em destaque; no desktop ganha 1/3 e o rascunho 2/3 */
+  .rodada-acoes{display:grid;grid-template-columns:1fr;gap:10px;}
+  .rodada-acoes .btn{width:100%;min-height:48px;}
+  .rodada-acoes .btn-duplo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.25;}
+  .rodada-acoes .btn-duplo small{font-size:11px;font-weight:500;color:var(--muted);}
+  @media (min-width:720px){ .rodada-acoes{grid-template-columns:1fr 2fr;} }
   .edit-round-banner{
     background:#3a3320;border:1px solid var(--ball-yellow);color:var(--chalk);
     padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;
@@ -848,7 +856,37 @@
   .roleta-time-slot .tt{font-family:'Anton',sans-serif;font-size:12px;color:var(--muted);margin-bottom:4px;}
 
   /* sorteio */
-  .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
+  /* celular: busca em linha inteira, nota e nº de times lado a lado, "Selecionar todos" em linha inteira.
+     desktop (≥720px): tudo numa fileira, com a busca ocupando o dobro dos selects */
+  .sorteio-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin-bottom:16px;}
+  .sorteio-controls .campo-cheio, .sorteio-controls > .btn{grid-column:1/-1;}
+  .sorteio-controls select, .sorteio-controls input{width:100%;min-height:44px;}
+  .sorteio-controls > .btn{min-height:44px;}
+  @media (min-width:720px){
+    .sorteio-controls{grid-template-columns:2fr 1fr 1fr auto;}
+    .sorteio-controls .campo-cheio, .sorteio-controls > .btn{grid-column:auto;}
+  }
+  /* abas Automático/Manual do sorteio: controle segmentado, duas metades iguais */
+  #sorteio-subtabs{width:100%;max-width:520px;}
+  #sorteio-subtabs button{flex:1;min-height:42px;}
+  /* convidado do sorteio: linha recolhida no mesmo molde das outras, abre pra um formulário em grade */
+  .sorteio-convidado{margin-bottom:16px;border:1px solid var(--line);border-radius:12px;background:var(--court-navy-2);}
+  .sorteio-convidado > summary{
+    list-style:none;cursor:pointer;user-select:none;min-height:46px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;
+  }
+  .sorteio-convidado > summary::-webkit-details-marker{display:none;}
+  .sorteio-convidado > summary::after{content:'▾';color:var(--muted);transition:transform .2s;}
+  .sorteio-convidado[open] > summary::after{transform:rotate(180deg);}
+  .sorteio-convidado-dica{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .sorteio-convidado-corpo{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 14px;align-items:center;}
+  .sorteio-convidado-corpo input, .sorteio-convidado-corpo select{width:100%;min-height:44px;}
+  .sorteio-convidado-corpo .campo-cheio, .sorteio-convidado-corpo > .btn{grid-column:1/-1;}
+  .sorteio-convidado-corpo > .btn{min-height:44px;}
+  .sorteio-convidado-corpo .field-group{min-width:0;}
+  .sorteio-convidado-corpo .photo-input-wrap{min-height:44px;}
+  .sorteio-convidado-corpo input[type=file]{min-height:0;min-width:0;flex:1;font-size:12px;}
+  .sorteio-convidado-corpo .stars-picker{justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:8px;}
   .field-group{display:flex;flex-direction:column;gap:4px;}
   .field-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
   .select-list{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:16px;}
@@ -920,29 +958,38 @@
     background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:10px;
     padding:12px 14px;margin-bottom:16px;
   }
-  .checkin-admin-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  /* o JS liga este bloco com display:flex — sem direção em coluna, data, ajustes e financeiro ficam lado a lado */
+  .checkin-admin-controls{flex-direction:column;}
+  .checkin-admin-controls > *{min-width:0;}
+  /* data em largura total; os botões vêm embaixo numa grade de 2 colunas, todos com a mesma altura */
+  .checkin-admin-row{display:flex;flex-direction:column;gap:10px;}
+  .checkin-admin-controls [hidden]{display:none !important;}
   .checkin-admin-field{display:flex;flex-direction:column;gap:4px;}
   .checkin-admin-field label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
-  .checkin-admin-ajustes{
-    margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+  .checkin-admin-row input[type=date]{width:100%;}
+  .checkin-admin-acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .checkin-admin-acoes .btn{width:100%;min-height:46px;padding:10px 8px;font-size:14px;}
+  .checkin-admin-acoes .btn.cheio{grid-column:1/-1;}
+  /* "Ajustes" e "Financeiro do dia" usam o mesmo molde de linha: ícone+título à esquerda, chip opcional e seta sempre na ponta direita */
+  .checkin-admin-ajustes, .fin-dia-card{margin-top:10px;border:1px solid var(--line);border-radius:12px;}
+  .checkin-admin-ajustes > summary, .fin-dia-card > summary{
+    list-style:none;cursor:pointer;user-select:none;min-height:46px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;
   }
-  .checkin-admin-ajustes summary{
-    list-style:none;cursor:pointer;color:var(--muted);font-size:12px;
-    text-transform:uppercase;letter-spacing:0.4px;user-select:none;
-    display:flex;align-items:center;gap:6px;
-  }
-  .checkin-admin-ajustes summary::-webkit-details-marker{display:none;}
-  .checkin-admin-ajustes summary::after{content:'▾';margin-left:2px;transition:transform .2s;}
-  .checkin-admin-ajustes[open] summary::after{transform:rotate(180deg);}
-  .checkin-admin-ajustes-body{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px;}
+  .checkin-admin-ajustes > summary::-webkit-details-marker, .fin-dia-card > summary::-webkit-details-marker{display:none;}
+  .checkin-admin-ajustes > summary::after, .fin-dia-card > summary::after{content:'▾';color:var(--muted);transition:transform .2s;}
+  .checkin-admin-ajustes[open] > summary::after, .fin-dia-card[open] > summary::after{transform:rotate(180deg);}
+  .linha-titulo{flex:1;min-width:0;}
+  .checkin-admin-ajustes-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;padding:4px 14px 14px;}
+  .checkin-admin-ajustes-body input{width:100%;}
+  .checkin-admin-ajustes-body .btn{grid-column:1/-1;min-height:44px;}
 
   /* ===== FINANCEIRO no Check-in ===== */
-  .checkin-admin-controls{flex-wrap:wrap;} /* o cartão "Financeiro do dia" ocupa uma linha inteira embaixo dos controles */
-  .fin-dia-card{flex:1 1 100%;margin-top:10px;border:1px solid var(--glass-borda);border-radius:12px;background:color-mix(in srgb, var(--ball-yellow) 5%, transparent);}
-  .fin-dia-card > summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:10px;list-style:none;}
-  .fin-dia-card > summary::-webkit-details-marker{display:none;}
-  .fin-chip{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;}
-  .fin-chip.ok{color:var(--ball-yellow);border-color:color-mix(in srgb, var(--ball-yellow) 50%, transparent);}
+  .fin-dia-card{border-color:var(--glass-borda);background:color-mix(in srgb, var(--ball-yellow) 5%, transparent);}
+  .fin-chip{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .fin-chip.ok{color:#3fbf6f;border-color:color-mix(in srgb, #3fbf6f 55%, transparent);}
+  .fin-chip.pendente{color:var(--ball-yellow);border-color:color-mix(in srgb, var(--ball-yellow) 50%, transparent);}
+  .fin-dica{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted);line-height:1.5;}
   .fin-dia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 12px;padding:4px 14px 14px;align-items:end;}
   .fin-campo{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
   .fin-campo input[type=number], .fin-campo input[type=text]{width:100%;}
@@ -1398,6 +1445,84 @@
     .aovivo-card .history-team{padding:6px;}
     .aovivo-pontos-valor{font-size:64px;}
   }
+  /* ===== AO VIVO: barra de ferramentas (ver reduzido + ícone de tela cheia) ===== */
+  .aovivo-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;}
+  .aovivo-toolbar .btn{padding:8px 14px;font-size:13px;}
+  .aovivo-fs-btn{
+    width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:color .15s, border-color .15s;
+  }
+  .aovivo-fs-btn:hover{color:var(--ball-yellow);border-color:var(--ball-yellow);}
+  .aovivo-fs-btn .ic-sair{display:none;}
+  body.aovivo-fs .aovivo-fs-btn .ic-entrar{display:none;}
+  body.aovivo-fs .aovivo-fs-btn .ic-sair{display:inline;}
+
+  /* ===== AO VIVO — modo REDUZIDO: uma faixa por time (nome metálico, fotos sobrepostas e placar com − / +) ===== */
+  .rz-times{display:flex;flex-direction:column;gap:10px;}
+  .rz-time{
+    position:relative;overflow:hidden;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nome pontos" "avatares pontos";
+    align-items:center;gap:4px 14px;padding:9px 14px 15px;border-radius:14px; /* respiro maior embaixo (onde fica o nome do integrante) e menor entre nome do time e fotos: mesma altura de antes */
+    border:1.5px solid var(--glass-borda);
+    background:
+      repeating-linear-gradient(118deg, transparent 0 26px, color-mix(in srgb, var(--chalk) 5%, transparent) 26px 27px),
+      linear-gradient(100deg, color-mix(in srgb, var(--accent) 14%, var(--court-navy-2)), var(--court-navy-2) 65%);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .rz-time.lider{border-color:var(--ball-yellow);box-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  body.light-mode .rz-time.lider{box-shadow:none;}
+  .rz-nome{
+    grid-area:nome;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:'Anton','Orbitron',sans-serif;font-size:clamp(24px,7vw,34px);letter-spacing:1px;text-transform:uppercase;line-height:1.1;
+    background:linear-gradient(180deg,#ffffff 0%,#c9d1e3 50%,#7f8aa6 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  }
+  body.light-mode .rz-nome{background:linear-gradient(180deg,#16213f 0%,#4a5678 100%);-webkit-background-clip:text;background-clip:text;}
+  /* fit-content: o nome do integrante centraliza embaixo do grupo de fotos, não da coluna inteira */
+  .rz-avatares{grid-area:avatares;justify-self:start;position:relative;display:flex;align-items:center;min-width:0;max-width:100%;}
+  .rz-avatares .sb-avatar-wrap{margin-right:-10px;flex:none;}
+  .rz-avatares .sb-avatar-wrap:last-of-type{margin-right:0;}
+  /* nome de um integrante SOBRE a base das fotos (absoluto, então não ocupa altura e a faixa não cresce);
+     cabe dentro do respiro de baixo da faixa */
+  .rz-membro{
+    position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);z-index:1;pointer-events:none; /* 3px de folga abaixo das fotos, sem encostar nelas */
+    max-width:130px;min-width:48px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:'Orbitron','Anton',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;line-height:1;text-transform:uppercase;
+    color:#fff;text-shadow:0 1px 2px #000, 0 0 5px #000, 0 0 8px rgba(0,0,0,.9);
+  }
+  body.light-mode .rz-membro{color:#fff;}
+  .rz-avatares .avatar, .rz-avatares .avatar-fallback{width:clamp(28px,8vw,36px);height:clamp(28px,8vw,36px);font-size:13px;}
+  .rz-pontos{grid-area:pontos;display:flex;align-items:center;gap:10px;}
+  .rz-valor{
+    font-family:'Anton',sans-serif;font-size:clamp(44px,13vw,64px);line-height:1;min-width:1.1ch;text-align:center;
+    color:var(--ball-yellow);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+  }
+  body.light-mode .rz-valor{text-shadow:none;}
+  .rz-pontos button{
+    width:40px;height:40px;border-radius:10px;border:1px solid var(--line);
+    background:color-mix(in srgb, var(--court-navy-3) 80%, transparent);color:var(--chalk);
+    font-size:20px;line-height:1;cursor:pointer;padding:0;
+  }
+  .rz-pontos button:disabled{opacity:0.4;cursor:default;}
+  @media (min-width:640px){
+    /* telas largas: tudo na mesma linha, como na barra de placar de referência */
+    .rz-time{grid-template-columns:minmax(120px,auto) minmax(0,1fr) auto;grid-template-areas:"nome avatares pontos";gap:20px;padding:14px 22px;}
+  }
+  /* o log do jogo aparece no reduzido também (fica logo abaixo das faixas dos times).
+     No celular mostra só 3 linhas (as mais recentes, pois o log já vem do mais novo pro mais antigo) e o resto rola.
+     Cada linha tem altura fixa (uma linha só, com reticências) pra "3 linhas" ser sempre 3 × 26px, sem quebra de texto. */
+  @media (max-width:640px){
+    #view-aovivo.aovivo-reduzido .aovivo-log{max-height:78px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+    #view-aovivo.aovivo-reduzido .aovivo-log div{box-sizing:border-box;height:26px;padding:3px 0;line-height:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  }
+
+  /* ===== AO VIVO — TELA CHEIA: só a logomarca do site, os dados do jogo e os controles do placar ===== */
+  body.aovivo-fs header nav, body.aovivo-fs header .header-right, body.aovivo-fs .bottom-tabbar, body.aovivo-fs .app-footer,
+  body.aovivo-fs #view-aovivo .section-title, body.aovivo-fs #view-aovivo .aovivo-desc,
+  body.aovivo-fs #view-aovivo:not(.aovivo-reduzido) .aovivo-log, body.aovivo-fs #view-aovivo .aovivo-acoes{display:none !important;}
+  body.aovivo-fs .wrap{max-width:1200px;padding:12px 16px 24px;}
+  body.aovivo-fs header{margin-bottom:12px;}
+  body.aovivo-fs .aovivo-salvar{bottom:calc(12px + env(safe-area-inset-bottom));} /* sem barra inferior no modo tela cheia */
   /* cartão do jogador em coluna estreita (decidido pela largura do PRÓPRIO cartão, como o painel de métricas):
      foto em cima, nome e estrelas centralizados embaixo. Sem o ">" e sem emblemas — o nome ainda abre o perfil. */
   @container jc (max-width:260px){
@@ -1456,7 +1581,17 @@
   .sb-team-mini{font-size:clamp(16px,4.6vw,22px);letter-spacing:1px;}
   .sb-titulo-linha .sb-avatars{margin:0;}
   /* avatares com anel ciano luminoso (ciano = a cor de interação do tema; clicar abre o perfil) */
-  .sb-avatar-wrap{border-color:var(--accent);box-shadow:0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);}
+  /* o anel segue a cor do time (--ring, definida pelas classes .time-cor-N abaixo); sem classe, continua na cor de destaque do app */
+  .sb-avatar-wrap{border-color:var(--ring, var(--accent));box-shadow:0 0 10px color-mix(in srgb, var(--ring, var(--accent)) 55%, transparent);}
+  /* cores dos times (Ao Vivo reduzido e quadro de campeões): time 1 azul, 2 vermelho, 3 amarelo, 4 verde, 5 magenta, 6 laranja — todos neon.
+     A cor vem da POSIÇÃO do time na rodada, então o Time 1 é sempre azul mesmo que alguém renomeie o time */
+  .time-cor-1{--ring:#00f3ff;}
+  body.light-mode .time-cor-1{--ring:#0e7490;} /* o azul neon some no fundo claro: mantém o azul-petróleo que o app já usava */
+  .time-cor-2{--ring:#ff2b4d;}
+  .time-cor-3{--ring:#ffe600;}
+  .time-cor-4{--ring:#39ff14;}
+  .time-cor-5{--ring:#d946ff;}
+  .time-cor-6{--ring:#ff8a00;}
   body.light-mode .sb-avatar-wrap{box-shadow:none;}
 
   /* números do ano: fonte grande, dourada, com divisórias finas entre eles */
@@ -1662,27 +1797,30 @@
             <label for="checkin-admin-date">Data do próximo jogo</label>
             <input type="date" id="checkin-admin-date">
           </div>
-          <button class="btn" id="open-checkin-btn">Abrir check-in</button>
-          <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
-          <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
+          <div class="checkin-admin-acoes">
+            <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
+            <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
+            <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+          </div>
         </div>
         <details class="checkin-admin-ajustes">
-          <summary>⚙️ Ajustes do check-in (vagas, horário, mensagem)</summary>
+          <summary><span class="linha-titulo">⚙️ Ajustes do check-in</span></summary>
           <div class="checkin-admin-ajustes-body">
             <div class="checkin-admin-field">
               <label for="checkin-admin-vagas">Vagas</label>
-              <input type="number" id="checkin-admin-vagas" min="1" style="width:70px;">
+              <input type="number" id="checkin-admin-vagas" min="1">
             </div>
             <div class="checkin-admin-field">
               <label for="checkin-admin-horario">Horário</label>
-              <input type="time" id="checkin-admin-horario" style="width:100px;">
+              <input type="time" id="checkin-admin-horario">
             </div>
             <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
           </div>
         </details>
         <details class="fin-dia-card" id="fin-dia-card">
-          <summary>💰 Financeiro do dia <span class="fin-chip" id="fin-dia-chip"></span></summary>
+          <summary><span class="linha-titulo">💰 Financeiro do dia</span><span class="fin-chip" id="fin-dia-chip"></span></summary>
           <div class="fin-dia-grid">
+            <p class="fin-dica" id="fin-dia-dica" style="display:none;">Valores sugeridos a partir do dia anterior — toque em Salvar para confirmar.</p>
             <label class="fin-campo">Valor por pessoa (R$)
               <input type="number" id="fin-valor-pessoa" min="0" step="0.01" inputmode="decimal" placeholder="13,60">
             </label>
@@ -1774,34 +1912,40 @@
         <span class="star-toggle-label">Exibir notas (estrelas) para todos os usuários</span>
       </label>
 
-      <div class="add-row" id="add-player-row">
-        <input id="new-player-name" placeholder="Nome do jogador" style="flex:1;min-width:180px;">
-        <input id="new-player-nick" placeholder="Apelido (opcional)" style="width:160px;">
-        <select id="new-player-gender">
-          <option value="">Sexo (opcional)</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="field-group">
-          <label>Nota (opcional)</label>
-          <div class="stars-picker" id="new-player-stars" data-value="0">
-            <button type="button" data-star="1">★</button>
-            <button type="button" data-star="2">★</button>
-            <button type="button" data-star="3">★</button>
-            <button type="button" data-star="4">★</button>
-            <button type="button" data-star="5">★</button>
+      <details class="sorteio-convidado" id="add-player-row">
+        <summary><span class="linha-titulo">➕ Novo jogador</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="new-player-name" class="campo-cheio" placeholder="Nome do jogador">
+          <input id="new-player-nick" placeholder="Apelido (opcional)">
+          <select id="new-player-gender">
+            <option value="">Sexo (opcional)</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+          <div class="field-group">
+            <label>Nota (opcional)</label>
+            <div class="stars-picker" id="new-player-stars" data-value="0">
+              <button type="button" data-star="1">★</button>
+              <button type="button" data-star="2">★</button>
+              <button type="button" data-star="3">★</button>
+              <button type="button" data-star="4">★</button>
+              <button type="button" data-star="5">★</button>
+            </div>
           </div>
+          <div class="field-group">
+            <label>Foto (opcional)</label>
+            <div class="photo-input-wrap">
+              <img class="preview" id="new-player-preview">
+              <input type="file" id="new-player-photo" accept="image/*">
+            </div>
+          </div>
+          <div class="field-group campo-cheio">
+            <label>Porte (opcional)</label>
+            <div id="new-player-porte-wrap"></div>
+          </div>
+          <button class="btn" id="add-player-btn">Adicionar</button>
         </div>
-        <div class="field-group">
-          <label>Porte (opcional)</label>
-          <div id="new-player-porte-wrap"></div>
-        </div>
-        <div class="photo-input-wrap">
-          <img class="preview" id="new-player-preview">
-          <input type="file" id="new-player-photo" accept="image/*">
-        </div>
-        <button class="btn" id="add-player-btn">Adicionar</button>
-      </div>
+      </details>
       <div class="player-list" id="player-list"></div>
     </section>
 
@@ -1812,28 +1956,31 @@
         <button type="button" class="btn secondary" id="cancel-edit-round-btn" style="padding:6px 12px;font-size:12px;margin-left:10px;">Cancelar edição</button>
       </div>
       <div class="round-form-top">
-        <label style="color:var(--muted);font-size:13px;">Data</label>
-        <input type="date" id="round-date">
-        <label style="color:var(--muted);font-size:13px;">Times</label>
-        <select id="round-team-count">
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
+        <div class="field-group">
+          <label for="round-date">Data</label>
+          <input type="date" id="round-date">
+        </div>
+        <div class="field-group">
+          <label for="round-team-count">Times</label>
+          <select id="round-team-count">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
       </div>
 
-      <div class="guest-row">
-        <strong style="font-size:13px;">Adicionar convidado a esta rodada (não é salvo permanentemente):</strong>
-        <input id="rodada-guest-name" placeholder="Nome do convidado" style="width:160px;">
-        <select id="rodada-guest-gender">
-          <option value="">Sexo</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="field-group">
-          <label>Nota</label>
+      <details class="sorteio-convidado">
+        <summary><span class="linha-titulo">➕ Adicionar convidado</span><span class="sorteio-convidado-dica">só nesta rodada</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="rodada-guest-name" class="campo-cheio" placeholder="Nome do convidado">
+          <select id="rodada-guest-gender">
+            <option value="">Sexo</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
           <div class="stars-picker" id="rodada-guest-stars" data-value="0">
             <button type="button" data-star="1">★</button>
             <button type="button" data-star="2">★</button>
@@ -1841,15 +1988,15 @@
             <button type="button" data-star="4">★</button>
             <button type="button" data-star="5">★</button>
           </div>
+          <button class="btn" id="rodada-add-guest-btn">Adicionar convidado</button>
         </div>
-        <button class="btn secondary" id="rodada-add-guest-btn">Adicionar convidado</button>
-      </div>
+      </details>
       <div id="rodada-guest-chips" class="sb-players" style="margin-bottom:14px;"></div>
 
       <div class="teams-grid" id="teams-grid"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="rodada-acoes">
         <button class="btn" id="save-round-btn">Salvar rodada</button>
-        <button class="btn secondary" id="save-draft-btn">💾 Salvar times como rascunho (lançar placar depois)</button>
+        <button class="btn secondary btn-duplo" id="save-draft-btn"><span>💾 Salvar times como rascunho</span><small>lançar o placar depois</small></button>
       </div>
     </section>
 
@@ -1861,31 +2008,33 @@
         <button data-submode="manual">🎯 Sorteio Manual</button>
       </div>
 
-      <div class="guest-row">
-        <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
-        <input id="guest-name" placeholder="Nome do convidado" style="width:160px;">
-        <select id="guest-gender">
-          <option value="">Sexo</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="stars-picker" id="guest-stars" data-value="0">
-          <button type="button" data-star="1">★</button>
-          <button type="button" data-star="2">★</button>
-          <button type="button" data-star="3">★</button>
-          <button type="button" data-star="4">★</button>
-          <button type="button" data-star="5">★</button>
+      <details class="sorteio-convidado">
+        <summary><span class="linha-titulo">➕ Adicionar convidado</span><span class="sorteio-convidado-dica">não fica salvo</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="guest-name" class="campo-cheio" placeholder="Nome do convidado">
+          <select id="guest-gender">
+            <option value="">Sexo</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+          <div class="stars-picker" id="guest-stars" data-value="0">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+          <button class="btn" id="add-guest-btn">Adicionar convidado</button>
         </div>
-        <button class="btn secondary" id="add-guest-btn">Adicionar convidado</button>
-      </div>
+      </details>
 
       <div class="sorteio-controls">
-        <div class="field-group" style="flex:1;min-width:200px;">
+        <div class="field-group campo-cheio">
           <label>Buscar jogador</label>
           <div class="search-box" style="margin-bottom:0;"><input type="text" id="sorteio-search" placeholder="Digite um nome..."></div>
         </div>
         <div class="field-group">
-          <label>Filtrar por nota mínima</label>
+          <label>Nota mínima</label>
           <select id="sorteio-min-star">
             <option value="0">Todas</option>
             <option value="1">1+ estrela</option>
@@ -1896,7 +2045,7 @@
           </select>
         </div>
         <div class="field-group">
-          <label>Quantidade de times</label>
+          <label>Nº de times</label>
           <select id="sorteio-team-count">
             <option value="2">2</option>
             <option value="3">3</option>
@@ -2001,7 +2150,14 @@
 
     <section id="view-aovivo">
       <h2 class="section-title"><span class="ponto-ao-vivo" aria-hidden="true"></span>Ao Vivo</h2>
-      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <p class="aovivo-desc" style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <div class="aovivo-toolbar">
+        <button type="button" class="btn secondary" id="aovivo-reduzido-btn" aria-pressed="false">▤ Ver reduzido</button>
+        <button type="button" class="aovivo-fs-btn" id="aovivo-fs-btn" title="Tela cheia" aria-label="Entrar em tela cheia">
+          <svg class="ic-entrar" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          <svg class="ic-sair" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3a2 2 0 0 0 2-2V3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M21 16h-3a2 2 0 0 0-2 2v3"/></svg>
+        </button>
+      </div>
       <div id="aovivo-empty" class="empty"><i class="ti ti-broadcast"></i>Nenhuma transmissão ao vivo agora.</div>
       <div id="aovivo-list"></div>
     </section>
@@ -2020,6 +2176,43 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>20/09/2026 — v12.6: Log do Ao Vivo reduzido com 3 linhas no celular</summary>
+          <div>
+            <p style="line-height:1.6;">No celular, o <strong>log do jogo</strong> no Ao Vivo reduzido mostra só as <strong>3 últimas linhas</strong>; para ver os pontos anteriores é só rolar o próprio log. No computador ele continua como antes.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.5: Cores dos times nas fotos e log no Ao Vivo reduzido</summary>
+          <div>
+            <p style="line-height:1.6;">O contorno das fotinhas agora tem a <strong>cor do time</strong>, em tons neon: Time 1 <strong>azul</strong>, Time 2 <strong>vermelho</strong>, Time 3 <strong>amarelo</strong>, Time 4 <strong>verde</strong> (Time 5 magenta e Time 6 laranja). Vale para as faixas do <strong>Ao Vivo reduzido</strong> e para o <strong>quadro de campeões</strong> do Início — a cor segue a posição do time na rodada, então o Time 1 é sempre azul, mesmo que ele seja renomeado. O <strong>log do jogo</strong> também aparece no Ao Vivo reduzido, abaixo dos times.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.4: Ao Vivo reduzido e em tela cheia</summary>
+          <div>
+            <p style="line-height:1.6;">Na tela <strong>Ao Vivo</strong>, o botão <strong>▤ Ver reduzido</strong> troca os cartões grandes por uma faixa por time: nome, fotos sobrepostas e o placar com <strong>−</strong> e <strong>+</strong> (a escolha fica lembrada neste aparelho; <strong>▦ Ver completo</strong> volta ao normal). O ícone discreto no canto abre a <strong>tela cheia</strong>: só ficam a logomarca do site, os dados do jogo (data, cronômetro, times e placar) e os controles (−, + e Salvar parcial). Sai pelo mesmo ícone ou pela tecla Esc.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.3: Sorteio, Nova rodada e Jogadores mais organizados</summary>
+          <div>
+            <p style="line-height:1.6;">Em <strong>Jogadores</strong>, o cadastro virou uma linha recolhida <strong>➕ Novo jogador</strong> (toque para abrir): nome em linha inteira, apelido e sexo lado a lado, nota e foto lado a lado, porte embaixo e o botão <strong>Adicionar</strong> em destaque.</p>
+            <p style="line-height:1.6;">Na <strong>Nova rodada</strong>, <strong>Data</strong> e <strong>Times</strong> ficam lado a lado (a data com o dobro da largura), <strong>Adicionar convidado</strong> segue o mesmo formato recolhido do Sorteio, e os botões do fim viraram <strong>Salvar rodada</strong> e <strong>Salvar times como rascunho</strong>, alinhados e do mesmo tamanho de toque.</p>
+            <p style="line-height:1.6;">As abas <strong>Sorteio Automático/Manual</strong> viraram um controle de duas metades iguais. <strong>Adicionar convidado</strong> ficou numa linha recolhida (toque para abrir), com nome, sexo e estrelas em grade. Os filtros ganharam alinhamento: busca em linha inteira, <strong>Nota mínima</strong> e <strong>Nº de times</strong> lado a lado e <strong>Selecionar todos</strong> logo abaixo. No computador tudo fica numa fileira só.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.2: Controles do Check-in mais organizados</summary>
+          <div>
+            <p style="line-height:1.6;">No Check-in (admin/organizador), a <strong>data</strong> agora ocupa a largura toda e os botões ficam numa grade alinhada. Só aparece o botão que faz sentido: com o check-in fechado, só <strong>Abrir check-in</strong>; com ele aberto, <strong>Travar/Destravar lista</strong> e <strong>Fechar check-in</strong> lado a lado (escolhendo outra data aparece <strong>Trocar para dd/mm</strong>). <strong>Ajustes do check-in</strong> e <strong>Financeiro do dia</strong> ganharam o mesmo formato de linha, e o status do financeiro virou um chip curto (pendente, salvo ✓).</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v12.1: Sequência no cartão do jogador</summary>
           <div>
             <p style="line-height:1.6;">Ao abrir o cartão de um jogador (no <strong>&gt;</strong>), as estatísticas ganharam a coluna <strong>Sequência 🔥</strong>, antes do Aproveitamento: quantas rodadas seguidas ele jogou sem faltar, contando da mais recente para trás. É o mesmo número da "Sequência atual sem faltar" do Meu Perfil.</p>
@@ -2400,7 +2593,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 12.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 12.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3985,7 +4178,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='usuarios') renderUsuarios();
   if(btn.dataset.view==='financeiro') renderFinanceiro();
   if(btn.dataset.view==='meuperfil') renderMeuPerfil();
-  if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); }
+  if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); if(document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
@@ -5374,6 +5567,8 @@ let AOVIVO_POLL_TIMER = null;
 let AOVIVO_CRONOMETRO_TIMER = null;
 const AOVIVO_PENDENTE = new Set(); // roundIds com stepper alterado mas ainda não salvo
 const AOVIVO_VITORIAS_LOCAIS = new Map(); // roundId -> array de vitórias local (inclui as pendentes)
+// modo "reduzido" (uma faixa por time) é preferência de quem assiste, então lembra entre visitas — e o app funciona igual sem o storage
+let AOVIVO_REDUZIDO = (()=>{ try{ return localStorage.getItem('volei-aovivo-reduzido') === '1'; }catch(e){ return false; } })();
 
 // Busca o estado mais recente da transmissão via POST (nunca GET — GET pode ficar em
 // cache e essa tela depende de dado sempre fresco). Silenciosa em caso de falha de
@@ -5471,7 +5666,86 @@ function atualizarCronometrosAoVivo(){
   });
 }
 
+// Faixa do modo reduzido: nome do time, fotos sobrepostas e placar com − / + (mesmos data-attributes dos steppers
+// do modo completo, então wireAoVivoSteppers() cuida dos dois sem saber a diferença)
+// classe que define a cor do time (anel das fotos): 1º time azul, 2º vermelho, 3º amarelo, 4º verde, 5º magenta, 6º laranja
+function classeCorDoTime(idx){ return 'time-cor-' + ((((idx|0) % 6) + 6) % 6 + 1); }
+
+function aoVivoTimeReduzidoHtml(r, t, idx, pontos, lider, podeControlar){
+  const integrante = t.playerIds.map(getPlayer).find(Boolean); // o nome de UM integrante (o primeiro do time) aparece sobre as fotos
+  const avatares = t.playerIds.map(pid=>{
+    const p = getPlayer(pid);
+    return p ? `<span class="sb-avatar-wrap" data-open-profile="${p.id}" title="${escapeHtml(p.apelido||p.nome)}">${avatarHtml(p,'sm')}</span>` : '';
+  }).join('');
+  return `
+    <div class="rz-time ${lider ? 'lider' : ''}">
+      <div class="rz-nome">${escapeHtml(t.nome)}</div>
+      <div class="rz-avatares ${classeCorDoTime(idx)}">${avatares}${integrante ? `<b class="rz-membro">${escapeHtml(integrante.apelido || integrante.nome)}</b>` : ''}</div>
+      <div class="rz-pontos">
+        ${podeControlar ? `<button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" aria-label="Tirar um ponto de ${escapeHtml(t.nome)}" ${pontos<=0?'disabled':''}>−</button>` : ''}
+        <span class="rz-valor">${pontos}</span>
+        ${podeControlar ? `<button type="button" data-aovivo-mais="${r.id}" data-time="${idx}" aria-label="Dar um ponto para ${escapeHtml(t.nome)}">+</button>` : ''}
+      </div>
+    </div>`;
+}
+
+// Sincroniza a barra de ferramentas (texto do botão de reduzido, ícone de tela cheia) e a classe da tela com o estado atual
+function atualizarBotoesAoVivo(){
+  const view = document.getElementById('view-aovivo');
+  if(view) view.classList.toggle('aovivo-reduzido', AOVIVO_REDUZIDO);
+  const btn = document.getElementById('aovivo-reduzido-btn');
+  if(btn){
+    btn.textContent = AOVIVO_REDUZIDO ? '▦ Ver completo' : '▤ Ver reduzido';
+    btn.setAttribute('aria-pressed', AOVIVO_REDUZIDO ? 'true' : 'false');
+  }
+  const fs = document.getElementById('aovivo-fs-btn');
+  if(fs){
+    const emFs = document.body.classList.contains('aovivo-fs');
+    fs.title = emFs ? 'Sair da tela cheia' : 'Tela cheia';
+    fs.setAttribute('aria-label', fs.title);
+  }
+}
+document.getElementById('aovivo-reduzido-btn').addEventListener('click', ()=>{
+  AOVIVO_REDUZIDO = !AOVIVO_REDUZIDO;
+  try{ localStorage.setItem('volei-aovivo-reduzido', AOVIVO_REDUZIDO ? '1' : '0'); }catch(e){}
+  renderAoVivo();
+});
+
+/* Tela cheia do Ao Vivo. A classe no <body> esconde o que não é jogo (menus, rodapé, títulos) e mantém só a logomarca;
+   a Fullscreen API é pedida na página inteira (não só na seção) pra que login e avisos continuem aparecendo por cima.
+   Onde a API não existe (iPhone) a classe sozinha já dá o "quase tela cheia". */
+function entrarTelaCheiaAoVivo(){
+  document.body.classList.add('aovivo-fs');
+  const el = document.documentElement;
+  const pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(pedir){
+    try{ const p = pedir.call(el); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+  }
+  atualizarBotoesAoVivo();
+}
+function sairTelaCheiaAoVivo(){
+  document.body.classList.remove('aovivo-fs');
+  if(document.fullscreenElement || document.webkitFullscreenElement){
+    try{ (document.exitFullscreen || document.webkitExitFullscreen).call(document); }catch(e){}
+  }
+  atualizarBotoesAoVivo();
+}
+document.getElementById('aovivo-fs-btn').addEventListener('click', ()=>{
+  if(document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); else entrarTelaCheiaAoVivo();
+});
+// Esc (ou o gesto do sistema) sai da tela cheia do navegador: a classe precisa sair junto
+function aoSairFullscreenDoNavegador(){
+  if(!document.fullscreenElement && !document.webkitFullscreenElement && document.body.classList.contains('aovivo-fs')){
+    document.body.classList.remove('aovivo-fs');
+    atualizarBotoesAoVivo();
+  }
+}
+document.addEventListener('fullscreenchange', aoSairFullscreenDoNavegador);
+document.addEventListener('webkitfullscreenchange', aoSairFullscreenDoNavegador);
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); });
+
 function renderAoVivo(){
+  atualizarBotoesAoVivo();
   const ctxCards = contextoCards(); // uma vez por render (roda a cada poll de 9s e a cada clique nos steppers)
   const container = document.getElementById('aovivo-list');
   const empty = document.getElementById('aovivo-empty');
@@ -5493,6 +5767,7 @@ function renderAoVivo(){
         <span class="history-date">${formatDate(r.data)} — início ${new Date(r.iniciadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
         <span class="aovivo-timer" data-aovivo-timer="${r.id}"></span>
       </div>
+      ${AOVIVO_REDUZIDO ? `<div class="rz-times">${r.times.map((t, idx)=> aoVivoTimeReduzidoHtml(r, t, idx, vitoriasAtuais[idx], vitoriasAtuais[idx] > 0 && vitoriasAtuais[idx] === maiorPontuacao, podeControlar)).join('')}</div>` : `
       <div class="history-teams">
         ${r.times.map((t, idx)=>`
           <div class="history-team ${vitoriasAtuais[idx] > 0 && vitoriasAtuais[idx] === maiorPontuacao ? 'lider' : ''}">
@@ -5509,7 +5784,7 @@ function renderAoVivo(){
             </div>
           </div>
         `).join('')}
-      </div>
+      </div>`}
       <div class="aovivo-log">
         ${logDaRodada.length === 0 ? 'Nenhuma mudança registrada ainda.' : logDaRodada.map(l=>{
           const hora = new Date(l.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -5631,9 +5906,9 @@ function renderDashboard(){
     const rotuloBase = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
     const rotuloCampeao = empatado ? rotuloBase.replace('Campeão','Campeões') + ' (empate)' : rotuloBase;
 
-    function blocoTimeCampeaoHtml(team, compacto){
+    function blocoTimeCampeaoHtml(team, compacto, idxTime){
       const names = team.playerIds.map(id=> getPlayer(id));
-      const avatares = `<div class="sb-avatars ${compacto?'sb-avatars-mini':''}">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>`;
+      const avatares = `<div class="sb-avatars ${compacto?'sb-avatars-mini':''} ${classeCorDoTime(idxTime)}">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>`;
       if(compacto){
         // versão enxuta pro empate: nome do time + avatares (com tooltip do nome ao passar o mouse/tocar),
         // sem repetir a lista completa de nomes/apelidos duas vezes lado a lado — isso é o que verso completo
@@ -5649,8 +5924,8 @@ function renderDashboard(){
         <div class="sb-jogadores" style="--sb-cols:${colunasQuadroCampeao(names.filter(Boolean).length)}">${names.filter(Boolean).map(p=> cartaoDaTela('inicio', p, ctxCards)).join('')}</div>`;
     }
     const corpoCampeoesHtml = empatado
-      ? `<div class="sb-empate-teams">${timesCampeoes.map(t=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true)}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
-      : blocoTimeCampeaoHtml(timesCampeoes[0], false);
+      ? `<div class="sb-empate-teams">${timesCampeoes.map((t, i)=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true, lastRound.vencedores[i])}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
+      : blocoTimeCampeaoHtml(timesCampeoes[0], false, lastRound.vencedores[0]);
 
     hero.innerHTML = `
       <div class="scoreboard">
@@ -6599,7 +6874,18 @@ function renderCheckinStatus(){
   const adminHorarioInput = document.getElementById('checkin-admin-horario');
   if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
-  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar inclusões/exclusões' : '🔒 Travar inclusões/exclusões';
+  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar lista' : '🔒 Travar lista';
+  // só aparece o botão que faz sentido no estado atual: fechado → só "Abrir"; aberto → "Travar" e "Fechar",
+  // e "Abrir" só volta (como "Trocar para dd/mm") quando a data escolhida é diferente da que está aberta
+  const openBtn = document.getElementById('open-checkin-btn');
+  const closeBtn = document.getElementById('close-checkin-btn');
+  const dataEscolhida = adminDateInput ? adminDateInput.value : '';
+  if(lockBtn) lockBtn.hidden = !data;
+  if(closeBtn) closeBtn.hidden = !data;
+  if(openBtn){
+    openBtn.hidden = !!data && dataEscolhida === data;
+    openBtn.textContent = !data ? 'Abrir check-in' : (dataEscolhida ? `📅 Trocar para ${formatDate(dataEscolhida)}` : '📅 Trocar data');
+  }
 
   // a LISTA de quem confirmou fica visível pra todos mesmo travado — só o formulário de
   // convidado é escondido, já que adicionar convidado também cria uma nova confirmação
@@ -6623,6 +6909,9 @@ function renderCheckinStatus(){
   }
   if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
 }
+
+// trocar a data no seletor já atualiza os botões (aparece/some o "Trocar para dd/mm")
+['input','change'].forEach(ev => document.getElementById('checkin-admin-date').addEventListener(ev, renderCheckinStatus));
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
   const cred = await requireAuth('saveCheckinSettings');
@@ -6820,8 +7109,11 @@ function renderFinDiaCard(){
   marcarIconeAtivoNoCartao(finIconeDoCartao(dia));
   const chip = document.getElementById('fin-dia-chip');
   const semJogo = !herdado && finSemJogo(dia);
-  chip.textContent = semJogo ? 'sem jogo 🌧️' : (herdado ? 'sugestão do dia anterior — salve' : (dia ? 'salvo' : 'não configurado'));
+  // chip curto pra caber numa linha só; a explicação da sugestão fica dentro do cartão
+  chip.textContent = semJogo ? 'sem jogo 🌧️' : (herdado ? 'pendente' : (dia ? 'salvo ✓' : 'não configurado'));
   chip.classList.toggle('ok', !!dia && !herdado && !semJogo);
+  chip.classList.toggle('pendente', !!herdado);
+  document.getElementById('fin-dia-dica').style.display = herdado ? '' : 'none';
   // "Dia sem jogo" só existe pra um dia já salvo; num dia sem jogo o mesmo botão vira "Reabrir dia"
   const linha = document.getElementById('fin-semjogo-linha');
   linha.style.display = (dia && !herdado) ? '' : 'none';
