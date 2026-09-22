@@ -6,3 +6,9 @@
 # plano futuro não repetir o vazamento que a revisão final do Placar Ao Vivo encontrou
 # e corrigiu (história reescrita) em 2026-09-18.
 *.gs
+
+# Credenciais do Supabase (URL, anon key, service_role key) do projeto de estudo
+# "Terça no Supabase" — a service_role ignora toda regra de segurança do banco,
+# nunca pode ir pro repositório.
+.env
+.env.*
