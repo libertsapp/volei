@@ -1,0 +1,15 @@
+{
+  "name": "volei-terca-supabase-migracao",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Migração única dos dados do Vôlei de Terça (Google Sheets) para o Supabase.",
+  "type": "commonjs",
+  "scripts": {
+    "migrar": "node scripts/migrar-terca-supabase.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.0",
+    "dotenv": "^18.0.3",
+    "googleapis": "^181.0.0"
+  }
+}

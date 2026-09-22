@@ -7,6 +7,9 @@
 # e corrigiu (história reescrita) em 2026-09-18.
 *.gs
 
+# Dependências do Node.js
+node_modules/
+
 # Credenciais do Supabase (URL, anon key, service_role key) do projeto de estudo
 # "Terça no Supabase" — a service_role ignora toda regra de segurança do banco,
 # nunca pode ir pro repositório.
