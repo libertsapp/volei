@@ -1366,6 +1366,9 @@
   .jc-cor-accent{color:var(--accent);}
   .jc-cor-ouro{color:var(--ball-yellow);}
   .jc-cor-roxo{color:var(--neon-purple);}
+  /* chama da "Sequência": laranja neon com brilho (no fundo claro o brilho some e o laranja escurece pra manter contraste) */
+  .jc-cor-laranja{color:#ff8a1f;filter:drop-shadow(0 0 5px rgba(255,138,31,.65));}
+  body.light-mode .jc-cor-laranja{color:#d9600a;filter:none;}
   .jc-cor-verde{color:#5fd68a;} /* o mesmo verde de "positivo" que o perfil já usa (média do grupo) */
   body.light-mode .jc-cor-verde{color:#1a8f4d;}
   .jc-sub{font-size:10px;color:var(--muted);margin-top:2px;} /* pode quebrar de linha: em coluna estreita ("7 vit. em 1 partida") cortava na borda do cartão */
@@ -2176,6 +2179,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>20/09/2026 — v12.7: Chama da Sequência em laranja neon</summary>
+          <div>
+            <p style="line-height:1.6;">No cartão do jogador, o ícone de chama da coluna <strong>Sequência 🔥</strong> agora é <strong>laranja neon</strong>, com um leve brilho (no modo claro, um laranja mais escuro para continuar legível).</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>20/09/2026 — v12.6: Log do Ao Vivo reduzido com 3 linhas no celular</summary>
           <div>
             <p style="line-height:1.6;">No celular, o <strong>log do jogo</strong> no Ao Vivo reduzido mostra só as <strong>3 últimas linhas</strong>; para ver os pontos anteriores é só rolar o próprio log. No computador ele continua como antes.</p>
@@ -2593,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 12.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 12.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4561,7 +4571,7 @@ function jogadorCardHtml(d, opcoes){
     ];
     // rodadas seguidas sem faltar (0 = faltou a mais recente). Sem "sequencia" (chamador antigo) a coluna não existe.
     if(m.sequencia != null){
-      colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-accent', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
+      colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-laranja', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
     }
     colunas.push(jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`));
     // média de vitórias por partida (ex.: 93 vitórias em 19 partidas = 4,9). Sem "vitorias" (chamador antigo) a coluna não existe.
