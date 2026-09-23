@@ -113,3 +113,9 @@ nem aplicarem o mesmo crédito duas vezes.
 ## Fora de escopo
 
 O Vôlei Meme; o login com Google do Supabase (Supabase Auth); qualquer redesenho visual; recursos novos.
+
+## Notas descobertas ao planejar a etapa 1
+
+- **Ao Vivo (etapa 5) exige ajuste de schema:** a aba `AoVivo` do Apps Script guarda também `data` e a lista de jogadores de cada time, e a tabela `ao_vivo` atual não tem essas colunas. Adicionar (por exemplo `data date` e `jogadores text`) antes de portar a leitura e as ações do Ao Vivo. Até lá, o backend falha alto se houver linhas de Ao Vivo em vez de responder dado errado.
+- **Ordem e desempate:** todas as listas do contrato saem por `ordem` (planilha), `posicao` e `time_index`; linhas novas recebem `max(ordem) + 1` na mesma transação que grava.
+- **Carimbos:** o app espera texto ISO com milissegundos e `Z` (`toISOString`); o Postgres devolve `+00:00`, então o backend normaliza.
