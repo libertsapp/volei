@@ -19,6 +19,11 @@ const { createClient } = require('@supabase/supabase-js');
 
 const porta = Number(process.argv[2]) || 8770;
 const arquivoHtml = process.env.HTML_TERCA || path.join(raiz, 'volei-dashboard.html');
+const REGEX_URL_API = /const SHEET_API_URL = "[^"]*";/;
+// confere já na partida: se o HTML foi reformatado e a URL não puder ser reescrita, o servidor nem sobe
+if (!REGEX_URL_API.test(fs.readFileSync(arquivoHtml, 'utf8'))) {
+  throw new Error('Não achei a linha "const SHEET_API_URL = ..." no HTML; recusando iniciar (a página apontaria para a produção).');
+}
 const cliente = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const handler = criarHandler({ repo: criarRepoSupabase(cliente) });
 
@@ -52,9 +57,12 @@ http.createServer(async (req, res) => {
       res.writeHead(405); return res.end();
     }
     if (caminho !== '/') { res.writeHead(404); return res.end(); }
-    const html = fs.readFileSync(arquivoHtml, 'utf8')
-      .replace(/const SHEET_API_URL = "[^"]*";/, 'const SHEET_API_URL = "http://localhost:' + porta + '/api";')
-      .replace('</body>', INJECAO + '</body>');
+    const original = fs.readFileSync(arquivoHtml, 'utf8');
+    const comUrl = original.replace(REGEX_URL_API, 'const SHEET_API_URL = "http://localhost:' + porta + '/api";');
+    // se não mudou, a página continuaria apontando pro Apps Script de PRODUÇÃO: melhor falhar do que gravar lá sem querer
+    if (comUrl === original) throw new Error('Não achei a linha "const SHEET_API_URL = ..." no HTML; recusando servir a página (ela apontaria para a produção).');
+    const html = comUrl.replace('</body>', INJECAO + '</body>');
+    if (html === comUrl) throw new Error('Não achei a tag </body> no HTML; recusando servir a página sem a injeção.');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(html);
   } catch (erro) {
