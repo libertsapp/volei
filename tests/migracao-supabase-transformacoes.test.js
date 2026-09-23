@@ -1,7 +1,7 @@
 // tests/migracao-supabase-transformacoes.test.js
 const assert = require('node:assert/strict');
 const {
-  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO
+  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero
 } = require('../scripts/lib/transformacoes');
 
 let falhas = 0;
@@ -43,6 +43,28 @@ t('paraTimestampISO: aceita string parseável pelo Date, devolve ISO completo', 
   assert.equal(paraTimestampISO(''), null);
   assert.equal(paraTimestampISO(null), null);
   assert.throws(() => paraTimestampISO('lixo'), /formato inesperado/);
+});
+
+t('paraNumero: "3,5" -> 3.5 ; "1.234,50" -> 1234.5 ; "R$ 13,60" -> 13.6', () => {
+  assert.equal(paraNumero('13,60'), 13.6);
+  assert.equal(paraNumero('3,5'), 3.5);
+  assert.equal(paraNumero('1.234,50'), 1234.5);
+  assert.equal(paraNumero('R$ 13,60'), 13.6);
+  assert.equal(paraNumero('14'), 14);
+  assert.equal(paraNumero(14), 14);
+  assert.equal(paraNumero(''), null);
+  assert.equal(paraNumero(undefined), null);
+  assert.equal(paraNumero(null), null);
+  assert.throws(() => paraNumero('lixo'), /formato inesperado/);
+});
+
+t('paraDataISO: JS Date string com fuso GMT-0300 vira yyyy-mm-dd', () => {
+  assert.equal(paraDataISO('Thu Sep 11 2025 00:00:00 GMT-0300 (Horário Padrão de Brasília)'), '2025-09-11');
+  assert.equal(paraDataISO('Mon Jan 05 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)'), '2026-01-05');
+});
+
+t('paraTimestampISO: dd/mm/aaaa hh:mm:ss em São Paulo (UTC-03:00) vira ISO', () => {
+  assert.equal(paraTimestampISO('18/09/2026 19:30:00'), '2026-09-18T22:30:00.000Z');
 });
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');
