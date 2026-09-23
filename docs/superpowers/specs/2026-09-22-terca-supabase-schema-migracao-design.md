@@ -264,3 +264,27 @@ contém segredo nenhum).
   sub-projeto só cria o banco e copia os dados uma vez.
 - Políticas de RLS (sub-projeto 2, junto com login/perfis).
 - Sincronização contínua com a planilha real do Terça — não existe e não está planejada.
+
+## Ajustes descobertos na migração real (2026-09-23)
+
+A primeira execução contra os dados reais mostrou três diferenças em relação ao desenho acima.
+Elas já estão implementadas no script e no banco; ficam registradas aqui para os sub-projetos
+seguintes.
+
+- **Convidados viram linhas em `jogadores`.** Nas rodadas, os convidados aparecem com ids sintéticos
+  `convidado:NOME#xxxx`, que não existem na aba Jogadores. Foi adicionada a coluna
+  `jogadores.convidado boolean not null default false` (`sql/schema-terca-supabase-ajuste-1.sql`,
+  executada no Supabase depois do schema principal). O nome do convidado vem do próprio id.
+  **Consequência para os sub-projetos 2 a 6:** qualquer tela que liste jogadores cadastrados deve
+  filtrar `convidado = false`.
+- **Órfãos de histórico entram com `jogador_id` nulo.** Registros de `checkins`, `fin_pagamentos` e
+  `fin_creditos` que apontam para um jogador que não existe mais na aba Jogadores (7 check-ins e 1
+  pagamento na migração real) são gravados com `jogador_id = null`; o nome continua em `jogador_nome`.
+  Em `time_jogadores` isso não é possível (chave primária composta): um órfão não convidado ali
+  seria registrado como exceção (não houve nenhum).
+- **Tabelas sem chave natural não são recarregadas.** `fin_log`, `ao_vivo` e `ao_vivo_log` só são
+  gravadas se estiverem vazias, para a segunda execução do script não duplicar linhas. As demais
+  tabelas usam `upsert` (em `times_rodada`, com `onConflict: 'round_id,time_index'`).
+- **Formatos reais da planilha tratados pelo script:** números com vírgula decimal (`"3,5"`),
+  datas de rodada em texto de data do JavaScript (`Thu Sep 11 2025 00:00:00 GMT-0300 (...)`) e
+  carimbos `dd/mm/aaaa hh:mm:ss` (interpretados como horário de São Paulo, UTC-03:00).
