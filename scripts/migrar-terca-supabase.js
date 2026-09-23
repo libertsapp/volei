@@ -11,11 +11,12 @@ const resumo = [];
 const excecoes = [];
 
 // linhas[0] = cabeçalho; devolve um array de objetos { coluna: valor } usando o cabeçalho como chave
+// Cada objeto também recebe _ordem = sua posição 1-based entre as linhas de dados (sheet row order)
 function paraObjetos(linhas) {
   if (!linhas || linhas.length < 2) return [];
   const [cabecalho, ...resto] = linhas;
-  return resto.filter((l) => l[0]).map((l) => {
-    const obj = {};
+  return resto.filter((l) => l[0]).map((l, ordem) => {
+    const obj = { _ordem: ordem + 1 };
     cabecalho.forEach((col, i) => { obj[col] = l[i]; });
     return obj;
   });
@@ -62,7 +63,7 @@ async function migrar() {
   // 1. jogadores
   const jogadores = mapear('jogadores', paraObjetos(dados.Jogadores), (j) => ({
     id: j.id, nome: j.nome, apelido: j.apelido || null, foto: j.foto || null,
-    estrelas: paraNumero(j.estrelas), sexo: j.sexo || null, porte: j.porte || null
+    estrelas: paraNumero(j.estrelas), sexo: j.sexo || null, porte: j.porte || null, ordem: j._ordem
   }));
   await gravar('jogadores', jogadores);
 
@@ -84,7 +85,7 @@ async function migrar() {
   const usuarios = mapear('usuarios', paraObjetos(dados.Usuarios), (u) => ({
     email: u.email, nome: u.nome || null, perfil: (u.perfil || 'jogador').toLowerCase(),
     jogador_id: u.jogadorId || null, jogador_id_pendente: u.jogadorIdPendente || null,
-    criado_em: u.criadoEm ? paraTimestampISO(u.criadoEm) : new Date().toISOString()
+    criado_em: u.criadoEm ? paraTimestampISO(u.criadoEm) : new Date().toISOString(), ordem: u._ordem
   }));
   await gravar('usuarios', usuarios);
 
@@ -96,14 +97,14 @@ async function migrar() {
   const rodadasUnicas = new Map();
   mapear('rodadas (dedup)', linhasRodadas, (r) => {
     if (!rodadasUnicas.has(r.roundId)) {
-      rodadasUnicas.set(r.roundId, { round_id: r.roundId, data: paraDataISO(r.data), vencedor: r.vencedor || null, rascunho: paraBooleano(r.rascunho) });
+      rodadasUnicas.set(r.roundId, { round_id: r.roundId, data: paraDataISO(r.data), rascunho: paraBooleano(r.rascunho), ordem: r._ordem });
     }
   });
   await gravar('rodadas', Array.from(rodadasUnicas.values()));
 
   // 5. times_rodada
   const timesRodada = mapear('times_rodada', linhasRodadas, (r) => ({
-    round_id: r.roundId, time_index: Number(r.timeIndex), time_nome: r.timeNome || null, vitorias: Number(r.vitorias || 0)
+    round_id: r.roundId, time_index: Number(r.timeIndex), time_nome: r.timeNome || null, vitorias: Number(r.vitorias || 0), vencedor: paraBooleano(r.vencedor)
   }));
   await gravar('times_rodada', timesRodada, { onConflict: 'round_id,time_index' });
 
@@ -117,10 +118,10 @@ async function migrar() {
   linhasRodadas.forEach((r) => {
     const timeRodadaId = idPorRoundETime.get(`${r.roundId}:${r.timeIndex}`);
     if (!timeRodadaId) return;
-    dividirJogadores(r.jogadores).forEach((jogadorId) => {
+    dividirJogadores(r.jogadores).forEach((jogadorId, posicao) => {
       const chave = `${timeRodadaId}:${jogadorId}`;
       if (!timeJogadoresSet.has(chave)) {
-        timeJogadoresSet.set(chave, { time_rodada_id: timeRodadaId, jogador_id: jogadorId });
+        timeJogadoresSet.set(chave, { time_rodada_id: timeRodadaId, jogador_id: jogadorId, posicao });
       }
     });
   });
@@ -131,7 +132,7 @@ async function migrar() {
   let checkinsRaw = mapear('checkins', linhasCheckins, (c) => ({
     id: c.id, data: paraDataISO(c.data), jogador_id: c.jogadorId || null, jogador_nome: c.jogadorNome || null,
     estrelas: paraNumero(c.estrelas), sexo: c.sexo || null,
-    estrelas_ajustadas: paraNumero(c.estrelasAjustadas)
+    estrelas_ajustadas: paraNumero(c.estrelasAjustadas), ordem: c._ordem
   }));
   const checkinsOrfaos = anularOrfaos(checkinsRaw, idsConhecidos);
   if (checkinsOrfaos.anulados > 0) resumo.push(`checkins: ${checkinsOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
@@ -142,7 +143,7 @@ async function migrar() {
     data: paraDataISO(f.data), valor_pessoa: paraNumero(f.valorPessoa) ?? 0, pix: f.pix || null,
     valor_quadra: paraNumero(f.valorQuadra), tem_brinde: paraBooleano(f.temBrinde),
     valor_brinde: paraNumero(f.valorBrinde), atualizado_por: f.atualizadoPor || null,
-    atualizado_em: paraTimestampISO(f.atualizadoEm), icone: f.icone || null, status: f.status || 'normal'
+    atualizado_em: paraTimestampISO(f.atualizadoEm), icone: f.icone || null, status: f.status || 'normal', ordem: f._ordem
   }));
   await gravar('fin_dias', finDias);
 
@@ -151,7 +152,7 @@ async function migrar() {
     id: p.id, data: paraDataISO(p.data), jogador_id: p.jogadorId || null, jogador_nome: p.jogadorNome || null,
     valor: paraNumero(p.valor) ?? 0, marcado_por: p.marcadoPor || null, marcado_em: paraTimestampISO(p.marcadoEm),
     estornado: paraBooleano(p.estornado), estornado_por: p.estornadoPor || null, estornado_em: paraTimestampISO(p.estornadoEm),
-    tipo: p.tipo || 'dinheiro'
+    tipo: p.tipo || 'dinheiro', ordem: p._ordem
   }));
   const finPagamentosOrfaos = anularOrfaos(finPagamentosRaw, idsConhecidos);
   if (finPagamentosOrfaos.anulados > 0) resumo.push(`fin_pagamentos: ${finPagamentosOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
@@ -163,7 +164,7 @@ async function migrar() {
     id: c.id, jogador_id: c.jogadorId || null, jogador_nome: c.jogadorNome || null, valor: paraNumero(c.valor) ?? 0,
     origem_pagamento_id: c.origemPagamentoId || null, data_origem: c.dataOrigem ? paraDataISO(c.dataOrigem) : null,
     criado_por: c.criadoPor || null, criado_em: paraTimestampISO(c.criadoEm), status: c.status || null,
-    encerrado_por: c.encerradoPor || null, encerrado_em: paraTimestampISO(c.encerradoEm)
+    encerrado_por: c.encerradoPor || null, encerrado_em: paraTimestampISO(c.encerradoEm), ordem: c._ordem
   }));
   const finCreditosOrfaos = anularOrfaos(finCreditosRaw, idsConhecidos);
   if (finCreditosOrfaos.anulados > 0) resumo.push(`fin_creditos: ${finCreditosOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
@@ -182,7 +183,7 @@ async function migrar() {
   const finLancamentos = mapear('fin_lancamentos', paraObjetos(dados.FinLancamentos), (l) => ({
     id: l.id, data: paraDataISO(l.data), tipo: l.tipo || null, descricao: l.descricao || null,
     valor: paraNumero(l.valor) ?? 0, criado_por: l.criadoPor || null, criado_em: paraTimestampISO(l.criadoEm),
-    estornado: paraBooleano(l.estornado), estornado_por: l.estornadoPor || null, estornado_em: paraTimestampISO(l.estornadoEm)
+    estornado: paraBooleano(l.estornado), estornado_por: l.estornadoPor || null, estornado_em: paraTimestampISO(l.estornadoEm), ordem: l._ordem
   }));
   await gravar('fin_lancamentos', finLancamentos);
 
