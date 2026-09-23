@@ -304,3 +304,22 @@ seguintes.
   futuro não provam sincronia.
 - **`paraTimestampISO`** só reconhece `dd/mm/aaaa hh:mm:ss` com zeros à esquerda e segundos; outro formato cai em
   `new Date()`, que lê mês/dia à americana. Tenha isso em mente se algum sub-projeto ler a planilha de novo.
+
+## Ajuste 2: vencedor por time e ordem das linhas (2026-09-23)
+
+Ao ler as funções de leitura do `.gs` para o backend novo, apareceram dois furos no schema original.
+Estão corrigidos em `sql/schema-terca-supabase-ajuste-2.sql` e no script de migração.
+
+- **`vencedor` é por time, não por rodada.** Na aba Rodadas cada linha é um time, e o `vencedor` diz se
+  aquele time venceu (empate = 2 times). O schema original tinha `rodadas.vencedor` (um valor por rodada),
+  e a primeira migração guardou só 13 `TRUE` em vez dos 33 times vencedores reais. Agora a coluna é
+  `times_rodada.vencedor boolean`, e `rodadas.vencedor` foi removida.
+- **A ordem das linhas é dado.** O app recebe todas as listas na ordem da planilha (por exemplo, a ordem
+  de chegada no check-in define quem está dentro das vagas e quem está na espera). Postgres não guarda
+  ordem, então foram criadas as colunas `ordem` (em `jogadores`, `rodadas`, `checkins`, `usuarios`,
+  `fin_dias`, `fin_pagamentos`, `fin_creditos`, `fin_lancamentos`) e `time_jogadores.posicao`, preenchidas
+  com a posição da linha na planilha. **O backend novo deve sempre ordenar por essas colunas
+  (`nulls last`), e as linhas novas recebem `max(ordem) + 1` dentro da mesma transação que grava.**
+  `fin_log`, `ao_vivo` e `ao_vivo_log` já têm `id` sequencial.
+- Validado contra a planilha: 33 times vencedores, ordem dos jogadores em 134 times e ordem das linhas
+  de todas as tabelas, sem diferenças.
