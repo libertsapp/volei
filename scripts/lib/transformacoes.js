@@ -58,4 +58,36 @@ function paraTimestampISO(valor) {
   return d.toISOString();
 }
 
-module.exports = { paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero };
+// "convidado:VITOR SANTOS#ham8" -> "VITOR SANTOS"; qualquer id que não comece com "convidado:" -> null
+function nomeDoConvidado(id) {
+  const texto = String(id || '');
+  if (!texto.startsWith('convidado:')) return null;
+  return texto.slice('convidado:'.length).replace(/#[^#]*$/, '').trim();
+}
+
+// Recebe uma lista de ids (pode ter repetidos, vazios e ids normais) e devolve as linhas de
+// `jogadores` dos convidados: [{ id, nome, convidado: true }], sem repetir id.
+function coletarConvidados(ids) {
+  const vistos = new Set();
+  const saida = [];
+  for (const id of ids) {
+    const nome = nomeDoConvidado(id);
+    if (nome === null || vistos.has(id)) continue;
+    vistos.add(id);
+    saida.push({ id: String(id), nome, convidado: true });
+  }
+  return saida;
+}
+
+// Devolve { registros, anulados }: cópias dos registros em que `campo` (padrão "jogador_id"),
+// quando preenchido e ausente de `idsConhecidos` (um Set), vira null. `anulados` = quantos foram anulados.
+function anularOrfaos(registros, idsConhecidos, campo = 'jogador_id') {
+  let anulados = 0;
+  const saida = registros.map((r) => {
+    if (r[campo] && !idsConhecidos.has(r[campo])) { anulados++; return { ...r, [campo]: null }; }
+    return r;
+  });
+  return { registros: saida, anulados };
+}
+
+module.exports = { paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero, nomeDoConvidado, coletarConvidados, anularOrfaos };

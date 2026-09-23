@@ -1,7 +1,8 @@
 // tests/migracao-supabase-transformacoes.test.js
 const assert = require('node:assert/strict');
 const {
-  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero
+  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero,
+  nomeDoConvidado, coletarConvidados, anularOrfaos
 } = require('../scripts/lib/transformacoes');
 
 let falhas = 0;
@@ -65,6 +66,38 @@ t('paraDataISO: JS Date string com fuso GMT-0300 vira yyyy-mm-dd', () => {
 
 t('paraTimestampISO: dd/mm/aaaa hh:mm:ss em São Paulo (UTC-03:00) vira ISO', () => {
   assert.equal(paraTimestampISO('18/09/2026 19:30:00'), '2026-09-18T22:30:00.000Z');
+});
+
+t('nomeDoConvidado: extrai nome de id "convidado:NOME#xxxx"', () => {
+  assert.equal(nomeDoConvidado('convidado:CAUA#0z6z'), 'CAUA');
+  assert.equal(nomeDoConvidado('convidado:VITOR SANTOS#ham8'), 'VITOR SANTOS');
+  assert.equal(nomeDoConvidado('convidado:ALLEF (faltou)#ch69'), 'ALLEF (faltou)');
+  assert.equal(nomeDoConvidado('convidado:Ana Paula#4wp6'), 'Ana Paula');
+  assert.equal(nomeDoConvidado('p1'), null);
+  assert.equal(nomeDoConvidado(''), null);
+  assert.equal(nomeDoConvidado(null), null);
+});
+
+t('coletarConvidados: coleta ids de convidados, deduplica, retorna rows jogadores', () => {
+  const resultado = coletarConvidados(['p1', 'convidado:CAUA#0z6z', '', 'convidado:CAUA#0z6z', 'convidado:IZA#s7k2', null]);
+  assert.deepEqual(resultado, [
+    { id: 'convidado:CAUA#0z6z', nome: 'CAUA', convidado: true },
+    { id: 'convidado:IZA#s7k2', nome: 'IZA', convidado: true }
+  ]);
+});
+
+t('anularOrfaos: torna null ids de jogadores que não existem, sem mutar original', () => {
+  const original = [
+    { id: 'a', jogador_id: 'p1' },
+    { id: 'b', jogador_id: 'p9' },
+    { id: 'c', jogador_id: '' },
+    { id: 'd', jogador_id: null }
+  ];
+  const resultado = anularOrfaos(original, new Set(['p1']));
+  assert.equal(resultado.anulados, 1);
+  assert.equal(resultado.registros[1].jogador_id, null);
+  assert.equal(resultado.registros[0].jogador_id, 'p1');
+  assert.equal(original[1].jogador_id, 'p9'); // original não foi mutado
 });
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');

@@ -2,7 +2,8 @@ require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const { lerPlanilhaTerca } = require('./lib/planilha');
 const {
-  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero
+  paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero,
+  coletarConvidados, anularOrfaos
 } = require('./lib/transformacoes');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -33,10 +34,10 @@ function identificar(registro) {
   return Object.entries(registro).slice(0, 2).map(([k, v]) => `${k}=${v}`).join(', ');
 }
 
-async function gravar(tabela, registros, opcoes = {}) {
-  if (!registros.length) { resumo.push(`${tabela}: 0 registro(s)`); return; }
+async function gravar(tabela, registros, opcoes = {}, rotulo = tabela) {
+  if (!registros.length) { resumo.push(`${rotulo}: 0 registro(s)`); return; }
   const { error } = await supabase.from(tabela).upsert(registros, opcoes);
-  if (!error) { resumo.push(`${tabela}: ${registros.length} registro(s) gravado(s)`); return; }
+  if (!error) { resumo.push(`${rotulo}: ${registros.length} registro(s) gravado(s)`); return; }
   let gravados = 0;
   for (const registro of registros) {
     const { error: erroLinha } = await supabase.from(tabela).upsert(registro, opcoes);
@@ -45,7 +46,7 @@ async function gravar(tabela, registros, opcoes = {}) {
       excecoes.push(`${tabela} [${identificar(registro)}]: ${erroLinha.message}${dica}`);
     } else gravados++;
   }
-  resumo.push(`${tabela}: ${gravados}/${registros.length} gravado(s) (o lote falhou: ${error.message})`);
+  resumo.push(`${rotulo}: ${gravados}/${registros.length} gravado(s) (o lote falhou: ${error.message})`);
 }
 
 async function gravarSeVazia(tabela, registros) {
@@ -65,6 +66,20 @@ async function migrar() {
   }));
   await gravar('jogadores', jogadores);
 
+  // 1b. convidados (guests): coleta de rodadas, checkins, fin_pagamentos, fin_creditos
+  const idsRegistrados = new Set(jogadores.map((j) => j.id));
+  const linhasRodadas = paraObjetos(dados.Rodadas);
+  const todasRodadas = linhasRodadas.flatMap((r) => dividirJogadores(r.jogadores));
+  const linhasCheckins = paraObjetos(dados.Checkins);
+  const todasCheckins = linhasCheckins.map((c) => c.jogadorId).filter(Boolean);
+  const linhasPagamentos = paraObjetos(dados.FinPagamentos);
+  const todasPagamentos = linhasPagamentos.map((p) => p.jogadorId).filter(Boolean);
+  const linhasCreditos = paraObjetos(dados.FinCreditos);
+  const todasCreditos = linhasCreditos.map((c) => c.jogadorId).filter(Boolean);
+  const convidados = coletarConvidados([...todasRodadas, ...todasCheckins, ...todasPagamentos, ...todasCreditos]).filter((c) => !idsRegistrados.has(c.id));
+  if (convidados.length > 0) await gravar('jogadores', convidados, {}, 'jogadores (convidados)');
+  const idsConhecidos = new Set([...idsRegistrados, ...convidados.map((c) => c.id)]);
+
   // 2. usuarios
   const usuarios = mapear('usuarios', paraObjetos(dados.Usuarios), (u) => ({
     email: u.email, nome: u.nome || null, perfil: (u.perfil || 'jogador').toLowerCase(),
@@ -78,7 +93,6 @@ async function migrar() {
   await gravar('config', config);
 
   // 4. rodadas (uma linha por round_id só, mesmo que a aba tenha várias linhas por rodada)
-  const linhasRodadas = paraObjetos(dados.Rodadas);
   const rodadasUnicas = new Map();
   mapear('rodadas (dedup)', linhasRodadas, (r) => {
     if (!rodadasUnicas.has(r.roundId)) {
@@ -114,12 +128,14 @@ async function migrar() {
   await gravar('time_jogadores', timeJogadores);
 
   // 7. checkins
-  const checkins = mapear('checkins', paraObjetos(dados.Checkins), (c) => ({
+  let checkinsRaw = mapear('checkins', linhasCheckins, (c) => ({
     id: c.id, data: paraDataISO(c.data), jogador_id: c.jogadorId || null, jogador_nome: c.jogadorNome || null,
     estrelas: paraNumero(c.estrelas), sexo: c.sexo || null,
     estrelas_ajustadas: paraNumero(c.estrelasAjustadas)
   }));
-  await gravar('checkins', checkins);
+  const checkinsOrfaos = anularOrfaos(checkinsRaw, idsConhecidos);
+  if (checkinsOrfaos.anulados > 0) resumo.push(`checkins: ${checkinsOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
+  await gravar('checkins', checkinsOrfaos.registros);
 
   // 8. fin_dias
   const finDias = mapear('fin_dias', paraObjetos(dados.FinDias), (f) => ({
@@ -131,22 +147,27 @@ async function migrar() {
   await gravar('fin_dias', finDias);
 
   // 9. fin_pagamentos (credito_id fica de fora por enquanto — fin_creditos ainda não existe)
-  const linhasPagamentos = paraObjetos(dados.FinPagamentos);
-  const finPagamentos = mapear('fin_pagamentos', linhasPagamentos, (p) => ({
+  let finPagamentosRaw = mapear('fin_pagamentos', linhasPagamentos, (p) => ({
     id: p.id, data: paraDataISO(p.data), jogador_id: p.jogadorId || null, jogador_nome: p.jogadorNome || null,
     valor: paraNumero(p.valor) ?? 0, marcado_por: p.marcadoPor || null, marcado_em: paraTimestampISO(p.marcadoEm),
     estornado: paraBooleano(p.estornado), estornado_por: p.estornadoPor || null, estornado_em: paraTimestampISO(p.estornadoEm),
     tipo: p.tipo || 'dinheiro'
   }));
+  const finPagamentosOrfaos = anularOrfaos(finPagamentosRaw, idsConhecidos);
+  if (finPagamentosOrfaos.anulados > 0) resumo.push(`fin_pagamentos: ${finPagamentosOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
+  const finPagamentos = finPagamentosOrfaos.registros;
   await gravar('fin_pagamentos', finPagamentos);
 
   // 10. fin_creditos (já pode referenciar origem_pagamento_id, que existe desde o passo anterior)
-  const finCreditos = mapear('fin_creditos', paraObjetos(dados.FinCreditos), (c) => ({
+  let finCreditosRaw = mapear('fin_creditos', linhasCreditos, (c) => ({
     id: c.id, jogador_id: c.jogadorId || null, jogador_nome: c.jogadorNome || null, valor: paraNumero(c.valor) ?? 0,
     origem_pagamento_id: c.origemPagamentoId || null, data_origem: c.dataOrigem ? paraDataISO(c.dataOrigem) : null,
     criado_por: c.criadoPor || null, criado_em: paraTimestampISO(c.criadoEm), status: c.status || null,
     encerrado_por: c.encerradoPor || null, encerrado_em: paraTimestampISO(c.encerradoEm)
   }));
+  const finCreditosOrfaos = anularOrfaos(finCreditosRaw, idsConhecidos);
+  if (finCreditosOrfaos.anulados > 0) resumo.push(`fin_creditos: ${finCreditosOrfaos.anulados} registro(s) gravado(s) com jogador_id nulo (o jogador não existe mais na aba Jogadores; o nome fica em jogador_nome)`);
+  const finCreditos = finCreditosOrfaos.registros;
   await gravar('fin_creditos', finCreditos);
 
   // 11. atualiza fin_pagamentos.credito_id pra quem pagou usando crédito
