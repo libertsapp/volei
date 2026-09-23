@@ -11,7 +11,6 @@ const SUF = '';                                         // planilhas separadas a
 const N = (nome) => nome + SUF;
 const GS = MEME ? 'apps-script-codigo-volei-meme.gs' : 'apps-script-codigo.gs';
 const DIA = '2026-09-18';
-const SENHA = MEME ? '2026vmeme' : '131108'; // ADMIN_PASSWORD do .gs: entra como admin via chave mestra
 console.log('== backend testado:', GS, MEME ? '(Meme)' : '(Terça)');
 
 function novoAmbiente(){
@@ -47,7 +46,8 @@ function novoAmbiente(){
   `);
   return amb;
 }
-const admin = (amb, action, extra) => amb.post(Object.assign({ action, senha: SENHA }, extra));
+// a senha mestra vem do próprio .gs carregado (nunca em texto puro nos testes): entra como admin via chave mestra
+const admin = (amb, action, extra) => amb.post(Object.assign({ action, senha: amb.rodar('ADMIN_PASSWORD') }, extra));
 const org = (amb, action, extra) => amb.post(Object.assign({ action, idToken: 'x' }, extra)); // perfil organizador
 
 let falhas = 0;

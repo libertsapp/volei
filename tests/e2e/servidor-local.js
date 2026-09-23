@@ -11,7 +11,6 @@ const porta = Number(process.argv[2]) || 8765;
 // MEME=1 serve o app e o backend do Vôlei Meme (planilha própria dele, outra senha); sem isso, o Terça
 const MEME = !!process.env.MEME;
 const SUF = ''; // planilhas separadas agora: Terça e Meme usam os mesmos nomes de aba
-const SENHA = MEME ? '2026vmeme' : '131108';
 // o HTML do Meme hoje vive como "volei-meme-dashboard - Copia.html" (o nome original sumiu da pasta); aceita os dois
 const ARQ_MEME = require('fs').existsSync(require('path').join(__dirname, '..', '..', 'volei-meme-dashboard.html'))
   ? 'volei-meme-dashboard.html' : 'volei-meme-dashboard - Copia.html';
@@ -45,6 +44,7 @@ const sementeBase = {
 };
 const semente = Object.fromEntries(Object.entries(sementeBase).map(([nome, linhas]) => [nome + SUF, linhas]));
 const amb = criarAmbiente(semente, [path.join(raiz, ARQ_GS)]);
+const SENHA = amb.rodar('ADMIN_PASSWORD'); // lida do .gs carregado, nunca em texto puro nos testes
 amb.rodar('perfisPublicos_ = function(){ return []; }');
 // login do Google é rede: no servidor de teste, qualquer idToken vale como organizador (só pra simular quem confirma presença)
 amb.rodar(`
