@@ -92,6 +92,9 @@ nem aplicarem o mesmo crédito duas vezes.
   devolve `{ url, fileId }` (o `fileId` passa a ser o caminho do arquivo no bucket). O arquivo antigo é
   apagado quando `fileIdAntigo` chega. No front, `extrairFileIdDaFoto` passa a entender também as URLs do
   Storage (única mudança no HTML além da `SHEET_API_URL`).
+- **Limite de segurança no envio:** o backend recusa uma foto que não seja JPEG ou que passe de 300 KB
+  (o app manda ~20 a 80 KB), para proteger o bucket público de envios fora do app. O redimensionamento
+  continua sendo feito no navegador (`resizeImageToBase64`: máx. 500 px, qualidade 82%).
 - **Migração das fotos atuais (cópia única, na etapa 3):** para cada jogador com foto no Drive, baixar
   o arquivo, enviá-lo ao bucket **sem reprocessar** e atualizar `jogadores.foto`. As fotos já foram
   reduzidas pelo app no envio: as ~47 somam cerca de 1 MB (uns 20 KB cada), então a cópia é leve. Os
