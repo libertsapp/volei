@@ -5,7 +5,9 @@
   "description": "Migração única dos dados do Vôlei de Terça (Google Sheets) para o Supabase.",
   "type": "commonjs",
   "scripts": {
-    "migrar": "node scripts/migrar-terca-supabase.js"
+    "migrar": "node scripts/migrar-terca-supabase.js",
+    "servidor": "node backend/servidor-local.js",
+    "test:backend": "node tests/backend/mapeadores.test.mjs && node tests/backend/handler.test.mjs && node tests/backend/paridade-get.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",
