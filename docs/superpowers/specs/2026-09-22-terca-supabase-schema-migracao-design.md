@@ -288,3 +288,19 @@ seguintes.
 - **Formatos reais da planilha tratados pelo script:** números com vírgula decimal (`"3,5"`),
   datas de rodada em texto de data do JavaScript (`Thu Sep 11 2025 00:00:00 GMT-0300 (...)`) e
   carimbos `dd/mm/aaaa hh:mm:ss` (interpretados como horário de São Paulo, UTC-03:00).
+
+## Avisos para os próximos sub-projetos
+
+- **Listagens de jogadores** devem filtrar `convidado = false`.
+- **Joins com `checkins`, `fin_pagamentos` e `fin_creditos`** devem ser `left join`, com `jogador_nome` como
+  alternativa: há registros com `jogador_id` nulo (7 check-ins e 1 pagamento), que sumiriam da tela num join comum.
+- **RLS está ligado nas 14 tabelas e sem nenhuma política**, então as chaves `anon`/`authenticated` não leem nada.
+  O sub-projeto 2 precisa entregar as políticas antes de qualquer leitura pelo app; tela vazia até lá é esperado.
+- **`fin_pagamentos.data` referencia `fin_dias.data`:** a linha do dia em `fin_dias` precisa existir antes de
+  qualquer pagamento daquele dia.
+- **`fin_log`, `ao_vivo` e `ao_vivo_log` não têm chave natural.** Para reimportar uma delas, esvazie a tabela à mão antes.
+- **A coluna `timestamp` de `fin_log` e `ao_vivo_log`** deve ser citada entre aspas duplas nas consultas SQL.
+- **O banco é um superconjunto da planilha** (a migração só insere e atualiza, nunca apaga): contagens iguais no
+  futuro não provam sincronia.
+- **`paraTimestampISO`** só reconhece `dd/mm/aaaa hh:mm:ss` com zeros à esquerda e segundos; outro formato cai em
+  `new Date()`, que lê mês/dia à americana. Tenha isso em mente se algum sub-projeto ler a planilha de novo.
