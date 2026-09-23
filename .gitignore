@@ -12,3 +12,7 @@
 # nunca pode ir pro repositório.
 .env
 .env.*
+
+# Chave JSON da service account do Google (credencial privada, dá acesso de leitura
+# à planilha do Terça) — nunca pode ir pro repositório.
+CHAVE/
