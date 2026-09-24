@@ -86,13 +86,37 @@ export function mapearPerfisPublicos(usuarios) {
     .map((u) => ({ jogadorId: texto(u.jogador_id), perfil: (texto(u.perfil) || 'jogador').trim().toLowerCase() }));
 }
 
-// O schema atual de ao_vivo não tem "data" nem a lista de jogadores por time (o .gs tem):
-// isso é resolvido na etapa 5. Até lá, falha alto em vez de devolver dado errado.
+// Ao Vivo. Port de readAoVivo/readAoVivoLog/lerAoVivo do .gs. Cada linha de ao_vivo é um time de uma rodada em transmissão
+// (o sql/schema-terca-supabase-ajuste-6.sql acrescenta as colunas "data" e "jogadores", que a planilha sempre teve).
+// Agrupa por rodada na ordem das linhas (id do banco = ordem de gravação da planilha). O agrupamento usa um objeto simples
+// de propósito, como o .gs: o Object.values dele tem a mesma ordem de chaves (ids só de dígitos sobem primeiro), então
+// linhas gravadas por código novo e linhas migradas saem idênticas.
+const porId = (a, b) => (a.id ?? 0) - (b.id ?? 0);
+
 export function mapearAoVivo(aoVivo, aoVivoLog) {
-  if (aoVivo.length || aoVivoLog.length) {
-    throw new Error('Ao Vivo ainda não é suportado pelo backend Supabase (etapa 5).');
+  const mapa = Object.create(null);
+  for (const l of aoVivo.slice().sort(porId)) {
+    if (!l.round_id) continue;
+    const rid = String(l.round_id);
+    if (!mapa[rid]) {
+      mapa[rid] = { id: rid, data: texto(l.data), iniciadoEm: iso(l.iniciado_em), duracaoMinutos: numero(l.duracao_minutos), times: [] };
+    }
+    mapa[rid].times[Number(l.time_index)] = {
+      nome: texto(l.time_nome),
+      playerIds: l.jogadores ? String(l.jogadores).split(',').filter(Boolean) : [],
+      vitorias: numero(l.vitorias)
+    };
   }
-  return { rounds: [], log: [] };
+  const rounds = Object.values(mapa);
+  const idsValidos = new Set(rounds.map((r) => r.id));
+  const log = [];
+  for (const l of aoVivoLog.slice().sort(porId)) {
+    if (!l.round_id || !idsValidos.has(String(l.round_id))) continue;
+    log.push({ roundId: String(l.round_id), timeIndex: Number(l.time_index), timeNome: texto(l.time_nome), delta: numero(l.delta), timestamp: iso(l.timestamp) });
+  }
+  // mais recente primeiro; o comparador é o MESMO do .gs (nunca devolve 0), então empates saem na mesma ordem
+  log.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+  return { rounds, log };
 }
 
 const icone = (v) => (texto(v).trim() === '💰' ? '💰' : '✅');

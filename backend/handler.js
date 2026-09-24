@@ -16,6 +16,7 @@ import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
   addLancamento, estornarLancamento, marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito
 } from './financeiro.js';
+import { lerAoVivo, iniciarTransmissaoAoVivo, salvarParcialAoVivo, cancelarTransmissaoAoVivo, incrementarAcesso } from './aovivo.js';
 import { comTrava } from './trava.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
@@ -56,14 +57,10 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         const b = body || {};
         const acao = String(b.action || '');
 
-        if (acao === 'incrementarAcesso') { // etapa 1: só lê o contador; gravar é da etapa 5
-          const t = await repo.lerTudo();
-          return { contadorAcessos: mapearConfig(t.config).contadorAcessos };
-        }
-        if (acao === 'lerAoVivo') {
-          const t = await repo.lerTudo();
-          return mapearAoVivo(t.ao_vivo, t.ao_vivo_log);
-        }
+        // contador de acessos (público): soma atômica no banco, por isso NÃO usa a trava 'gravacao' (é chamado a cada abertura do app)
+        if (acao === 'incrementarAcesso') return await incrementarAcesso(deps);
+        // leitura pública do placar ao vivo (polling): sem senha, sem login e sem trava
+        if (acao === 'lerAoVivo') return await lerAoVivo(deps);
         if (acao === 'loginGoogle') return await loginGoogle(deps, b);
         if (acao === 'bootstrapAdmin') return await bootstrapAdmin(deps, b);
 
@@ -109,6 +106,10 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, auth));
           case 'aplicarCreditosDoDia': return await travar(() => aplicarCreditosDoDia(deps, b.data, auth));
           case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
+          // Ao Vivo (etapa 5): o .gs segurava a trava nas três
+          case 'iniciarTransmissaoAoVivo': return await travar(() => iniciarTransmissaoAoVivo(deps, b.roundId, b.duracaoMinutos));
+          case 'salvarParcialAoVivo': return await travar(() => salvarParcialAoVivo(deps, b.roundId, b.vitoriasPorTime));
+          case 'cancelarTransmissaoAoVivo': return await travar(() => cancelarTransmissaoAoVivo(deps, b.roundId));
           default: return naoDisponivel(acao);
         }
       } catch (erro) {

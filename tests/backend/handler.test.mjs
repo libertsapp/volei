@@ -20,15 +20,10 @@ await ta('get: erro do repositório vira { error } como o doGet', async () => {
   assert.deepEqual(await h.get(), { error: 'banco fora do ar' });
 });
 
-await ta('post incrementarAcesso: devolve o contador atual (leitura; gravar é da etapa 5)', async () => {
-  assert.deepEqual(await handler().post({ action: 'incrementarAcesso' }), { contadorAcessos: 41 });
-});
-
-await ta('post de ação ainda não portada: erro claro com o nome da ação', async () => {
-  const h = criarHandler({ repo: criarRepoMemoria(fixture), config: { adminPassword: 'chave-de-teste' } });
-  const r = await h.post({ action: 'iniciarTransmissaoAoVivo', senha: 'chave-de-teste' });
-  assert.match(r.error, /ainda não está disponível/);
-  assert.match(r.error, /iniciarTransmissaoAoVivo/);
+await ta('post incrementarAcesso: soma 1 ao contador e devolve o novo valor (etapa 5)', async () => {
+  const h = handler();
+  assert.deepEqual(await h.post({ action: 'incrementarAcesso' }), { contadorAcessos: 42 });
+  assert.equal((await h.get()).settings.contadorAcessos, 42);
 });
 
 fim();

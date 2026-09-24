@@ -193,6 +193,53 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
         });
       });
     },
-    async removerRodada(id) { return apagarRodada(id); }
+    // remover_rodada do ajuste 6: uma transmissão ao vivo de uma rodada que deixou de existir não tem sentido (e a chave
+    // estrangeira de ao_vivo não deixaria apagar a rodada), então o Ao Vivo dela sai junto, na mesma operação
+    async removerRodada(id) {
+      const existia = apagarRodada(id);
+      tabelas.ao_vivo = tabelas.ao_vivo.filter((a) => a.round_id !== id);
+      tabelas.ao_vivo_log = tabelas.ao_vivo_log.filter((a) => a.round_id !== id);
+      return existia;
+    },
+
+    // ---- Ao Vivo e contador de acessos (etapa 5). "id" é identity no banco: aqui, máximo + 1 ----
+    async lerAoVivo() { return structuredClone({ ao_vivo: tabelas.ao_vivo, ao_vivo_log: tabelas.ao_vivo_log }); },
+    async lerAoVivoDaRodada(roundId) {
+      return structuredClone(tabelas.ao_vivo.filter((a) => a.round_id === roundId).sort((a, b) => a.id - b.id));
+    },
+    // o lote entra inteiro ou não entra; round_id tem chave estrangeira para rodadas (a checagem do banco)
+    async inserirAoVivo(linhas) {
+      for (const l of linhas) {
+        if (l.round_id != null && !tabelas.rodadas.some((r) => r.round_id === l.round_id)) {
+          throw new Error('ao_vivo: insert or update on table "ao_vivo" violates foreign key constraint "ao_vivo_round_id_fkey"');
+        }
+      }
+      for (const l of linhas) tabelas.ao_vivo.push({ id: tabelas.ao_vivo.reduce((m, x) => Math.max(m, x.id ?? 0), 0) + 1, ...l });
+    },
+    async atualizarVitoriasAoVivo(id, vitorias) {
+      const i = tabelas.ao_vivo.findIndex((a) => a.id === id);
+      if (i === -1) return false;
+      tabelas.ao_vivo[i] = { ...tabelas.ao_vivo[i], vitorias };
+      return true;
+    },
+    async inserirAoVivoLog(linhas) {
+      for (const l of linhas) tabelas.ao_vivo_log.push({ id: tabelas.ao_vivo_log.reduce((m, x) => Math.max(m, x.id ?? 0), 0) + 1, ...l });
+    },
+    // encerra a transmissão: apaga as linhas do placar e o log daquela rodada
+    async apagarAoVivo(roundId) {
+      tabelas.ao_vivo = tabelas.ao_vivo.filter((a) => a.round_id !== roundId);
+      tabelas.ao_vivo_log = tabelas.ao_vivo_log.filter((a) => a.round_id !== roundId);
+    },
+    // emula a função incrementar_acesso() do banco (mesma regra do SQL): sem linha, ou valor que não é número, conta como 0
+    // (o "Number(x) || 0" do .gs); soma 1 e guarda como texto; devolve o novo valor como número
+    async incrementarAcesso() {
+      const i = tabelas.config.findIndex((c) => c.chave === 'contadorAcessos');
+      const atual = i === -1 ? '0' : String(tabelas.config[i].valor ?? '').trim();
+      const base = /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$/.test(atual) ? Number(atual) : 0;
+      const novo = base + 1;
+      if (i === -1) tabelas.config.push({ chave: 'contadorAcessos', valor: String(novo) });
+      else tabelas.config[i] = { ...tabelas.config[i], valor: String(novo) };
+      return novo;
+    }
   };
 }

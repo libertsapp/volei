@@ -49,9 +49,8 @@ t('perfisPublicos: só quem tem jogador vinculado, na ordem, sem e-mail', () => 
   ]);
 });
 
-t('aoVivo: sem transmissão devolve vazio; com linhas falha alto (etapa 5)', () => {
+t('aoVivo: sem transmissão devolve vazio', () => {
   assert.deepEqual(mapearAoVivo([], []), { rounds: [], log: [] });
-  assert.throws(() => mapearAoVivo([{ round_id: 'r1' }], []), /etapa 5/);
 });
 
 t('financeiro: dias, pagamentos, créditos e lançamentos na ordem, com padrões e carimbos ISO', () => {

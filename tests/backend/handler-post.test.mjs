@@ -66,9 +66,9 @@ await ta('ações de usuários gravam pelo repositório (salvar, vincular, remov
   assert.deepEqual(await h.post({ action: 'solicitarVinculo', idToken: 'tok-b', jogadorId: 'p1' }), { error: 'Esse jogador já está vinculado ao e-mail a@exemplo.com.' });
 });
 
-await ta('ação da matriz ainda não portada: passa pelo porteiro e depois avisa', async () => {
+await ta('ação do Ao Vivo: passa pelo porteiro antes de tudo (a ação em si é testada em handler-etapa5)', async () => {
   const h = handler();
-  assert.deepEqual(await h.post({ action: 'iniciarTransmissaoAoVivo', idToken: 'tok-a' }), { error: 'Esta ação ainda não está disponível na versão Supabase (iniciarTransmissaoAoVivo).' });
+  assert.deepEqual(await h.post({ action: 'iniciarTransmissaoAoVivo', idToken: 'tok-a', roundId: 'nao-existe' }), { error: 'Rodada não encontrada (pode já ter sido removida).' });
   assert.deepEqual(await h.post({ action: 'iniciarTransmissaoAoVivo', idToken: 'tok-c' }), { error: 'Seu perfil (jogador) não tem permissão para esta ação.' });
 });
 
@@ -78,12 +78,12 @@ await ta('addCheckin/removeCheckin: só validam o token (a ação em si é testa
   assert.deepEqual(await h.post({ action: 'removeCheckin', idToken: 'tok-c', id: 'nao-existe' }), { error: 'Check-in não encontrado (pode já ter sido desmarcado).' });
 });
 
-await ta('lerAoVivo: leitura pública, vazia hoje', async () => {
+await ta('lerAoVivo: leitura pública, vazia sem transmissão', async () => {
   assert.deepEqual(await handler().post({ action: 'lerAoVivo' }), { rounds: [], log: [] });
 });
 
 await ta('post nunca lança: falha do repositório vira { error }', async () => {
-  const h = criarHandler({ repo: { async lerTudo() { throw new Error('banco fora do ar'); }, async lerUsuarios() { throw new Error('banco fora do ar'); } }, config: { adminPassword: 'x' }, verificarToken, relogio: () => AGORA });
+  const h = criarHandler({ repo: { async lerTudo() { throw new Error('banco fora do ar'); }, async lerUsuarios() { throw new Error('banco fora do ar'); }, async incrementarAcesso() { throw new Error('banco fora do ar'); } }, config: { adminPassword: 'x' }, verificarToken, relogio: () => AGORA });
   assert.deepEqual(await h.post({ action: 'incrementarAcesso' }), { error: 'banco fora do ar' });
   assert.deepEqual(await h.post({ action: 'listarUsuarios', idToken: 'tok-a' }), { error: 'banco fora do ar' });
   assert.deepEqual(await h.post(undefined), { error: 'Ação desconhecida: ' });

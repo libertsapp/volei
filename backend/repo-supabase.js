@@ -9,6 +9,8 @@ const CHAVES = {
   fin_creditos: ['id'], fin_lancamentos: ['id'], ao_vivo: ['id'], ao_vivo_log: ['id']
 };
 
+const DICA_AJUSTE_6 = ' (rode sql/schema-terca-supabase-ajuste-6.sql no SQL Editor do Supabase)';
+
 async function lerTabela(cliente, tabela) {
   let saida = [];
   for (let de = 0; ; de += PAGINA) {
@@ -150,6 +152,43 @@ export function criarRepoSupabase(cliente) {
       const { data, error } = await cliente.rpc('remover_rodada', { p_id: id });
       if (error) throw new Error('remover_rodada: ' + error.message);
       return data === true;
+    },
+
+    // ---- Ao Vivo e contador de acessos (etapa 5; colunas e função do sql/schema-terca-supabase-ajuste-6.sql) ----
+    async lerAoVivo() {
+      const [ao_vivo, ao_vivo_log] = await Promise.all([lerTabela(cliente, 'ao_vivo'), lerTabela(cliente, 'ao_vivo_log')]);
+      return { ao_vivo, ao_vivo_log };
+    },
+    async lerAoVivoDaRodada(roundId) {
+      const { data, error } = await cliente.from('ao_vivo').select('*').eq('round_id', roundId).order('id');
+      if (error) throw new Error('ao_vivo: ' + error.message);
+      return data;
+    },
+    // o lote vai num único INSERT (entra inteiro ou não entra); id é identity do banco
+    async inserirAoVivo(linhas) {
+      const { error } = await cliente.from('ao_vivo').insert(linhas);
+      if (error) throw new Error('ao_vivo: ' + error.message + DICA_AJUSTE_6);
+    },
+    async atualizarVitoriasAoVivo(id, vitorias) {
+      const { data, error } = await cliente.from('ao_vivo').update({ vitorias }).eq('id', id).select('id');
+      if (error) throw new Error('ao_vivo: ' + error.message);
+      return data.length > 0;
+    },
+    async inserirAoVivoLog(linhas) {
+      const { error } = await cliente.from('ao_vivo_log').insert(linhas);
+      if (error) throw new Error('ao_vivo_log: ' + error.message);
+    },
+    async apagarAoVivo(roundId) {
+      const a = await cliente.from('ao_vivo').delete().eq('round_id', roundId);
+      if (a.error) throw new Error('ao_vivo: ' + a.error.message);
+      const b = await cliente.from('ao_vivo_log').delete().eq('round_id', roundId);
+      if (b.error) throw new Error('ao_vivo_log: ' + b.error.message);
+    },
+    // soma 1 ao contador num único comando atômico do banco (upsert com UPDATE ... valor + 1); devolve o novo valor
+    async incrementarAcesso() {
+      const { data, error } = await cliente.rpc('incrementar_acesso');
+      if (error) throw new Error('incrementar_acesso: ' + error.message + DICA_AJUSTE_6);
+      return Number(data);
     }
   };
 }

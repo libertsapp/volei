@@ -196,8 +196,9 @@ async function migrar() {
 
   // 14. ao_vivo / ao_vivo_log (normalmente vazias)
   const aoVivo = mapear('ao_vivo', paraObjetos(dados.AoVivo), (a) => ({
-    round_id: a.roundId, time_index: Number(a.timeIndex), time_nome: a.timeNome || null,
-    vitorias: Number(a.vitorias || 0), iniciado_em: paraTimestampISO(a.iniciadoEm),
+    // data e jogadores existem desde o sql/schema-terca-supabase-ajuste-6.sql (rodar antes de migrar o Ao Vivo)
+    round_id: a.roundId, data: a.data ? paraDataISO(a.data) : null, time_index: Number(a.timeIndex), time_nome: a.timeNome || null,
+    jogadores: a.jogadores || null, vitorias: Number(a.vitorias || 0), iniciado_em: paraTimestampISO(a.iniciadoEm),
     duracao_minutos: a.duracaoMinutos ? Number(a.duracaoMinutos) : null
   }));
   await gravarSeVazia('ao_vivo', aoVivo);
