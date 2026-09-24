@@ -19,3 +19,7 @@ node_modules/
 # Chave JSON da service account do Google (credencial privada, dá acesso de leitura
 # à planilha do Terça) — nunca pode ir pro repositório.
 CHAVE/
+
+# Cópia gerada por "npm run preparar-edge" (scripts/preparar-edge.js) de backend/*.js para o deploy da Edge Function:
+# o bundler do Supabase só enxerga supabase/functions/. Não editar nem versionar (a fonte é backend/).
+supabase/functions/terca-api-teste/backend/

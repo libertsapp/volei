@@ -1,0 +1,8 @@
+# Configuração mínima do Supabase CLI para publicar SÓ a função de teste. Não há "supabase start" nem migrações aqui:
+# o banco continua sendo gerenciado pelos arquivos sql/*.sql rodados à mão no SQL Editor.
+project_id = "terca-api-teste"
+
+# O app manda um token do Google no corpo da requisição (não um JWT do Supabase), então a verificação de JWT do Supabase
+# fica desligada e o porteiro do backend é o único portão. Equivale à opção --no-verify-jwt do deploy (que também basta).
+[functions.terca-api-teste]
+verify_jwt = false
