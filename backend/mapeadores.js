@@ -5,7 +5,7 @@
 
 export const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 
-const texto = (v) => (v === undefined || v === null ? '' : String(v));
+export const texto = (v) => (v === undefined || v === null ? '' : String(v));
 // mesmo efeito de "Number(x) || 0" e de finNum_ do .gs: o que não é número vira 0
 const numero = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 // o .gs guarda carimbos como texto ISO (toISOString, com milissegundos e Z); o Postgres devolve
@@ -13,7 +13,7 @@ const numero = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; 
 const iso = (v) => (v ? new Date(v).toISOString() : '');
 
 // ordem da planilha; linhas sem "ordem" vão pro fim
-const porOrdem = (a, b) => {
+export const porOrdem = (a, b) => {
   const x = a.ordem ?? Infinity;
   const y = b.ordem ?? Infinity;
   return x === y ? 0 : (x < y ? -1 : 1);
