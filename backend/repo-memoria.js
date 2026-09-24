@@ -9,6 +9,15 @@ export function criarRepoMemoria(dados = {}) {
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
   return {
     tabelas,
-    async lerTudo() { return structuredClone(tabelas); }
+    async lerTudo() { return structuredClone(tabelas); },
+    async lerUsuarios() { return structuredClone(tabelas.usuarios); },
+    async lerJogadores() { return structuredClone(tabelas.jogadores); },
+    // insere ou atualiza pela chave email; numa atualização, só os campos enviados mudam
+    async gravarUsuario(linha) {
+      const i = tabelas.usuarios.findIndex((u) => u.email === linha.email);
+      if (i === -1) tabelas.usuarios.push({ ...linha });
+      else tabelas.usuarios[i] = { ...tabelas.usuarios[i], ...linha };
+    },
+    async removerUsuario(email) { tabelas.usuarios = tabelas.usuarios.filter((u) => u.email !== email); }
   };
 }

@@ -38,6 +38,17 @@ export function criarRepoSupabase(cliente) {
         return [tabela, await lerTabela(cliente, tabela)];
       }));
       return Object.fromEntries(pares);
+    },
+    async lerUsuarios() { return lerTabela(cliente, 'usuarios'); },
+    async lerJogadores() { return lerTabela(cliente, 'jogadores'); },
+    // upsert pela chave email (a linha já vem completa do domínio: com criado_em/ordem quando é novo)
+    async gravarUsuario(linha) {
+      const { error } = await cliente.from('usuarios').upsert(linha);
+      if (error) throw new Error('usuarios: ' + error.message);
+    },
+    async removerUsuario(email) {
+      const { error } = await cliente.from('usuarios').delete().eq('email', email);
+      if (error) throw new Error('usuarios: ' + error.message);
     }
   };
 }
