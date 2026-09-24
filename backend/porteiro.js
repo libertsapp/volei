@@ -5,6 +5,25 @@
 import { PERMISSOES } from './permissoes.js';
 import { iguaisSeguros } from './auth.js';
 import { lerUsuarios } from './usuarios.js';
+import { mapearJogadores, texto } from './mapeadores.js';
+
+// Única exceção da matriz: um 'jogador' pode mexer no cadastro DELE mesmo, e só para trocar/remover a foto.
+// Compara o que chegou com o que já está gravado e só libera se TODO o resto (nome, apelido, estrelas, sexo, porte)
+// estiver igualzinho; senão um jogador comum se daria 5 estrelas sozinho.
+async function excecaoPropriaFoto(repo, jogadorIdDaConta, body) {
+  if (String(body.action) !== 'updatePlayer' || !body.player) return false;
+  if (!jogadorIdDaConta || String(jogadorIdDaConta) !== String(body.player.id)) return false;
+
+  const atual = mapearJogadores(await repo.lerJogadores()).find((p) => String(p.id) === String(body.player.id));
+  if (!atual) return false;
+
+  const p = body.player;
+  return texto(p.nome) === atual.nome
+    && texto(p.apelido) === atual.apelido
+    && Number(p.estrelas || 0) === atual.estrelas
+    && texto(p.sexo) === atual.sexo
+    && texto(p.porte) === atual.porte;
+}
 
 export async function autorizar({ repo, config, verificarToken }, body) {
   const acao = String(body.action || '');
@@ -27,7 +46,13 @@ export async function autorizar({ repo, config, verificarToken }, body) {
 
   const usuario = (await lerUsuarios(repo)).find((u) => u.email === token.email);
   const perfil = (usuario && usuario.perfil) || 'jogador'; // e-mail desconhecido = jogador
-  if (!permitidos.includes(perfil)) return { error: 'Seu perfil (' + perfil + ') não tem permissão para esta ação.' };
+  const jogadorId = usuario ? usuario.jogadorId : '';
+  if (!permitidos.includes(perfil)) {
+    if (await excecaoPropriaFoto(repo, jogadorId, body)) {
+      return { ok: true, perfil, email: token.email, nome: token.nome, jogadorId, viaChaveMestra: false };
+    }
+    return { error: 'Seu perfil (' + perfil + ') não tem permissão para esta ação.' };
+  }
 
-  return { ok: true, perfil, email: token.email, nome: token.nome, jogadorId: usuario ? usuario.jogadorId : '', viaChaveMestra: false };
+  return { ok: true, perfil, email: token.email, nome: token.nome, jogadorId, viaChaveMestra: false };
 }
