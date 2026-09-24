@@ -74,4 +74,3 @@ await ta('exceção da foto: conta sem vínculo é negada', async () => {
 });
 
 fim();
-fim();
