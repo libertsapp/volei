@@ -23,7 +23,7 @@ const h = criarHandler({
 });
 const enviar = (corpo) => h.post({ action: 'uploadPhoto', senha: SENHA, mimeType: 'image/jpeg', ...corpo });
 
-// JPEG mínimo de 1x1 pixel
+// bytes com cabeçalho JPEG válido (magic bytes), não renderizáveis; o Storage não decodifica a imagem
 const JPEG_B64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 const JPEG_BYTES = Buffer.from(JPEG_B64, 'base64');
 const criados = []; // caminhos que ESTE teste criou, para a limpeza final

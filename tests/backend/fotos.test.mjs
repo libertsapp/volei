@@ -79,12 +79,38 @@ await ta('jogador apaga a PRÓPRIA foto antiga, mas não a de outra pessoa; o en
   assert.equal(armazenamento.arquivos.has('9-cc.jpg'), false, 'a própria foi apagada');
 });
 
-await ta('jogador sem vínculo não apaga nada', async () => {
+await ta('ataque em dois passos: jogador aponta a própria foto para a URL de outro e envia com fileIdAntigo; o arquivo do outro fica', async () => {
   const { deps, armazenamento } = novo();
-  await armazenamento.enviar('7-ee.jpg', jpeg(), 'image/jpeg');
-  const r = await uploadPhoto(deps, { ok: true, perfil: 'jogador', jogadorId: '', viaChaveMestra: false }, { base64: b64(jpeg()), fileIdAntigo: '7-ee.jpg' });
-  assert.ok(r.fileId);
-  assert.equal(armazenamento.arquivos.has('7-ee.jpg'), true);
+  const url = (c) => 'https://x/storage/v1/object/public/fotos/' + c + '?id=' + c;
+  await armazenamento.enviar('5-vv.jpg', jpeg(), 'image/jpeg');
+  deps.repo.tabelas.jogadores.find((j) => j.id === 'p1').foto = url('5-vv.jpg'); // vítima
+  await deps.repo.atualizarJogador('p3', { foto: url('5-vv.jpg') });            // passo 1: updatePlayer da própria foto
+  const r = await uploadPhoto(deps, jogadorP3, { base64: b64(jpeg()), fileIdAntigo: '5-vv.jpg' }); // passo 2
+  assert.ok(r.fileId, 'o envio em si funciona');
+  assert.equal(armazenamento.arquivos.has('5-vv.jpg'), true, 'arquivo da vítima preservado');
+});
+
+await ta('convidado ou removido que referencia o caminho também protege o arquivo', async () => {
+  const { deps, armazenamento } = novo('https://x/fotos/6-ww.jpg?id=6-ww.jpg');
+  await armazenamento.enviar('6-ww.jpg', jpeg(), 'image/jpeg');
+  deps.repo.tabelas.jogadores.push({ id: 'g1', nome: 'Conv', apelido: '', foto: 'https://x/fotos/6-ww.jpg?id=6-ww.jpg', estrelas: 0, sexo: '', porte: '', convidado: true, removido: false, ordem: 9 });
+  await uploadPhoto(deps, jogadorP3, { base64: b64(jpeg()), fileIdAntigo: '6-ww.jpg' });
+  assert.equal(armazenamento.arquivos.has('6-ww.jpg'), true);
+});
+
+await ta('fluxo legítimo: ninguém mais referencia, a foto antiga do próprio jogador é apagada', async () => {
+  const { deps, armazenamento } = novo('https://x/fotos/4-ok.jpg?id=4-ok.jpg');
+  await armazenamento.enviar('4-ok.jpg', jpeg(), 'image/jpeg');
+  await uploadPhoto(deps, jogadorP3, { base64: b64(jpeg()), fileIdAntigo: '4-ok.jpg' });
+  assert.equal(armazenamento.arquivos.has('4-ok.jpg'), false);
+});
+
+await ta('jogador sem vínculo é recusado no envio (com aviso), organizador e chave mestra não', async () => {
+  const { deps, armazenamento } = novo();
+  const semVinculo = { ok: true, perfil: 'jogador', jogadorId: '', viaChaveMestra: false };
+  assert.deepEqual(await uploadPhoto(deps, semVinculo, { base64: b64(jpeg()) }), { error: 'Vincule sua conta a um jogador antes de enviar foto.' });
+  assert.equal(armazenamento.arquivos.size, 0);
+  assert.ok((await uploadPhoto(deps, orga, { base64: b64(jpeg()) })).fileId);
 });
 
 await ta('fileIdAntigo malformado (../x, a/b.jpg, id do Drive) é ignorado em silêncio', async () => {

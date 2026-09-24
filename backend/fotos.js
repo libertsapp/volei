@@ -1,7 +1,7 @@
 // Envio de foto de jogador (port de uploadPhoto do .gs, trocando o Google Drive pelo Supabase Storage).
 // Módulo puro: sem node:*, process, require ou Buffer, para rodar igual no Node e na Edge Function (Deno).
 // O armazenamento entra por injeção (deps.armazenamento = { enviar, apagar }), como o repositório.
-import { mapearJogadores, texto } from './mapeadores.js';
+import { texto } from './mapeadores.js';
 
 const LIMITE_BYTES = 300 * 1024;
 // só nomes que NÓS geramos; barra, ponto-ponto e ids antigos do Drive (maiúsculas, "_") não passam
@@ -37,8 +37,12 @@ const idDaUrl = (foto) => { const m = /[?&]id=([^&]+)/.exec(texto(foto)); return
 async function podeApagar({ repo }, auth, caminho) {
   if (auth.viaChaveMestra || auth.perfil !== 'jogador') return true;
   if (!auth.jogadorId) return false;
-  const dono = mapearJogadores(await repo.lerJogadores()).find((p) => String(p.id) === String(auth.jogadorId));
-  return !!dono && idDaUrl(dono.foto) === caminho;
+  const linhas = await repo.lerJogadores(); // cruas: inclui convidados e removidos
+  const dono = linhas.find((p) => String(p.id) === String(auth.jogadorId));
+  if (!dono || idDaUrl(dono.foto) !== caminho) return false;
+  // updatePlayer deixa o jogador apontar a PRÓPRIA foto para qualquer URL; se outra linha usa este caminho,
+  // ele não é só dele e apagar seria burlar a regra (ataque em dois passos)
+  return !linhas.some((p) => String(p.id) !== String(auth.jogadorId) && idDaUrl(p.foto) === caminho);
 }
 
 async function limparAntiga(deps, auth, antigo) {
@@ -52,6 +56,7 @@ async function limparAntiga(deps, auth, antigo) {
 
 export async function uploadPhoto(deps, auth, body) {
   if (!deps.armazenamento) return { error: 'Envio de fotos não configurado neste servidor.' };
+  if (auth.perfil === 'jogador' && !auth.viaChaveMestra && !auth.jogadorId) return { error: 'Vincule sua conta a um jogador antes de enviar foto.' };
   const b = body || {};
   const bytes = decodificar(b.base64);
   if (bytes === 'grande') return { error: 'Foto grande demais (máximo 300 KB).' };

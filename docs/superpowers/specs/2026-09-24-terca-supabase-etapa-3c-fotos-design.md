@@ -35,7 +35,18 @@ quem chama é o perfil `jogador` (login, não chave mestra), só se apaga o arqu
 vinculado (aprovado)**. Organizador, admin e chave mestra apagam qualquer caminho bem formado. Ler
 `jogadorId` não exigiu mudar o porteiro: `autorizar` já o devolve.
 
+Reforços adicionais:
+
+- `jogador` com login e **sem vínculo aprovado** não envia foto (`Vincule sua conta a um jogador antes de enviar foto.`);
+  o front só envia como jogador pelo Meu Perfil, com jogador vinculado.
+- Como `updatePlayer` deixa o jogador apontar a própria `foto` para qualquer URL, o `jogador` só apaga o caminho
+  se **nenhuma outra linha** de `jogadores` (inclusive convidados e removidos) o referencia; fecha o ataque em dois
+  passos (apontar a foto para a URL de outro e depois enviar com `fileIdAntigo` igual).
+
 ## Diferenças aceitas
+
+- A foto antiga é apagada **no momento do envio**, antes de o `updatePlayer` gravar a nova URL (ordem herdada do
+  front). Sem lixeira do Drive isso agora é definitivo; a recuperação é reenviar a foto.
 
 - Os originais do Drive **não** vão mais para a lixeira; `fileIdAntigo` com id do Drive é ignorado.
 - Sem teste diferencial contra o `.gs`: ele usa `DriveApp`, que não dá para simular fielmente. A paridade é do

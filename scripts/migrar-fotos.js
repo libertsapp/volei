@@ -43,7 +43,7 @@ async function main() {
     if (!aplicar) { console.log(`  [simulação] ${j.id} (${j.nome}): copiaria o arquivo do Drive ${m[1].slice(0, 6)}...`); r.migrados++; continue; }
 
     try {
-      const resp = await fetch('https://drive.google.com/uc?export=download&id=' + encodeURIComponent(m[1]), { redirect: 'follow' });
+      const resp = await fetch('https://drive.google.com/uc?export=download&id=' + encodeURIComponent(m[1]), { redirect: 'follow', signal: AbortSignal.timeout(30000) });
       if (!resp.ok) throw new Error('download falhou (HTTP ' + resp.status + ')');
       const bytes = new Uint8Array(await resp.arrayBuffer());
       if (!ehJpeg(bytes)) { r.pulados.push(`${j.id}: o arquivo baixado não é JPEG (Drive pode ter devolvido uma página)`); continue; }
@@ -55,8 +55,10 @@ async function main() {
       const novaUrl = urlBase + NOSSO_STORAGE + caminho + '?id=' + caminho;
       const { error: erroUpd } = await cliente.from('jogadores').update({ foto: novaUrl }).eq('id', j.id);
       if (erroUpd) {
-        await cliente.storage.from('fotos').remove([caminho]); // não deixa arquivo órfão no bucket
-        throw new Error('atualizar jogadores.foto falhou: ' + erroUpd.message);
+        let extra = '';
+        try { await cliente.storage.from('fotos').remove([caminho]); } // não deixa arquivo órfão no bucket
+        catch (e2) { extra = '; e a limpeza do arquivo ' + caminho + ' também falhou: ' + e2.message; }
+        throw new Error('atualizar jogadores.foto falhou: ' + erroUpd.message + extra);
       }
       console.log(`  ${j.id} (${j.nome}): migrada (${Math.round(bytes.length / 1024)} KB)`);
       r.migrados++;

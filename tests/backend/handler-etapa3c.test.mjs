@@ -12,7 +12,8 @@ const TOKENS = {
 const verificarToken = async (t) => (!t ? { ok: false, erro: 'Sem token de login. Entre com sua conta Google.' } : TOKENS[t] || { ok: false, erro: 'inválido' });
 const novo = () => {
   const armazenamento = criarArmazenamentoMemoria();
-  return { armazenamento, h: criarHandler({ repo: criarRepoMemoria(fixture), config: { adminPassword: 'chave-de-teste' }, verificarToken, armazenamento }) };
+  const repo = criarRepoMemoria(fixture);
+  return { armazenamento, repo, h: criarHandler({ repo, config: { adminPassword: 'chave-de-teste' }, verificarToken, armazenamento }) };
 };
 const foto = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]).toString('base64');
 const corpo = { action: 'uploadPhoto', filename: 'x.jpg', mimeType: 'image/jpeg', base64: foto };
@@ -23,8 +24,10 @@ await ta('sem login e sem senha: mensagem do porteiro, nada gravado', async () =
   assert.equal(armazenamento.arquivos.size, 0);
 });
 
-await ta('perfil jogador com token pode enviar; resposta {url, fileId}', async () => {
-  const { h, armazenamento } = novo();
+await ta('perfil jogador vinculado pode enviar; resposta {url, fileId}; sem vínculo é avisado', async () => {
+  const { h, armazenamento, repo } = novo();
+  assert.deepEqual(await h.post({ ...corpo, idToken: 'tok-c' }), { error: 'Vincule sua conta a um jogador antes de enviar foto.' });
+  repo.tabelas.usuarios.find((u) => u.email === 'c@exemplo.com').jogador_id = 'p1'; // agora vinculado
   const r = await h.post({ ...corpo, idToken: 'tok-c' });
   assert.deepEqual(Object.keys(r).sort(), ['fileId', 'url']);
   assert.ok(armazenamento.arquivos.has(r.fileId));
