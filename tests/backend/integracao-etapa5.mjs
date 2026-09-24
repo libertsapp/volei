@@ -1,11 +1,12 @@
 // Exercita, no Supabase REAL, a etapa 5 (Ao Vivo e contador de acessos) com uma rodada de 2099 e um jogador temporário, e LIMPA
-// tudo o que criou (ao_vivo, ao_vivo_log, rodadas/times, jogadores), mostrando as contagens antes e depois. O contador de
-// acessos é lido antes, somado por 3 chamadas simultâneas e RESTAURADO exatamente como estava (inclusive "sem linha").
+// tudo o que criou (ao_vivo, ao_vivo_log, rodadas/times, jogadores), mostrando as contagens antes e depois.
+// CONTADOR DE ACESSOS: este teste NUNCA sobrescreve nem apaga a linha real. Ele só chama incrementarAcesso 3 vezes ao mesmo tempo
+// e confere que os valores devolvidos são distintos; por isso o contador termina 3 acessos acima do que estava (inofensivo, e não
+// há restauração). O valor original é impresso no início, para restaurar à mão se algum dia for preciso. As regras de lixo/linha
+// ausente do contador são cobertas na paridade contra o .gs (emulação em memória), não aqui.
 // PRESSUPOSTO: o sql/schema-terca-supabase-ajuste-6.sql (colunas data/jogadores, FK adiada, remover_rodada e incrementar_acesso)
 // e o ajuste 5 (trava) JÁ foram rodados no SQL Editor.
 // Uso: node tests/backend/integracao-etapa5.mjs   (precisa do .env; NÃO rodar sem querer: escreve no banco de verdade)
-// Atenção: se o app real for aberto por alguém enquanto o teste roda, o contador pode subir a mais e a conferência "cresceu
-// exatamente 3" falhar (rodar de novo); a restauração devolve o valor de antes, descartando esse acesso.
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -60,37 +61,18 @@ async function lerContador() {
   if (error) throw new Error('config: ' + error.message);
   return data.length ? { existe: true, valor: data[0].valor } : { existe: false, valor: null };
 }
-async function restaurarContador(original) {
-  const r = original.existe
-    ? await cliente.from('config').upsert({ chave: 'contadorAcessos', valor: original.valor })
-    : await cliente.from('config').delete().eq('chave', 'contadorAcessos');
-  if (r.error) console.log('AVISO: restaurar o contador falhou: ' + r.error.message);
-}
-
 const antes = await (async () => { await limpar(); return contagens(); })(); // sobra de execução anterior interrompida
 const contadorOriginal = await lerContador();
+console.log('contador de acessos ANTES do teste:', contadorOriginal.existe ? 'valor "' + contadorOriginal.valor + '"' : 'linha ausente', '(guarde, para restaurar à mão se precisar)');
 try {
   // ------------------------------- contador de acessos (função incrementar_acesso) -------------------------------
-  await ta('contador: 3 chamadas simultâneas somam exatamente 3 (atômico), cada uma devolve um valor diferente', async () => {
-    const inicio = (await h.get()).settings.contadorAcessos;
+  await ta('contador: 3 chamadas simultâneas devolvem números distintos e a função existe (atômico); sem sobrescrever a linha', async () => {
     const rs = await Promise.all([1, 2, 3].map(() => h.post({ action: 'incrementarAcesso' })));
     for (const r of rs) assert.equal(typeof r.contadorAcessos, 'number', JSON.stringify(r));
-    assert.deepEqual(rs.map((r) => r.contadorAcessos).sort((a, b) => a - b), [inicio + 1, inicio + 2, inicio + 3]);
-    assert.equal((await h.get()).settings.contadorAcessos, inicio + 3);
-  });
-
-  await ta('contador: linha ausente conta como 0 e lixo conta como 0 (mesma regra do .gs); depois volta ao normal', async () => {
-    await cliente.from('config').delete().eq('chave', 'contadorAcessos');
-    assert.deepEqual(await h.post({ action: 'incrementarAcesso' }), { contadorAcessos: 1 });
-    await cliente.from('config').upsert({ chave: 'contadorAcessos', valor: 'abc' });
-    assert.deepEqual(await h.post({ action: 'incrementarAcesso' }), { contadorAcessos: 1 });
-    await cliente.from('config').upsert({ chave: 'contadorAcessos', valor: ' 7 ' });
-    assert.deepEqual(await h.post({ action: 'incrementarAcesso' }), { contadorAcessos: 8 });
-  });
-
-  await ta('contador: RESTAURA o valor original exatamente e confere', async () => {
-    await restaurarContador(contadorOriginal);
-    assert.deepEqual(await lerContador(), contadorOriginal);
+    const v = rs.map((r) => r.contadorAcessos).sort((x, y) => x - y);
+    assert.equal(new Set(v).size, 3, 'valores repetidos: ' + v); // visitantes reais podem se intercalar: só distintos e vão de pelo menos +2
+    assert.ok(v[2] - v[0] >= 2, 'intervalo pequeno demais: ' + v);
+    assert.ok((await h.get()).settings.contadorAcessos >= v[2]);
   });
 
   // ------------------------------- Ao Vivo -------------------------------
@@ -155,13 +137,11 @@ try {
   });
 } finally {
   await limpar();
-  await restaurarContador(contadorOriginal); // de novo, por garantia (idempotente): interrupção no meio do teste do contador
   const depois = await contagens();
   const igual = TABELAS.every((t) => antes[t] === depois[t]);
   console.log('limpeza (linhas antes -> depois):', TABELAS.map((t) => t + ' ' + antes[t] + '->' + depois[t]).join(' | '),
     igual ? '(banco como estava)' : '(ATENÇÃO: diferente!)');
-  const ctr = await lerContador();
-  console.log('contador de acessos restaurado:', JSON.stringify(ctr) === JSON.stringify(contadorOriginal) ? 'sim' : 'NÃO (conferir à mão)');
+  console.log('contador de acessos DEPOIS:', JSON.stringify(await lerContador()), '(esperado: 3 acima ou mais do valor de antes)');
   const { data: sobra } = await cliente.from('jogadores').select('id').eq('id', P);
   console.log('jogadores de teste restantes:', sobra.length);
 }
