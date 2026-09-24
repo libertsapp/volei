@@ -5,6 +5,7 @@
 export function iguaisSeguros(a, b) {
   const x = String(a ?? '');
   const y = String(b ?? '');
+  if (!x || !y) return false;
   let diferenca = x.length ^ y.length;
   const tamanho = Math.max(x.length, y.length);
   for (let i = 0; i < tamanho; i++) diferenca |= (x.charCodeAt(i) || 0) ^ (y.charCodeAt(i) || 0);

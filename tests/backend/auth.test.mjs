@@ -66,6 +66,8 @@ await ta('iguaisSeguros: igual, diferente, tamanhos diferentes e vazio', async (
   assert.equal(iguaisSeguros('abc', 'abcd'), false);
   assert.equal(iguaisSeguros('', 'x'), false);
   assert.equal(iguaisSeguros(undefined, 'x'), false);
+  assert.equal(iguaisSeguros('', ''), false);
+  assert.equal(iguaisSeguros(undefined, undefined), false);
 });
 
 fim();

@@ -53,7 +53,7 @@ export function criarServidor({ handler, arquivoHtml }) {
           if (origem !== `http://localhost:${porta}` && origem !== `http://127.0.0.1:${porta}`) return recusar(403);
           if (Number(req.headers['content-length']) > LIMITE_CORPO) { res.writeHead(413, { Connection: 'close' }); res.end(); return req.destroy(); }
           const corpo = await lerCorpo(req);
-          if (corpo === null) { res.writeHead(413, { Connection: 'close' });res.end(); return req.destroy(); }
+          if (corpo === null) { res.writeHead(413, { Connection: 'close' }); res.end(); return req.destroy(); }
           return json(await handler.post(JSON.parse(corpo || '{}')));
         }
         return recusar(405);

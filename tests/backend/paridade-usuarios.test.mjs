@@ -70,7 +70,10 @@ function normalizar(x) {
   if (x && typeof x === 'object') {
     const o = {};
     for (const k of Object.keys(x)) o[k] = normalizar(x[k]);
-    if ('email' in o && 'criadoEm' in o && !EMAILS_INICIAIS.has(o.email)) o.criadoEm = '<hoje>';
+    if ('email' in o && 'criadoEm' in o && !EMAILS_INICIAIS.has(o.email)) {
+      assert.match(String(o.criadoEm), /^\d{4}-\d{2}-\d{2}$/, 'criadoEm de usuário novo deve ser yyyy-MM-dd, veio: ' + o.criadoEm);
+      o.criadoEm = '<hoje>';
+    }
     return o;
   }
   return x;
