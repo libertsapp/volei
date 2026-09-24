@@ -22,18 +22,20 @@ Abre o navegador para você autorizar. Depois:
 npx supabase link --project-ref <ref>
 ```
 (pode pedir a senha do banco; se pedir, use a do projeto, ou aperte Enter para pular se aceitar.)
+O arquivo `supabase/.temp/` que o comando cria é local e já está no `.gitignore`.
 
 ## 2. Rodar o SQL do ajuste 7 (limite de tentativas)
 No painel do Supabase: **SQL Editor** > New query > cole todo o conteúdo de `sql/schema-terca-supabase-ajuste-7.sql` > Run.
 Pode rodar mais de uma vez sem problema. Sem isso, a chave mestra na função responde com erro citando
-`tentativa_bloqueada` (de propósito: nunca funciona sem limite).
+`registrar_tentativa` (de propósito: nunca funciona sem limite). Se você rodou uma versão anterior deste arquivo, rodar de novo é seguro (ele remove as funções antigas).
 
 ## 3. Gerar uma senha mestra longa e aleatória
 A função **recusa subir** se `ADMIN_PASSWORD` tiver menos de 20 caracteres. Gere uma senha nova (a do Apps Script é curta
-e está no histórico local do git: não reutilize). Este comando cria a senha e a guarda **só numa variável da sessão**,
-sem mostrá-la na tela:
+e está no histórico local do git: não reutilize). Este comando gera 32 bytes de um gerador aleatório criptográfico do Windows, transforma em texto seguro para URL (43 caracteres) e guarda **só numa variável da sessão**, sem mostrá-la na tela:
 ```powershell
-$env:NOVA_SENHA = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | ForEach-Object {[char]$_})
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create(); $b = New-Object byte[] 32; $rng.GetBytes($b); $rng.Dispose()
+$env:NOVA_SENHA = [Convert]::ToBase64String($b).TrimEnd('=').Replace('+','-').Replace('/','_')
+Remove-Variable b
 ```
 - A senha da função é **independente** da do Apps Script. Só mexa na do Apps Script se quiser que as duas aceitem a mesma.
 - Guarde essa senha num gerenciador de senhas antes de fechar o terminal (ela não fica em lugar nenhum além do Supabase).
@@ -48,6 +50,8 @@ Remove-Item Env:NOVA_SENHA
 `ORIGENS_PERMITIDAS` é a lista (separada por vírgula, sem espaços, sem barra no fim) das páginas autorizadas a enviar
 escritas. Nunca coloque esses valores em arquivo do repositório.
 Conferir os **nomes** (sem valores): `npx supabase secrets list`.
+É normal a função responder 500 `Configuração incompleta no servidor.` enquanto faltar qualquer segredo (ou se a senha tiver menos de 20 caracteres): ela se recusa a funcionar pela metade.
+**Antes da etapa 6b** (trocar a página de produção para usar a função), refaça este comando **sem** `http://localhost:8000` na lista: em produção só o GitHub Pages deve poder escrever.
 
 ## 5. Preparar e publicar
 ```powershell
@@ -58,6 +62,7 @@ npx supabase functions deploy terca-api-teste --no-verify-jwt
   Se acusar `node:`/`process.`/`require(`/`Buffer`, é um erro do código, pare e avise.
 - `--no-verify-jwt` é necessário: o app manda um token do **Google** no corpo, não um token do Supabase, e o porteiro do
   backend é o único portão. (O arquivo `supabase/config.toml` já traz o mesmo ajuste, `verify_jwt = false`; o flag basta.)
+- Se o CLI reclamar de Docker, acrescente `--use-api` ao comando de deploy (publica sem Docker).
 - Rode `npm run preparar-edge` de novo **sempre** que mudar algo em `backend/`, antes de um novo deploy.
 
 ## 6. Testar
@@ -88,12 +93,20 @@ nesta etapa (ela continua no Apps Script), então não precisa autorizar nada no
 
 ## 8. O que conferir
 - GET público responde; POST de fora da lista de origens dá 403.
-- Errar a chave mestra 8 vezes seguidas: a 9ª tentativa (mesmo com a senha certa) responde
-  "Muitas tentativas. Tente de novo em alguns minutos." por ~15 min. Login do Google continua funcionando.
+- **Teste do bloqueio (prova de que o IP real é usado).** Faça isto de propósito, com calma, a partir do Wi-Fi de casa; use uma ação sensível com a chave mestra errada, por exemplo (PowerShell):
+```powershell
+1..9 | ForEach-Object { curl.exe -s -X POST -H "Origin: http://localhost:8000" -H "Content-Type: text/plain" -d "{\"action\":\"ping\",\"senha\":\"errada\"}" https://<ref>.supabase.co/functions/v1/terca-api-teste }
+```
+  As 8 primeiras devem responder `Senha de administrador incorreta.` e a 9ª (e as seguintes, mesmo com a senha certa) `Muitas tentativas. Tente de novo em alguns minutos.` por ~15 min.
+  Agora repita UMA tentativa pelos **dados móveis** do celular (ou outra rede): deve responder normalmente `Senha de administrador incorreta.`, NÃO "Muitas tentativas". Isso prova que cada rede tem o seu balde (o cabeçalho `cf-connecting-ip` está chegando).
+  **Se as duas redes ficarem bloqueadas**, tudo está caindo no balde único `desconhecido` (ou a função não recebe o IP): pare e avise; nos logs da função aparece `cf-connecting-ip ausente`.
+  Enquanto o teste bloqueia a sua rede, o login do Google continua funcionando (só a chave mestra fica negada).
 - Foto pequena sobe (o limite do corpo é 600 KB).
+- Provoque um erro qualquer e confira que a resposta nunca mostra nome de tabela, URL ou texto de banco (só `Erro interno no servidor.`); o detalhe real fica só nos logs da função.
 
 ## Desfazer
 - Produção não foi alterada, então não há o que reverter lá.
 - Para desligar a função: `npx supabase functions delete terca-api-teste` (ou não faça nada: ela só é usada por quem
   apontar para a URL dela).
+- Para apagar os segredos da função: `npx supabase secrets unset ADMIN_PASSWORD GOOGLE_CLIENT_ID ORIGENS_PERMITIDAS`.
 - Para remover o limite de tentativas: nada a fazer (a tabela `limite_tentativas` é inofensiva).
