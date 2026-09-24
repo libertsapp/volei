@@ -22,7 +22,10 @@ const recusar = (): Response => new Response(JSON.stringify({ error: 'Configura�
 if (faltando.length || senhaCurta) {
   Deno.serve(recusar); // nunca sobe "meio configurada": toda requisição recebe 500
 } else {
-  const cliente = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
+  const cliente = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
+    auth: { persistSession: false, autoRefreshToken: false } // função sem sessão: nada a guardar nem renovar
+  });
+  const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   const repo = criarRepoSupabase(cliente);
   const handler = criarHandler({
     repo,
@@ -30,11 +33,13 @@ if (faltando.length || senhaCurta) {
     config: { adminPassword: env('ADMIN_PASSWORD') },
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
-    avisar: (...a: unknown[]) => console.error(...a)
+    avisar: (...a: unknown[]) => console.error(...a),
+    ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco; a mensagem real vai só para o log
+    registrar
   });
   Deno.serve(criarEdge({
     handler,
     origensPermitidas: env('ORIGENS_PERMITIDAS').split(','),
-    registrar: (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido')
+    registrar
   }));
 }

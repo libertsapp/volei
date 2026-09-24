@@ -2,6 +2,9 @@
 // Como no .gs: não há limite de vagas nem checagem de repetição por jogador/dia (a fila de espera é por ordem, no app).
 // Os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_) rodam depois de gravar, como no .gs; nunca quebram o check-in.
 import { texto } from './mapeadores.js';
+
+// nome de check-in maior que isto não é nome: corta (o app usa nomes curtos) para um login qualquer do Google não encher o banco
+const MAX_NOME = 120;
 import { aposAdicionarCheckin, aposRemoverCheckin } from './financeiro.js';
 
 // "nota só para este check-in": vazio (ou 0, como no .gs) vira null; o resto precisa ser número (a coluna é numeric)
@@ -25,13 +28,13 @@ export async function addCheckin(deps, c) {
   const jogadorId = texto(c.jogadorId);
   if (jogadorId && !(await repo.lerJogadores()).some((j) => j.id === jogadorId)) {
     await repo.inserirJogador({
-      id: jogadorId, nome: texto(c.jogadorNome), apelido: null, foto: null, estrelas: Number(c.estrelas) || null,
+      id: jogadorId, nome: texto(c.jogadorNome).slice(0, MAX_NOME), apelido: null, foto: null, estrelas: Number(c.estrelas) || null,
       sexo: texto(c.sexo) || null, porte: null, convidado: true, removido: false, ordem: null
     });
   }
   // sem "ordem" no check-in: o banco põe a linha no fim
   await repo.inserirCheckin({
-    id: texto(c.id), data: c.data, jogador_id: jogadorId || null, jogador_nome: texto(c.jogadorNome) || null,
+    id: texto(c.id), data: c.data, jogador_id: jogadorId || null, jogador_nome: texto(c.jogadorNome).slice(0, MAX_NOME) || null,
     estrelas: Number(c.estrelas) || 0, sexo: texto(c.sexo) || null, estrelas_ajustadas: nota
   });
   await aposAdicionarCheckin(deps, c.data); // quem tem crédito de um dia sem jogo já aparece pago

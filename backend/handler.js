@@ -18,6 +18,7 @@ import {
 } from './financeiro.js';
 import { lerAoVivo, iniciarTransmissaoAoVivo, salvarParcialAoVivo, cancelarTransmissaoAoVivo, incrementarAcesso } from './aovivo.js';
 import { comTrava } from './trava.js';
+import { ErroDeNegocio, MSG_ERRO_INTERNO } from './erros.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
 const semLogin = async () => ({ ok: false, erro: 'Login do Google não configurado neste servidor.' });
@@ -25,13 +26,23 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador }) {
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador, ocultarErrosInternos = false, registrar = () => {} }) {
   // gerarDono: dono da trava de gravação (separado de gerarId para não gastar ids de registros); esperar: pausa entre tentativas da trava
   // limitador (opcional): limita tentativas da chave mestra por IP; sem ele (servidor local, testes) nada muda
   const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador };
   // trava única 'gravacao' (o LockService do .gs): as ações do financeiro e o check-in (com seus ganchos) nunca se misturam.
   // As demais gravações (jogadores, rodadas, configurações, fotos) NÃO usam a trava hoje: para incluí-las, é só trocar
   // `return await acao(...)` por `return await travar(() => acao(...))` no case dela (uma linha por ação).
+  // Exceção LANÇADA (não o { error } deliberado): no servidor local devolve a mensagem crua (útil para depurar); na Edge Function
+  // (ocultarErrosInternos) o cliente anônimo só vê texto genérico e a mensagem real vai para `registrar`, para não vazar nome de
+  // tabela, função, restrição ou SQL. ErroDeNegocio mantém a mensagem.
+  const falhaInesperada = (erro) => {
+    if (ocultarErrosInternos && !(erro instanceof ErroDeNegocio)) {
+      try { registrar(erro); } catch { /* nada */ }
+      return { error: MSG_ERRO_INTERNO };
+    }
+    return { error: String(erro && erro.message ? erro.message : erro) };
+  };
   const travar = (fn) => comTrava(deps, 'gravacao', fn);
 
   return {
@@ -48,7 +59,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           financeiro: mapearFinanceiro(t)
         };
       } catch (erro) {
-        return { error: String(erro && erro.message ? erro.message : erro) };
+        return falhaInesperada(erro);
       }
     },
 
@@ -115,7 +126,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           default: return naoDisponivel(acao);
         }
       } catch (erro) {
-        return { error: String(erro && erro.message ? erro.message : erro) };
+        return falhaInesperada(erro);
       }
     }
   };
