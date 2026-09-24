@@ -8,7 +8,10 @@ export const TABELAS = [
 
 const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos'];
 
-export function criarRepoMemoria(dados = {}) {
+// opcoes.agora: relógio da trava em milissegundos (padrão Date.now); os testes injetam um relógio falso para ser determinístico
+export function criarRepoMemoria(dados = {}, opcoes = {}) {
+  const agoraMs = opcoes.agora || (() => Date.now());
+  const travas = new Map(); // nome -> { dono, expira } (na memória; no banco é a tabela "travas", ajuste 5)
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -35,6 +38,7 @@ export function criarRepoMemoria(dados = {}) {
 
   return {
     tabelas,
+    travas,
     async lerTudo() { return structuredClone(tabelas); },
     async lerUsuarios() { return structuredClone(tabelas.usuarios); },
     async lerJogadores() { return structuredClone(tabelas.jogadores); },
@@ -127,6 +131,33 @@ export function criarRepoMemoria(dados = {}) {
       return true;
     },
     async inserirFinLog(linha) { inserir('fin_log', linha); },
+    // muda só o status de um dia existente ('normal' | 'semjogo'); false se o dia não existe
+    async definirStatusFinDia(data, status) {
+      const i = tabelas.fin_dias.findIndex((d) => d.data === data);
+      if (i === -1) return false;
+      tabelas.fin_dias[i] = { ...tabelas.fin_dias[i], status };
+      return true;
+    },
+    async inserirFinCredito(linha) {
+      if (tabelas.fin_creditos.some((c) => c.id === linha.id)) {
+        throw new Error('fin_creditos: duplicate key value violates unique constraint "fin_creditos_pkey"');
+      }
+      inserir('fin_creditos', { status: 'ativo', ...linha });
+    },
+
+    // ---- trava de gravação (etapa 4b). Mesma regra da função pegar_trava do Postgres: só toma se não existe, se o aluguel
+    // expirou (expira_em < agora) ou se o dono é o mesmo; devolve true se conseguiu ----
+    async pegarTrava(nome, dono, ttlSeg) {
+      const agora = agoraMs();
+      const t = travas.get(nome);
+      if (t && t.expira >= agora && t.dono !== dono) return false;
+      travas.set(nome, { dono, expira: agora + ttlSeg * 1000 });
+      return true;
+    },
+    async soltarTrava(nome, dono) {
+      const t = travas.get(nome);
+      if (t && t.dono === dono) travas.delete(nome);
+    },
 
     async lerConfig() { return structuredClone(tabelas.config); },
     async gravarConfig(pares) {

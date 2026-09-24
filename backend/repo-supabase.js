@@ -115,6 +115,27 @@ export function criarRepoSupabase(cliente) {
       const { error } = await cliente.from('fin_log').insert(linha);
       if (error) throw new Error('fin_log: ' + error.message);
     },
+    // muda só o status de um dia existente ('normal' | 'semjogo'); false se o dia não existe
+    async definirStatusFinDia(data, status) {
+      const { data: linhas, error } = await cliente.from('fin_dias').update({ status }).eq('data', data).select('data');
+      if (error) throw new Error('fin_dias: ' + error.message);
+      return linhas.length > 0;
+    },
+    async inserirFinCredito(linha) {
+      const { error } = await cliente.from('fin_creditos').insert(linha);
+      if (error) throw new Error('fin_creditos: ' + error.message);
+    },
+    // ---- trava de gravação (etapa 4b; funções do sql/schema-terca-supabase-ajuste-5.sql). Se o SQL ainda não foi rodado, o erro
+    // cita pegar_trava e a gravação NÃO segue sem trava ----
+    async pegarTrava(nome, dono, ttlSeg) {
+      const { data, error } = await cliente.rpc('pegar_trava', { p_nome: nome, p_dono: dono, p_ttl_seg: ttlSeg });
+      if (error) throw new Error('pegar_trava: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-5.sql no SQL Editor do Supabase)');
+      return data === true;
+    },
+    async soltarTrava(nome, dono) {
+      const { error } = await cliente.rpc('soltar_trava', { p_nome: nome, p_dono: dono });
+      if (error) throw new Error('soltar_trava: ' + error.message);
+    },
     async lerConfig() { return lerTabela(cliente, 'config'); },
     async gravarConfig(pares) {
       const { error } = await cliente.from('config').upsert(pares);
