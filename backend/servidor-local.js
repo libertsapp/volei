@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { criarHandler } from './handler.js';
 import { criarRepoSupabase } from './repo-supabase.js';
+import { criarArmazenamentoSupabase } from './armazenamento-supabase.js';
 import { criarVerificadorGoogle } from './auth.js';
 import { criarServidor } from './servidor.js';
 
@@ -27,6 +28,7 @@ const arquivoHtml = process.env.HTML_TERCA || path.join(raiz, 'volei-dashboard.h
 const cliente = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const handler = criarHandler({
   repo: criarRepoSupabase(cliente),
+  armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: process.env.SUPABASE_URL }),
   config: { adminPassword: process.env.ADMIN_PASSWORD },
   verificarToken: criarVerificadorGoogle({ clientId: process.env.GOOGLE_CLIENT_ID })
 });

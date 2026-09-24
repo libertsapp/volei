@@ -10,6 +10,7 @@ import {
 import { addPlayer, updatePlayer, removePlayer } from './jogadores.js';
 import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
+import { uploadPhoto } from './fotos.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas } from './checkins.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
@@ -18,8 +19,8 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date() }) {
-  const deps = { repo, config, verificarToken, relogio };
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento }) {
+  const deps = { repo, config, verificarToken, relogio, armazenamento };
 
   return {
     async get() {
@@ -76,6 +77,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'solicitarVinculo': return await solicitarVinculo(deps, auth, b.jogadorId);
           case 'aprovarVinculo': return await aprovarVinculo(deps, b.email, b.jogadorId);
           case 'rejeitarVinculo': return await rejeitarVinculo(deps, b.email);
+          case 'uploadPhoto': return await uploadPhoto(deps, auth, b);
           case 'addPlayer': return await addPlayer(deps, b.player);
           case 'updatePlayer': return await updatePlayer(deps, b.player);
           case 'removePlayer': return await removePlayer(deps, b.id);
