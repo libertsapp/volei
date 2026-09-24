@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. A Task 5 termina com uma verificação manual no navegador (feita pelo usuário).
 
-**Goal:** O `GET` do backend novo devolve exatamente o mesmo JSON que o `doGet` do Apps Script, lido das tabelas do Supabase, e o app do Terça abre em `http://localhost:8770` mostrando os dados reais.
+**Goal:** O `GET` do backend novo devolve exatamente o mesmo JSON que o `doGet` do Apps Script, lido das tabelas do Supabase, e o app do Terça abre em `http://localhost:8000` mostrando os dados reais.
 
 **Architecture:** Um módulo `backend/` em JavaScript ESM (sem APIs do Node, para rodar depois como Edge Function). `mapeadores.js` converte linhas do banco (snake_case) no JSON do app; `handler.js` monta a resposta a partir de um `repo` injetado; `repo-memoria.js` (testes) e `repo-supabase.js` (real) implementam o mesmo método `lerTudo()`. Um servidor Node local serve o `volei-dashboard.html` de verdade e a rota `/api`. A paridade com o `.gs` é testada rodando o `.gs` real na planilha falsa que já existe em `tests/helpers/planilha-falsa.js`.
 
@@ -789,7 +789,7 @@ git commit -m "feat: repositório do Supabase e verificação de leitura contra 
 
 **Interfaces:**
 - Consome: `criarHandler` (Task 2) e `criarRepoSupabase` (Task 4).
-- Produz: `npm run servidor` (e `npm run test:backend`), servidor em `http://localhost:8770`.
+- Produz: `npm run servidor` (e `npm run test:backend`), servidor em `http://localhost:8000`.
 
 - [ ] **Step 1: Implementar `backend/servidor-local.js`**
 
@@ -813,7 +813,7 @@ const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 require('dotenv').config({ path: path.join(raiz, '.env'), quiet: true });
 const { createClient } = require('@supabase/supabase-js');
 
-const porta = Number(process.argv[2]) || 8770;
+const porta = Number(process.argv[2]) || 8000;
 const arquivoHtml = process.env.HTML_TERCA || path.join(raiz, 'volei-dashboard.html');
 const cliente = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const handler = criarHandler({ repo: criarRepoSupabase(cliente) });
@@ -879,9 +879,9 @@ Expected: os três arquivos terminam com `TODOS OS TESTES PASSARAM`.
 - [ ] **Step 4: Subir o servidor e testar a rota (o controlador executa)**
 
 Run (em segundo plano): `npm run servidor`
-Depois: `node -e "fetch('http://localhost:8770/api').then(r=>r.json()).then(j=>console.log(Object.keys(j).join(','), j.players.length, j.rounds.length))"`
+Depois: `node -e "fetch('http://localhost:8000/api').then(r=>r.json()).then(j=>console.log(Object.keys(j).join(','), j.players.length, j.rounds.length))"`
 Expected: `players,rounds,settings,checkins,perfisPublicos,aoVivo,financeiro 47 34`.
-Conferir também que `http://localhost:8770/sw.js` responde 404 (o servidor só serve `/` e `/api`).
+Conferir também que `http://localhost:8000/sw.js` responde 404 (o servidor só serve `/` e `/api`).
 
 - [ ] **Step 5: Commit**
 
@@ -900,10 +900,10 @@ $env:HTML_TERCA = "C:\Users\Heleno\OneDrive\Documentos\GitHub\voleis_VS\volei-da
 npm run servidor
 ```
 
-Abrir `http://localhost:8770` e conferir, comparando com o app em produção:
+Abrir `http://localhost:8000` e conferir, comparando com o app em produção:
 - lista de jogadores com fotos, estrelas e nomes;
 - histórico de rodadas com os times e os vencedores (medalhas/vitórias);
 - check-in do dia (ordem de chegada e quem está dentro das vagas);
 - ranking e Hall da Fama;
-- `http://localhost:8770/?perfil=admin&view=financeiro`: tela do financeiro com dias, pagamentos e créditos.
+- `http://localhost:8000/?perfil=admin&view=financeiro`: tela do financeiro com dias, pagamentos e créditos.
 Nesta etapa qualquer ação de gravação (marcar presença, salvar rodada, pagar) responde "ainda não está disponível na versão Supabase": isso é esperado.

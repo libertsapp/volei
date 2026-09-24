@@ -19,7 +19,7 @@ O Terça atual (Apps Script + Google Sheets) continua no ar em paralelo até a v
   grava direto no banco. A função é publicada sem verificação de JWT do Supabase (o app não usa o
   login do Supabase; a identidade continua vindo do token do Google, verificado pela própria função).
 - **A mesma lógica roda local:** o módulo é JavaScript (ESM) sem APIs específicas do Node, então um
-  servidor Node local o usa para servir o app em `http://localhost:8770`, e a Edge Function o usa em produção.
+  servidor Node local o usa para servir o app em `http://localhost:8000`, e a Edge Function o usa em produção.
 - **Login e perfis inalterados:** login opcional pelo Google Identity Services, verificado como hoje
   (endpoint `tokeninfo`, conferindo `aud` com o `GOOGLE_CLIENT_ID`); perfis na tabela `usuarios`; a
   chave mestra `ADMIN_PASSWORD` vira segredo da função (variável de ambiente), fora do código.
@@ -56,7 +56,7 @@ supabase/functions/api/index.ts   adapta Request/Response da Edge Function ao ha
 ## Etapas (cada uma com plano e testes próprios)
 
 1. **Leitura + localhost.** `handleGet` completo, `repo-supabase` de leitura e o servidor local. Pronto
-   quando o app abre em `localhost:8770` com os dados reais e o JSON do `GET` é igual ao do `.gs`.
+   quando o app abre em `localhost:8000` com os dados reais e o JSON do `GET` é igual ao do `.gs`.
 2. **Login e perfis.** `loginGoogle`, `bootstrapAdmin`, ações de usuários (listar, aprovar/rejeitar
    vínculo, mudar cargo, remover), matriz de permissões. Pronto quando os perfis se comportam como
    hoje (o localhost precisa entrar como origem autorizada do Client ID no Google Cloud).

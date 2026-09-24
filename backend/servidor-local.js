@@ -17,7 +17,7 @@ const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 require('dotenv').config({ path: path.join(raiz, '.env'), quiet: true });
 const { createClient } = require('@supabase/supabase-js');
 
-const porta = Number(process.argv[2]) || 8770;
+const porta = Number(process.argv[2]) || 8000;
 const arquivoHtml = process.env.HTML_TERCA || path.join(raiz, 'volei-dashboard.html');
 const REGEX_URL_API = /const SHEET_API_URL = "[^"]*";/;
 // confere já na partida: se o HTML foi reformatado e a URL não puder ser reescrita, o servidor nem sobe
