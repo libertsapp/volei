@@ -62,7 +62,7 @@ um endpoint público chamado a cada abertura do app e nunca deve esperar por uma
 - **Se o SQL não foi rodado:** a função não existe; o erro cita `incrementar_acesso` e `sql/schema-terca-supabase-ajuste-6.sql` e o
   handler responde `{ error: ... }` (mesma forma dos outros erros), sem lançar. O front (`registrarAcesso`) já tolera: envolve tudo em
   `try/catch` e só atualiza o contador se `json.contadorAcessos` for número; a página carrega normalmente, só não conta o acesso.
-- `saveSettings` continua sem sobrescrever o contador (regra antiga, testada de novo aqui).
+- `saveSettings` **deixou de gravar a linha `contadorAcessos`** (antes regravava o valor lido, para não sobrescrevê-lo com o do navegador do admin). O contador agora pertence só a `incrementar_acesso`: reler-e-regravar aqui, sob a trava `gravacao`, disputaria com a soma atômica que não usa trava e poderia perder acessos. O GET não muda (linha ausente = 0; linha existente fica como está). Coberto em `jogadores-config.test.mjs` e nas paridades.
 
 ## Chave estrangeira `ao_vivo.round_id -> rodadas` (decisão principal)
 
@@ -102,6 +102,16 @@ Decisão, sem enfraquecer a integridade (a chave continua existindo e continua i
 Sem o arquivo: `iniciarTransmissaoAoVivo` falha (o erro cita a tabela e o arquivo), `incrementarAcesso` responde erro citando
 `incrementar_acesso` (o app tolera) e a leitura do Ao Vivo continua funcionando. O script de migração (`scripts/migrar-terca-supabase.js`)
 passou a gravar `data` e `jogadores` em `ao_vivo`; rodar o ajuste 6 **antes** de migrar o Ao Vivo (a tabela costuma estar vazia).
+
+## Conferência depois de rodar o SQL
+
+O `raise notice` do item 4 diz se a chave foi ajustada (ou que não achou nenhuma). Depois de rodar o arquivo:
+
+```sql
+select round_id, data, jogadores from ao_vivo;
+```
+
+Normalmente não volta nenhuma linha (o Ao Vivo é efêmero). Se voltar linhas de uma transmissão antiga com `data` ou `jogadores` nulos (gravadas antes das colunas existirem), cancele-as (o app: Cancelar transmissão; ou `delete from ao_vivo where round_id = '...'` e o mesmo em `ao_vivo_log`) ou preencha as colunas à mão com a data da rodada e os ids dos jogadores de cada time, separados por vírgula. O `gravar_rodada` e o `remover_rodada` agora também têm o execute revogado de `public/anon/authenticated` (só `service_role`, que é o cliente que o `repo-supabase` usa).
 
 ## Diferenças aceitas (além da remoção acima)
 

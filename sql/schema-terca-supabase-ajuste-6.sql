@@ -34,6 +34,9 @@ begin
     and c.confrelid = 'public.rodadas'::regclass;
   if v_nome is not null then
     execute format('alter table ao_vivo alter constraint %I deferrable initially deferred', v_nome);
+    raise notice 'FK % de ao_vivo agora é deferrable initially deferred', v_nome;
+  else
+    raise notice 'ATENÇÃO: nenhuma chave estrangeira de ao_vivo para rodadas foi encontrada; nada foi alterado (editar rodada ao vivo continua seguro, mas confira o schema)';
   end if;
 end $$;
 
@@ -68,6 +71,10 @@ begin
   return v_novo::numeric;
 end;
 $$;
+
+-- as funções de rodada também são só do servidor (o navegador nunca fala com o banco direto)
+revoke execute on function gravar_rodada(jsonb), remover_rodada(text) from public, anon, authenticated;
+grant execute on function gravar_rodada(jsonb), remover_rodada(text) to service_role;
 
 -- só o servidor (service_role) chama; o navegador nunca fala com o banco direto
 revoke execute on function incrementar_acesso() from public, anon, authenticated;
