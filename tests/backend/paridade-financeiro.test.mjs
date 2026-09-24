@@ -43,7 +43,10 @@ const pag = (id, data, jid, nome, tipo, creditoId, ordem) => ({ id, data, jogado
 dados.fin_pagamentos.push(pag('pg4', '2026-09-15', 'p3', 'Carla', 'dinheiro', null, 4), pag('pg5', '2026-09-22', 'p3', 'Carla', 'credito', 'cr3', 5));
 const cred = (id, jid, nome, origem, dataOrigem, ordem) => ({ id, jogador_id: jid, jogador_nome: nome, valor: 14, origem_pagamento_id: origem, data_origem: dataOrigem,
   criado_por: 'Adm', criado_em: dataOrigem + 'T21:00:00+00:00', status: 'ativo', encerrado_por: null, encerrado_em: null, ordem });
-dados.fin_creditos.push(cred('cr2', 'p1', 'Ana', 'pg1', '2026-09-22', 2), cred('cr3', 'p3', 'Carla', 'pg4', '2026-09-15', 3));
+// dia sem jogo com valor e com um confirmado que TEM crédito (cr4, do Diego): salvar o dia não pode aplicar o crédito
+dados.fin_dias.push({ data: '2026-10-20', valor_pessoa: 14, pix: '', valor_quadra: 0, tem_brinde: false, valor_brinde: 0, atualizado_por: 'Adm', atualizado_em: '2026-10-20T18:00:00+00:00', icone: null, status: 'semjogo', ordem: 3 });
+dados.checkins.push(ck('k20', '2026-10-20', 'p4', 'Diego', 12));
+dados.fin_creditos.push(cred('cr2', 'p1', 'Ana', 'pg1', '2026-09-22', 2), cred('cr3', 'p3', 'Carla', 'pg4', '2026-09-15', 3), cred('cr4', 'p4', 'Diego', 'pg6', '2026-09-15', 4));
 
 // ---------- o "Google" falso, igual para os dois lados ----------
 function montar(estadoInicial, semAbasFin) {
@@ -145,6 +148,8 @@ const passos1 = [
   A('salvarFinDia: de novo no mesmo dia (ícone inválido vira ✅, pix truncado em 80, brinde zerado; nada de crédito novo)',
     { action: 'salvarFinDia', idToken: 'tok-b', dia: { data: '2026-09-29', valorPessoa: 14, pix: 'p'.repeat(100), valorQuadra: '', valorBrinde: 0, temBrinde: true, icone: 'x' } }, 'ok'),
   A('salvarFinDia: dia sem jogo mantém o status e não aplica crédito', { action: 'salvarFinDia', idToken: 'tok-a', dia: { data: '2026-09-15', valorPessoa: 15.5, pix: '', valorQuadra: 200, valorBrinde: 10 } }, 'ok'),
+  A('salvarFinDia: dia sem jogo com crédito disponível não aplica crédito', { action: 'salvarFinDia', idToken: 'tok-b', dia: { data: '2026-10-20', valorPessoa: 14, pix: '', valorQuadra: 0, valorBrinde: 0 } }, 'ok'),
+  A('estornarTodosPagamentos: dia sem jogo com pagamentos (10/20) é recusado', { action: 'estornarTodosPagamentos', idToken: 'tok-b', data: '2026-10-20' }, 'marcado como sem jogo'),
   A('salvarFinDia: valor por pessoa zero (dia novo)', { action: 'salvarFinDia', idToken: 'tok-b', dia: { data: '2026-10-06', valorPessoa: 0, pix: '', valorQuadra: 0, valorBrinde: 0 } }, 'ok'),
   // ---- marcarPagamento ----
   A('marcarPagamento: sem jogadorId', { action: 'marcarPagamento', idToken: 'tok-b', data: '2026-09-22' }, 'Dados do pagamento incompletos.'),
