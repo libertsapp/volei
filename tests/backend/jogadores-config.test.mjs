@@ -64,4 +64,22 @@ await ta('saveSettings: chaves ausentes viram os padrões do .gs (estrelasVisive
   assert.equal(bruto.contadorAcessos, '41');
 });
 
+await ta('saveSettings nunca toca a linha do contador (dela cuida só incrementar_acesso); sem linha, o GET continua 0', async () => {
+  const chamadas = [];
+  const d = deps();
+  const gravar = d.repo.gravarConfig;
+  d.repo.gravarConfig = async (pares) => { chamadas.push(...pares.map((x) => x.chave)); return gravar(pares); };
+  await saveSettings(d, { estrelasVisiveis: true, checkinVagas: 10, contadorAcessos: 12345 });
+  assert.equal(chamadas.includes('contadorAcessos'), false);
+  assert.equal(chamadas.length, 6);
+  assert.equal(mapearConfig(await d.repo.lerConfig()).contadorAcessos, 41); // valor anterior segue igual
+  assert.equal((await d.repo.lerConfig()).find((x) => x.chave === 'contadorAcessos').valor, '41');
+  const dados = structuredClone(fixture);
+  dados.config = dados.config.filter((c) => c.chave !== 'contadorAcessos');
+  const semLinha = { repo: criarRepoMemoria(dados) };
+  await saveSettings(semLinha, { estrelasVisiveis: true });
+  assert.equal((await semLinha.repo.lerConfig()).some((x) => x.chave === 'contadorAcessos'), false);
+  assert.equal(mapearConfig(await semLinha.repo.lerConfig()).contadorAcessos, 0);
+});
+
 fim();
