@@ -30,7 +30,8 @@ const handler = criarHandler({
   repo: criarRepoSupabase(cliente),
   armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: process.env.SUPABASE_URL }),
   config: { adminPassword: process.env.ADMIN_PASSWORD },
-  verificarToken: criarVerificadorGoogle({ clientId: process.env.GOOGLE_CLIENT_ID })
+  verificarToken: criarVerificadorGoogle({ clientId: process.env.GOOGLE_CLIENT_ID }),
+  avisar: (...a) => console.error(...a) // erros engolidos (ganchos do check-in, trava) ficam visíveis no terminal
 });
 
 criarServidor({ handler, arquivoHtml }).listen(porta, '127.0.0.1', () => console.log('Terça (Supabase) em http://localhost:' + porta));

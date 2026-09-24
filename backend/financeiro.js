@@ -320,9 +320,11 @@ export async function marcarDiaSemJogo(deps, data, destino, auth) {
     r.creditos = creditosCriados; r.estornados = estornados; r.ignorados = ignorados;
     return r;
   };
-  if (statusDia(dia.status) === 'semjogo') return resposta(0, 0, 0); // idempotente
+  // dia que já é semjogo: a resposta do .gs é 'zeros' sem log. Mesmo assim o laço abaixo roda de novo (é idempotente: pula pagamento
+  // que já tem crédito ativo e os estornos são condicionais), para uma nova tentativa terminar o que uma falha no meio deixou pela metade.
+  const repeticao = statusDia(dia.status) === 'semjogo';
   const modo = destino === 'devolver' ? 'devolver' : 'credito';
-  await repo.definirStatusFinDia(data, 'semjogo');
+  if (!repeticao) await repo.definirStatusFinDia(data, 'semjogo');
   const dentroIds = {};
   for (const c of checkinsDoDia(t, data).slice(0, vagasDe(t))) dentroIds[String(c.jogadorId)] = true;
   const ehAdmin = auth.perfil === 'admin';
@@ -330,16 +332,19 @@ export async function marcarDiaSemJogo(deps, data, destino, auth) {
   const quando = { por: nome, em };
   const ativos = creditos(t).filter((c) => c.status === 'ativo');
   const nomes = [];
-  let criados = 0, estornados = 0, ignorados = 0;
+  let criados = 0, estornados = 0, ignorados = 0, mudou = false;
   for (const p of pagamentos(t)) {
     if (!texto(p.id) || texto(p.data) !== data || !ehValido(p)) continue;
     if (tipoPag(p.tipo) === 'credito') { // não é dinheiro: só devolve o crédito ao saldo
-      await repo.estornarFinPagamento(texto(p.id), quando);
+      if (await repo.estornarFinPagamento(texto(p.id), quando)) mudou = true;
       continue;
     }
     if (modo === 'devolver') {
+      // numa repetição, dinheiro que já virou crédito ativo é do fluxo de crédito: 'devolver' não o estorna (evita desfazer um crédito)
+      if (repeticao && ativos.some((c) => c.origemPagamentoId === texto(p.id))) continue;
       if (!dentroIds[texto(p.jogador_id)] && !ehAdmin) { ignorados++; continue; }
       await repo.estornarFinPagamento(texto(p.id), quando);
+      mudou = true;
       estornados++; nomes.push(texto(p.jogador_nome));
       continue;
     }
@@ -347,8 +352,10 @@ export async function marcarDiaSemJogo(deps, data, destino, auth) {
     await repo.inserirFinCredito({ id: gerarId(deps), jogador_id: texto(p.jogador_id) || null, jogador_nome: texto(p.jogador_nome),
       valor: num(p.valor), origem_pagamento_id: texto(p.id), data_origem: data, criado_por: nome, criado_em: em,
       status: 'ativo', encerrado_por: null, encerrado_em: null });
+    mudou = true;
     criados++; nomes.push(texto(p.jogador_nome));
   }
+  if (repeticao && !mudou) return resposta(0, 0, 0); // repetição sem nada a fazer: nada novo é gravado, resposta igual à do .gs
   await log(deps, auth, 'marcarDiaSemJogo', { data, destino: modo, creditos: criados, estornados, ignorados, nomes });
   if (criados) await aplicarCreditosFuturos(deps, data, auth);
   return resposta(criados, estornados, ignorados);
@@ -389,7 +396,14 @@ export async function devolverCredito(deps, id, auth) {
   const t = await repo.lerTudo();
   const c = creditos(t).find((k) => k.id === String(id));
   if (!c) return { error: 'Crédito não encontrado.' };
-  if (c.status === 'devolvido') return ok(deps); // idempotente
+  if (c.status === 'devolvido') {
+    // idempotente, mas cura uma falha entre fechar o crédito e estornar o dinheiro de origem: se o pagamento de origem ainda vale, estorna
+    const orig = pagamentos(t).find((p) => texto(p.id) === c.origemPagamentoId);
+    if (orig && ehValido(orig) && await repo.estornarFinPagamento(texto(orig.id), { por: nomeDe(auth), em: agora(deps) })) {
+      await log(deps, auth, 'devolverCredito', { jogadorNome: c.jogadorNome, valor: c.valor, dataOrigem: c.dataOrigem });
+    }
+    return ok(deps);
+  }
   if (c.status !== 'ativo') return { error: 'Este crédito não está ativo.' };
   if (saldoCreditoCentavos(c, pagamentos(t)) < Math.round(c.valor * 100)) {
     return { error: 'Este crédito já foi usado (total ou parcialmente); não dá para devolver o dinheiro.' };
