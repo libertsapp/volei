@@ -65,6 +65,7 @@ sem log duplicado). O arquivo confere antes se já há duplicado nos dados migra
 
 ## Lacunas conhecidas
 
+- **(Resolvido na 4b, com uma trava de gravação em vez de RPC: ver `2026-09-24-terca-supabase-etapa-4b-credito-design.md`.)**
 - **Créditos sem lock (I2, NÃO resolvido na 4a).** O `LockService` do `.gs` serializava tudo. Aqui, duas `aplicarCreditos` em dias
   diferentes rodando ao mesmo tempo, ou um `estornarPagamento` disputando com `aplicarCreditos`, podem gastar o mesmo crédito duas vezes
   (cada uma calcula o saldo antes da outra gravar). Na 4a a chance é baixa: `aplicarCreditos` só roda dentro de `salvarFinDia`, uma
@@ -85,4 +86,4 @@ sem log duplicado). O arquivo confere antes se já há duplicado nos dados migra
   crédito aplicado/devolvido/usado, trava de "fora da lista", dia sem jogo, vagas e lista de espera.
 - `tests/backend/integracao-etapa4a.mjs` (Supabase real; **não roda sozinho**): data de 2099 e jogador temporário; limpa todas as
   linhas `fin_*` e os dados de teste e imprime as contagens antes e depois.
-- `paridade-checkins.test.mjs` continua excluindo `financeiro` da comparação (os ganchos chegam na 4b).
+- `paridade-checkins.test.mjs` excluía `financeiro` da comparação; a 4b removeu a exclusão (os ganchos existem agora).
