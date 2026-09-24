@@ -302,4 +302,85 @@ await ta('gancho de entrada: crédito pago por salvarFinDia e por check-in usam 
   assert.equal(r2.financeiro.pagamentos.length, r.financeiro.pagamentos.length);
 });
 
+// ============================== nova tentativa depois de falha no meio (autocura) ==============================
+const tresDinheiros = (x) => {
+  x.jogadores.push(jog('p3', 'Carla', 3), jog('p4', 'Diego', 4));
+  x.fin_pagamentos.push(pg('pg7', '2026-09-22', 'p3', 'Carla', 14, 4), pg('pg8', '2026-09-22', 'p4', 'Diego', 14, 5));
+  x.checkins.push(ck('k1', '2026-09-22', 'p3', 'Carla', 4), ck('k2', '2026-09-22', 'p4', 'Diego', 5));
+};
+// faz a n-ésima chamada de um método do repositório falhar (uma vez só)
+const falharNa = (repo, metodo, n) => {
+  const original = repo[metodo].bind(repo);
+  let c = 0;
+  repo[metodo] = async (...a) => { if (++c === n) throw new Error(metodo + ': falha injetada'); return original(...a); };
+};
+
+await ta('marcarDiaSemJogo: falha no meio da criação de créditos e nova tentativa termina o serviço (sem duplicar, com log e contagem só do que faltava)', async () => {
+  const d = ambiente(tresDinheiros);
+  falharNa(d.repo, 'inserirFinCredito', 2);
+  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG), /falha injetada/);
+  let f = await fin(d);
+  assert.equal(f.dias.find((x) => x.data === '2026-09-22').status, 'semjogo');
+  assert.equal(f.creditos.filter((c) => c.dataOrigem === '2026-09-22').length, 1);
+  assert.equal(f.log.some((l) => l.acao === 'marcarDiaSemJogo'), false);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  assert.deepEqual([r.creditos, r.estornados, r.ignorados], [3, 0, 0]); // os 4 pagamentos válidos: 1 já tinha crédito, faltam 3
+  f = await fin(d);
+  const doDia = f.creditos.filter((c) => c.dataOrigem === '2026-09-22');
+  assert.deepEqual(doDia.map((c) => c.origemPagamentoId).sort(), ['pg1', 'pg3', 'pg7', 'pg8']); // um por pagamento, sem duplicar
+  assert.equal(f.log.filter((l) => l.acao === 'marcarDiaSemJogo').length, 1);
+});
+
+await ta('marcarDiaSemJogo: repetição sem nada a fazer não grava nada (nem log) e responde como o .gs; a repetição também não desfaz crédito com "devolver"', async () => {
+  const d = ambiente(tresDinheiros);
+  await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  const antes = await fin(d);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  assert.deepEqual([r.creditos, r.estornados, r.ignorados], [0, 0, 0]);
+  assert.deepEqual(r.financeiro, antes);
+  const r2 = await marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM);
+  assert.deepEqual(r2.financeiro, antes);
+  assert.equal(r2.financeiro.pagamentos.filter((p) => p.data === '2026-09-22' && p.estornado && p.tipo === 'dinheiro').length, 0);
+});
+
+await ta('marcarDiaSemJogo (devolver): falha no meio dos estornos e nova tentativa estorna o que faltou', async () => {
+  const d = ambiente(tresDinheiros);
+  falharNa(d.repo, 'estornarFinPagamento', 2);
+  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM), /falha injetada/);
+  assert.equal((await fin(d)).pagamentos.filter((p) => p.data === '2026-09-22' && !p.estornado).length, 3);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM);
+  assert.equal(r.financeiro.pagamentos.filter((p) => p.data === '2026-09-22' && !p.estornado).length, 0);
+  assert.equal(r.estornados, 3);
+  assert.equal(r.financeiro.log.filter((l) => l.acao === 'marcarDiaSemJogo').length, 1);
+});
+
+await ta('devolverCredito: falha entre fechar o crédito e estornar a origem; a nova tentativa estorna a origem e loga uma vez só', async () => {
+  const d = ambiente((x) => { x.fin_pagamentos.push(pg('pg0', '2026-09-15', 'p2', 'Bruno', 14, 4)); });
+  falharNa(d.repo, 'estornarFinPagamento', 1);
+  await assert.rejects(() => devolverCredito(d, 'cr1', ADM), /falha injetada/);
+  let f = await fin(d);
+  assert.equal(f.creditos.find((c) => c.id === 'cr1').status, 'devolvido');
+  assert.equal(f.pagamentos.find((p) => p.id === 'pg0').estornado, false); // o dinheiro ainda conta no caixa
+  const r = await devolverCredito(d, 'cr1', ADM);
+  assert.equal(r.financeiro.pagamentos.find((p) => p.id === 'pg0').estornado, true);
+  assert.equal(r.financeiro.log[0].detalhe, '{"jogadorNome":"Bruno","valor":14,"dataOrigem":"2026-09-15"}');
+  const n = r.financeiro.log.length;
+  assert.deepEqual((await devolverCredito(d, 'cr1', ADM)).financeiro, r.financeiro); // repetição simples: nada novo
+  assert.equal(n, (await fin(d)).log.length);
+});
+
+// ============================== avisar (erros engolidos ficam visíveis) ==============================
+await ta('handler: erro engolido no gancho chega em avisar e o check-in continua ok', async () => {
+  const { criarHandler } = await import('../../backend/handler.js');
+  const repo = criarRepoMemoria(structuredClone(fixture));
+  const orig = repo.lerTudo.bind(repo);
+  let n = 0;
+  repo.lerTudo = async () => { if (++n > 1) throw new Error('lerTudo: caiu no gancho'); return orig(); }; // 1ª leitura (addCheckin) passa
+  const avisos = [];
+  const h = criarHandler({ repo, config: {}, verificarToken: async () => ({ ok: true, email: 'c@exemplo.com', nome: 'C' }), avisar: (m) => avisos.push(m) });
+  const r = await h.post({ action: 'addCheckin', idToken: 'x', checkin: { id: 'nn', data: '2026-09-22', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: 3, sexo: 'F' } });
+  assert.deepEqual(r, { status: 'ok' });
+  assert.ok(avisos.some((m) => m.includes('aposAdicionarCheckin') && m.includes('caiu no gancho')), JSON.stringify(avisos));
+});
+
 fim();

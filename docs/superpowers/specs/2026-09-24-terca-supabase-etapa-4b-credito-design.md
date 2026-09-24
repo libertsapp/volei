@@ -72,6 +72,23 @@ Peças:
    inteiro poucas vezes e ficam na casa de centenas de ms; se isso mudar, o `TTL_SEG` fica em `trava.js`.
 6. Uma ação que estoura os 15 s de espera responde o erro de "sistema ocupado" e não grava nada (o app pode tentar de novo).
 
+## Robustez adicionada depois da revisão
+
+- **`avisar`**: `criarHandler` aceita `avisar` (padrão: nada) e o repassa aos ganchos e à trava; `backend/servidor-local.js` passa
+  `console.error`. Erros engolidos dos ganchos e falha ao soltar a trava ficam visíveis; o check-in continua respondendo ok.
+- **Autocura por nova tentativa** (sem mudar nenhuma resposta do .gs em caminho sem falha):
+  - `marcarDiaSemJogo` em dia que já é `semjogo` roda o laço de novo (idempotente: pula pagamento que já tem crédito ativo; estornos são
+    condicionais). Se nada mudou, não grava nada (nem log) e responde zeros, como o .gs. Se completou algo, loga e conta só o que fez.
+    Numa repetição com destino `devolver`, dinheiro que já virou crédito ativo é pulado (não desfaz crédito). Resíduo aceito: um
+    `devolver` de organizador deixa válido o dinheiro de quem saiu da lista; repetir depois com destino `credito` (ou `devolver` de
+    admin) age sobre ele, enquanto o .gs responderia zeros. O app não oferece essa repetição em dia já sem jogo.
+  - `devolverCredito` em crédito já `devolvido` cujo pagamento de origem ainda vale estorna esse pagamento (e loga uma vez); senão responde como antes.
+- **Batimento da trava**: durante a ação, `comTrava` renova o aluguel a cada 10 s (`setInterval`, injetável em `deps.agendar`; TTL segue 30 s).
+  Renovação que falha ou diz que a trava foi perdida só avisa; a ação termina (nunca é abortada no meio da gravação). O agendador é
+  cancelado em `finally` e uma renovação em andamento é aguardada antes de soltar (senão recriaria a trava já solta).
+- **Risco residual**: qualquer token válido do Google pode fazer check-in em série e manter a trava ocupada, atrasando as ações do
+  financeiro (negação de serviço); o .gs tinha o mesmo problema com o LockService.
+
 ## SQL: precisa, e o usuário roda
 
 `sql/schema-terca-supabase-ajuste-5.sql` no SQL Editor do Supabase (idempotente, pode rodar mais de uma vez). **Sem ele, `addCheckin`,
@@ -94,4 +111,4 @@ sem trava). Rode antes de publicar/subir esta etapa. Depois de rodar, `node test
 - `tests/backend/paridade-checkins.test.mjs` deixou de excluir o `financeiro` da comparação (agora os ganchos existem dos dois lados) e
   passou a controlar o relógio e os ids como os outros testes de paridade.
 - `tests/backend/integracao-etapa4b.mjs` (Supabase real; **não roda sozinho**, pressupõe o ajuste 5 aplicado): datas de 2099, jogador
-  temporário, trava real (dois donos, aluguel vencido, soltar só pelo dono), ações e ganchos; limpa tudo e imprime as contagens antes e depois.
+  temporário, trava real (dois donos, aluguel vencido, soltar só pelo dono), ações e ganchos (a linha `gravacao` não é conferida: o tráfego real pode segurá-la); limpa tudo e imprime as contagens antes e depois.

@@ -241,4 +241,60 @@ await ta('handler: a trava é solta mesmo quando a ação dá erro de validaçã
   assert.equal((await h.post({ action: 'addLancamento', idToken: 'tok-b', lancamento: { data: '2026-09-22', tipo: 'entrada', valor: 1, descricao: 'x' } })).error, 'fin_lancamentos: fora do ar'); // e dá para tentar de novo
 });
 
+// ---- batimento (renovação do aluguel) ----
+await ta('batimento: ação longa mantém a trava além do TTL original (outro dono segue recusado) e o agendador é cancelado no fim', async () => {
+  let agora = 0;
+  const repo = criarRepoMemoria(fixture, { agora: () => agora });
+  let batida = null, cancelado = 0, intervalo = null;
+  const agendar = (fn, ms) => { batida = fn; intervalo = ms; return () => { cancelado++; }; };
+  let liberar;
+  const segura = new Promise((r) => { liberar = r; });
+  const p = comTrava({ repo, gerarId: () => 'A', agendar }, 'g', () => segura);
+  await cede();
+  assert.equal(intervalo, 10000);
+  agora = 25000; batida(); await cede(); // renova: vence só em 55000
+  agora = 40000; // passou dos 30 s originais
+  assert.equal(await repo.pegarTrava('g', 'B', 30), false);
+  agora = 50000; batida(); await cede(); // renova de novo
+  agora = 70000;
+  assert.equal(await repo.pegarTrava('g', 'B', 30), false);
+  assert.equal(cancelado, 0);
+  liberar('ok');
+  assert.equal(await p, 'ok');
+  assert.equal(cancelado, 1);
+  assert.equal(repo.travas.size, 0);
+  batida(); await cede(); // batida tardia depois do fim não recria a trava
+  assert.equal(repo.travas.size, 0);
+});
+
+await ta('batimento (CONTROLE): sem renovação a mesma ação perderia a trava depois dos 30 s', async () => {
+  let agora = 0;
+  const repo = criarRepoMemoria(fixture, { agora: () => agora });
+  let liberar;
+  const segura = new Promise((r) => { liberar = r; });
+  const p = comTrava({ repo, gerarId: () => 'A', agendar: () => () => {} }, 'g', () => segura);
+  await cede();
+  agora = 40000;
+  assert.equal(await repo.pegarTrava('g', 'B', 30), true);
+  liberar(1); await p;
+});
+
+await ta('batimento: renovação que volta false ou lança avisa (avisar) e a ação termina normalmente; falha ao soltar também avisa', async () => {
+  const avisos = [];
+  let n = 0, batida = null;
+  const repo = { pegarTrava: async () => { if (++n === 1) return true; if (n === 2) return false; throw new Error('rede'); }, soltarTrava: async () => { throw new Error('não soltou'); } };
+  let liberar;
+  const segura = new Promise((r) => { liberar = r; });
+  const p = comTrava({ repo, gerarId: () => 'A', avisar: (m) => avisos.push(m), agendar: (fn) => { batida = fn; return () => {}; } }, 'g', () => segura);
+  await cede();
+  batida(); await cede(); // false: trava perdida
+  batida(); await cede(); // lança
+  liberar('feito');
+  assert.equal(await p, 'feito'); // a ação não foi abortada
+  assert.equal(avisos.length, 3);
+  assert.match(avisos[0], /perdida/);
+  assert.match(avisos[1], /falha ao renovar.*rede/);
+  assert.match(avisos[2], /falha ao soltar.*não soltou/);
+});
+
 fim();
