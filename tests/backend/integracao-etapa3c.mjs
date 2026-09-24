@@ -39,14 +39,16 @@ await ta('envia um JPEG e a URL pública devolve 200, image/jpeg e os mesmos byt
   assert.deepEqual(Buffer.from(await resp.arrayBuffer()), JPEG_BYTES);
 });
 
-await ta('segundo envio com fileIdAntigo apaga o primeiro (404) e o novo responde 200', async () => {
+await ta('segundo envio com fileIdAntigo apaga o primeiro (não encontrado) e o novo responde 200', async () => {
   const primeiro = criados[0];
   assert.ok(primeiro, 'depende do teste anterior');
   const urlPrimeiro = process.env.SUPABASE_URL.replace(/\/+$/, '') + '/storage/v1/object/public/fotos/' + primeiro;
   const r = await enviar({ base64: JPEG_B64, fileIdAntigo: primeiro });
   assert.ok(r.fileId, JSON.stringify(r));
   criados.push(r.fileId);
-  assert.equal((await fetch(urlPrimeiro)).status, 404);
+  // o Storage responde 400 com {"error":"not_found"} (e não 404) para objeto inexistente em bucket público
+  const apagada = await fetch(urlPrimeiro);
+  assert.ok(apagada.status === 400 || apagada.status === 404, 'esperava 400/404 para arquivo apagado; veio ' + apagada.status);
   assert.equal((await fetch(r.url)).status, 200);
 });
 
