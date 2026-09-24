@@ -34,7 +34,7 @@ Continuação de `2026-09-24-terca-supabase-etapa-4b-credito-design.md`. A fonte
   `vitoriasPorTime` o `.gs` estoura um `TypeError` respondido como `{ error }`; o código novo faz o mesmo acesso e responde a mesma
   mensagem. Sem transmissão: "Essa transmissão não foi encontrada (pode já ter sido encerrada)."
 - `cancelar`: apaga placar e log da rodada; sem transmissão também responde ok.
-- Quem pode chamar o quê: ver o primeiro item do escopo (matriz idêntica à do `.gs`, conferida em `permissoes.test.mjs`).
+- Quem pode chamar o quê: ver o primeiro item do escopo (matriz idêntica à do `.gs`, conferida por perfil em `aovivo.test.mjs` e na paridade).
 
 ## Formato (`mapearAoVivo`)
 
