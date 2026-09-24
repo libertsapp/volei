@@ -19,14 +19,17 @@ if (!fs.existsSync(caminhoGs)) {
 }
 const { criarAmbiente } = require('../helpers/planilha-falsa.js');
 
-// cenário: o fixture (check-ins c1, c2 e c3 já existem). Depois de cada passo compara-se o GET SEM o financeiro:
-// o .gs chama finAposAdicionarCheckin_/finAposRemoverCheckin_ (aplica créditos, sobe a fila de espera, escreve
-// nas abas do Financeiro), que só chegam na etapa 4. Jogadores, rodadas, configurações, check-ins, perfis e
-// ao vivo continuam sendo comparados por inteiro.
+// cenário: o fixture (check-ins c1, c2 e c3 já existem). Depois de cada passo compara-se o GET INTEIRO, inclusive o
+// financeiro: o .gs chama finAposAdicionarCheckin_/finAposRemoverCheckin_ (aplica créditos, sobe a fila de espera, escreve
+// nas abas do Financeiro) e o backend novo tem os mesmos ganchos (etapa 4b). Como no teste do financeiro, o relógio (Date do
+// .gs e relogio() do backend) e os ids (uuid-N) são controlados e iguais dos dois lados: nada é normalizado.
 const dados = structuredClone(fixture);
 
 // ---------- lado 1: o .gs REAL ----------
+const T0 = Date.now();
 const gs = criarAmbiente(dbParaAbas(dados), [caminhoGs]);
+// relógio controlado no .gs (antes de qualquer Date criado no contexto, para o instanceof Date continuar valendo)
+gs.rodar('var __relogio = { t: ' + T0 + ' }; Date = (function (R) { return class D extends R { constructor(...a) { if (a.length === 0) super(__relogio.t); else super(...a); } static now() { return __relogio.t; } }; })(Date);');
 const linhasUsuarios = gs.abas.Usuarios.linhas;
 dados.usuarios.slice().sort((a, b) => a.ordem - b.ordem).forEach((u, i) => {
   linhasUsuarios[i + 1][4] = gs.rodar('new Date(' + JSON.stringify(new Date(u.criado_em).toISOString()) + ')');
@@ -51,16 +54,17 @@ const buscar = async (url) => {
   const t = decodeURIComponent(url.split('id_token=')[1]);
   return google[t] ? { status: 200, json: async () => google[t] } : { status: 400, json: async () => ({}) };
 };
+const relogio = { t: T0 };
+let seq = 0;
 const novo = criarHandler({
   repo: criarRepoMemoria(dados),
   config: { adminPassword: SENHA },
   verificarToken: criarVerificadorGoogle({ clientId: CLIENTE, buscar }),
-  relogio: () => new Date()
+  relogio: () => new Date(relogio.t), gerarId: () => 'uuid-' + (++seq)
 });
 
 
 const json = (x) => JSON.parse(JSON.stringify(x));
-const semFinanceiro = ({ financeiro, ...resto }) => resto;
 
 const passos = [
   ['addCheckin: só o obrigatório (padrões)', { action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'k1', data: '2026-09-29', jogadorId: 'p1' } }],
@@ -94,10 +98,11 @@ const passos = [
 
 for (const [i, [nome, corpo]] of passos.entries()) {
   await ta(`passo ${String(i + 1).padStart(2, '0')}: ${nome}`, async () => {
+    relogio.t = T0 + (i + 1) * 1000 + 123; gs.rodar('__relogio.t = ' + relogio.t);
     const esperado = gs.post(corpo);
     const obtido = json(await novo.post(corpo));
     assert.deepEqual(obtido, esperado, 'resposta diferente');
-    assert.deepEqual(semFinanceiro(json(await novo.get())), semFinanceiro(gs.get()), 'o GET (sem o financeiro) ficou diferente depois deste passo');
+    assert.deepEqual(json(await novo.get()), gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
   });
 }
 

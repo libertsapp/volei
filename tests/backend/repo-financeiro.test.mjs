@@ -110,4 +110,31 @@ await ta('repo-supabase: inserirFinLancamento e inserirFinLog não enviam ordem/
   assert.deepEqual(c.chamadas.map((x) => [x.tabela, Object.keys(x.insert)]), [['fin_lancamentos', ['id', 'valor']], ['fin_log', ['acao']]]);
 });
 
+// ---- etapa 4b: status do dia e inserção de crédito ----
+await ta('definirStatusFinDia: muda só o status de um dia existente (false se não existe); inserirFinCredito usa status ativo e ordem do banco', async () => {
+  const r = repo();
+  assert.equal(await r.definirStatusFinDia('2026-09-22', 'semjogo'), true);
+  const d = (await r.lerTudo()).fin_dias.find((x) => x.data === '2026-09-22');
+  assert.deepEqual({ s: d.status, v: d.valor_pessoa, o: d.ordem }, { s: 'semjogo', v: 14, o: 2 });
+  assert.equal(await r.definirStatusFinDia('2026-09-22', 'normal'), true);
+  assert.equal((await r.lerTudo()).fin_dias.find((x) => x.data === '2026-09-22').status, 'normal');
+  assert.equal(await r.definirStatusFinDia('2030-01-01', 'semjogo'), false);
+  await r.inserirFinCredito({ id: 'cr9', jogador_id: 'p1', jogador_nome: 'Ana', valor: 5, origem_pagamento_id: 'pg1', data_origem: '2026-09-22', criado_por: 'A', criado_em: 't' });
+  const c = (await r.lerTudo()).fin_creditos.find((x) => x.id === 'cr9');
+  assert.deepEqual({ s: c.status, o: c.ordem }, { s: 'ativo', o: 2 });
+  await assert.rejects(() => r.inserirFinCredito({ id: 'cr9' }), /fin_creditos.*duplicate key/);
+});
+
+await ta('repo-supabase: definirStatusFinDia é UPDATE por data (true se mudou linha); inserirFinCredito insere e erros nomeiam a tabela', async () => {
+  const c = clienteFalso({ data: [{ data: '2026-09-22' }], error: null });
+  assert.equal(await criarRepoSupabase(c).definirStatusFinDia('2026-09-22', 'semjogo'), true);
+  assert.deepEqual(c.chamadas[0], { tabela: 'fin_dias', update: { status: 'semjogo' }, eq: [['data', '2026-09-22']], select: 'data' });
+  assert.equal(await criarRepoSupabase(clienteFalso({ data: [], error: null })).definirStatusFinDia('x', 'normal'), false);
+  await assert.rejects(() => criarRepoSupabase(clienteFalso({ data: null, error: { message: 'x' } })).definirStatusFinDia('x', 'normal'), /^Error: fin_dias: x$/);
+  const c2 = clienteFalso({ error: null });
+  await criarRepoSupabase(c2).inserirFinCredito({ id: 'cr', valor: 1 });
+  assert.deepEqual(c2.chamadas[0], { tabela: 'fin_creditos', insert: { id: 'cr', valor: 1 } });
+  await assert.rejects(() => criarRepoSupabase(clienteFalso({ error: { message: 'fk' } })).inserirFinCredito({ id: 'cr' }), /^Error: fin_creditos: fk$/);
+});
+
 fim();

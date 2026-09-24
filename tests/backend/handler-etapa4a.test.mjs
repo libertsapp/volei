@@ -53,14 +53,6 @@ await ta('admin e chave mestra: a resposta traz o financeiro no formato do GET e
   assert.equal(m.financeiro.log[0].nome, 'Chave mestra');
 });
 
-await ta('ações da 4b continuam "ainda não disponível" (depois do porteiro)', async () => {
-  const h = novo();
-  for (const a of ['marcarDiaSemJogo', 'reabrirDia', 'aplicarCreditosDoDia', 'devolverCredito']) {
-    assert.deepEqual(await h.post({ action: a, idToken: 'tok-a' }), { error: 'Esta ação ainda não está disponível na versão Supabase (' + a + ').' });
-  }
-  assert.deepEqual(await h.post({ action: 'devolverCredito', idToken: 'tok-b' }), NEGADO('organizador'));
-});
-
 await ta('falha do repositório vira { error }; sem gerarId injetado o id é um UUID v4', async () => {
   const repo = criarRepoMemoria(fixture);
   repo.inserirFinLancamento = async () => { throw new Error('fin_lancamentos: banco fora do ar'); };
