@@ -28,6 +28,15 @@ function planejarCopia(arquivos) {
       if (/^\s*\/\//.test(linha)) return;
       for (const p of PROIBIDOS) if (p.regex.test(linha)) problemas.push(`${nome}:${i + 1}: usa "${p.rotulo}" (não roda na Edge Function)`);
     });
+    // especificadores de import/export: só './x.js' (o backend não tem dependências; um import "solto" quebraria no deploy ou traria código de fora)
+    const semComentarios = conteudo.split(/\r?\n/).filter((l) => !/^\s*\/\//.test(l)).join('\n');
+    const achados = [
+      ...[...semComentarios.matchAll(/(?<![.\w$])from\s*(['"])([^'"]*)\1/g)].map((m) => m[2]),
+      ...[...semComentarios.matchAll(/(?<![.\w$])import\s*(['"])([^'"]*)\1/g)].map((m) => m[2]),
+      ...[...semComentarios.matchAll(/(?<![.\w$])import\s*\(\s*(['"])([^'"]*)\1/g)].map((m) => m[2])
+    ];
+    for (const e of achados) if (!e.startsWith('./')) problemas.push(`${nome}: especificador de import não relativo "${e}" (só ./arquivo.js é permitido)`);
+    if (/(?<![.\w$])import\s*\(\s*[^'"\s)]/.test(semComentarios)) problemas.push(`${nome}: especificador de import dinâmico não literal (só ./arquivo.js literal é permitido)`);
   }
   return { copiar, ignorados, problemas };
 }
