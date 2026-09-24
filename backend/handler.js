@@ -25,9 +25,10 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {} }) {
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador }) {
   // gerarDono: dono da trava de gravação (separado de gerarId para não gastar ids de registros); esperar: pausa entre tentativas da trava
-  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar };
+  // limitador (opcional): limita tentativas da chave mestra por IP; sem ele (servidor local, testes) nada muda
+  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador };
   // trava única 'gravacao' (o LockService do .gs): as ações do financeiro e o check-in (com seus ganchos) nunca se misturam.
   // As demais gravações (jogadores, rodadas, configurações, fotos) NÃO usam a trava hoje: para incluí-las, é só trocar
   // `return await acao(...)` por `return await travar(() => acao(...))` no case dela (uma linha por ação).
@@ -52,7 +53,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
     },
 
     // Mesmas regras do doPost do .gs: ações públicas primeiro, depois o porteiro, depois a ação.
-    async post(body) {
+    // contexto (opcional): { ip } vindo do adaptador HTTP; só serve ao limitador de tentativas
+    async post(body, contexto = {}) {
       try {
         const b = body || {};
         const acao = String(b.action || '');
@@ -62,7 +64,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         // leitura pública do placar ao vivo (polling): sem senha, sem login e sem trava
         if (acao === 'lerAoVivo') return await lerAoVivo(deps);
         if (acao === 'loginGoogle') return await loginGoogle(deps, b);
-        if (acao === 'bootstrapAdmin') return await bootstrapAdmin(deps, b);
+        if (acao === 'bootstrapAdmin') return await bootstrapAdmin(deps, b, contexto);
 
         // check-in não pede senha nem perfil, só login (a chave mestra sozinha NÃO vale, como no .gs)
         if (acao === 'addCheckin' || acao === 'removeCheckin') {
@@ -73,7 +75,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         }
 
         // daqui pra baixo é tudo sensível: passa pelo porteiro (chave mestra OU login do Google)
-        const auth = await autorizar(deps, b);
+        const auth = await autorizar(deps, b, contexto);
         if (auth.error) return { error: auth.error };
 
         switch (acao) {

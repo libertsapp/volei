@@ -12,6 +12,7 @@ const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', '
 export function criarRepoMemoria(dados = {}, opcoes = {}) {
   const agoraMs = opcoes.agora || (() => Date.now());
   const travas = new Map(); // nome -> { dono, expira } (na memória; no banco é a tabela "travas", ajuste 5)
+  const tentativas = new Map(); // chave -> { falhas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -158,6 +159,23 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       const t = travas.get(nome);
       if (t && t.dono === dono) travas.delete(nome);
     },
+
+    // ---- limite de tentativas da chave mestra (ajuste 7). Mesma regra das funções do Postgres; o relógio é o mesmo da trava ----
+    async tentativaBloqueada(chave) {
+      const t = tentativas.get(chave);
+      return !!(t && t.bloqueadoAte && t.bloqueadoAte > agoraMs());
+    },
+    async registrarFalha(chave, max, bloqueioSeg) {
+      const agora = agoraMs();
+      const t = tentativas.get(chave);
+      // recomeça se a última falha saiu da janela ou se o bloqueio anterior já acabou
+      const zerar = !t || t.atualizado < agora - bloqueioSeg * 1000 || (t.bloqueadoAte && t.bloqueadoAte < agora);
+      const falhas = zerar ? 1 : t.falhas + 1;
+      let bloqueadoAte = zerar ? null : t.bloqueadoAte;
+      if (falhas >= max) bloqueadoAte = agora + bloqueioSeg * 1000;
+      tentativas.set(chave, { falhas, bloqueadoAte, atualizado: agora });
+    },
+    async limparFalhas(chave) { tentativas.delete(chave); },
 
     async lerConfig() { return structuredClone(tabelas.config); },
     async gravarConfig(pares) {

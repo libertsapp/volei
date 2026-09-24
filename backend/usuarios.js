@@ -2,7 +2,7 @@
 // salvarUsuario, removerUsuario, solicitarVinculo, aprovarVinculo, rejeitarVinculo e acharJogadorPorNome_ de
 // apps-script-codigo.gs. As mensagens de erro são as mesmas do .gs (o app reconhece várias delas).
 import { mapearJogadores, texto, porOrdem } from './mapeadores.js';
-import { iguaisSeguros } from './auth.js';
+import { conferirChaveMestra, MSG_MUITAS_TENTATIVAS } from './limitador.js';
 
 const PERFIS = ['admin', 'organizador', 'jogador'];
 export const normalizarEmail = (v) => texto(v).trim().toLowerCase();
@@ -106,8 +106,10 @@ export async function loginGoogle({ repo, relogio, verificarToken }, body) {
 }
 
 // Promove a admin quem está logado com Google E informou a chave mestra (idempotente; nunca perde o vínculo)
-export async function bootstrapAdmin({ repo, relogio, config, verificarToken }, body) {
-  if (!config.adminPassword || !iguaisSeguros(body.senha, config.adminPassword)) return { error: 'Chave mestra incorreta.' };
+export async function bootstrapAdmin({ repo, relogio, config, verificarToken, limitador }, body, contexto = {}) {
+  const conferencia = await conferirChaveMestra({ config, limitador }, contexto, body.senha);
+  if (conferencia.bloqueado) return { error: MSG_MUITAS_TENTATIVAS };
+  if (!conferencia.igual) return { error: 'Chave mestra incorreta.' };
   const token = await verificarToken(body.idToken);
   if (!token.ok) return { error: token.erro };
   const existente = (await lerUsuarios(repo)).find((u) => u.email === token.email);

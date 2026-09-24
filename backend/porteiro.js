@@ -3,7 +3,7 @@
 //   2. ID Token válido         -> e-mail -> perfil na tabela usuarios -> confere a matriz
 //   3. nada disso              -> nega
 import { PERMISSOES } from './permissoes.js';
-import { iguaisSeguros } from './auth.js';
+import { conferirChaveMestra, MSG_MUITAS_TENTATIVAS } from './limitador.js';
 import { lerUsuarios } from './usuarios.js';
 import { mapearJogadores, texto } from './mapeadores.js';
 
@@ -25,19 +25,25 @@ async function excecaoPropriaFoto(repo, jogadorIdDaConta, body) {
     && texto(p.porte) === atual.porte;
 }
 
-export async function autorizar({ repo, config, verificarToken }, body) {
+export async function autorizar({ repo, config, verificarToken, limitador }, body, contexto = {}) {
   const acao = String(body.action || '');
   if (!Object.hasOwn(PERMISSOES, acao)) return { error: 'Ação desconhecida: ' + acao };
   const permitidos = PERMISSOES[acao];
 
   // 1) chave mestra — continua valendo em paralelo ao login do Google
   if (body.senha) {
-    if (config.adminPassword && iguaisSeguros(body.senha, config.adminPassword)) {
+    // com limitador (Edge Function): erros seguidos do mesmo IP bloqueiam SÓ este caminho; o login do Google segue valendo
+    const conferencia = await conferirChaveMestra({ config, limitador }, contexto, body.senha);
+    if (conferencia.bloqueado) {
+      // bloqueado e sem token: nega já, sem comparar a senha; com token, ignora a senha e tenta pelo token (não trava quem tem uma senha velha guardada)
+      if (!body.idToken) return { error: MSG_MUITAS_TENTATIVAS };
+    } else if (conferencia.igual) {
       return { ok: true, perfil: 'admin', email: '', nome: '', jogadorId: '', viaChaveMestra: true };
+    } else if (!body.idToken) {
+      // senha errada E sem token: a mensagem que o app já reconhece para limpar a senha guardada
+      return { error: 'Senha de administrador incorreta.' };
     }
-    // senha errada E sem token: a mensagem que o app já reconhece para limpar a senha guardada
-    if (!body.idToken) return { error: 'Senha de administrador incorreta.' };
-    // senha errada mas com token: ignora a senha e tenta pelo token
+    // senha errada (ou bloqueada) mas com token: ignora a senha e tenta pelo token
   }
 
   // 2) token do Google
