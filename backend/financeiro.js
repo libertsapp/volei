@@ -4,9 +4,12 @@
 //   - salvarFinDia aplica os créditos do dia (finAplicarCreditos_) quando o dia não é "sem jogo";
 //   - estornarPagamento devolve o crédito que nasceu do pagamento (e recusa se ele já foi usado);
 //   - marcarPagamento recusa dia "sem jogo"; pagamentos tipo 'credito' não têm a trava de "fora da lista".
-// Ficam para a etapa 4b: marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito e os ganchos do check-in.
+// Etapa 4b (mesmo arquivo, no fim): marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito (ports de
+// finMarcarDiaSemJogo_, finReabrirDia_, finAplicarCreditosAcao_ e finDevolverCredito_) e os ganchos do check-in
+// (finAposAdicionarCheckin_ / finAposRemoverCheckin_), chamados por checkins.js.
 // Toda ação boa devolve { status: 'ok', financeiro } (o mesmo formato do GET). Todas escrevem no fin_log.
-// Sem trava (o .gs usava LockService): a proteção contra toque duplo é o índice único parcial do ajuste 4 (ver o spec).
+// Sem trava AQUI dentro: o .gs usava LockService e, no backend novo, quem segura a trava 'gravacao' é o handler (backend/trava.js,
+// ajuste 5), em volta de cada ação; o índice único parcial do ajuste 4 continua como segunda linha de defesa contra toque duplo.
 import { mapearFinanceiro, mapearCheckins, mapearConfig, porOrdem, texto } from './mapeadores.js';
 
 // ---------- utilitários (mesmos nomes de domínio do .gs) ----------
@@ -64,7 +67,7 @@ function linhaPagamento(deps, { data, jogadorId, jogadorNome, valor: v, por, em,
 
 // ---------- créditos (a parte que as ações da 4a tocam) ----------
 const creditos = (t) => t.fin_creditos.slice().sort(porOrdem).map((c) => ({
-  id: texto(c.id), jogadorId: texto(c.jogador_id), valor: num(c.valor), origemPagamentoId: texto(c.origem_pagamento_id),
+  id: texto(c.id), jogadorId: texto(c.jogador_id), jogadorNome: texto(c.jogador_nome), valor: num(c.valor), origemPagamentoId: texto(c.origem_pagamento_id),
   dataOrigem: texto(c.data_origem), status: texto(c.status) || 'ativo'
 }));
 // saldo (em CENTAVOS) = valor − pagamentos por crédito ainda válidos que apontam para esse crédito
@@ -292,4 +295,140 @@ export async function estornarLancamento(deps, id, auth) {
   if (!(await repo.estornarFinLancamento(texto(r.id), { por: nomeDe(auth), em: agora(deps) }))) return ok(deps); // outro pedido chegou antes
   await log(deps, auth, 'estornarLancamento', { data: texto(r.data), tipo: texto(r.tipo), descricao: texto(r.descricao), valor: num(r.valor) });
   return ok(deps);
+}
+
+// ====================== ETAPA 4b: dia sem jogo, crédito e ganchos do check-in ======================
+
+// depois de criar créditos num dia sem jogo, os dias seguintes já configurados também precisam recebê-los (finAplicarCreditosFuturos_)
+async function aplicarCreditosFuturos(deps, dataOrigem, auth) {
+  const datas = (await deps.repo.lerTudo()).fin_dias.map((d) => texto(d.data)).filter((d) => d > dataOrigem).sort();
+  let n = 0;
+  for (const d of datas) n += await aplicarCreditos(deps, d, auth);
+  return n;
+}
+
+// Marca o dia como SEM JOGO: a saída (quadra/brinde) deixa de contar. Os pagamentos EM DINHEIRO do dia viram crédito (padrão) ou são
+// devolvidos (estornados; o organizador não estorna quem saiu da lista). Pagamentos por CRÉDITO do dia só devolvem o crédito.
+export async function marcarDiaSemJogo(deps, data, destino, auth) {
+  const { repo } = deps;
+  if (!dataValida(data)) return { error: 'Data inválida.' };
+  const t = await repo.lerTudo();
+  const dia = diaDe(t, data);
+  if (!dia) return { error: 'Configure o dia (valor por pessoa etc.) antes de marcá-lo como sem jogo.' };
+  const resposta = async (creditosCriados, estornados, ignorados) => {
+    const r = await ok(deps);
+    r.creditos = creditosCriados; r.estornados = estornados; r.ignorados = ignorados;
+    return r;
+  };
+  if (statusDia(dia.status) === 'semjogo') return resposta(0, 0, 0); // idempotente
+  const modo = destino === 'devolver' ? 'devolver' : 'credito';
+  await repo.definirStatusFinDia(data, 'semjogo');
+  const dentroIds = {};
+  for (const c of checkinsDoDia(t, data).slice(0, vagasDe(t))) dentroIds[String(c.jogadorId)] = true;
+  const ehAdmin = auth.perfil === 'admin';
+  const em = agora(deps), nome = nomeDe(auth);
+  const quando = { por: nome, em };
+  const ativos = creditos(t).filter((c) => c.status === 'ativo');
+  const nomes = [];
+  let criados = 0, estornados = 0, ignorados = 0;
+  for (const p of pagamentos(t)) {
+    if (!texto(p.id) || texto(p.data) !== data || !ehValido(p)) continue;
+    if (tipoPag(p.tipo) === 'credito') { // não é dinheiro: só devolve o crédito ao saldo
+      await repo.estornarFinPagamento(texto(p.id), quando);
+      continue;
+    }
+    if (modo === 'devolver') {
+      if (!dentroIds[texto(p.jogador_id)] && !ehAdmin) { ignorados++; continue; }
+      await repo.estornarFinPagamento(texto(p.id), quando);
+      estornados++; nomes.push(texto(p.jogador_nome));
+      continue;
+    }
+    if (ativos.some((c) => c.origemPagamentoId === texto(p.id))) continue; // esse dinheiro já virou crédito ativo
+    await repo.inserirFinCredito({ id: gerarId(deps), jogador_id: texto(p.jogador_id) || null, jogador_nome: texto(p.jogador_nome),
+      valor: num(p.valor), origem_pagamento_id: texto(p.id), data_origem: data, criado_por: nome, criado_em: em,
+      status: 'ativo', encerrado_por: null, encerrado_em: null });
+    criados++; nomes.push(texto(p.jogador_nome));
+  }
+  await log(deps, auth, 'marcarDiaSemJogo', { data, destino: modo, creditos: criados, estornados, ignorados, nomes });
+  if (criados) await aplicarCreditosFuturos(deps, data, auth);
+  return resposta(criados, estornados, ignorados);
+}
+
+// Reabre um dia sem jogo. Só se NENHUM crédito dele foi usado; os créditos ainda disponíveis são cancelados (voltam a ser pagamentos comuns).
+export async function reabrirDia(deps, data, auth) {
+  const { repo } = deps;
+  if (!dataValida(data)) return { error: 'Data inválida.' };
+  const t = await repo.lerTudo();
+  const dia = diaDe(t, data);
+  if (!dia) return { error: 'Dia não encontrado.' };
+  if (statusDia(dia.status) !== 'semjogo') return ok(deps); // já está normal
+  const pags = pagamentos(t);
+  const doDia = creditos(t).filter((c) => c.dataOrigem === data && c.status === 'ativo');
+  const usados = doDia.filter((c) => saldoCreditoCentavos(c, pags) < Math.round(c.valor * 100));
+  if (usados.length) return { error: 'Não dá para reabrir: ' + usados.length + ' crédito(s) deste dia já foram usados em outro dia.' };
+  const quando = { por: nomeDe(auth), em: agora(deps) };
+  for (const c of doDia) await repo.encerrarFinCredito(c.id, 'cancelado', quando);
+  await repo.definirStatusFinDia(data, 'normal');
+  await log(deps, auth, 'reabrirDia', { data, creditosCancelados: doDia.length });
+  await aplicarCreditos(deps, data, auth);
+  return ok(deps);
+}
+
+// Aplicação manual (rede de segurança): devolve quantos pagamentos por crédito foram criados
+export async function aplicarCreditosDoDia(deps, data, auth) {
+  if (!dataValida(data)) return { error: 'Data inválida.' };
+  const n = await aplicarCreditos(deps, data, auth);
+  const r = await ok(deps);
+  r.aplicados = n;
+  return r;
+}
+
+// Devolve o DINHEIRO de um crédito (só admin): o pagamento de origem é estornado e o dinheiro sai do caixa. Só se não foi usado.
+export async function devolverCredito(deps, id, auth) {
+  const { repo } = deps;
+  const t = await repo.lerTudo();
+  const c = creditos(t).find((k) => k.id === String(id));
+  if (!c) return { error: 'Crédito não encontrado.' };
+  if (c.status === 'devolvido') return ok(deps); // idempotente
+  if (c.status !== 'ativo') return { error: 'Este crédito não está ativo.' };
+  if (saldoCreditoCentavos(c, pagamentos(t)) < Math.round(c.valor * 100)) {
+    return { error: 'Este crédito já foi usado (total ou parcialmente); não dá para devolver o dinheiro.' };
+  }
+  const quando = { por: nomeDe(auth), em: agora(deps) };
+  if (!(await repo.encerrarFinCredito(c.id, 'devolvido', quando))) return ok(deps); // outro pedido chegou antes
+  const origem = pagamentos(t).find((p) => texto(p.id) === c.origemPagamentoId);
+  if (origem && ehValido(origem)) await repo.estornarFinPagamento(texto(origem.id), quando);
+  await log(deps, auth, 'devolverCredito', { jogadorNome: c.jogadorNome, valor: c.valor, dataOrigem: c.dataOrigem });
+  return ok(deps);
+}
+
+// ---------- ganchos do check-in: NUNCA podem quebrar o check-in, então engolem qualquer erro (como o try/catch do .gs) ----------
+// deps.avisar (opcional) recebe a mensagem do erro engolido, no lugar do Logger.log do .gs
+function avisar(deps, onde, erro) {
+  try { if (typeof deps.avisar === 'function') deps.avisar(onde + ': ' + (erro && erro.message ? erro.message : erro)); } catch { /* nada */ }
+}
+
+// quem tem crédito de um dia sem jogo já aparece pago
+export async function aposAdicionarCheckin(deps, data) {
+  try { await aplicarCreditos(deps, String(data), SISTEMA); } catch (e) { avisar(deps, 'aposAdicionarCheckin', e); }
+}
+
+// quem saiu devolve o crédito que tinha usado neste dia (o pagamento por crédito é estornado; o saldo volta sozinho) e a
+// lista de espera pode ter subido para dentro das vagas (inclusive além de checkinVagas, se as vagas mudaram)
+export async function aposRemoverCheckin(deps, data, jogadorId) {
+  try {
+    const { repo } = deps;
+    const t = await repo.lerTudo();
+    const quando = { por: SISTEMA.nome, em: agora(deps) };
+    let devolvidos = 0;
+    for (const p of pagamentos(t)) {
+      if (!texto(p.id) || !ehValido(p) || texto(p.data) !== data || texto(p.jogador_id) !== String(jogadorId) || tipoPag(p.tipo) !== 'credito') continue;
+      if (await repo.estornarFinPagamento(texto(p.id), quando)) devolvidos++;
+    }
+    if (devolvidos) {
+      await log(deps, SISTEMA, 'estornarPagamento', { data, jogadorId: String(jogadorId),
+        motivo: 'saiu da lista: crédito devolvido ao saldo', quantidade: devolvidos });
+    }
+    await aplicarCreditos(deps, data, SISTEMA); // a espera pode ter subido pra dentro das vagas
+  } catch (e) { avisar(deps, 'aposRemoverCheckin', e); }
 }

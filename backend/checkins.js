@@ -1,7 +1,8 @@
 // Check-in. Port de addCheckin, removeCheckin e salvarEstrelasAjustadas_ de apps-script-codigo.gs (mesmas mensagens).
 // Como no .gs: não há limite de vagas nem checagem de repetição por jogador/dia (a fila de espera é por ordem, no app).
-// Os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_) chegam na etapa 4.
+// Os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_) rodam depois de gravar, como no .gs; nunca quebram o check-in.
 import { texto } from './mapeadores.js';
+import { aposAdicionarCheckin, aposRemoverCheckin } from './financeiro.js';
 
 // "nota só para este check-in": vazio (ou 0, como no .gs) vira null; o resto precisa ser número (a coluna é numeric)
 function notaAjustada(v) {
@@ -11,7 +12,8 @@ function notaAjustada(v) {
   return Number.isFinite(n) ? n : undefined;
 }
 
-export async function addCheckin({ repo }, c) {
+export async function addCheckin(deps, c) {
+  const { repo } = deps;
   if (!c || !texto(c.id)) return { error: 'Check-in sem id.' };
   if ((await repo.lerTudo()).checkins.some((x) => x.id === texto(c.id))) return { error: 'Já existe um check-in com esse id.' };
   const nota = notaAjustada(c.estrelasAjustadas);
@@ -32,11 +34,16 @@ export async function addCheckin({ repo }, c) {
     id: texto(c.id), data: c.data, jogador_id: jogadorId || null, jogador_nome: texto(c.jogadorNome) || null,
     estrelas: Number(c.estrelas) || 0, sexo: texto(c.sexo) || null, estrelas_ajustadas: nota
   });
+  await aposAdicionarCheckin(deps, c.data); // quem tem crédito de um dia sem jogo já aparece pago
   return { status: 'ok' };
 }
 
-export async function removeCheckin({ repo }, id) {
+export async function removeCheckin(deps, id) {
+  const { repo } = deps;
+  // data e jogador são lidos ANTES de apagar (o gancho precisa deles), como no .gs
+  const alvo = (await repo.lerTudo()).checkins.find((c) => c.id === texto(id));
   if (!(await repo.removerCheckin(texto(id)))) return { error: 'Check-in não encontrado (pode já ter sido desmarcado).' };
+  if (alvo) await aposRemoverCheckin(deps, texto(alvo.data), texto(alvo.jogador_id)); // devolve crédito de quem saiu e sobe a espera
   return { status: 'ok' };
 }
 

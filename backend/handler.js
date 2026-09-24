@@ -14,8 +14,9 @@ import { uploadPhoto } from './fotos.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas } from './checkins.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
-  addLancamento, estornarLancamento
+  addLancamento, estornarLancamento, marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito
 } from './financeiro.js';
+import { comTrava } from './trava.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
 const semLogin = async () => ({ ok: false, erro: 'Login do Google não configurado neste servidor.' });
@@ -23,8 +24,13 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId }) {
-  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId };
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar }) {
+  // gerarDono: dono da trava de gravação (separado de gerarId para não gastar ids de registros); esperar: pausa entre tentativas da trava
+  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar };
+  // trava única 'gravacao' (o LockService do .gs): as ações do financeiro e o check-in (com seus ganchos) nunca se misturam.
+  // As demais gravações (jogadores, rodadas, configurações, fotos) NÃO usam a trava hoje: para incluí-las, é só trocar
+  // `return await acao(...)` por `return await travar(() => acao(...))` no case dela (uma linha por ação).
+  const travar = (fn) => comTrava(deps, 'gravacao', fn);
 
   return {
     async get() {
@@ -65,8 +71,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         if (acao === 'addCheckin' || acao === 'removeCheckin') {
           const token = await verificarToken(b.idToken);
           if (!token.ok) return { error: token.erro };
-          // TODO etapa 4: aqui entram os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_)
-          return acao === 'addCheckin' ? await addCheckin(deps, b.checkin) : await removeCheckin(deps, b.id);
+          // os ganchos do financeiro rodam dentro de addCheckin/removeCheckin, sob a mesma trava
+          return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id)));
         }
 
         // daqui pra baixo é tudo sensível: passa pelo porteiro (chave mestra OU login do Google)
@@ -91,15 +97,18 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
-          // controle financeiro, parte 1 (etapa 4a). marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia e devolverCredito
-          // (e os ganchos do check-in) chegam na 4b e caem no "ainda não disponível" abaixo.
-          case 'salvarFinDia': return await salvarFinDia(deps, b.dia, auth);
-          case 'marcarPagamento': return await marcarPagamento(deps, b.data, b.jogadorId, b.jogadorNome, auth);
-          case 'estornarPagamento': return await estornarPagamento(deps, b.id, auth);
-          case 'marcarTodosPagamentos': return await marcarTodosPagamentos(deps, b.data, auth);
-          case 'estornarTodosPagamentos': return await estornarTodosPagamentos(deps, b.data, auth);
-          case 'addLancamento': return await addLancamento(deps, b.lancamento, auth);
-          case 'estornarLancamento': return await estornarLancamento(deps, b.id, auth);
+          // controle financeiro (etapas 4a e 4b): toda gravação sob a trava 'gravacao'
+          case 'salvarFinDia': return await travar(() => salvarFinDia(deps, b.dia, auth));
+          case 'marcarPagamento': return await travar(() => marcarPagamento(deps, b.data, b.jogadorId, b.jogadorNome, auth));
+          case 'estornarPagamento': return await travar(() => estornarPagamento(deps, b.id, auth));
+          case 'marcarTodosPagamentos': return await travar(() => marcarTodosPagamentos(deps, b.data, auth));
+          case 'estornarTodosPagamentos': return await travar(() => estornarTodosPagamentos(deps, b.data, auth));
+          case 'addLancamento': return await travar(() => addLancamento(deps, b.lancamento, auth));
+          case 'estornarLancamento': return await travar(() => estornarLancamento(deps, b.id, auth));
+          case 'marcarDiaSemJogo': return await travar(() => marcarDiaSemJogo(deps, b.data, b.destino, auth));
+          case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, auth));
+          case 'aplicarCreditosDoDia': return await travar(() => aplicarCreditosDoDia(deps, b.data, auth));
+          case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
           default: return naoDisponivel(acao);
         }
       } catch (erro) {
