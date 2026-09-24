@@ -31,13 +31,25 @@ do Apps Script atual.
   sem jogo) e `finAposRemoverCheckin_` (devolve crédito e sobe a espera) depois de gravar. Aqui não são implementados;
   há um comentário no ponto de chamada em `backend/handler.js`.
 
+- **Check-in de convidado cria o convidado.** O app faz check-in de convidado com um `jogadorId` gerado no navegador
+  (`uid()`) que não existe em `jogadores`; o `.gs` grava qualquer texto. Como a chave estrangeira
+  `checkins.jogador_id` exige o jogador, `addCheckin` cria antes uma linha em `jogadores` (`id = jogadorId`,
+  `nome = jogadorNome`, estrelas/sexo do check-in, `convidado = true`, `removido = false`, `ordem` nula explícita para o
+  banco não aplicar a sequência), no mesmo padrão de `gravar_rodada`. O convidado não aparece em `players`. A checagem
+  usa a lista crua de `jogadores` (inclui arquivados e convidados), então não recria linhas. Se o insert do check-in
+  falhar depois (id repetido), a linha do convidado fica: é inofensiva. `jogadorId` vazio segue gravando FK nula.
+- **Corte (cutover):** `anularOrfaos` em `scripts/migrar-terca-supabase.js` zera o `jogadorId` de check-ins órfãos;
+  na migração definitiva ele deveria criar linhas de convidado para esses ids (não alterado agora).
+
 ## Diferenças conhecidas e aceitas (não cobertas pelo teste diferencial)
 
-- Um `jogadorId` que não existe em `jogadores` é recusado pela chave estrangeira (o `.gs` grava qualquer texto).
 - Um `id` de check-in repetido responde `Já existe um check-in com esse id.` (o `.gs` duplica a linha); um check-in
   sem `id` responde `Check-in sem id.` (o `.gs` grava uma linha que a leitura ignora).
 - `estrelasAjustadas` que não é número responde `Estrelas ajustadas inválidas.` (a coluna é numérica; o `.gs` guarda
   o texto). Em `salvarEstrelasAjustadas` a lista é validada inteira antes de gravar.
+- `estrelasAjustadas` enviado como texto `'0'`: aqui vira o número 0 e é lido de volta como `'0'`; no Sheets real vira o
+  número 0 e é lido de volta como `''`. O app trata `'0'` como uma nota ajustada de 0 estrela de propósito, então o
+  backend novo é, no mínimo, tão fiel quanto o `.gs`.
 - `data` que não é uma data é recusada pelo banco (coluna `date`); o `.gs` guarda qualquer texto.
 - O `GET` diferencial compara tudo **menos o `financeiro`**, porque o `.gs` mexe nas abas do Financeiro por causa dos
   ganchos acima (etapa 4).
@@ -48,6 +60,6 @@ do Apps Script atual.
 - `tests/backend/handler-etapa3b.test.mjs`: token obrigatório, chave mestra sozinha recusada, permissões de
   `salvarEstrelasAjustadas`.
 - `tests/backend/paridade-checkins.test.mjs`: teste diferencial, o `.gs` real na planilha falsa contra o backend novo,
-  24 passos, comparando cada resposta e o `GET` (sem financeiro) depois de cada passo.
+  27 passos, comparando cada resposta e o `GET` (sem financeiro) depois de cada passo.
 - `tests/backend/integracao-etapa3b.mjs`: roda no Supabase real (a sequência de `ordem`, a chave estrangeira) e limpa
   tudo. Só é executado à mão.

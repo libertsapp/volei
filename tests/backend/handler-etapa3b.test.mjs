@@ -43,4 +43,12 @@ await ta('salvarEstrelasAjustadas: jogador é negado, organizador e a chave mest
   assert.deepEqual(await h.post({ action: 'salvarEstrelasAjustadas', senha: 'chave-de-teste', checkins: [] }), { error: 'Lista de check-ins vazia.' });
 });
 
+await ta('addCheckin de convidado (jogadorId novo do navegador): o check-in volta no GET e o convidado não vira jogador', async () => {
+  const h = novo();
+  assert.deepEqual(await h.post({ action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'g1', data: '2026-09-29', jogadorId: 'uid-abc', jogadorNome: 'Visitante', estrelas: 2, sexo: 'F' } }), { status: 'ok' });
+  const g = await h.get();
+  assert.equal(g.checkins.at(-1).jogadorId, 'uid-abc');
+  assert.equal(g.players.some((p) => p.id === 'uid-abc'), false);
+});
+
 fim();

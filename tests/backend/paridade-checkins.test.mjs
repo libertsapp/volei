@@ -86,6 +86,9 @@ const passos = [
   ['salvarEstrelasAjustadas: lista vazia', { action: 'salvarEstrelasAjustadas', idToken: 'tok-b', checkins: [] }],
   ['salvarEstrelasAjustadas: sem a lista', { action: 'salvarEstrelasAjustadas', idToken: 'tok-b' }],
   ['salvarEstrelasAjustadas: só ids inexistentes é ok', { action: 'salvarEstrelasAjustadas', idToken: 'tok-b', checkins: [{ id: 'zzz', estrelasAjustadas: 1 }] }],
+  ['addCheckin: convidado do app (jogadorId gerado que não existe em jogadores)', { action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'g1', data: '2026-10-13', jogadorId: 'uid-k9x2', jogadorNome: 'Visitante', estrelas: 3, sexo: 'M' } }],
+  ['addCheckin: o mesmo convidado em outro dia, com nota ajustada', { action: 'addCheckin', idToken: 'tok-b', checkin: { id: 'g2', data: '2026-10-20', jogadorId: 'uid-k9x2', jogadorNome: 'Visitante', estrelas: 3, sexo: 'M', estrelasAjustadas: 2.5 } }],
+  ['removeCheckin: tira o convidado (o check-in some do GET)', { action: 'removeCheckin', idToken: 'tok-c', id: 'g1' }],
   ['removeCheckin: remove o primeiro, que tinha nota ajustada', { action: 'removeCheckin', idToken: 'tok-a', id: 'k1' }]
 ];
 

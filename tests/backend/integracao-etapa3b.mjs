@@ -1,5 +1,5 @@
 // Exercita, no Supabase REAL, as ações da etapa 3b (check-in) com dados de teste e limpa tudo no fim. Confere também o que
-// só o banco faz: a sequência de "ordem" dos check-ins e a chave estrangeira para jogadores.
+// só o banco faz: a sequência de "ordem" dos check-ins e a criação de convidado quando o jogadorId não existe.
 // Uso: node tests/backend/integracao-etapa3b.mjs   (precisa do .env; as tabelas e sequências vêm dos ajustes anteriores)
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -24,11 +24,13 @@ const admin = (corpo) => h.post({ senha: SENHA, ...corpo });
 
 const P = 'teste-e3b-jogador';
 const K = ['teste-e3b-k1', 'teste-e3b-k2', 'teste-e3b-k3'];
+const G = 'teste-e3b-convidado'; // jogadorId que não existe: vira convidado
+const KG = 'teste-e3b-kg';
 const DIA = '2099-01-05';
 
 async function limpar() {
-  await cliente.from('checkins').delete().in('id', K);
-  await cliente.from('jogadores').delete().eq('id', P);
+  await cliente.from('checkins').delete().in('id', [...K, KG]);
+  await cliente.from('jogadores').delete().in('id', [P, G]);
 }
 const doTeste = (g) => g.checkins.filter((c) => K.includes(c.id));
 
@@ -74,16 +76,20 @@ try {
     assert.deepEqual(await admin({ action: 'salvarEstrelasAjustadas', checkins: [] }), { error: 'Lista de check-ins vazia.' });
   });
 
-  await ta('jogador desconhecido é recusado pela chave estrangeira e nada é gravado', async () => {
-    const r = await logado({ action: 'addCheckin', checkin: { id: 'teste-e3b-fk', data: DIA, jogadorId: 'jogador-que-nao-existe' } });
-    assert.ok(r.error && /foreign key|violates/i.test(r.error), 'esperava erro de chave estrangeira, veio ' + JSON.stringify(r));
-    assert.ok(!(await h.get()).checkins.some((c) => c.id === 'teste-e3b-fk'));
+  await ta('jogadorId desconhecido (convidado do app) cria o convidado sem ordem; o check-in fica e o convidado não vira player', async () => {
+    const r = await logado({ action: 'addCheckin', checkin: { id: KG, data: DIA, jogadorId: G, jogadorNome: 'Convidado Teste 3b', estrelas: 3, sexo: 'M' } });
+    assert.deepEqual(r, { status: 'ok' });
+    const { data } = await cliente.from('jogadores').select('nome, convidado, removido, ordem').eq('id', G);
+    assert.deepEqual(data[0], { nome: 'Convidado Teste 3b', convidado: true, removido: false, ordem: null });
+    const g = await h.get();
+    assert.equal(g.checkins.at(-1).jogadorId, G);
+    assert.ok(!g.players.some((p) => p.id === G));
   });
 } finally {
   await limpar();
   const g = await h.get();
-  const { data: sobra } = await cliente.from('jogadores').select('id').eq('id', P);
-  console.log('limpeza: check-ins', antes, '->', g.checkins.length, '| jogador de teste restante:', sobra.length,
+  const { data: sobra } = await cliente.from('jogadores').select('id').in('id', [P, G]);
+  console.log('limpeza: check-ins', antes, '->', g.checkins.length, '| jogadores de teste restantes:', sobra.length,
     g.checkins.length === antes && sobra.length === 0 ? '(banco como estava)' : '(ATENÇÃO: diferente!)');
 }
 fim();
