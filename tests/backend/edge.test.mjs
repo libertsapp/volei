@@ -58,7 +58,7 @@ await ta('POST sem Origin ou com Origin não permitida: 403 e o handler não é 
 });
 
 await ta('POST de origem permitida com text/plain: corpo vira objeto, resposta com CORS, no-store e IP no contexto', async () => {
-  const r = await edge(req('POST', { headers: { origin: LOCAL, 'content-type': 'text/plain;charset=UTF-8', 'x-forwarded-for': '1.2.3.4, 10.0.0.1' }, corpo: '{"action":"ping","n":"ção"}' }));
+  const r = await edge(req('POST', { headers: { origin: LOCAL, 'content-type': 'text/plain;charset=UTF-8', 'cf-connecting-ip': '1.2.3.4', 'x-forwarded-for': '9.9.9.9' }, corpo: '{"action":"ping","n":"ção"}' }));
   assert.equal(r.status, 200);
   assert.deepEqual(await json(r), { eco: { action: 'ping', n: 'ção' } });
   assert.equal(r.headers.get('access-control-allow-origin'), LOCAL);
@@ -99,7 +99,7 @@ await ta('JSON inválido, string, número, array e null: 400 "Corpo inválido.";
 await ta('exceção do handler (get e post): 500 genérico, sem vazar mensagem nem stack, com no-store e CORS', async () => {
   const registrados = [];
   const e = criarEdge({ handler, origensPermitidas: [GH], registrar: (x) => registrados.push(x.message) });
-  let r = await e(req('POST', { headers: { origin: GH }, corpo: '{"explodir":1}' }));
+  let r = await e(req('POST', { headers: { origin: GH, 'cf-connecting-ip': '1.1.1.1' }, corpo: '{"explodir":1}' }));
   assert.equal(r.status, 500);
   const texto = await r.text();
   assert.equal(texto, JSON.stringify({ error: 'Erro interno no servidor.' }));
@@ -129,10 +129,20 @@ await ta('sem origens configuradas, nenhum POST passa; barra final na lista é t
   assert.equal((await barra(req('POST', { headers: { origin: GH }, corpo: '{}' }))).status, 200);
 });
 
-await ta('ipDoCliente: cf-connecting-ip primeiro, depois 1º salto do x-forwarded-for, senão "desconhecido"', async () => {
+await ta('ipDoCliente usa SÓ cf-connecting-ip; x-forwarded-for é ignorado (o cliente poderia forjá-lo)', async () => {
   assert.equal(ipDoCliente(new Headers({ 'cf-connecting-ip': '9.9.9.9', 'x-forwarded-for': '1.1.1.1' })), '9.9.9.9');
-  assert.equal(ipDoCliente(new Headers({ 'x-forwarded-for': ' 1.1.1.1 , 2.2.2.2' })), '1.1.1.1');
-  assert.equal(ipDoCliente(new Headers()), 'desconhecido');
+  assert.equal(ipDoCliente(new Headers({ 'x-forwarded-for': ' 1.1.1.1 , 2.2.2.2' })), '');
+  assert.equal(ipDoCliente(new Headers()), '');
+});
+
+await ta('sem cf-connecting-ip: balde "desconhecido" e um aviso só por instância (registrar)', async () => {
+  const ctxs = [];
+  const avisos = [];
+  const e = criarEdge({ handler: { get: async () => ({}), post: async (b, ctx) => { ctxs.push(ctx); return {}; } }, origensPermitidas: [GH], registrar: (x) => avisos.push(x.message) });
+  for (let i = 0; i < 3; i++) await e(req('POST', { headers: { origin: GH, 'x-forwarded-for': '6.6.6.6' }, corpo: '{}' }));
+  await e(req('POST', { headers: { origin: GH, 'cf-connecting-ip': '7.7.7.7' }, corpo: '{}' }));
+  assert.deepEqual(ctxs.map((c) => c.ip), ['desconhecido', 'desconhecido', 'desconhecido', '7.7.7.7']);
+  assert.deepEqual(avisos, ['cf-connecting-ip ausente: limitador usando balde único']);
 });
 
 fim();

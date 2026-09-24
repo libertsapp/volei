@@ -11,13 +11,10 @@
 //  - Nada de stack ou mensagem interna nas respostas 500.
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 
-// IP do cliente para o limitador de tentativas. cf-connecting-ip vem primeiro porque o proxy da Cloudflare o sobrescreve
-// (o cliente não consegue forjar); x-forwarded-for é só reserva e, como o cliente pode escrever no começo dele, é o mais fraco.
+// IP do cliente para o limitador de tentativas: SÓ o cf-connecting-ip (o proxy da Cloudflare o sobrescreve; o cliente não consegue
+// forjar). x-forwarded-for NÃO é usado: o cliente pode escrever nele e fugiria do bloqueio trocando de "IP". Sem o cabeçalho devolve ''.
 export function ipDoCliente(headers) {
-  const cf = (headers.get('cf-connecting-ip') || '').trim();
-  if (cf) return cf;
-  const primeiro = (headers.get('x-forwarded-for') || '').split(',')[0].trim();
-  return primeiro || 'desconhecido';
+  return (headers.get('cf-connecting-ip') || '').trim();
 }
 
 // lê o corpo respeitando o limite; devolve null se passou dele (sem guardar mais do que o limite)
@@ -42,12 +39,22 @@ async function lerCorpoLimitado(request, limite) {
 export function criarEdge({ handler, origensPermitidas = [], limiteCorpoBytes = 600 * 1024, registrar = () => {} }) {
   const permitidas = new Set((origensPermitidas || []).map((o) => String(o).trim().replace(/\/+$/, '')).filter(Boolean));
   const origemOk = (o) => !!o && permitidas.has(o);
+  let avisouSemIp = false; // avisa uma vez por instância
 
   return async function atender(request) {
     const origem = request.headers.get('origin');
     // CORS só para origem da lista; para as outras nenhum cabeçalho (o navegador bloqueia a leitura)
     const cors = origemOk(origem) ? { 'access-control-allow-origin': origem, vary: 'Origin' } : { vary: 'Origin' };
     const responder = (status, objeto, extra = {}) => new Response(JSON.stringify(objeto), { status, headers: { ...JSON_HEADERS, ...cors, ...extra } });
+
+    // sem cf-connecting-ip todos caem num balde único 'desconhecido' (limita, mas um atacante trancaria a chave mestra de todos;
+    // o login do Google segue valendo). Avisa uma vez para o operador perceber.
+    const ipParaLimitador = (headers) => {
+      const ip = ipDoCliente(headers);
+      if (ip) return ip;
+      if (!avisouSemIp) { avisouSemIp = true; try { registrar(new Error('cf-connecting-ip ausente: limitador usando balde único')); } catch { /* nada */ } }
+      return 'desconhecido';
+    };
 
     try {
       if (request.method === 'OPTIONS') {
@@ -74,7 +81,7 @@ export function criarEdge({ handler, origensPermitidas = [], limiteCorpoBytes = 
         let corpo;
         try { corpo = JSON.parse(texto || '{}'); } catch { return responder(400, { error: 'Corpo inválido.' }); }
         if (corpo === null || typeof corpo !== 'object' || Array.isArray(corpo)) return responder(400, { error: 'Corpo inválido.' });
-        return responder(200, await handler.post(corpo, { ip: ipDoCliente(request.headers) }));
+        return responder(200, await handler.post(corpo, { ip: ipParaLimitador(request.headers) }));
       }
 
       return responder(405, { error: 'Método não permitido.' }, { allow: 'GET,POST,OPTIONS' });
