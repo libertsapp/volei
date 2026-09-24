@@ -89,4 +89,31 @@ await ta('gravarUsuario: usuário novo sem ordem recebe a ordem do banco (máxim
   assert.equal((await r.lerUsuarios()).find((u) => u.email === 'n@exemplo.com').ordem, 4);
 });
 
+await ta('inserirCheckin: entra no fim com ordem do banco; id repetido e jogador inexistente falham nomeando a tabela', async () => {
+  const r = repo();
+  await r.inserirCheckin({ id: 'c9', data: '2026-09-29', jogador_id: 'p1', jogador_nome: 'Ana', estrelas: 4, sexo: 'F', estrelas_ajustadas: null });
+  await r.inserirCheckin({ id: 'c10', data: '2026-09-29', jogador_id: null, jogador_nome: 'Sem cadastro', estrelas: 0, sexo: null, estrelas_ajustadas: null });
+  const t = (await r.lerTudo()).checkins;
+  assert.equal(t.find((c) => c.id === 'c9').ordem, 4); // o maior da fixture é 3
+  assert.equal(t.find((c) => c.id === 'c10').ordem, 5);
+  await assert.rejects(() => r.inserirCheckin({ id: 'c9', data: '2026-09-29' }), /checkins.*duplicate key/);
+  await assert.rejects(() => r.inserirCheckin({ id: 'c11', data: '2026-09-29', jogador_id: 'zzz' }), /checkins.*foreign key/);
+  assert.equal((await r.lerTudo()).checkins.length, 5);
+});
+
+await ta('removerCheckin: true se apagou, false se não havia', async () => {
+  const r = repo();
+  assert.equal(await r.removerCheckin('c2'), true);
+  assert.equal(await r.removerCheckin('c2'), false);
+  assert.deepEqual((await r.lerTudo()).checkins.map((c) => c.id).sort(), ['c1', 'c3']);
+});
+
+await ta('atualizarCheckin: muda só os campos enviados e diz se achou a linha', async () => {
+  const r = repo();
+  assert.equal(await r.atualizarCheckin('c1', { estrelas_ajustadas: 2.5 }), true);
+  const c1 = (await r.lerTudo()).checkins.find((c) => c.id === 'c1');
+  assert.deepEqual({ a: c1.estrelas_ajustadas, n: c1.jogador_nome, o: c1.ordem }, { a: 2.5, n: 'Ana', o: 1 });
+  assert.equal(await r.atualizarCheckin('nao-existe', { estrelas_ajustadas: 1 }), false);
+});
+
 fim();

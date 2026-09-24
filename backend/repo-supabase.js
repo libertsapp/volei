@@ -58,6 +58,21 @@ export function criarRepoSupabase(cliente) {
       const { error } = await cliente.from('jogadores').update(campos).eq('id', id);
       if (error) throw new Error('jogadores: ' + error.message);
     },
+    // check-ins: "ordem" não é enviada, vem do padrão (sequência) do banco; a chave estrangeira também é do banco
+    async inserirCheckin(linha) {
+      const { error } = await cliente.from('checkins').insert(linha);
+      if (error) throw new Error('checkins: ' + error.message);
+    },
+    async removerCheckin(id) {
+      const { data, error } = await cliente.from('checkins').delete().eq('id', id).select('id');
+      if (error) throw new Error('checkins: ' + error.message);
+      return data.length > 0;
+    },
+    async atualizarCheckin(id, campos) {
+      const { data, error } = await cliente.from('checkins').update(campos).eq('id', id).select('id');
+      if (error) throw new Error('checkins: ' + error.message);
+      return data.length > 0;
+    },
     async lerConfig() { return lerTabela(cliente, 'config'); },
     async gravarConfig(pares) {
       const { error } = await cliente.from('config').upsert(pares);

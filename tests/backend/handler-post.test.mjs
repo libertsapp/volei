@@ -72,10 +72,10 @@ await ta('ação da matriz ainda não portada: passa pelo porteiro e depois avis
   assert.deepEqual(await h.post({ action: 'marcarPagamento', idToken: 'tok-c' }), { error: 'Seu perfil (jogador) não tem permissão para esta ação.' });
 });
 
-await ta('addCheckin/removeCheckin: só validam o token e depois avisam', async () => {
+await ta('addCheckin/removeCheckin: só validam o token (a ação em si é testada em handler-etapa3b)', async () => {
   const h = handler();
   assert.deepEqual(await h.post({ action: 'addCheckin' }), { error: 'Sem token de login. Entre com sua conta Google.' });
-  assert.deepEqual(await h.post({ action: 'removeCheckin', idToken: 'tok-c' }), { error: 'Esta ação ainda não está disponível na versão Supabase (removeCheckin).' });
+  assert.deepEqual(await h.post({ action: 'removeCheckin', idToken: 'tok-c', id: 'nao-existe' }), { error: 'Check-in não encontrado (pode já ter sido desmarcado).' });
 });
 
 await ta('lerAoVivo: leitura pública, vazia hoje', async () => {

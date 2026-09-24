@@ -10,6 +10,7 @@ import {
 import { addPlayer, updatePlayer, removePlayer } from './jogadores.js';
 import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
+import { addCheckin, removeCheckin, salvarEstrelasAjustadas } from './checkins.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
 const semLogin = async () => ({ ok: false, erro: 'Login do Google não configurado neste servidor.' });
@@ -55,11 +56,12 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         if (acao === 'loginGoogle') return await loginGoogle(deps, b);
         if (acao === 'bootstrapAdmin') return await bootstrapAdmin(deps, b);
 
-        // check-in não pede senha nem perfil, só login (a ação em si chega na etapa 3)
+        // check-in não pede senha nem perfil, só login (a chave mestra sozinha NÃO vale, como no .gs)
         if (acao === 'addCheckin' || acao === 'removeCheckin') {
           const token = await verificarToken(b.idToken);
           if (!token.ok) return { error: token.erro };
-          return naoDisponivel(acao);
+          // TODO etapa 4: aqui entram os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_)
+          return acao === 'addCheckin' ? await addCheckin(deps, b.checkin) : await removeCheckin(deps, b.id);
         }
 
         // daqui pra baixo é tudo sensível: passa pelo porteiro (chave mestra OU login do Google)
@@ -82,6 +84,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'removeRound': return await removeRound(deps, b.id);
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
+          case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
           default: return naoDisponivel(acao);
         }
       } catch (erro) {

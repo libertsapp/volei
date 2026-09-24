@@ -57,6 +57,28 @@ export function criarRepoMemoria(dados = {}) {
       tabelas.jogadores[i] = { ...tabelas.jogadores[i], ...campos };
     },
 
+    // check-ins: a chave estrangeira para jogadores é validada aqui como o SQL faz; "ordem" vem do padrão do banco
+    async inserirCheckin(linha) {
+      if (tabelas.checkins.some((c) => c.id === linha.id)) {
+        throw new Error('checkins: duplicate key value violates unique constraint "checkins_pkey"');
+      }
+      if (linha.jogador_id != null && !tabelas.jogadores.some((j) => j.id === linha.jogador_id)) {
+        throw new Error('checkins: insert or update on table "checkins" violates foreign key constraint "checkins_jogador_id_fkey"');
+      }
+      inserir('checkins', linha);
+    },
+    async removerCheckin(id) {
+      const antes = tabelas.checkins.length;
+      tabelas.checkins = tabelas.checkins.filter((c) => c.id !== id);
+      return tabelas.checkins.length < antes;
+    },
+    async atualizarCheckin(id, campos) {
+      const i = tabelas.checkins.findIndex((c) => c.id === id);
+      if (i === -1) return false;
+      tabelas.checkins[i] = { ...tabelas.checkins[i], ...campos };
+      return true;
+    },
+
     async lerConfig() { return structuredClone(tabelas.config); },
     async gravarConfig(pares) {
       for (const par of pares) {
