@@ -7,7 +7,7 @@
   "scripts": {
     "migrar": "node scripts/migrar-terca-supabase.js",
     "servidor": "node backend/servidor-local.js",
-    "test:backend": "node tests/backend/mapeadores.test.mjs && node tests/backend/handler.test.mjs && node tests/backend/paridade-get.test.mjs"
+    "test:backend": "node tests/backend/mapeadores.test.mjs && node tests/backend/handler.test.mjs && node tests/backend/handler-post.test.mjs && node tests/backend/auth.test.mjs && node tests/backend/permissoes.test.mjs && node tests/backend/repo.test.mjs && node tests/backend/usuarios.test.mjs && node tests/backend/servidor.test.mjs && node tests/backend/paridade-get.test.mjs && node tests/backend/paridade-usuarios.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",
