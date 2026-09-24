@@ -25,9 +25,10 @@ await ta('post incrementarAcesso: devolve o contador atual (leitura; gravar é d
 });
 
 await ta('post de ação ainda não portada: erro claro com o nome da ação', async () => {
-  const r = await handler().post({ action: 'addCheckin' });
+  const h = criarHandler({ repo: criarRepoMemoria(fixture), config: { adminPassword: 'chave-de-teste' } });
+  const r = await h.post({ action: 'addPlayer', senha: 'chave-de-teste' });
   assert.match(r.error, /ainda não está disponível/);
-  assert.match(r.error, /addCheckin/);
+  assert.match(r.error, /addPlayer/);
 });
 
 fim();
