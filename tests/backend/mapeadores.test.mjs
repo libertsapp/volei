@@ -86,4 +86,11 @@ t('financeiro.log: mais recente primeiro, sem e-mail, detalhe como texto, no má
   assert.equal(f2.log[0].detalhe, '');
 });
 
+t('jogadores: arquivados (removido) não aparecem em players', () => {
+  const dados = structuredClone(fixture.jogadores).concat([
+    { id: 'p9', nome: 'Saiu', apelido: null, foto: null, estrelas: 3, sexo: 'M', porte: 'M', convidado: false, removido: true, ordem: 9 }
+  ]);
+  assert.deepEqual(mapearJogadores(dados).map((p) => p.id), ['p1', 'p2']);
+});
+
 fim();

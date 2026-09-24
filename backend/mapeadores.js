@@ -21,7 +21,7 @@ export const porOrdem = (a, b) => {
 
 export function mapearJogadores(jogadores) {
   return jogadores
-    .filter((j) => !j.convidado)
+    .filter((j) => !j.convidado && !j.removido)
     .slice().sort(porOrdem)
     .map((j) => ({
       id: texto(j.id), nome: texto(j.nome), apelido: texto(j.apelido), foto: texto(j.foto),
