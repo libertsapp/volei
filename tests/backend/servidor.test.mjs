@@ -94,6 +94,18 @@ await ta('HTML sem a linha SHEET_API_URL: o servidor recusa nascer', async () =>
   assert.throws(() => criarServidor({ handler, arquivoHtml: ruim }), /SHEET_API_URL/);
 });
 
+await ta('urlApi (BACKEND_URL): a página servida aponta para o backend remoto; sem ela, para o /api local', async () => {
+  const remoto = criarServidor({ handler, arquivoHtml, urlApi: 'https://abc.supabase.co/functions/v1/terca-api-teste' });
+  await new Promise((ok) => remoto.listen(0, '127.0.0.1', ok));
+  const porta2 = remoto.address().port;
+  const texto = await new Promise((resolve) => http.get({ host: '127.0.0.1', port: porta2, path: '/' }, (res) => { let t = ''; res.on('data', (d) => (t += d)); res.on('end', () => resolve(t)); }));
+  remoto.close();
+  assert.ok(texto.includes('const SHEET_API_URL = "https://abc.supabase.co/functions/v1/terca-api-teste";'));
+  assert.ok((await pedir({ caminho: '/' })).texto.includes('SHEET_API_URL = "http://localhost:' + porta + '/api"'));
+  assert.throws(() => criarServidor({ handler, arquivoHtml, urlApi: 'javascript:alert(1)' }), /BACKEND_URL inválida/);
+  assert.throws(() => criarServidor({ handler, arquivoHtml, urlApi: 'https://x.com/"; evil("' }), /BACKEND_URL inválida/);
+});
+
 servidor.close();
 fs.rmSync(pasta, { recursive: true, force: true });
 fim();

@@ -1,6 +1,7 @@
 // Lançador do servidor local do Terça sobre o Supabase. Lê o .env, monta o handler de verdade e sobe em 127.0.0.1.
 // Uso: node backend/servidor-local.js [porta]      (padrão 8000: a origem autorizada no Client ID do Google)
 //   HTML_TERCA=<caminho do volei-dashboard.html>    (padrão: o da raiz do repositório)
+//   BACKEND_URL=<url da Edge Function>              (opcional: a página local passa a falar com ela em vez do /api local)
 // A service_role, a chave mestra e o Client ID ficam só neste processo; nada disso vai para o navegador.
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -34,4 +35,4 @@ const handler = criarHandler({
   avisar: (...a) => console.error(...a) // erros engolidos (ganchos do check-in, trava) ficam visíveis no terminal
 });
 
-criarServidor({ handler, arquivoHtml }).listen(porta, '127.0.0.1', () => console.log('Terça (Supabase) em http://localhost:' + porta));
+criarServidor({ handler, arquivoHtml, urlApi: process.env.BACKEND_URL || undefined }).listen(porta, '127.0.0.1', () => console.log('Terça (Supabase) em http://localhost:' + porta + (process.env.BACKEND_URL ? ' (página falando com o backend remoto configurado em BACKEND_URL)' : '')));

@@ -31,7 +31,9 @@ async function lerCorpo(req) {
   return Buffer.concat(pedacos).toString('utf8');
 }
 
-export function criarServidor({ handler, arquivoHtml }) {
+// urlApi (opcional): endereço de um backend remoto (a Edge Function). Se vier, a página servida fala com ele em vez de /api local.
+export function criarServidor({ handler, arquivoHtml, urlApi }) {
+  if (urlApi !== undefined && !/^https?:\/\/[^\s"'\<>]+$/.test(urlApi)) throw new Error('BACKEND_URL inválida (esperado http(s)://... sem espaços nem aspas).');
   // confere já na criação: se o HTML foi reformatado e a URL não puder ser reescrita, a página falaria com a PRODUÇÃO
   if (!REGEX_URL_API.test(fs.readFileSync(arquivoHtml, 'utf8'))) {
     throw new Error('Não achei a linha "const SHEET_API_URL = ..." no HTML; recusando iniciar (a página apontaria para a produção).');
@@ -61,7 +63,7 @@ export function criarServidor({ handler, arquivoHtml }) {
       if (caminho !== '/') return recusar(404);
 
       const original = fs.readFileSync(arquivoHtml, 'utf8');
-      const comUrl = original.replace(REGEX_URL_API, 'const SHEET_API_URL = "http://localhost:' + porta + '/api";');
+      const comUrl = original.replace(REGEX_URL_API, () => 'const SHEET_API_URL = "' + (urlApi || 'http://localhost:' + porta + '/api') + '";');
       if (comUrl === original) throw new Error('Não achei a linha "const SHEET_API_URL = ..." no HTML; recusando servir a página (ela apontaria para a produção).');
       const html = comUrl.replace('</body>', INJECAO + '</body>');
       if (html === comUrl) throw new Error('Não achei a tag </body> no HTML; recusando servir a página sem a injeção.');
