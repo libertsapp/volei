@@ -55,5 +55,15 @@ export function dbParaAbas(fx) {
   abas.FinLog = [['timestamp', 'nome', 'email', 'acao', 'detalhe'],
     ...fx.fin_log.slice().sort((a, b) => a.id - b.id).map((l) => [iso(l.timestamp), vazio(l.nome), vazio(l.email), vazio(l.acao), detalhe(l.detalhe)])];
 
+  // Ao Vivo: só entra se o cenário tem linhas (senão a aba nasce sozinha na primeira transmissão, como no .gs de verdade)
+  if (fx.ao_vivo.length) {
+    abas.AoVivo = [['roundId', 'data', 'timeIndex', 'timeNome', 'jogadores', 'vitorias', 'iniciadoEm', 'duracaoMinutos'],
+      ...fx.ao_vivo.slice().sort((a, b) => a.id - b.id).map((a) => [a.round_id, vazio(a.data), a.time_index, vazio(a.time_nome), vazio(a.jogadores), a.vitorias, iso(a.iniciado_em), vazio(a.duracao_minutos)])];
+  }
+  if (fx.ao_vivo_log.length) {
+    abas.AoVivoLog = [['roundId', 'timeIndex', 'timeNome', 'delta', 'timestamp'],
+      ...fx.ao_vivo_log.slice().sort((a, b) => a.id - b.id).map((a) => [a.round_id, a.time_index, vazio(a.time_nome), a.delta, iso(a.timestamp)])];
+  }
+
   return abas;
 }
