@@ -140,14 +140,10 @@ export function criarRepoSupabase(cliente) {
     },
     // ---- limite de tentativas da chave mestra (funções do sql/schema-terca-supabase-ajuste-7.sql). Erro aqui NÃO libera a senha:
     // sobe e o handler responde com erro (falha fechada) ----
-    async tentativaBloqueada(chave) {
-      const { data, error } = await cliente.rpc('tentativa_bloqueada', { p_chave: chave });
-      if (error) throw new Error('tentativa_bloqueada: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-7.sql no SQL Editor do Supabase)');
+    async registrarTentativa(chave, max, janelaSeg, bloqueioSeg) {
+      const { data, error } = await cliente.rpc('registrar_tentativa', { p_chave: chave, p_max: max, p_janela_seg: janelaSeg, p_bloqueio_seg: bloqueioSeg });
+      if (error) throw new Error('registrar_tentativa: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-7.sql no SQL Editor do Supabase)');
       return data === true;
-    },
-    async registrarFalha(chave, max, bloqueioSeg) {
-      const { error } = await cliente.rpc('registrar_falha', { p_chave: chave, p_max: max, p_bloqueio_seg: bloqueioSeg });
-      if (error) throw new Error('registrar_falha: ' + error.message);
     },
     async limparFalhas(chave) {
       const { error } = await cliente.rpc('limpar_falhas', { p_chave: chave });

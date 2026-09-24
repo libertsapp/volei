@@ -12,7 +12,7 @@ const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', '
 export function criarRepoMemoria(dados = {}, opcoes = {}) {
   const agoraMs = opcoes.agora || (() => Date.now());
   const travas = new Map(); // nome -> { dono, expira } (na memória; no banco é a tabela "travas", ajuste 5)
-  const tentativas = new Map(); // chave -> { falhas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
+  const tentativas = new Map(); // chave -> { tentativas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -160,20 +160,17 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       if (t && t.dono === dono) travas.delete(nome);
     },
 
-    // ---- limite de tentativas da chave mestra (ajuste 7). Mesma regra das funções do Postgres; o relógio é o mesmo da trava ----
-    async tentativaBloqueada(chave) {
-      const t = tentativas.get(chave);
-      return !!(t && t.bloqueadoAte && t.bloqueadoAte > agoraMs());
-    },
-    async registrarFalha(chave, max, bloqueioSeg) {
+    // ---- limite de tentativas da chave mestra (ajuste 7). Mesma regra da função registrar_tentativa do Postgres; o relógio é o da trava.
+    // O corpo é SÍNCRONO de propósito (sem await entre ler e gravar): é a atomicidade que o banco garante com um comando só ----
+    async registrarTentativa(chave, max, janelaSeg, bloqueioSeg) {
       const agora = agoraMs();
       const t = tentativas.get(chave);
-      // recomeça se a última falha saiu da janela ou se o bloqueio anterior já acabou
-      const zerar = !t || t.atualizado < agora - bloqueioSeg * 1000 || (t.bloqueadoAte && t.bloqueadoAte < agora);
-      const falhas = zerar ? 1 : t.falhas + 1;
-      let bloqueadoAte = zerar ? null : t.bloqueadoAte;
-      if (falhas >= max) bloqueadoAte = agora + bloqueioSeg * 1000;
-      tentativas.set(chave, { falhas, bloqueadoAte, atualizado: agora });
+      if (t && t.bloqueadoAte && t.bloqueadoAte > agora) return false;
+      const zerar = !t || t.atualizado < agora - janelaSeg * 1000 || (t.bloqueadoAte && t.bloqueadoAte <= agora);
+      const n = zerar ? 1 : t.tentativas + 1;
+      const bloqueadoAte = n > max ? agora + bloqueioSeg * 1000 : null;
+      tentativas.set(chave, { tentativas: n, bloqueadoAte, atualizado: agora });
+      return bloqueadoAte === null;
     },
     async limparFalhas(chave) { tentativas.delete(chave); },
 
