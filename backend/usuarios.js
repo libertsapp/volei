@@ -41,8 +41,8 @@ async function gravar(repo, relogio, u) {
   if (atual) {
     await repo.gravarUsuario({ ...linha, email: atual.email });
   } else {
-    const maior = brutos.reduce((m, x) => Math.max(m, x.ordem ?? 0), 0);
-    await repo.gravarUsuario({ ...linha, email, criado_em: relogio().toISOString(), ordem: maior + 1 });
+    // a "ordem" da linha nova vem do banco (sequência); no repositório em memória é máximo + 1
+    await repo.gravarUsuario({ ...linha, email, criado_em: relogio().toISOString() });
   }
 }
 

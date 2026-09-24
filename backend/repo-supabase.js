@@ -49,6 +49,29 @@ export function criarRepoSupabase(cliente) {
     async removerUsuario(email) {
       const { error } = await cliente.from('usuarios').delete().eq('email', email);
       if (error) throw new Error('usuarios: ' + error.message);
+    },
+    async inserirJogador(linha) {
+      const { error } = await cliente.from('jogadores').insert(linha);
+      if (error) throw new Error('jogadores: ' + error.message);
+    },
+    async atualizarJogador(id, campos) {
+      const { error } = await cliente.from('jogadores').update(campos).eq('id', id);
+      if (error) throw new Error('jogadores: ' + error.message);
+    },
+    async lerConfig() { return lerTabela(cliente, 'config'); },
+    async gravarConfig(pares) {
+      const { error } = await cliente.from('config').upsert(pares);
+      if (error) throw new Error('config: ' + error.message);
+    },
+    // a rodada inteira é gravada por uma função do banco (uma transação só); ver sql/schema-terca-supabase-ajuste-3.sql
+    async gravarRodada(r) {
+      const { error } = await cliente.rpc('gravar_rodada', { p: r });
+      if (error) throw new Error('gravar_rodada: ' + error.message);
+    },
+    async removerRodada(id) {
+      const { data, error } = await cliente.rpc('remover_rodada', { p_id: id });
+      if (error) throw new Error('remover_rodada: ' + error.message);
+      return data === true;
     }
   };
 }
