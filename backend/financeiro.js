@@ -83,7 +83,9 @@ export async function aplicarCreditos(deps, data, auth) {
   const t = await repo.lerTudo();
   const dia = diaDe(t, data);
   if (!dia || statusDia(dia.status) === 'semjogo' || !(num(dia.valor_pessoa) > 0)) return 0;
-  const ativos = creditos(t).filter((c) => c.status === 'ativo' && c.dataOrigem < data);
+  // crédito sem jogador (chave estrangeira nula lida como '') nunca paga por ninguém: sem isto pagaria um check-in sem cadastro
+  // (diferença deliberada: o .gs casaria '' com '')
+  const ativos = creditos(t).filter((c) => c.status === 'ativo' && c.dataOrigem < data && c.jogadorId !== '');
   if (!ativos.length) return 0;
   const dentro = checkinsDoDia(t, data).slice(0, vagasDe(t));
   if (!dentro.length) return 0;
@@ -97,7 +99,7 @@ export async function aplicarCreditos(deps, data, auth) {
   const em = agora(deps);
   for (const c of dentro) {
     const jid = String(c.jogadorId);
-    if (pagos[jid]) continue;
+    if (jid === '' || pagos[jid]) continue; // check-in sem cadastro não recebe crédito
     const cred = ativos.find((k) => k.jogadorId === jid && saldo[k.id] >= valorC); // o mais antigo com saldo suficiente
     if (!cred) continue;
     saldo[cred.id] -= valorC;
@@ -158,12 +160,27 @@ export async function marcarPagamento(deps, data, jogadorId, jogadorNome, auth) 
   return ok(deps);
 }
 
+// Autocura do estorno: pagamento em dinheiro JÁ estornado cujo crédito de origem continua ativo e sem uso (a regra "sem uso" é a
+// do caminho normal). Fecha o crédito como devolvido e loga como o caminho normal; sem nada a curar, não faz nada.
+async function curarCredito(deps, t, r, auth) {
+  if (tipoPag(r.tipo) !== 'dinheiro') return;
+  const cr = creditos(t).find((c) => c.origemPagamentoId === texto(r.id) && c.status === 'ativo');
+  if (!cr || saldoCreditoCentavos(cr, pagamentos(t)) < Math.round(cr.valor * 100)) return;
+  if (!(await deps.repo.encerrarFinCredito(cr.id, 'devolvido', { por: nomeDe(auth), em: agora(deps) }))) return;
+  const data = texto(r.data);
+  const naLista = estaEntreConfirmados(t, data, texto(r.jogador_id));
+  await log(deps, auth, 'estornarPagamento', { data, jogadorId: texto(r.jogador_id), jogadorNome: texto(r.jogador_nome), valor: num(r.valor),
+    motivo: naLista ? 'correção de marcação' : 'pessoa fora da lista', creditoDevolvido: cr.id });
+}
+
 export async function estornarPagamento(deps, id, auth) {
   const { repo } = deps;
   const t = await repo.lerTudo();
   const r = pagamentos(t).find((p) => texto(p.id) === String(id));
   if (!r) return { error: 'Pagamento não encontrado.' };
-  if (!ehValido(r)) return ok(deps); // já estornado
+  // já estornado: resposta igual à do .gs, mas cura uma falha anterior no meio da sequência (pagamento estornado e crédito
+  // ainda ativo = o mesmo dinheiro contado duas vezes); só escreve algo se realmente havia crédito a fechar
+  if (!ehValido(r)) { await curarCredito(deps, t, r, auth); return ok(deps); }
   const data = texto(r.data);
   const tipo = tipoPag(r.tipo);
   const naLista = estaEntreConfirmados(t, data, texto(r.jogador_id));
@@ -182,7 +199,7 @@ export async function estornarPagamento(deps, id, auth) {
   }
   const quando = { por: nomeDe(auth), em: agora(deps) };
   // primeiro o estorno condicional do pagamento: se outro pedido chegou antes, este vira "já estornado" e não mexe no crédito nem no log
-  if (!(await repo.estornarFinPagamento(texto(r.id), quando))) return ok(deps);
+  if (!(await repo.estornarFinPagamento(texto(r.id), quando))) { await curarCredito(deps, await repo.lerTudo(), r, auth); return ok(deps); }
   let creditoDevolvido = '';
   if (cr) {
     await repo.encerrarFinCredito(cr.id, 'devolvido', quando);

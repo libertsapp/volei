@@ -42,16 +42,21 @@ async function contagens() {
 // apaga só o que este teste criou: tudo com data de teste, os lançamentos de teste, o log das ações de teste e o jogador
 async function limpar() {
   const datas = [DIA, DIA2];
-  // créditos primeiro (referenciam pagamentos); pagamentos por crédito referenciam créditos: soltar antes de apagar
-  await cliente.from('fin_pagamentos').update({ credito_id: null }).in('data', datas);
-  await cliente.from('fin_creditos').delete().in('data_origem', datas);
-  await cliente.from('fin_pagamentos').delete().in('data', datas);
-  await cliente.from('fin_dias').delete().in('data', datas);
-  await cliente.from('fin_lancamentos').delete().in('data', datas);
-  await cliente.from('fin_log').delete().eq('email', 'teste-e4a@exemplo.com');
-  await cliente.from('fin_log').delete().eq('nome', 'Chave mestra').like('detalhe->>texto', '%' + DIA + '%');
-  await cliente.from('checkins').delete().eq('id', K);
-  await cliente.from('jogadores').delete().eq('id', P);
+  // cada apagamento confere o erro: falha silenciosa deixaria lixo no banco de verdade
+  const conferir = (rotulo, { error }) => { if (error) console.log('AVISO: limpeza de ' + rotulo + ' falhou: ' + error.message); };
+  // pagamentos por crédito referenciam créditos e créditos referenciam pagamentos: soltar antes de apagar
+  conferir('fin_pagamentos.credito_id', await cliente.from('fin_pagamentos').update({ credito_id: null }).in('data', datas));
+  conferir('fin_creditos', await cliente.from('fin_creditos').delete().in('data_origem', datas));
+  conferir('fin_pagamentos', await cliente.from('fin_pagamentos').delete().in('data', datas));
+  conferir('fin_dias', await cliente.from('fin_dias').delete().in('data', datas));
+  conferir('fin_lancamentos', await cliente.from('fin_lancamentos').delete().in('data', datas));
+  conferir('fin_log (e-mail de teste)', await cliente.from('fin_log').delete().eq('email', 'teste-e4a@exemplo.com'));
+  // log das ações feitas com a chave mestra: uma exclusão por data de teste (o texto do detalhe traz a data)
+  for (const d of datas) {
+    conferir('fin_log ' + d, await cliente.from('fin_log').delete().eq('nome', 'Chave mestra').like('detalhe->>texto', '%' + d + '%'));
+  }
+  conferir('checkins', await cliente.from('checkins').delete().eq('id', K));
+  conferir('jogadores', await cliente.from('jogadores').delete().eq('id', P));
 }
 
 const antes = await (async () => { await limpar(); return contagens(); })(); // sobra de execução anterior interrompida

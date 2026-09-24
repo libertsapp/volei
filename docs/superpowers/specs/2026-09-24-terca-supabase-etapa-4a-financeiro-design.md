@@ -52,10 +52,26 @@ sem log duplicado). O arquivo confere antes se já há duplicado nos dados migra
 
 1. **Data com formato certo mas impossível** (`2026-13-45`): o `.gs` aceitava como texto; aqui responde `Data inválida.` (a coluna é `date`).
 2. **Valor acima de 99.999.999,99**: resposta `Valor alto demais (máximo 99.999.999,99).` (as colunas são `numeric(10,2)`; a planilha não tinha teto).
-3. **Mesmo jogador com dois check-ins no mesmo dia**: o "Confirmar todos" do `.gs` gerava dois pagamentos; com o índice do ajuste 4 gera um.
-4. **Sem transação entre passos** (ex.: estornar pagamento e depois devolver o crédito): uma falha no meio deixa o estado parcial; o `.gs`
-   também não era transacional, mas tinha o lock. O risco é o mesmo de qualquer erro de rede no meio de uma sequência.
-5. Ids são UUID v4 do `crypto.randomUUID()` (o `.gs` usava `Utilities.getUuid()`, também v4).
+3. **Crédito ou check-in sem jogador (I3)**: o `.gs` casaria `''` com `''`, e um crédito órfão pagaria um check-in sem cadastro.
+   `aplicarCreditos` ignora crédito com `jogadorId` vazio e check-in com `jogadorId` vazio. Já `marcarTodos`/lista de confirmados mantêm
+   a paridade com o `.gs` para `''` (pagamento antigo sem jogador conta como "já pago" e o check-in sem cadastro conta como "na lista").
+4. **Mesmo jogador com dois check-ins no mesmo dia**: o "Confirmar todos" do `.gs` gerava dois pagamentos; com o índice do ajuste 4 gera um.
+5. **Sem transação entre passos** de `estornarPagamento` (estornar o pagamento e depois devolver o crédito). Uma falha entre os dois
+   deixaria o dinheiro devolvido com o crédito ainda ativo (o mesmo dinheiro contado duas vezes), diferente de um erro de rede comum.
+   Por isso a nova tentativa **cura**: se o pagamento em dinheiro já está estornado e o crédito de origem continua ativo e sem uso, ela
+   fecha o crédito (`devolvido`) e loga como o caminho normal; sem nada a curar, a resposta e o banco ficam como no `.gs` (sem log novo).
+   Se a falha for justamente no log, o crédito já fechado não deixa rastro para curar: a linha de log daquele estorno se perde.
+6. Ids são UUID v4 do `crypto.randomUUID()` (o `.gs` usava `Utilities.getUuid()`, também v4).
+
+## Lacunas conhecidas
+
+- **Créditos sem lock (I2, NÃO resolvido na 4a).** O `LockService` do `.gs` serializava tudo. Aqui, duas `aplicarCreditos` em dias
+  diferentes rodando ao mesmo tempo, ou um `estornarPagamento` disputando com `aplicarCreditos`, podem gastar o mesmo crédito duas vezes
+  (cada uma calcula o saldo antes da outra gravar). Na 4a a chance é baixa: `aplicarCreditos` só roda dentro de `salvarFinDia`, uma
+  ação rara de organizador, e ainda não há créditos criados pelo próprio backend novo. **Requisito de projeto da 4b:** aplicar e fechar
+  crédito devem rodar dentro de UMA função do Postgres (RPC), com `select ... for update` nas linhas dos créditos e o saldo conferido de
+  novo dentro da transação.
+- A falha no log em `estornarPagamento` (acima) não é recuperável por nova tentativa.
 
 ## Testes
 

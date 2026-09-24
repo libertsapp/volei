@@ -194,6 +194,63 @@ await ta('estornarLancamento: estorna uma vez só (idempotente, sem log repetido
   assert.deepEqual(await estornarLancamento(d, 'nao-existe', ADM), { error: 'Lançamento não encontrado.' });
 });
 
+await ta('estornarPagamento: falha ao fechar o crédito no meio da sequência; a nova tentativa cura (crédito fechado UMA vez, sem crédito em dobro depois)', async () => {
+  const d = ambiente((x) => {
+    x.fin_creditos.push({ id: 'cr2', jogador_id: 'p1', jogador_nome: 'Ana', valor: 14, origem_pagamento_id: 'pg1', data_origem: '2026-09-15', criado_por: 'A', criado_em: '2026-09-15T21:00:00+00:00', status: 'ativo', encerrado_por: null, encerrado_em: null, ordem: 2 });
+    x.checkins.push({ id: 'k9', data: '2026-09-29', jogador_id: 'p1', jogador_nome: 'Ana', estrelas: 3, sexo: 'F', estrelas_ajustadas: null, ordem: 4 });
+  });
+  const original = d.repo.encerrarFinCredito;
+  let falhou = false;
+  d.repo.encerrarFinCredito = async (...a) => { if (!falhou) { falhou = true; throw new Error('fin_creditos: rede caiu'); } return original(...a); };
+  await assert.rejects(() => estornarPagamento(d, 'pg1', ORG), /rede caiu/);
+  let t = await d.repo.lerTudo();
+  assert.equal(t.fin_pagamentos.find((p) => p.id === 'pg1').estornado, true); // dinheiro devolvido...
+  assert.equal(t.fin_creditos.find((c) => c.id === 'cr2').status, 'ativo'); // ...e crédito ainda ativo: o estado a curar
+  const r = await estornarPagamento(d, 'pg1', ADM); // nova tentativa
+  assert.equal(r.status, 'ok');
+  const cr = r.financeiro.creditos.find((c) => c.id === 'cr2');
+  assert.deepEqual({ s: cr.status, por: cr.encerradoPor }, { s: 'devolvido', por: 'Adm' });
+  const logs = r.financeiro.log.filter((l) => l.acao === 'estornarPagamento');
+  assert.equal(logs.length, 1);
+  assert.match(logs[0].detalhe, /"creditoDevolvido":"cr2"\}$/);
+  // outro dia: o crédito fechado não pode ser gasto de novo
+  const s2 = await salvarFinDia(d, { data: '2026-09-29', valorPessoa: 14 }, ORG);
+  assert.equal(s2.financeiro.pagamentos.some((p) => p.data === '2026-09-29'), false);
+  // repetir depois de curado: nada muda e nenhum log novo
+  const n = (await fin(d)).log.length;
+  assert.equal((await estornarPagamento(d, 'pg1', ADM)).financeiro.log.length, n);
+});
+
+await ta('estornarPagamento: repetir um estorno já completo (sem nada a curar) não muda nada nem escreve log; crédito já usado também não é mexido', async () => {
+  const d = ambiente();
+  await estornarPagamento(d, 'pg1', ORG);
+  const antes = await d.repo.lerTudo();
+  const r = await estornarPagamento(d, 'pg1', ADM);
+  assert.equal(r.status, 'ok');
+  assert.deepEqual(await d.repo.lerTudo(), antes);
+  // pagamento estornado cujo crédito de origem JÁ foi gasto em outro dia: não é curado (a regra "sem uso" vale)
+  const e = ambiente((x) => {
+    x.fin_pagamentos.find((p) => p.id === 'pg1').estornado = true;
+    x.fin_creditos.push({ id: 'cr2', jogador_id: 'p1', jogador_nome: 'Ana', valor: 14, origem_pagamento_id: 'pg1', data_origem: '2026-09-15', criado_por: 'A', criado_em: '2026-09-15T21:00:00+00:00', status: 'ativo', encerrado_por: null, encerrado_em: null, ordem: 2 });
+    x.fin_pagamentos.push(pgLinha({ id: 'pgu', data: '2026-09-29', jogador_id: 'p1', tipo: 'credito', credito_id: 'cr2', ordem: 4 }));
+  });
+  const antes2 = await e.repo.lerTudo();
+  await estornarPagamento(e, 'pg1', ADM);
+  assert.deepEqual(await e.repo.lerTudo(), antes2);
+});
+
+await ta('aplicarCreditos: crédito órfão (sem jogador) nunca paga check-in sem cadastro; crédito de jogador real continua valendo', async () => {
+  const d = ambiente((x) => {
+    x.fin_creditos.push({ id: 'crO', jogador_id: null, jogador_nome: 'Órfão', valor: 14, origem_pagamento_id: null, data_origem: '2026-09-15', criado_por: 'A', criado_em: '2026-09-15T21:00:00+00:00', status: 'ativo', encerrado_por: null, encerrado_em: null, ordem: 2 });
+    x.checkins.push({ id: 'k9', data: '2026-09-29', jogador_id: null, jogador_nome: 'Sem cadastro', estrelas: 0, sexo: null, estrelas_ajustadas: null, ordem: 4 });
+    x.checkins.push({ id: 'k8', data: '2026-09-29', jogador_id: 'p2', jogador_nome: 'Bruno', estrelas: 0, sexo: 'M', estrelas_ajustadas: null, ordem: 5 });
+  });
+  const r = await salvarFinDia(d, { data: '2026-09-29', valorPessoa: 14 }, ORG);
+  const doDia = r.financeiro.pagamentos.filter((p) => p.data === '2026-09-29');
+  assert.deepEqual(doDia.map((p) => [p.jogadorId, p.tipo, p.creditoId]), [['p2', 'credito', 'cr1']]);
+  assert.equal(r.financeiro.creditos.find((c) => c.id === 'crO').status, 'ativo');
+});
+
 await ta('log: e-mail fica só na linha do banco (nunca no financeiro devolvido); detalhe gravado verbatim em { texto }', async () => {
   const d = ambiente();
   const r = await addLancamento(d, { data: '2026-09-22', tipo: 'entrada', valor: 1, descricao: 'a' }, ORG);

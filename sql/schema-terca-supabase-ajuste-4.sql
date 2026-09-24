@@ -11,7 +11,7 @@
 -- todos" do .gs cobrava duas vezes dele; com o índice cobra uma vez.
 --
 -- Antes de criar, confere se já existe duplicado nos dados migrados (o .gs nunca deveria ter gerado, mas o índice falharia
--- se houvesse). Se aparecer o erro abaixo, rode a consulta que ele mostra, estorne/remova o excedente e rode este arquivo de novo.
+-- se houvesse). Se aparecer o erro abaixo, rode a consulta que ele mostra, estorne o excedente (não remova a linha: perde o histórico) e rode este arquivo de novo.
 do $$
 declare
   duplicados int;
