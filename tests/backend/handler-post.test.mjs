@@ -68,8 +68,8 @@ await ta('ações de usuários gravam pelo repositório (salvar, vincular, remov
 
 await ta('ação da matriz ainda não portada: passa pelo porteiro e depois avisa', async () => {
   const h = handler();
-  assert.deepEqual(await h.post({ action: 'marcarPagamento', idToken: 'tok-a' }), { error: 'Esta ação ainda não está disponível na versão Supabase (marcarPagamento).' });
-  assert.deepEqual(await h.post({ action: 'marcarPagamento', idToken: 'tok-c' }), { error: 'Seu perfil (jogador) não tem permissão para esta ação.' });
+  assert.deepEqual(await h.post({ action: 'marcarDiaSemJogo', idToken: 'tok-a' }), { error: 'Esta ação ainda não está disponível na versão Supabase (marcarDiaSemJogo).' });
+  assert.deepEqual(await h.post({ action: 'marcarDiaSemJogo', idToken: 'tok-c' }), { error: 'Seu perfil (jogador) não tem permissão para esta ação.' });
 });
 
 await ta('addCheckin/removeCheckin: só validam o token (a ação em si é testada em handler-etapa3b)', async () => {

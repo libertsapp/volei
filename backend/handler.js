@@ -12,6 +12,10 @@ import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas } from './checkins.js';
+import {
+  salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
+  addLancamento, estornarLancamento
+} from './financeiro.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
 const semLogin = async () => ({ ok: false, erro: 'Login do Google não configurado neste servidor.' });
@@ -19,8 +23,8 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento }) {
-  const deps = { repo, config, verificarToken, relogio, armazenamento };
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId }) {
+  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId };
 
   return {
     async get() {
@@ -87,6 +91,15 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
+          // controle financeiro, parte 1 (etapa 4a). marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia e devolverCredito
+          // (e os ganchos do check-in) chegam na 4b e caem no "ainda não disponível" abaixo.
+          case 'salvarFinDia': return await salvarFinDia(deps, b.dia, auth);
+          case 'marcarPagamento': return await marcarPagamento(deps, b.data, b.jogadorId, b.jogadorNome, auth);
+          case 'estornarPagamento': return await estornarPagamento(deps, b.id, auth);
+          case 'marcarTodosPagamentos': return await marcarTodosPagamentos(deps, b.data, auth);
+          case 'estornarTodosPagamentos': return await estornarTodosPagamentos(deps, b.data, auth);
+          case 'addLancamento': return await addLancamento(deps, b.lancamento, auth);
+          case 'estornarLancamento': return await estornarLancamento(deps, b.id, auth);
           default: return naoDisponivel(acao);
         }
       } catch (erro) {

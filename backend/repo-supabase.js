@@ -73,6 +73,48 @@ export function criarRepoSupabase(cliente) {
       if (error) throw new Error('checkins: ' + error.message);
       return data.length > 0;
     },
+    // ---- financeiro (etapa 4a). "ordem" (sequências) e o id do log (identity) vêm do banco: nunca são enviados ----
+    // upsert pela data: numa atualização só as colunas enviadas mudam (status e ordem ficam como estavam)
+    async gravarFinDia(linha) {
+      const { error } = await cliente.from('fin_dias').upsert(linha, { onConflict: 'data' });
+      if (error) throw new Error('fin_dias: ' + error.message);
+    },
+    // false = já existe pagamento válido desse jogador no dia (índice único parcial do ajuste 4); o resto propaga
+    async inserirFinPagamento(linha) {
+      const { error } = await cliente.from('fin_pagamentos').insert(linha);
+      if (error) {
+        if (error.code === '23505' && /fin_pagamentos_valido_uniq/.test(String(error.message) + String(error.details || ''))) return false;
+        throw new Error('fin_pagamentos: ' + error.message);
+      }
+      return true;
+    },
+    // só estorna se ainda não estava estornado (um único UPDATE condicional: sem corrida entre dois toques)
+    async estornarFinPagamento(id, { por, em }) {
+      const { data, error } = await cliente.from('fin_pagamentos')
+        .update({ estornado: true, estornado_por: por, estornado_em: em }).eq('id', id).eq('estornado', false).select('id');
+      if (error) throw new Error('fin_pagamentos: ' + error.message);
+      return data.length > 0;
+    },
+    async encerrarFinCredito(id, status, { por, em }) {
+      const { data, error } = await cliente.from('fin_creditos')
+        .update({ status, encerrado_por: por, encerrado_em: em }).eq('id', id).eq('status', 'ativo').select('id');
+      if (error) throw new Error('fin_creditos: ' + error.message);
+      return data.length > 0;
+    },
+    async inserirFinLancamento(linha) {
+      const { error } = await cliente.from('fin_lancamentos').insert(linha);
+      if (error) throw new Error('fin_lancamentos: ' + error.message);
+    },
+    async estornarFinLancamento(id, { por, em }) {
+      const { data, error } = await cliente.from('fin_lancamentos')
+        .update({ estornado: true, estornado_por: por, estornado_em: em }).eq('id', id).eq('estornado', false).select('id');
+      if (error) throw new Error('fin_lancamentos: ' + error.message);
+      return data.length > 0;
+    },
+    async inserirFinLog(linha) {
+      const { error } = await cliente.from('fin_log').insert(linha);
+      if (error) throw new Error('fin_log: ' + error.message);
+    },
     async lerConfig() { return lerTabela(cliente, 'config'); },
     async gravarConfig(pares) {
       const { error } = await cliente.from('config').upsert(pares);

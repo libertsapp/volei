@@ -18,6 +18,8 @@ export function criarRepoMemoria(dados = {}) {
     if (COM_ORDEM.includes(tabela) && !('ordem' in nova)) {
       nova.ordem = tabelas[tabela].reduce((m, x) => Math.max(m, x.ordem ?? 0), 0) + 1;
     }
+    // fin_log.id é "identity" no banco (nunca enviado): aqui, máximo + 1
+    if (tabela === 'fin_log' && !('id' in nova)) nova.id = tabelas.fin_log.reduce((m, x) => Math.max(m, x.id ?? 0), 0) + 1;
     tabelas[tabela].push(nova);
     return nova;
   }
@@ -78,6 +80,53 @@ export function criarRepoMemoria(dados = {}) {
       tabelas.checkins[i] = { ...tabelas.checkins[i], ...campos };
       return true;
     },
+
+    // ---- financeiro (etapa 4a). Semântica igual à do repo-supabase; "ordem" e o id do log vêm do padrão do banco ----
+    // fin_dias: upsert pela data; numa atualização só os campos enviados mudam (status e ordem ficam como estavam);
+    // dia novo nasce com status 'normal' (padrão da coluna)
+    async gravarFinDia(linha) {
+      const i = tabelas.fin_dias.findIndex((d) => d.data === linha.data);
+      if (i === -1) inserir('fin_dias', { status: 'normal', ...linha });
+      else tabelas.fin_dias[i] = { ...tabelas.fin_dias[i], ...linha };
+    },
+    // fin_pagamentos: emula o índice único parcial fin_pagamentos_valido_uniq (data, jogador_id) onde não estornado
+    // (sql/schema-terca-supabase-ajuste-4.sql): devolve false se já existe pagamento válido, true se inseriu
+    async inserirFinPagamento(linha) {
+      if (tabelas.fin_pagamentos.some((p) => p.id === linha.id)) {
+        throw new Error('fin_pagamentos: duplicate key value violates unique constraint "fin_pagamentos_pkey"');
+      }
+      if (linha.jogador_id != null && linha.estornado !== true && tabelas.fin_pagamentos.some((p) =>
+        p.data === linha.data && p.jogador_id === linha.jogador_id && p.estornado !== true)) return false;
+      inserir('fin_pagamentos', { estornado: false, tipo: 'dinheiro', ...linha });
+      return true;
+    },
+    // marca como estornado SÓ se ainda não estava (quem chegou depois recebe false e não sobrescreve quem estornou primeiro)
+    async estornarFinPagamento(id, { por, em }) {
+      const i = tabelas.fin_pagamentos.findIndex((p) => p.id === id && p.estornado !== true);
+      if (i === -1) return false;
+      tabelas.fin_pagamentos[i] = { ...tabelas.fin_pagamentos[i], estornado: true, estornado_por: por, estornado_em: em };
+      return true;
+    },
+    // encerra um crédito ATIVO (devolvido/cancelado); false se não estava ativo
+    async encerrarFinCredito(id, status, { por, em }) {
+      const i = tabelas.fin_creditos.findIndex((c) => c.id === id && c.status === 'ativo');
+      if (i === -1) return false;
+      tabelas.fin_creditos[i] = { ...tabelas.fin_creditos[i], status, encerrado_por: por, encerrado_em: em };
+      return true;
+    },
+    async inserirFinLancamento(linha) {
+      if (tabelas.fin_lancamentos.some((l) => l.id === linha.id)) {
+        throw new Error('fin_lancamentos: duplicate key value violates unique constraint "fin_lancamentos_pkey"');
+      }
+      inserir('fin_lancamentos', { estornado: false, ...linha });
+    },
+    async estornarFinLancamento(id, { por, em }) {
+      const i = tabelas.fin_lancamentos.findIndex((l) => l.id === id && l.estornado !== true);
+      if (i === -1) return false;
+      tabelas.fin_lancamentos[i] = { ...tabelas.fin_lancamentos[i], estornado: true, estornado_por: por, estornado_em: em };
+      return true;
+    },
+    async inserirFinLog(linha) { inserir('fin_log', linha); },
 
     async lerConfig() { return structuredClone(tabelas.config); },
     async gravarConfig(pares) {
