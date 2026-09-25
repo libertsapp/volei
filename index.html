@@ -2603,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 12.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2941,7 +2941,8 @@ function finResumoFechamento(fin, data){
    8. A aba "Usuarios" (email | nome | perfil | jogadorId |
       criadoEm) é criada sozinha no primeiro login.
 ========================================================== */
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxOqq08EU0J49bCuUlidhRimvLYZi5jISo5h5moPHCqJDpJSNMWMql6tTmmrXnJcs9G-A/exec";
+/* Desde a virada 6b (2026-09) o backend é a Edge Function do Supabase; o Apps Script do Terça fica só como reserva. */
+const SHEET_API_URL = "https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/terca-api-teste";
 
 /* Client ID OAuth do Google — público de propósito (o Google exige que ele apareça
    no frontend). A segurança não vem de esconder ele, e sim de duas coisas: a lista
