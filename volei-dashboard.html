@@ -305,6 +305,15 @@
   button.btn:disabled{opacity:0.4;cursor:not-allowed;}
 
   .player-list{display:flex;flex-direction:column;gap:8px;}
+  /* celular/tablet (toque sem hover): editar/excluir jogador saem do cartão e passam a ser por pressão longa
+     (ver ligarPressaoLongaJogadores). No computador nada muda: os botões continuam no cartão e o aviso não aparece. */
+  .player-list-aviso{display:none;color:var(--danger);font-size:11px;opacity:.85;margin:0 2px;}
+  @media (hover:none) and (pointer:coarse){
+    .player-list-aviso{display:block;}
+    .player-list .icon-btn[data-edit], .player-list .icon-btn[data-remove]{display:none;}
+    /* sem isso o segurar do dedo seleciona o texto / abre o menu do navegador antes dos 2 segundos */
+    .player-list .jogador-card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  }
   .player-row{
     display:flex;align-items:center;justify-content:space-between;
     background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;
@@ -331,7 +340,15 @@
   }
 
   /* nova rodada */
-  .round-form-top{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+  /* data (2/3) e nº de times (1/3) sempre na mesma linha, com o rótulo em cima de cada campo */
+  .round-form-top{display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:end;margin-bottom:16px;max-width:520px;}
+  .round-form-top input, .round-form-top select{width:100%;min-height:44px;}
+  /* ações do fim da página: "Salvar rodada" em destaque; no desktop ganha 1/3 e o rascunho 2/3 */
+  .rodada-acoes{display:grid;grid-template-columns:1fr;gap:10px;}
+  .rodada-acoes .btn{width:100%;min-height:48px;}
+  .rodada-acoes .btn-duplo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.25;}
+  .rodada-acoes .btn-duplo small{font-size:11px;font-weight:500;color:var(--muted);}
+  @media (min-width:720px){ .rodada-acoes{grid-template-columns:1fr 2fr;} }
   .edit-round-banner{
     background:#3a3320;border:1px solid var(--ball-yellow);color:var(--chalk);
     padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;
@@ -376,11 +393,26 @@
   .aovivo-stepper{display:flex;align-items:center;gap:10px;margin-top:8px;}
   .aovivo-stepper button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--court-navy-3);color:inherit;font-size:18px;line-height:1;cursor:pointer;}
   .aovivo-stepper button:disabled{opacity:0.4;cursor:default;}
-  .aovivo-stepper .valor{font-size:20px;font-weight:700;min-width:24px;text-align:center;}
   .aovivo-pendente{outline:2px solid var(--ball-yellow);}
   .aovivo-log{margin-top:14px;font-size:12px;color:var(--muted);max-height:140px;overflow-y:auto;}
   .aovivo-log div{padding:3px 0;border-bottom:1px solid var(--line);}
-  .aovivo-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  /* "Salvar parcial": linha inteira e flutuante — cola no rodapé da tela enquanto o cartão estiver à vista (sticky) e,
+     no fim do cartão, assenta no lugar natural, acima dos outros dois botões. No celular sobe o tamanho da barra
+     inferior fixa (~57px + área segura) pra não ficar escondido atrás dela. */
+  .aovivo-salvar{position:sticky;bottom:12px;z-index:20;margin-top:14px;}
+  @media (max-width:640px){ .aovivo-salvar{bottom:calc(69px + env(safe-area-inset-bottom));} }
+  .aovivo-salvar .btn{display:block;width:100%;padding:14px 18px;font-size:15px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,0.5);}
+  /* cor de destaque: o amarelo do tema com brilho (o ciano padrão dos botões não se distinguia dos demais).
+     "button.btn" na frente só pra ganhar do hover global (button.btn:hover troca o box-shadow) */
+  .aovivo-salvar button.btn:not(:disabled){
+    background:var(--ball-yellow);color:var(--court-navy);
+    box-shadow:0 8px 22px rgba(0,0,0,0.5), 0 0 20px color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+  }
+  /* desabilitado fica opaco de propósito: o padrão (opacity .4) deixaria os cartões aparecerem por baixo do botão flutuante */
+  .aovivo-salvar .btn:disabled{opacity:1;background:var(--court-navy-3);color:var(--muted);border:1px solid var(--line);}
+  /* os outros dois dividem a linha ao meio, no fim do cartão */
+  .aovivo-acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .aovivo-acoes .btn{width:100%;padding:10px 6px;font-size:12px;}
   .badge-win{background:var(--ball-yellow);color:var(--court-navy);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
 
   .toolbar-right{display:flex;gap:8px;margin-left:auto;}
@@ -482,17 +514,54 @@
 
   /* empate no 1º lugar — faixa própria, cheia, no topo (não tenta mais dividir espaço
      com 2º/3º, porque com 3+ pessoas empatadas isso quebrava o alinhamento do pódio) */
+  /* visual "painel de troféus": fundo escuro com grade fininha (ciano = a cor de interação do tema), borda e brilho
+     dourados (dourado = conquista), título em pílula e cada campeão num cartãozinho com anel luminoso na foto.
+     O fundo é definido AQUI (e não pela regra "vidro" mais abaixo) de propósito: a grade precisa de fundo opaco. */
   .podium-empate-faixa{
-    background:linear-gradient(135deg, rgba(255,215,0,0.16), rgba(255,215,0,0.03));
-    border:1px solid var(--ball-yellow);border-radius:16px;
-    padding:18px 14px 14px;margin-bottom:16px;text-align:center;
+    --pe-grade:color-mix(in srgb, var(--accent) 8%, transparent);
+    background:
+      radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--ball-yellow) 14%, transparent), transparent 70%),
+      linear-gradient(var(--pe-grade) 1px, transparent 1px) 0 0/22px 22px,
+      linear-gradient(90deg, var(--pe-grade) 1px, transparent 1px) 0 0/22px 22px,
+      var(--court-navy-2);
+    border:1px solid color-mix(in srgb, var(--ball-yellow) 60%, transparent);border-radius:20px;
+    box-shadow:var(--ouro-brilho), inset 0 0 26px color-mix(in srgb, var(--ball-yellow) 8%, transparent);
+    padding:22px 14px 18px;margin-bottom:16px;text-align:center;
   }
   .podium-empate-titulo{
-    font-family:'Anton',sans-serif;text-transform:uppercase;font-size:14px;
-    color:var(--ball-yellow);margin-bottom:16px;letter-spacing:0.5px;
+    display:inline-flex;align-items:center;gap:8px;margin-bottom:22px;padding:7px 18px;
+    font-family:'Work Sans',sans-serif;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:0.6px;
+    color:var(--ball-yellow);border-radius:999px;
+    border:1px solid color-mix(in srgb, var(--ball-yellow) 70%, transparent);
+    background:color-mix(in srgb, var(--ball-yellow) 10%, transparent);
+    box-shadow:0 0 14px color-mix(in srgb, var(--ball-yellow) 25%, transparent);
   }
-  .podium-empate-grupo{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;}
-  .podium-empate-pessoa{display:flex;flex-direction:column;align-items:center;gap:2px;width:90px;cursor:pointer;}
+  .podium-empate-grupo{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;}
+  .podium-empate-pessoa{
+    display:flex;flex-direction:column;align-items:center;width:100px;cursor:pointer;padding:14px 8px 12px;
+    border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb, var(--chalk) 3%, transparent);
+    transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  /* anel luminoso: borda dourada, um respiro escuro (padding do próprio <img>) e depois a foto */
+  .podium-empate-pessoa .podium-avatar{
+    width:68px;height:68px;padding:2px;margin-bottom:10px;background:var(--court-navy-2);
+    box-shadow:0 0 14px color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+  }
+  .podium-empate-pessoa .podium-name{font-size:14px;font-weight:700;margin-bottom:4px;max-width:100%;}
+  .podium-empate-pessoa .podium-count{
+    font-size:22px;margin:0;line-height:1.1;
+    text-shadow:0 0 12px color-mix(in srgb, var(--ball-yellow) 60%, transparent);
+  }
+  body.light-mode .podium-empate-pessoa .podium-avatar, body.light-mode .podium-empate-pessoa .podium-count{box-shadow:none;text-shadow:none;}
+  body.light-mode .podium-empate-faixa{box-shadow:var(--ouro-brilho);}
+  /* hover só onde existe mouse (no celular ele "gruda" depois do toque) */
+  @media (hover:hover){
+    .podium-empate-pessoa:hover{
+      border-color:color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+      background:color-mix(in srgb, var(--ball-yellow) 7%, transparent);
+      box-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 22%, transparent);
+    }
+  }
 
   /* 2º/3º quando o 1º está empatado — lista simples, sem bloco de pódio (não tem uma
      base de 1º lugar única pra apoiar visualmente um "degrau" de pódio aqui) */
@@ -787,7 +856,37 @@
   .roleta-time-slot .tt{font-family:'Anton',sans-serif;font-size:12px;color:var(--muted);margin-bottom:4px;}
 
   /* sorteio */
-  .sorteio-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;}
+  /* celular: busca em linha inteira, nota e nº de times lado a lado, "Selecionar todos" em linha inteira.
+     desktop (≥720px): tudo numa fileira, com a busca ocupando o dobro dos selects */
+  .sorteio-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin-bottom:16px;}
+  .sorteio-controls .campo-cheio, .sorteio-controls > .btn{grid-column:1/-1;}
+  .sorteio-controls select, .sorteio-controls input{width:100%;min-height:44px;}
+  .sorteio-controls > .btn{min-height:44px;}
+  @media (min-width:720px){
+    .sorteio-controls{grid-template-columns:2fr 1fr 1fr auto;}
+    .sorteio-controls .campo-cheio, .sorteio-controls > .btn{grid-column:auto;}
+  }
+  /* abas Automático/Manual do sorteio: controle segmentado, duas metades iguais */
+  #sorteio-subtabs{width:100%;max-width:520px;}
+  #sorteio-subtabs button{flex:1;min-height:42px;}
+  /* convidado do sorteio: linha recolhida no mesmo molde das outras, abre pra um formulário em grade */
+  .sorteio-convidado{margin-bottom:16px;border:1px solid var(--line);border-radius:12px;background:var(--court-navy-2);}
+  .sorteio-convidado > summary{
+    list-style:none;cursor:pointer;user-select:none;min-height:46px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;
+  }
+  .sorteio-convidado > summary::-webkit-details-marker{display:none;}
+  .sorteio-convidado > summary::after{content:'▾';color:var(--muted);transition:transform .2s;}
+  .sorteio-convidado[open] > summary::after{transform:rotate(180deg);}
+  .sorteio-convidado-dica{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .sorteio-convidado-corpo{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 14px;align-items:center;}
+  .sorteio-convidado-corpo input, .sorteio-convidado-corpo select{width:100%;min-height:44px;}
+  .sorteio-convidado-corpo .campo-cheio, .sorteio-convidado-corpo > .btn{grid-column:1/-1;}
+  .sorteio-convidado-corpo > .btn{min-height:44px;}
+  .sorteio-convidado-corpo .field-group{min-width:0;}
+  .sorteio-convidado-corpo .photo-input-wrap{min-height:44px;}
+  .sorteio-convidado-corpo input[type=file]{min-height:0;min-width:0;flex:1;font-size:12px;}
+  .sorteio-convidado-corpo .stars-picker{justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:8px;}
   .field-group{display:flex;flex-direction:column;gap:4px;}
   .field-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
   .select-list{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:16px;}
@@ -859,21 +958,127 @@
     background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:10px;
     padding:12px 14px;margin-bottom:16px;
   }
-  .checkin-admin-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  /* o JS liga este bloco com display:flex — sem direção em coluna, data, ajustes e financeiro ficam lado a lado */
+  .checkin-admin-controls{flex-direction:column;}
+  .checkin-admin-controls > *{min-width:0;}
+  /* data em largura total; os botões vêm embaixo numa grade de 2 colunas, todos com a mesma altura */
+  .checkin-admin-row{display:flex;flex-direction:column;gap:10px;}
+  .checkin-admin-controls [hidden]{display:none !important;}
   .checkin-admin-field{display:flex;flex-direction:column;gap:4px;}
   .checkin-admin-field label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
-  .checkin-admin-ajustes{
-    margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+  .checkin-admin-row input[type=date]{width:100%;}
+  .checkin-admin-acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .checkin-admin-acoes .btn{width:100%;min-height:46px;padding:10px 8px;font-size:14px;}
+  .checkin-admin-acoes .btn.cheio{grid-column:1/-1;}
+  /* "Ajustes" e "Financeiro do dia" usam o mesmo molde de linha: ícone+título à esquerda, chip opcional e seta sempre na ponta direita */
+  .checkin-admin-ajustes, .fin-dia-card{margin-top:10px;border:1px solid var(--line);border-radius:12px;}
+  .checkin-admin-ajustes > summary, .fin-dia-card > summary{
+    list-style:none;cursor:pointer;user-select:none;min-height:46px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;
   }
-  .checkin-admin-ajustes summary{
-    list-style:none;cursor:pointer;color:var(--muted);font-size:12px;
-    text-transform:uppercase;letter-spacing:0.4px;user-select:none;
-    display:flex;align-items:center;gap:6px;
-  }
-  .checkin-admin-ajustes summary::-webkit-details-marker{display:none;}
-  .checkin-admin-ajustes summary::after{content:'▾';margin-left:2px;transition:transform .2s;}
-  .checkin-admin-ajustes[open] summary::after{transform:rotate(180deg);}
-  .checkin-admin-ajustes-body{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px;}
+  .checkin-admin-ajustes > summary::-webkit-details-marker, .fin-dia-card > summary::-webkit-details-marker{display:none;}
+  .checkin-admin-ajustes > summary::after, .fin-dia-card > summary::after{content:'▾';color:var(--muted);transition:transform .2s;}
+  .checkin-admin-ajustes[open] > summary::after, .fin-dia-card[open] > summary::after{transform:rotate(180deg);}
+  .linha-titulo{flex:1;min-width:0;}
+  .checkin-admin-ajustes-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;padding:4px 14px 14px;}
+  .checkin-admin-ajustes-body input{width:100%;}
+  .checkin-admin-ajustes-body .btn{grid-column:1/-1;min-height:44px;}
+
+  /* ===== FINANCEIRO no Check-in ===== */
+  .fin-dia-card{border-color:var(--glass-borda);background:color-mix(in srgb, var(--ball-yellow) 5%, transparent);}
+  .fin-chip{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .fin-chip.ok{color:#3fbf6f;border-color:color-mix(in srgb, #3fbf6f 55%, transparent);}
+  .fin-chip.pendente{color:var(--ball-yellow);border-color:color-mix(in srgb, var(--ball-yellow) 50%, transparent);}
+  .fin-dica{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted);line-height:1.5;}
+  .fin-dia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 12px;padding:4px 14px 14px;align-items:end;}
+  .fin-campo{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+  .fin-campo input[type=number], .fin-campo input[type=text]{width:100%;}
+  /* seletor discreto do ícone de "pagou": duas pílulas pequenas ao lado do Salvar, sem ocupar linha própria */
+  .fin-semjogo-linha{grid-column:1 / -1;}
+  .fin-semjogo-linha .btn{padding:6px 14px;font-size:12px;}
+  .fin-semjogo{border-color:color-mix(in srgb, var(--accent) 45%, transparent);}
+  .fin-credito-tag{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .fin-opcao{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px;line-height:1.45;}
+  .fin-opcao input{margin-top:3px;flex:none;}
+  .fin-opcao small{color:var(--muted);}
+  .fin-rodape-card{display:flex;align-items:center;gap:8px;}
+  .fin-rodape-card .btn{flex:1;}
+  .fin-icone{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:999px;flex:none;}
+  .fin-icone button{width:30px;height:28px;border:none;border-radius:999px;background:transparent;font-size:14px;line-height:1;cursor:pointer;opacity:.45;transition:opacity .15s ease, background .15s ease;}
+  .fin-icone button:hover{opacity:.8;}
+  .fin-icone button.ativo{opacity:1;background:color-mix(in srgb, var(--ball-yellow) 18%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ball-yellow) 55%, transparent);}
+  .fin-resumo{margin:0 0 12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb, var(--chalk) 3%, transparent);}
+  .fin-resumo-linha{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;font-size:13px;}
+  .fin-resumo-linha strong{color:var(--ball-yellow);}
+  .fin-resumo-sub{font-size:12px;color:var(--muted);margin-top:8px;}
+  /* ações em massa (só admin/organizador): duas pílulas pequenas no rodapé do resumo, a de cancelar em vermelho */
+  .fin-massa{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .fin-massa .btn{padding:6px 14px;font-size:12px;}
+  .fin-barra{height:6px;border-radius:6px;background:var(--line);margin-top:10px;overflow:hidden;}
+  .fin-barra-fill{height:100%;border-radius:6px;background:linear-gradient(90deg, var(--accent), var(--ball-yellow));transition:width .3s ease;}
+  .fin-pix{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:'Space Mono',monospace;color:var(--chalk);background:transparent;border:1px dashed var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;}
+  .fin-pix:hover{border-color:var(--ball-yellow);}
+  .fin-lista{margin:6px 0 0;padding-left:22px;font-size:13px;}
+  .fin-lista li{padding:3px 0;}
+  .fin-lista li.fin-toque{cursor:pointer;border-radius:6px;margin-left:-6px;padding-left:6px;}
+  .fin-lista li.fin-toque:hover{background:color-mix(in srgb, var(--ball-yellow) 8%, transparent);}
+  .fin-marca{margin-left:8px;}
+  .fin-alerta{margin:10px 0;padding:10px 12px;border:1px solid color-mix(in srgb, var(--danger) 55%, transparent);border-radius:10px;background:color-mix(in srgb, var(--danger) 8%, transparent);font-size:13px;}
+  .fin-alerta-linha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:4px 0;}
+  .fin-alerta-linha .btn{padding:4px 10px;font-size:12px;}
+
+  /* ===== PÁGINA Controle Financeiro ===== */
+  .fin-saldo{position:relative;overflow:hidden;padding:22px 24px;border-radius:20px;margin-bottom:14px;
+    border:1px solid color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+    background:radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--ball-yellow) 16%, transparent), transparent 60%), var(--court-navy-2);
+    box-shadow:var(--ouro-brilho);}
+  .fin-saldo-rotulo{font-family:'Orbitron','Anton',sans-serif;font-weight:700;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--ball-yellow);}
+  .fin-saldo-valor{font-family:'Orbitron','Space Mono',monospace;font-weight:900;font-size:clamp(30px,9vw,48px);line-height:1.1;margin:6px 0 2px;color:var(--ball-yellow);text-shadow:0 0 18px color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  .fin-saldo-valor.neg{color:var(--danger);text-shadow:none;}
+  body.light-mode .fin-saldo-valor{text-shadow:none;}
+  .fin-saldo-mes{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:13px;color:var(--muted);}
+  .fin-pos{color:#5fd68a;font-weight:700;} body.light-mode .fin-pos{color:#1a8f4d;}
+  .fin-neg{color:var(--danger);font-weight:700;}
+  /* previsão (ciano = a cor "de projeção/ação" do tema), separada do saldo real (dourado) por uma linha tracejada */
+  .fin-previsto{margin-top:14px;padding-top:12px;border-top:1px dashed color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  .fin-previsto-rotulo{font-family:'Orbitron','Anton',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);}
+  .fin-previsto-valor{font-family:'Orbitron','Space Mono',monospace;font-weight:900;font-size:clamp(22px,6.5vw,30px);line-height:1.15;margin:4px 0 2px;color:var(--accent);}
+  .fin-previsto-valor.neg{color:var(--danger);}
+  .fin-previsto-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+  .fin-previsto-sub strong{color:var(--chalk);}
+  .fin-previsto-vazio{font-size:12px;color:var(--muted);}
+  .fin-barra-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+  .fin-subtitulo{font-family:'Anton',sans-serif;text-transform:uppercase;font-size:15px;margin:18px 0 10px;}
+  .fin-dia{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:var(--court-navy-2);overflow:hidden;}
+  .fin-dia > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;flex-wrap:wrap;}
+  .fin-dia > summary::-webkit-details-marker{display:none;}
+  .fin-dia-data{font-weight:800;}
+  .fin-dia-n{font-size:12px;color:var(--muted);flex:1;}
+  .fin-dia-res{font-family:'Space Mono',monospace;font-weight:700;}
+  .fin-copiar{flex:none;width:32px;height:30px;display:inline-grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:16px;cursor:pointer;transition:color .15s ease, border-color .15s ease;}
+  .fin-copiar:hover{color:var(--ball-yellow);border-color:var(--ball-yellow);}
+  .fin-copiar.copiado{color:#5fd68a;border-color:#5fd68a;}
+  .fin-dia-corpo{padding:4px 14px 14px;border-top:1px solid var(--line);}
+  .fin-bloco{margin-top:12px;}
+  .fin-bloco-titulo{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .fin-linha{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .fin-linha:last-child{border-bottom:none;}
+  .fin-linha-nome{font-weight:600;}
+  .fin-linha-valor{margin-left:auto;font-family:'Space Mono',monospace;font-weight:700;}
+  .fin-linha-meta{flex-basis:100%;font-size:11px;color:var(--muted);}
+  .fin-linha.fin-estornado .fin-linha-nome, .fin-linha.fin-estornado .fin-linha-valor{text-decoration:line-through;opacity:.55;}
+  .fin-selo{font-size:10px;font-weight:700;color:var(--danger);border:1px solid var(--danger);border-radius:999px;padding:1px 7px;}
+  .fin-selo-info{color:var(--accent);border-color:color-mix(in srgb, var(--accent) 55%, transparent);}
+  .fin-dia-semjogo{border-style:dashed;}
+  .fin-creditos{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:10px;font-size:13px;color:var(--muted);}
+  .fin-creditos strong{color:var(--accent);}
+  .fin-linha .btn{padding:3px 10px;font-size:12px;}
+  .fin-pendentes{display:flex;flex-wrap:wrap;gap:6px;}
+  .fin-pendentes span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--chalk-dim);}
+  .fin-log-item{padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px;color:var(--chalk-dim);}
+  .fin-log-quando{font-family:'Space Mono',monospace;color:var(--muted);margin-right:8px;}
+  .fin-modal .fin-modal-corpo{display:grid;gap:10px;margin:8px 0 14px;text-align:left;}
+  .fin-modal .fin-campo input, .fin-modal .fin-campo select{width:100%;}
 
   /* interruptor de visibilidade das estrelas (somente admin) */
   .star-toggle{
@@ -933,7 +1138,7 @@
     -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
     border-color:var(--glass-borda);
   }
-  .aovivo-card, .podium-empate-faixa{
+  .aovivo-card{
     background:var(--glass-bg);
     -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
   }
@@ -944,7 +1149,7 @@
   }
   /* navegador sem backdrop-filter: volta ao fundo sólido de antes */
   @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
-    .aovivo-card, .podium-empate-faixa{background:var(--court-navy-2);}
+    .aovivo-card{background:var(--court-navy-2);}
   }
 
   /* ===== card do campeão: brilho dourado (mantém o gradiente/textura que já existe) ===== */
@@ -1078,7 +1283,7 @@
     border:1.5px solid transparent;border-radius:16px;
     background:
       linear-gradient(var(--jc-fundo), var(--jc-fundo)) padding-box,
-      linear-gradient(120deg, var(--accent), var(--neon-purple)) border-box;
+      linear-gradient(120deg, var(--accent), var(--ball-yellow)) border-box;
     box-shadow:var(--glass-brilho);
   }
   /* raio de luz diagonal (só no escuro) — pointer-events:none pra nunca capturar clique */
@@ -1094,7 +1299,7 @@
   .jc-topo{position:relative;display:flex;align-items:center;gap:14px;padding:14px 14px 18px 20px;}
   .jc-avatar-bloco{position:relative;flex:none;}
   .jc-anel{
-    padding:3px;border-radius:50%;background:linear-gradient(135deg, var(--accent), var(--neon-purple));
+    padding:3px;border-radius:50%;background:linear-gradient(135deg, var(--accent), var(--ball-yellow));
     box-shadow:0 0 14px color-mix(in srgb, var(--accent) 40%, transparent);
   }
   .jc-foto{display:block;width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--jc-fundo);}
@@ -1104,7 +1309,7 @@
   .jc-hex{
     /* fica no canto, com só uma pontinha sobre o anel: cobre pouco da foto */
     position:absolute;left:-12px;bottom:-12px;width:32px;height:36px;display:grid;place-items:center;
-    background:linear-gradient(135deg, var(--accent), var(--neon-purple));
+    background:linear-gradient(135deg, var(--accent), var(--ball-yellow));
     clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
   .jc-hex span{
@@ -1120,11 +1325,16 @@
   .jc-lista .jc-nome{cursor:pointer;}
   .jc-lista .jc-nome:hover{color:var(--accent);}
   .jc-perfil .jc-nome{font-size:24px;}
-  .jc-icones{display:flex;align-items:center;flex-wrap:wrap;padding-left:12px;border-left:1px solid var(--glass-borda);}
-  .jc-icones > * + *{margin-left:8px;padding-left:8px;border-left:1px solid var(--glass-borda);}
-  .jc-icones .badge-icon{font-size:18px;margin-left:0;padding:0 2px;}
-  .jc-icones > .badge-icon + .badge-icon{margin-left:8px;}
+  /* Todo ícone ocupa uma caixa de mesma altura (--jc-ic-h) e todo espaço entre ícone e barra é o mesmo (--jc-ic-esp).
+     A barra é a borda dessa caixa, então todas saem do mesmo tamanho. Nada de margin/padding próprio por tipo de ícone
+     (o emblema tinha o seu e ficava mais longe da barra que o ♂ e o G). */
+  .jc-icones{--jc-ic-h:22px;--jc-ic-esp:6px;display:flex;align-items:center;flex-wrap:wrap;row-gap:4px;padding-left:var(--jc-ic-esp);border-left:1px solid var(--glass-borda);}
+  .jc-icones > *{display:inline-flex;align-items:center;justify-content:center;box-sizing:content-box;height:var(--jc-ic-h);margin:0;padding:0;line-height:1;vertical-align:baseline;}
+  .jc-icones > * + *{margin-left:var(--jc-ic-esp);padding-left:var(--jc-ic-esp);border-left:1px solid var(--glass-borda);}
+  /* larguras justas: a caixa da fonte/emoji é mais larga que o desenho e criava um "respiro" extra ao lado da barra */
+  .jc-icones .badge-icon{font-size:18px;width:20px;}
   .jc-sexo{font-size:20px;}
+  .jc-icones > .jc-sexo{width:15px;}
   .jc-hex, .jc-icone-conta, .jc-sexo{cursor:help;} /* têm dica (hover e toque) */
   .jc-sexo-M{color:var(--accent);}
   .jc-sexo-F{color:#ff8fc0;}
@@ -1156,6 +1366,9 @@
   .jc-cor-accent{color:var(--accent);}
   .jc-cor-ouro{color:var(--ball-yellow);}
   .jc-cor-roxo{color:var(--neon-purple);}
+  /* chama da "Sequência": laranja neon com brilho (no fundo claro o brilho some e o laranja escurece pra manter contraste) */
+  .jc-cor-laranja{color:#ff8a1f;filter:drop-shadow(0 0 5px rgba(255,138,31,.65));}
+  body.light-mode .jc-cor-laranja{color:#d9600a;filter:none;}
   .jc-cor-verde{color:#5fd68a;} /* o mesmo verde de "positivo" que o perfil já usa (média do grupo) */
   body.light-mode .jc-cor-verde{color:#1a8f4d;}
   .jc-sub{font-size:10px;color:var(--muted);margin-top:2px;} /* pode quebrar de linha: em coluna estreita ("7 vit. em 1 partida") cortava na borda do cartão */
@@ -1169,6 +1382,14 @@
     .jc-metrica:nth-child(even){border-left:1px solid var(--line);}
     .jc-metrica-icone{font-size:22px;}
     .jc-valor{font-size:20px;}
+  }
+  /* 6 colunas (com Sequência) só cabem a partir de ~900px: entre 700 e 899 repete o layout de 2 por linha */
+  @container jc (min-width: 700px) and (max-width: 899px){
+    .jc-metricas.jc-seis{grid-template-columns:1fr 1fr;row-gap:12px;}
+    .jc-metricas.jc-seis .jc-metrica + .jc-metrica{border-left:none;}
+    .jc-metricas.jc-seis .jc-metrica:nth-child(even){border-left:1px solid var(--line);}
+    .jc-metricas.jc-seis .jc-metrica-icone{font-size:22px;}
+    .jc-metricas.jc-seis .jc-valor{font-size:20px;}
   }
 
 
@@ -1208,6 +1429,118 @@
   .jc-tag-alerta{font-size:11px;color:var(--danger);border:1px solid var(--danger);padding:2px 7px;border-radius:10px;font-weight:700;}
   /* colunas de time (Início e Ao Vivo) com cartão completo: 160px não comporta, então alarga */
   .history-teams:has(.jc-lista){grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  /* ===== AO VIVO: dois times por linha, com os pontos de cada time embaixo dele =====
+     (fica depois da regra acima de propósito: mesma especificidade, e aqui as colunas são sempre 2) */
+  .aovivo-card .history-teams{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .aovivo-card .history-team .tn{justify-content:center;text-align:center;}
+  /* borda transparente o tempo todo pra o destaque não empurrar o conteúdo quando aparece/some */
+  .aovivo-card .history-team{border:1.5px solid transparent;transition:border-color .2s ease, box-shadow .2s ease;}
+  .aovivo-card .history-team.lider{border-color:var(--ball-yellow);box-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  body.light-mode .aovivo-card .history-team.lider{box-shadow:none;}
+  .aovivo-pontos{display:flex;flex-direction:column;align-items:center;margin-top:6px;}
+  .aovivo-pontos-valor{font-family:'Anton',sans-serif;font-size:72px;line-height:1.05;color:var(--ball-yellow);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb, var(--ball-yellow) 55%, transparent);}
+  body.light-mode .aovivo-pontos-valor{text-shadow:none;}
+  .aovivo-pontos .aovivo-stepper{margin-top:4px;gap:12px;}
+  .aovivo-pontos .aovivo-stepper button{width:44px;height:40px;font-size:22px;}
+  @media (max-width:640px){
+    /* celular: cada coluna sobra ~125px de cartão, então tira folga das bordas */
+    .aovivo-card{padding:12px;}
+    .aovivo-card .history-team{padding:6px;}
+    .aovivo-pontos-valor{font-size:64px;}
+  }
+  /* ===== AO VIVO: barra de ferramentas (ver reduzido + ícone de tela cheia) ===== */
+  .aovivo-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;}
+  .aovivo-toolbar .btn{padding:8px 14px;font-size:13px;}
+  .aovivo-fs-btn{
+    width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:color .15s, border-color .15s;
+  }
+  .aovivo-fs-btn:hover{color:var(--ball-yellow);border-color:var(--ball-yellow);}
+  .aovivo-fs-btn .ic-sair{display:none;}
+  body.aovivo-fs .aovivo-fs-btn .ic-entrar{display:none;}
+  body.aovivo-fs .aovivo-fs-btn .ic-sair{display:inline;}
+
+  /* ===== AO VIVO — modo REDUZIDO: uma faixa por time (nome metálico, fotos sobrepostas e placar com − / +) ===== */
+  .rz-times{display:flex;flex-direction:column;gap:10px;}
+  .rz-time{
+    position:relative;overflow:hidden;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nome pontos" "avatares pontos";
+    align-items:center;gap:4px 14px;padding:9px 14px 15px;border-radius:14px; /* respiro maior embaixo (onde fica o nome do integrante) e menor entre nome do time e fotos: mesma altura de antes */
+    border:1.5px solid var(--glass-borda);
+    background:
+      repeating-linear-gradient(118deg, transparent 0 26px, color-mix(in srgb, var(--chalk) 5%, transparent) 26px 27px),
+      linear-gradient(100deg, color-mix(in srgb, var(--accent) 14%, var(--court-navy-2)), var(--court-navy-2) 65%);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .rz-time.lider{border-color:var(--ball-yellow);box-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 40%, transparent);}
+  body.light-mode .rz-time.lider{box-shadow:none;}
+  .rz-nome{
+    grid-area:nome;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:'Anton','Orbitron',sans-serif;font-size:clamp(24px,7vw,34px);letter-spacing:1px;text-transform:uppercase;line-height:1.1;
+    background:linear-gradient(180deg,#ffffff 0%,#c9d1e3 50%,#7f8aa6 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  }
+  body.light-mode .rz-nome{background:linear-gradient(180deg,#16213f 0%,#4a5678 100%);-webkit-background-clip:text;background-clip:text;}
+  /* fit-content: o nome do integrante centraliza embaixo do grupo de fotos, não da coluna inteira */
+  .rz-avatares{grid-area:avatares;justify-self:start;position:relative;display:flex;align-items:center;min-width:0;max-width:100%;}
+  .rz-avatares .sb-avatar-wrap{margin-right:-10px;flex:none;}
+  .rz-avatares .sb-avatar-wrap:last-of-type{margin-right:0;}
+  /* nome de um integrante SOBRE a base das fotos (absoluto, então não ocupa altura e a faixa não cresce);
+     cabe dentro do respiro de baixo da faixa */
+  .rz-membro{
+    position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);z-index:1;pointer-events:none; /* 3px de folga abaixo das fotos, sem encostar nelas */
+    max-width:130px;min-width:48px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:'Orbitron','Anton',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;line-height:1;text-transform:uppercase;
+    color:#fff;text-shadow:0 1px 2px #000, 0 0 5px #000, 0 0 8px rgba(0,0,0,.9);
+  }
+  body.light-mode .rz-membro{color:#fff;}
+  .rz-avatares .avatar, .rz-avatares .avatar-fallback{width:clamp(28px,8vw,36px);height:clamp(28px,8vw,36px);font-size:13px;}
+  .rz-pontos{grid-area:pontos;display:flex;align-items:center;gap:10px;}
+  .rz-valor{
+    font-family:'Anton',sans-serif;font-size:clamp(44px,13vw,64px);line-height:1;min-width:1.1ch;text-align:center;
+    color:var(--ball-yellow);font-variant-numeric:tabular-nums;text-shadow:0 0 18px color-mix(in srgb, var(--ball-yellow) 55%, transparent);
+  }
+  body.light-mode .rz-valor{text-shadow:none;}
+  .rz-pontos button{
+    width:40px;height:40px;border-radius:10px;border:1px solid var(--line);
+    background:color-mix(in srgb, var(--court-navy-3) 80%, transparent);color:var(--chalk);
+    font-size:20px;line-height:1;cursor:pointer;padding:0;
+  }
+  .rz-pontos button:disabled{opacity:0.4;cursor:default;}
+  @media (min-width:640px){
+    /* telas largas: tudo na mesma linha, como na barra de placar de referência */
+    .rz-time{grid-template-columns:minmax(120px,auto) minmax(0,1fr) auto;grid-template-areas:"nome avatares pontos";gap:20px;padding:14px 22px;}
+  }
+  /* o log do jogo aparece no reduzido também (fica logo abaixo das faixas dos times).
+     No celular mostra só 3 linhas (as mais recentes, pois o log já vem do mais novo pro mais antigo) e o resto rola.
+     Cada linha tem altura fixa (uma linha só, com reticências) pra "3 linhas" ser sempre 3 × 26px, sem quebra de texto. */
+  @media (max-width:640px){
+    #view-aovivo.aovivo-reduzido .aovivo-log{max-height:78px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+    #view-aovivo.aovivo-reduzido .aovivo-log div{box-sizing:border-box;height:26px;padding:3px 0;line-height:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  }
+
+  /* ===== AO VIVO — TELA CHEIA: só a logomarca do site, os dados do jogo e os controles do placar ===== */
+  body.aovivo-fs header nav, body.aovivo-fs header .header-right, body.aovivo-fs .bottom-tabbar, body.aovivo-fs .app-footer,
+  body.aovivo-fs #view-aovivo .section-title, body.aovivo-fs #view-aovivo .aovivo-desc,
+  body.aovivo-fs #view-aovivo:not(.aovivo-reduzido) .aovivo-log, body.aovivo-fs #view-aovivo .aovivo-acoes{display:none !important;}
+  body.aovivo-fs .wrap{max-width:1200px;padding:12px 16px 24px;}
+  body.aovivo-fs header{margin-bottom:12px;}
+  body.aovivo-fs .aovivo-salvar{bottom:calc(12px + env(safe-area-inset-bottom));} /* sem barra inferior no modo tela cheia */
+  /* cartão do jogador em coluna estreita (decidido pela largura do PRÓPRIO cartão, como o painel de métricas):
+     foto em cima, nome e estrelas centralizados embaixo. Sem o ">" e sem emblemas — o nome ainda abre o perfil. */
+  @container jc (max-width:260px){
+    .aovivo-card .jc-lista .jc-topo{flex-direction:column;text-align:center;gap:12px;padding:12px 8px 10px;}
+    .aovivo-card .jc-lista .jc-foto{width:44px;height:44px;}
+    .aovivo-card .jc-lista .jc-hex{left:-10px;bottom:-10px;width:26px;height:30px;}
+    .aovivo-card .jc-lista .jc-hex span{width:22px;height:26px;font-size:12px;}
+    .aovivo-card .jc-lista .jc-info{width:100%;}
+    .aovivo-card .jc-lista .jc-linha-nome{justify-content:center;}
+    .aovivo-card .jc-lista .jc-nome{font-size:14px;margin-right:0;}
+    .aovivo-card .jc-lista .jc-icones{padding-left:0;border-left:none;margin-left:6px;}
+    .aovivo-card .jc-lista .jc-icones > :not(.jc-sexo){display:none;}
+    .aovivo-card .jc-lista .jc-linha-tags{justify-content:center;}
+    .aovivo-card .jc-lista .jc-acoes{display:none;}
+  }
   .rk-cartoes{display:flex;flex-direction:column;gap:10px;}
   /* Início: cartões da equipe campeã na frente do quadro (no lugar dos chips com nomes) */
   .sb-jogadores{position:relative;display:grid;grid-template-columns:repeat(var(--sb-cols,2),minmax(0,1fr));grid-auto-rows:auto;align-items:start;gap:10px;margin-top:6px;}
@@ -1218,6 +1551,83 @@
     .sb-stats{grid-template-columns:1fr;}
   }
   @media (max-width:640px){ .sb-jogadores{grid-template-columns:1fr;} }
+
+  /* ===== QUADRO DE CAMPEÕES (Início) — visual "painel futurista" =====
+     Só o envoltório do quadro: rótulo, data, título do time, avatares e a coluna de números. Os cartões dos jogadores
+     (.jogador-card / .jc-*) NÃO são tocados aqui. Fica depois das regras antigas do quadro de propósito (mesma
+     especificidade: quem vem por último ganha). */
+  .scoreboard{border-radius:20px;}
+  .sb-label{
+    display:flex;align-items:center;gap:10px;margin:0 0 12px;
+    font-family:'Orbitron','Anton',sans-serif;font-weight:700;font-size:12px;letter-spacing:3px;
+  }
+  .sb-label::before{ /* bolinha luminosa: "ao vivo" da conquista */
+    content:"";flex:none;width:8px;height:8px;border-radius:50%;
+    background:var(--ball-yellow);box-shadow:0 0 10px var(--ball-yellow);
+  }
+  .sb-date{
+    display:inline-flex;align-items:center;gap:8px;margin:0 0 20px;padding:6px 16px;border-radius:999px;
+    font-family:'Work Sans',sans-serif;font-size:13px;letter-spacing:.3px;
+    background:color-mix(in srgb, var(--chalk) 4%, transparent);
+  }
+  .sb-date i{font-size:15px;color:var(--chalk-dim);}
+  .sb-titulo-linha{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:0 0 14px;}
+  /* título metálico: degradê recortado no texto (por isso o brilho é filter e não text-shadow, que apareceria por dentro das letras) */
+  .sb-team{
+    font-family:'Orbitron','Anton',sans-serif;font-weight:900;letter-spacing:2px;line-height:1.05;margin:0;
+    font-size:clamp(28px,8vw,46px);min-width:0;overflow-wrap:anywhere;
+    background:linear-gradient(180deg, var(--chalk) 15%, var(--chalk-dim) 60%, var(--muted) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    text-shadow:none;filter:drop-shadow(0 0 12px color-mix(in srgb, var(--ball-yellow) 35%, transparent));
+  }
+  body.light-mode .sb-team{filter:none;}
+  .sb-team-mini{font-size:clamp(16px,4.6vw,22px);letter-spacing:1px;}
+  .sb-titulo-linha .sb-avatars{margin:0;}
+  /* avatares com anel ciano luminoso (ciano = a cor de interação do tema; clicar abre o perfil) */
+  /* o anel segue a cor do time (--ring, definida pelas classes .time-cor-N abaixo); sem classe, continua na cor de destaque do app */
+  .sb-avatar-wrap{border-color:var(--ring, var(--accent));box-shadow:0 0 10px color-mix(in srgb, var(--ring, var(--accent)) 55%, transparent);}
+  /* cores dos times (Ao Vivo reduzido e quadro de campeões): time 1 azul, 2 vermelho, 3 amarelo, 4 verde, 5 magenta, 6 laranja — todos neon.
+     A cor vem da POSIÇÃO do time na rodada, então o Time 1 é sempre azul mesmo que alguém renomeie o time */
+  .time-cor-1{--ring:#00f3ff;}
+  body.light-mode .time-cor-1{--ring:#0e7490;} /* o azul neon some no fundo claro: mantém o azul-petróleo que o app já usava */
+  .time-cor-2{--ring:#ff2b4d;}
+  .time-cor-3{--ring:#ffe600;}
+  .time-cor-4{--ring:#39ff14;}
+  .time-cor-5{--ring:#d946ff;}
+  .time-cor-6{--ring:#ff8a00;}
+  body.light-mode .sb-avatar-wrap{box-shadow:none;}
+
+  /* números do ano: fonte grande, dourada, com divisórias finas entre eles */
+  .stat-card{padding:0 0 12px;}
+  .stat-num{
+    font-family:'Orbitron','Space Mono',monospace;font-weight:900;font-size:clamp(28px,8vw,44px);line-height:1.1;
+    text-shadow:0 0 16px color-mix(in srgb, var(--ball-yellow) 45%, transparent);
+  }
+  body.light-mode .stat-num{text-shadow:none;}
+  .stat-cap{font-size:11px;letter-spacing:2px;margin-top:6px;}
+  @media (min-width:641px){
+    .scoreboard{padding:32px;}
+    .sb-stats{display:flex;flex-direction:column;}
+    .stat-card{flex:1;display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line);padding:12px 0;}
+    .stat-card:last-child{border-bottom:none;}
+    /* divisória vertical + feixe de luz diagonal entre o time e os números (só no computador, onde são duas colunas) */
+    .sb-stats::before{content:"";position:absolute;left:-13px;top:-32px;bottom:-32px;width:1px;background:var(--line);pointer-events:none;}
+    .sb-stats::after{
+      content:"";position:absolute;left:-14px;top:-40px;bottom:-40px;width:2px;border-radius:2px;pointer-events:none;
+      background:linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--accent) 30%, transparent) 30%, var(--accent) 72%, transparent 100%);
+      filter:drop-shadow(0 0 6px var(--accent));transform:rotate(7deg);
+    }
+    body.light-mode .sb-stats::after{filter:none;opacity:.6;}
+  }
+  @media (max-width:640px){
+    .scoreboard{padding:20px;}
+    .sb-date{font-size:12px;letter-spacing:0;padding:6px 12px;gap:6px;max-width:100%;} /* cabe numa linha só em 360px */
+    /* os três números lado a lado (sem isso o auto-fit fazia 2 + 1) */
+    .sb-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:16px;border-top:1px solid var(--line);}
+    .stat-card{border-bottom:none;padding:0;}
+    .stat-num{font-size:28px;}
+    .stat-cap{font-size:10px;letter-spacing:1px;}
+  }
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
   /* align-items:start: abrir um cartão (o ">") NÃO estica os vizinhos da mesma linha (o padrão "stretch" fazia parecer que todos abriam) */
   .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;align-items:start;}
@@ -1259,6 +1669,7 @@
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
       <button data-view="aovivo">Ao Vivo 🔴<span class="badge-count" id="nav-aovivo-badge" style="display:none;"></span></button>
+      <button data-view="financeiro" id="nav-financeiro-btn" style="display:none;">Financeiro 💲</button>
       <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
     </nav>
     <div class="header-right">
@@ -1304,6 +1715,7 @@
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
         <button class="mais-item" data-view="aovivo"><span class="mais-item-icon">🔴</span>Ao Vivo<span class="badge-count" id="mais-aovivo-badge" style="display:none;"></span></button>
+        <button class="mais-item" data-view="financeiro" id="mais-financeiro-btn" style="display:none;"><span class="mais-item-icon">💲</span>Financeiro</button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
       </div>
     </div>
@@ -1388,22 +1800,52 @@
             <label for="checkin-admin-date">Data do próximo jogo</label>
             <input type="date" id="checkin-admin-date">
           </div>
-          <button class="btn" id="open-checkin-btn">Abrir check-in</button>
-          <button class="btn secondary" id="close-checkin-btn">Fechar check-in</button>
-          <button class="btn secondary" id="toggle-checkin-lock-btn">🔒 Travar inclusões/exclusões</button>
+          <div class="checkin-admin-acoes">
+            <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
+            <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
+            <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+          </div>
         </div>
         <details class="checkin-admin-ajustes">
-          <summary>⚙️ Ajustes do check-in (vagas, horário, mensagem)</summary>
+          <summary><span class="linha-titulo">⚙️ Ajustes do check-in</span></summary>
           <div class="checkin-admin-ajustes-body">
             <div class="checkin-admin-field">
               <label for="checkin-admin-vagas">Vagas</label>
-              <input type="number" id="checkin-admin-vagas" min="1" style="width:70px;">
+              <input type="number" id="checkin-admin-vagas" min="1">
             </div>
             <div class="checkin-admin-field">
               <label for="checkin-admin-horario">Horário</label>
-              <input type="time" id="checkin-admin-horario" style="width:100px;">
+              <input type="time" id="checkin-admin-horario">
             </div>
             <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
+          </div>
+        </details>
+        <details class="fin-dia-card" id="fin-dia-card">
+          <summary><span class="linha-titulo">💰 Financeiro do dia</span><span class="fin-chip" id="fin-dia-chip"></span></summary>
+          <div class="fin-dia-grid">
+            <p class="fin-dica" id="fin-dia-dica" style="display:none;">Valores sugeridos a partir do dia anterior — toque em Salvar para confirmar.</p>
+            <label class="fin-campo">Valor por pessoa (R$)
+              <input type="number" id="fin-valor-pessoa" min="0" step="0.01" inputmode="decimal" placeholder="13,60">
+            </label>
+            <label class="fin-campo">PIX para pagamento
+              <input type="text" id="fin-pix" maxlength="80" placeholder="Chave PIX">
+            </label>
+            <label class="fin-campo">Quadra (R$)
+              <input type="number" id="fin-valor-quadra" min="0" step="0.01" inputmode="decimal" placeholder="180">
+            </label>
+            <label class="fin-campo">Brinde 🍫 — valor total (R$)
+              <input type="number" id="fin-valor-brinde" min="0" step="0.01" inputmode="decimal" placeholder="0 = sem brinde">
+            </label>
+            <div class="fin-rodape-card">
+              <div class="fin-icone" id="fin-icone-sel" role="radiogroup" aria-label="Ícone de quem pagou" title="Ícone que marca quem pagou">
+                <button type="button" role="radio" data-fin-icone="✅" aria-label="Ícone ✅">✅</button>
+                <button type="button" role="radio" data-fin-icone="💰" aria-label="Ícone 💰">💰</button>
+              </div>
+              <button type="button" class="btn" id="fin-salvar-dia-btn">Salvar</button>
+            </div>
+            <div class="fin-semjogo-linha" id="fin-semjogo-linha" style="display:none;">
+              <button type="button" class="btn secondary" id="fin-semjogo-btn" title="Marcar quando não houve jogo (chuva, poucos jogadores)">🌧️ Dia sem jogo</button>
+            </div>
           </div>
         </details>
       </div>
@@ -1432,6 +1874,7 @@
         <span class="selected-counter-num" id="checkin-counter-num">0</span>
         <span class="selected-counter-label" id="checkin-counter-label">confirmado(s)</span>
       </div>
+      <div id="fin-resumo-checkin"></div>
       <div id="checkin-ordenados"></div>
       <div class="search-box" id="checkin-search-box"><input type="text" id="checkin-search" placeholder="Buscar seu nome..."></div>
       <div class="select-list" id="checkin-list"></div>
@@ -1439,6 +1882,27 @@
         <button class="btn secondary" id="ajustar-estrelas-checkin-btn" style="display:none;">⭐ Ajustar estrelas deste check-in</button>
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
         <span id="share-checkins-whatsapp-area"></span>
+      </div>
+    </section>
+
+    <section id="view-financeiro">
+      <h2 class="section-title">Financeiro 💲</h2>
+      <!-- visitante sem login vê só este aviso (o conteúdo abaixo fica escondido; ver podeVerFinanceiro) -->
+      <div class="empty" id="fin-bloqueado" style="display:none;"><i class="ti ti-lock"></i>O Financeiro é só para usuários registrados. Entre com sua conta Google para ver.</div>
+      <div id="fin-conteudo">
+        <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Caixa do grupo: tudo é calculado a partir dos pagamentos marcados no Check-in e dos lançamentos. Nada é apagado — correções viram estornos e ficam na auditoria.</p>
+        <div id="fin-topo"></div>
+        <div class="fin-barra-acoes" id="fin-acoes"></div>
+        <h3 class="fin-subtitulo">Extrato por dia</h3>
+        <div id="fin-extrato"></div>
+        <details class="dash-accordion" id="fin-creditos-sec" style="display:none;">
+          <summary>🎟️ Créditos de jogadores</summary>
+          <div id="fin-creditos-lista"></div>
+        </details>
+        <details class="dash-accordion" id="fin-auditoria">
+          <summary>🔍 Auditoria — últimas ações</summary>
+          <div id="fin-auditoria-lista"></div>
+        </details>
       </div>
     </section>
 
@@ -1451,34 +1915,40 @@
         <span class="star-toggle-label">Exibir notas (estrelas) para todos os usuários</span>
       </label>
 
-      <div class="add-row" id="add-player-row">
-        <input id="new-player-name" placeholder="Nome do jogador" style="flex:1;min-width:180px;">
-        <input id="new-player-nick" placeholder="Apelido (opcional)" style="width:160px;">
-        <select id="new-player-gender">
-          <option value="">Sexo (opcional)</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="field-group">
-          <label>Nota (opcional)</label>
-          <div class="stars-picker" id="new-player-stars" data-value="0">
-            <button type="button" data-star="1">★</button>
-            <button type="button" data-star="2">★</button>
-            <button type="button" data-star="3">★</button>
-            <button type="button" data-star="4">★</button>
-            <button type="button" data-star="5">★</button>
+      <details class="sorteio-convidado" id="add-player-row">
+        <summary><span class="linha-titulo">➕ Novo jogador</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="new-player-name" class="campo-cheio" placeholder="Nome do jogador">
+          <input id="new-player-nick" placeholder="Apelido (opcional)">
+          <select id="new-player-gender">
+            <option value="">Sexo (opcional)</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+          <div class="field-group">
+            <label>Nota (opcional)</label>
+            <div class="stars-picker" id="new-player-stars" data-value="0">
+              <button type="button" data-star="1">★</button>
+              <button type="button" data-star="2">★</button>
+              <button type="button" data-star="3">★</button>
+              <button type="button" data-star="4">★</button>
+              <button type="button" data-star="5">★</button>
+            </div>
           </div>
+          <div class="field-group">
+            <label>Foto (opcional)</label>
+            <div class="photo-input-wrap">
+              <img class="preview" id="new-player-preview">
+              <input type="file" id="new-player-photo" accept="image/*">
+            </div>
+          </div>
+          <div class="field-group campo-cheio">
+            <label>Porte (opcional)</label>
+            <div id="new-player-porte-wrap"></div>
+          </div>
+          <button class="btn" id="add-player-btn">Adicionar</button>
         </div>
-        <div class="field-group">
-          <label>Porte (opcional)</label>
-          <div id="new-player-porte-wrap"></div>
-        </div>
-        <div class="photo-input-wrap">
-          <img class="preview" id="new-player-preview">
-          <input type="file" id="new-player-photo" accept="image/*">
-        </div>
-        <button class="btn" id="add-player-btn">Adicionar</button>
-      </div>
+      </details>
       <div class="player-list" id="player-list"></div>
     </section>
 
@@ -1489,28 +1959,31 @@
         <button type="button" class="btn secondary" id="cancel-edit-round-btn" style="padding:6px 12px;font-size:12px;margin-left:10px;">Cancelar edição</button>
       </div>
       <div class="round-form-top">
-        <label style="color:var(--muted);font-size:13px;">Data</label>
-        <input type="date" id="round-date">
-        <label style="color:var(--muted);font-size:13px;">Times</label>
-        <select id="round-team-count">
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
+        <div class="field-group">
+          <label for="round-date">Data</label>
+          <input type="date" id="round-date">
+        </div>
+        <div class="field-group">
+          <label for="round-team-count">Times</label>
+          <select id="round-team-count">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
       </div>
 
-      <div class="guest-row">
-        <strong style="font-size:13px;">Adicionar convidado a esta rodada (não é salvo permanentemente):</strong>
-        <input id="rodada-guest-name" placeholder="Nome do convidado" style="width:160px;">
-        <select id="rodada-guest-gender">
-          <option value="">Sexo</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="field-group">
-          <label>Nota</label>
+      <details class="sorteio-convidado">
+        <summary><span class="linha-titulo">➕ Adicionar convidado</span><span class="sorteio-convidado-dica">só nesta rodada</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="rodada-guest-name" class="campo-cheio" placeholder="Nome do convidado">
+          <select id="rodada-guest-gender">
+            <option value="">Sexo</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
           <div class="stars-picker" id="rodada-guest-stars" data-value="0">
             <button type="button" data-star="1">★</button>
             <button type="button" data-star="2">★</button>
@@ -1518,15 +1991,15 @@
             <button type="button" data-star="4">★</button>
             <button type="button" data-star="5">★</button>
           </div>
+          <button class="btn" id="rodada-add-guest-btn">Adicionar convidado</button>
         </div>
-        <button class="btn secondary" id="rodada-add-guest-btn">Adicionar convidado</button>
-      </div>
+      </details>
       <div id="rodada-guest-chips" class="sb-players" style="margin-bottom:14px;"></div>
 
       <div class="teams-grid" id="teams-grid"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="rodada-acoes">
         <button class="btn" id="save-round-btn">Salvar rodada</button>
-        <button class="btn secondary" id="save-draft-btn">💾 Salvar times como rascunho (lançar placar depois)</button>
+        <button class="btn secondary btn-duplo" id="save-draft-btn"><span>💾 Salvar times como rascunho</span><small>lançar o placar depois</small></button>
       </div>
     </section>
 
@@ -1538,31 +2011,33 @@
         <button data-submode="manual">🎯 Sorteio Manual</button>
       </div>
 
-      <div class="guest-row">
-        <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
-        <input id="guest-name" placeholder="Nome do convidado" style="width:160px;">
-        <select id="guest-gender">
-          <option value="">Sexo</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="stars-picker" id="guest-stars" data-value="0">
-          <button type="button" data-star="1">★</button>
-          <button type="button" data-star="2">★</button>
-          <button type="button" data-star="3">★</button>
-          <button type="button" data-star="4">★</button>
-          <button type="button" data-star="5">★</button>
+      <details class="sorteio-convidado">
+        <summary><span class="linha-titulo">➕ Adicionar convidado</span><span class="sorteio-convidado-dica">não fica salvo</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="guest-name" class="campo-cheio" placeholder="Nome do convidado">
+          <select id="guest-gender">
+            <option value="">Sexo</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+          <div class="stars-picker" id="guest-stars" data-value="0">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+          <button class="btn" id="add-guest-btn">Adicionar convidado</button>
         </div>
-        <button class="btn secondary" id="add-guest-btn">Adicionar convidado</button>
-      </div>
+      </details>
 
       <div class="sorteio-controls">
-        <div class="field-group" style="flex:1;min-width:200px;">
+        <div class="field-group campo-cheio">
           <label>Buscar jogador</label>
           <div class="search-box" style="margin-bottom:0;"><input type="text" id="sorteio-search" placeholder="Digite um nome..."></div>
         </div>
         <div class="field-group">
-          <label>Filtrar por nota mínima</label>
+          <label>Nota mínima</label>
           <select id="sorteio-min-star">
             <option value="0">Todas</option>
             <option value="1">1+ estrela</option>
@@ -1573,7 +2048,7 @@
           </select>
         </div>
         <div class="field-group">
-          <label>Quantidade de times</label>
+          <label>Nº de times</label>
           <select id="sorteio-team-count">
             <option value="2">2</option>
             <option value="3">3</option>
@@ -1678,7 +2153,14 @@
 
     <section id="view-aovivo">
       <h2 class="section-title"><span class="ponto-ao-vivo" aria-hidden="true"></span>Ao Vivo</h2>
-      <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <p class="aovivo-desc" style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Transmissão das rodadas com placar ainda não lançado. Pra transmitir uma, vá em Histórico → rascunho pendente → "Transmitir ao vivo".</p>
+      <div class="aovivo-toolbar">
+        <button type="button" class="btn secondary" id="aovivo-reduzido-btn" aria-pressed="false">▤ Ver reduzido</button>
+        <button type="button" class="aovivo-fs-btn" id="aovivo-fs-btn" title="Tela cheia" aria-label="Entrar em tela cheia">
+          <svg class="ic-entrar" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          <svg class="ic-sair" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3a2 2 0 0 0 2-2V3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M21 16h-3a2 2 0 0 0-2 2v3"/></svg>
+        </button>
+      </div>
       <div id="aovivo-empty" class="empty"><i class="ti ti-broadcast"></i>Nenhuma transmissão ao vivo agora.</div>
       <div id="aovivo-list"></div>
     </section>
@@ -1697,6 +2179,152 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>20/09/2026 — v12.7: Chama da Sequência em laranja neon</summary>
+          <div>
+            <p style="line-height:1.6;">No cartão do jogador, o ícone de chama da coluna <strong>Sequência 🔥</strong> agora é <strong>laranja neon</strong>, com um leve brilho (no modo claro, um laranja mais escuro para continuar legível).</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.6: Log do Ao Vivo reduzido com 3 linhas no celular</summary>
+          <div>
+            <p style="line-height:1.6;">No celular, o <strong>log do jogo</strong> no Ao Vivo reduzido mostra só as <strong>3 últimas linhas</strong>; para ver os pontos anteriores é só rolar o próprio log. No computador ele continua como antes.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.5: Cores dos times nas fotos e log no Ao Vivo reduzido</summary>
+          <div>
+            <p style="line-height:1.6;">O contorno das fotinhas agora tem a <strong>cor do time</strong>, em tons neon: Time 1 <strong>azul</strong>, Time 2 <strong>vermelho</strong>, Time 3 <strong>amarelo</strong>, Time 4 <strong>verde</strong> (Time 5 magenta e Time 6 laranja). Vale para as faixas do <strong>Ao Vivo reduzido</strong> e para o <strong>quadro de campeões</strong> do Início — a cor segue a posição do time na rodada, então o Time 1 é sempre azul, mesmo que ele seja renomeado. O <strong>log do jogo</strong> também aparece no Ao Vivo reduzido, abaixo dos times.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.4: Ao Vivo reduzido e em tela cheia</summary>
+          <div>
+            <p style="line-height:1.6;">Na tela <strong>Ao Vivo</strong>, o botão <strong>▤ Ver reduzido</strong> troca os cartões grandes por uma faixa por time: nome, fotos sobrepostas e o placar com <strong>−</strong> e <strong>+</strong> (a escolha fica lembrada neste aparelho; <strong>▦ Ver completo</strong> volta ao normal). O ícone discreto no canto abre a <strong>tela cheia</strong>: só ficam a logomarca do site, os dados do jogo (data, cronômetro, times e placar) e os controles (−, + e Salvar parcial). Sai pelo mesmo ícone ou pela tecla Esc.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.3: Sorteio, Nova rodada e Jogadores mais organizados</summary>
+          <div>
+            <p style="line-height:1.6;">Em <strong>Jogadores</strong>, o cadastro virou uma linha recolhida <strong>➕ Novo jogador</strong> (toque para abrir): nome em linha inteira, apelido e sexo lado a lado, nota e foto lado a lado, porte embaixo e o botão <strong>Adicionar</strong> em destaque.</p>
+            <p style="line-height:1.6;">Na <strong>Nova rodada</strong>, <strong>Data</strong> e <strong>Times</strong> ficam lado a lado (a data com o dobro da largura), <strong>Adicionar convidado</strong> segue o mesmo formato recolhido do Sorteio, e os botões do fim viraram <strong>Salvar rodada</strong> e <strong>Salvar times como rascunho</strong>, alinhados e do mesmo tamanho de toque.</p>
+            <p style="line-height:1.6;">As abas <strong>Sorteio Automático/Manual</strong> viraram um controle de duas metades iguais. <strong>Adicionar convidado</strong> ficou numa linha recolhida (toque para abrir), com nome, sexo e estrelas em grade. Os filtros ganharam alinhamento: busca em linha inteira, <strong>Nota mínima</strong> e <strong>Nº de times</strong> lado a lado e <strong>Selecionar todos</strong> logo abaixo. No computador tudo fica numa fileira só.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>20/09/2026 — v12.2: Controles do Check-in mais organizados</summary>
+          <div>
+            <p style="line-height:1.6;">No Check-in (admin/organizador), a <strong>data</strong> agora ocupa a largura toda e os botões ficam numa grade alinhada. Só aparece o botão que faz sentido: com o check-in fechado, só <strong>Abrir check-in</strong>; com ele aberto, <strong>Travar/Destravar lista</strong> e <strong>Fechar check-in</strong> lado a lado (escolhendo outra data aparece <strong>Trocar para dd/mm</strong>). <strong>Ajustes do check-in</strong> e <strong>Financeiro do dia</strong> ganharam o mesmo formato de linha, e o status do financeiro virou um chip curto (pendente, salvo ✓).</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v12.1: Sequência no cartão do jogador</summary>
+          <div>
+            <p style="line-height:1.6;">Ao abrir o cartão de um jogador (no <strong>&gt;</strong>), as estatísticas ganharam a coluna <strong>Sequência 🔥</strong>, antes do Aproveitamento: quantas rodadas seguidas ele jogou sem faltar, contando da mais recente para trás. É o mesmo número da "Sequência atual sem faltar" do Meu Perfil.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v12.0: Dia sem jogo e crédito de jogadores</summary>
+          <div>
+            <p style="line-height:1.6;">Quando <strong>não há jogo</strong> (chuva, poucos jogadores), o admin/organizador usa <strong>🌧️ Dia sem jogo</strong> no "Financeiro do dia" do Check-in. A <strong>quadra e o brinde deixam de contar</strong> naquele dia (acabou o valor negativo de uma quadra que não foi paga) e o app pergunta o que fazer com o dinheiro já recolhido: <strong>guardar como crédito</strong> (padrão) ou <strong>devolver</strong> (estornar todos). O dia pode ser reaberto enquanto nenhum crédito dele tiver sido usado.</p>
+            <p style="line-height:1.6;"><strong>Crédito:</strong> no próximo check-in, quem tinha pago aparece <strong>já pago, com "(Crédito)"</strong>, assim que estiver entre os confirmados dentro das vagas (o app aplica sozinho ao salvar o dia, ao confirmar presença e quando a espera sobe; quem sai da lista devolve o crédito). O dinheiro do crédito continua no caixa, mas é dos jogadores: a página Financeiro mostra <strong>Créditos de jogadores</strong> e o <strong>Saldo livre</strong> (caixa − créditos), e o admin pode devolver o dinheiro de um crédito ainda não usado. Um pagamento por crédito conta como pago, mas não é dinheiro novo no caixa. Crédito menor que o valor do dia não é aplicado; maior que o valor sobra saldo para os próximos.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.7: Confirmar todos e Cancelar todos os pagamentos</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Check-in</strong>, o resumo do dia ganhou dois botões (só para admin/organizador): <strong>Confirmar todos</strong> marca como pago todo confirmado que ainda não pagou, e <strong>Cancelar todos</strong> estorna todos os pagamentos do dia automaticamente (nada é apagado: cada um fica riscado no extrato, com quem estornou e quando, e a ação inteira entra na auditoria). Os botões mostram quantos pagamentos serão afetados e pedem confirmação antes. O organizador não estorna o pagamento de quem já saiu da lista (só o admin), e o app avisa quantos ficaram.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.6: Página renomeada para "Financeiro"</summary>
+          <div>
+            <p style="line-height:1.6;">A página <strong>Controle Financeiro $</strong> agora se chama apenas <strong>Financeiro 💲</strong>, no menu, no painel "Mais" e no título da página. Nada mudou no funcionamento.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.5: Controle Financeiro só para usuários registrados</summary>
+          <div>
+            <p style="line-height:1.6;">O menu e a página <strong>Controle Financeiro $</strong> agora só aparecem para quem <strong>entrou com a conta Google</strong> (qualquer perfil, inclusive jogador) ou está com a chave mestra. Quem não está logado não vê o item no menu e, se tentar abrir a página, só encontra um aviso pedindo o login. Se a pessoa sair da conta com a página aberta, o app volta para o Início. No <strong>Check-in</strong> nada mudou: valor por pessoa, PIX e os ícones de quem pagou continuam visíveis a todos.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.4: Copiar o resumo do dia para o grupo</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>extrato por dia</strong> da página Controle Financeiro, cada dia configurado tem um ícone de <strong>copiar</strong>. Ele monta o texto de fechamento pronto para colar no grupo: data e dia da semana, a lista de quem pagou (na ordem em que pagaram), o total recebido, as despesas (quadra, chocolate e outras saídas), o resumo com saldo anterior e o saldo atual em caixa. Os saldos saem da mesma conta do caixa, então sempre fecham.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.3: Brinde pelo valor e ícone de pagamento à escolha</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Financeiro do dia</strong> (Check-in), o brinde agora é definido só pelo <strong>valor</strong>: vazio ou 0 significa que não há brinde (sem caixinha para marcar). Também dá para escolher o <strong>ícone de quem pagou</strong> (✅ ou 💰) num seletor pequeno ao lado do Salvar; ele vale para a lista do Check-in, para a página financeira e para a mensagem do WhatsApp.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.2: Último pagamento primeiro</summary>
+          <div>
+            <p style="line-height:1.6;">Na página <strong>Controle Financeiro $</strong>, a lista de pagamentos de cada dia agora mostra o <strong>pagamento mais recente primeiro</strong> (pelo horário em que foi marcado).</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.1: Saldo previsto no Controle Financeiro</summary>
+          <div>
+            <p style="line-height:1.6;">A página <strong>Controle Financeiro $</strong> agora mostra, abaixo do saldo do caixa, o <strong>saldo previsto</strong>: quanto o caixa terá quando todos os confirmados do check-in aberto que ainda não pagaram pagarem (cada pendente × o valor por pessoa do dia). Quem pagou e saiu da lista já está no caixa, então não entra na conta. A previsão só aparece com o check-in aberto e o valor do dia cadastrado.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v11.0: Controle Financeiro</summary>
+          <div>
+            <p style="line-height:1.6;">Nova página <strong>Controle Financeiro $</strong> com o saldo do caixa, o extrato dia a dia (entradas e saídas) e lançamentos avulsos. No <strong>Check-in</strong>, o admin/organizador cadastra o valor por pessoa, o PIX, a quadra e o brinde do dia e <strong>toca no nome</strong> de quem pagou: aparece ✅ (e 🍫 quando há brinde). A mensagem do WhatsApp passa a levar o valor, o PIX e os ✅🍫.</p>
+            <p style="line-height:1.6;">Tudo é auditável: nada é apagado (correções viram estornos), e a página mostra quem marcou, quando, e uma lista das últimas ações. Quem pagou e saiu da lista continua contando no caixa e aparece sinalizado; só o admin pode estornar.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v10.6: Novo visual do quadro dos últimos campeões</summary>
+          <div>
+            <p style="line-height:1.6;">O quadro dos <strong>Últimos Campeões</strong>, na tela Início, ganhou um visual mais futurista: rótulo com bolinha luminosa, data numa pílula com ícone, nome do time em letras metálicas ao lado dos avatares (com anel ciano), e os números do ano em dourado, grandes, separados por linhas finas e por um feixe de luz. Os cartões dos jogadores continuam exatamente como estavam.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v10.5: Novo visual do card de campeões em 1º lugar</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Top 10 de fotos</strong>, o card do 1º lugar quando há empate ganhou um visual de painel de troféus: fundo escuro com grade fininha, borda dourada com brilho, título em pílula (<strong>"1º lugar — empate entre N"</strong>) e cada campeão em um cartãozinho, com a foto num anel luminoso e o número de vezes em destaque.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v10.4: Ao Vivo com placar em destaque e dois times por linha</summary>
+          <div>
+            <p style="line-height:1.6;">Na tela <strong>Ao Vivo</strong>, os pontos de cada time aparecem grandes e centralizados embaixo do próprio time, com os botões de <strong>−</strong> e <strong>+</strong> logo abaixo do número. Os times ficam <strong>lado a lado</strong>, dois por linha, e no celular os cartões dos jogadores ficam compactos (foto em cima, nome e estrelas embaixo) para caberem nas duas colunas.</p>
+            <p style="line-height:1.6;">Para quem controla o placar, o botão <strong>Salvar parcial</strong> agora ocupa a linha toda, em amarelo, e fica <strong>flutuando</strong> na parte de baixo da tela enquanto o cartão está à vista. "Lançar placar final" e "Cancelar transmissão" dividem a linha logo abaixo, no fim do cartão.</p>
+            <p style="line-height:1.6;">O time com a <strong>maior pontuação</strong> ganha uma borda amarela em volta da coluna (em caso de empate, os times empatados no topo ficam destacados). Com o placar em 0 × 0 ninguém é destacado.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>19/09/2026 — v10.1: Barra de progresso também no 2º e no 3º do Top 10 de fotos</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Top 10 de fotos</strong>, quando há empate no 1º lugar, os cartões do 2º e do 3º agora também mostram a barra de progresso (quanto falta para o líder), igual à dos demais, e a etiqueta ficou padronizada ("2º · 5× na foto").</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>19/09/2026 — v10.0: Cada cartão abre sozinho</summary>
           <div>
             <p style="line-height:1.6;">Corrigido: ao tocar no <strong>&gt;</strong> de um cartão no quadro de campeões, no Hall da Fama, nas Maiores Panelas e nos Defuntos, os outros cartões da mesma linha também cresciam e pareciam abertos. Agora só o cartão tocado abre; os demais ficam do tamanho de antes.</p>
@@ -1975,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 10.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 12.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -1991,6 +2619,9 @@
 let DATA = { players: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
+// Controle Financeiro: espelho do que o backend devolve em "financeiro" (formato no plano). Nunca é editado à mão:
+// cada ação devolve o estado completo e ele é substituído inteiro em finPost().
+let FINANCEIRO = finNormalizar(null);
 let CHECKINS = [];
 let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a uma conta (qualquer perfil), sem e-mail (ver perfisPublicos_ no .gs)
 
@@ -2026,8 +2657,263 @@ const PERMISSOES_UI = {
   solicitarVinculo:   ['jogador','organizador','admin'],
   aprovarVinculo:     ['organizador','admin'],
   rejeitarVinculo:    ['organizador','admin'],
-  salvarEstrelasAjustadas: ['organizador','admin']
+  salvarEstrelasAjustadas: ['organizador','admin'],
+  salvarFinDia:        ['organizador','admin'],
+  marcarPagamento:     ['organizador','admin'],
+  estornarPagamento:   ['organizador','admin'], // backend: quem saiu da lista só admin (o botão só aparece pro admin)
+  marcarTodosPagamentos:   ['organizador','admin'],
+  estornarTodosPagamentos: ['organizador','admin'], // backend: organizador não estorna o de quem saiu da lista
+  marcarDiaSemJogo:    ['organizador','admin'],
+  reabrirDia:          ['organizador','admin'],
+  aplicarCreditosDoDia:['organizador','admin'],
+  devolverCredito:     ['admin'],                   // devolver o DINHEIRO de um crédito é do admin
+  addLancamento:       ['organizador','admin'],
+  estornarLancamento:  ['admin']
 };
+
+// <financeiro-puro>
+/* Cálculos do Controle Financeiro. PURO: não lê DATA, DOM nem rede — recebe o estado (fin) e devolve números.
+   Todo dinheiro aqui é em CENTAVOS INTEIROS (13,60 vira 1360) pra não acumular erro de ponto flutuante
+   (ex.: 16 x 13,60 em decimal pode dar 217.60000000000002). O formato de "fin" está no plano/spec. */
+function finNormalizar(f){
+  const x = f || {};
+  return { dias: x.dias || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [] };
+}
+// dia marcado como "sem jogo" (chuva, poucos jogadores): a quadra e o brinde não foram pagos, então a saída não conta
+function finSemJogo(d){ return !!d && d.status === 'semjogo'; }
+// "dinheiro" (padrão) = entrou dinheiro novo; "credito" = pago com crédito de um dia sem jogo (o dinheiro JÁ estava no caixa)
+function finTipoPagamento(p){ return p && p.tipo === 'credito' ? 'credito' : 'dinheiro'; }
+function finCentavos(v){
+  const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
+}
+function finFormatar(centavos){
+  const c = Math.round(Number(centavos) || 0);
+  const abs = Math.abs(c);
+  const reais = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (c < 0 ? '−' : '') + 'R$ ' + reais + ',' + String(abs % 100).padStart(2, '0');
+}
+function finDia(fin, data){
+  return (fin.dias || []).find(d => d.data === data) || null;
+}
+// dia novo já nasce com os valores e o PIX do dia anterior mais recente (o usuário só confere e salva)
+function finDiaOuHerdado(fin, data){
+  const exato = finDia(fin, data);
+  if(exato) return { dia: exato, herdado: false };
+  const anteriores = (fin.dias || []).filter(d => d.data < data).sort((a, b) => a.data < b.data ? 1 : -1);
+  return anteriores.length ? { dia: anteriores[0], herdado: true } : { dia: null, herdado: false };
+}
+function finPagamentosValidos(fin, data){
+  return (fin.pagamentos || []).filter(p => p.data === data && !p.estornado);
+}
+function finPagamentoDe(fin, data, jogadorId){
+  return finPagamentosValidos(fin, data).find(p => String(p.jogadorId) === String(jogadorId)) || null;
+}
+// tudo o que está PAGO no dia (dinheiro + crédito): serve pro "arrecadado de previsto", pendentes e a lista
+function finArrecadadoDia(fin, data){
+  return finPagamentosValidos(fin, data).reduce((s, p) => s + finCentavos(p.valor), 0);
+}
+// só o dinheiro NOVO que entrou no dia (é isso que mexe no caixa; o crédito já tinha entrado no dia sem jogo)
+function finRecebidoDinheiroDia(fin, data){
+  return finPagamentosValidos(fin, data).filter(p => finTipoPagamento(p) === 'dinheiro')
+    .reduce((s, p) => s + finCentavos(p.valor), 0);
+}
+// a saída do dia (quadra + brinde) conta assim que o dia é salvo, antes de qualquer pagamento; dia SEM JOGO não tem saída
+function finSaidaDia(fin, data){
+  const d = finDia(fin, data);
+  if(!d || finSemJogo(d)) return 0;
+  return finCentavos(d.valorQuadra) + (d.temBrinde ? finCentavos(d.valorBrinde) : 0);
+}
+function finAvulsosDia(fin, data){
+  return (fin.lancamentos || []).filter(l => l.data === data && !l.estornado)
+    .reduce((s, l) => s + (l.tipo === 'entrada' ? 1 : -1) * finCentavos(l.valor), 0);
+}
+function finResultadoDia(fin, data){
+  return finRecebidoDinheiroDia(fin, data) - finSaidaDia(fin, data);
+}
+function finDatas(fin){
+  const s = new Set();
+  (fin.dias || []).forEach(d => s.add(d.data));
+  (fin.pagamentos || []).forEach(p => s.add(p.data));
+  (fin.lancamentos || []).forEach(l => s.add(l.data));
+  return Array.from(s).filter(Boolean).sort().reverse();
+}
+// caixa = resultado de todos os dias + lançamentos avulsos. Nunca é digitado: sempre derivado dos registros
+function finCaixa(fin){
+  return finDatas(fin).reduce((s, d) => s + finResultadoDia(fin, d) + finAvulsosDia(fin, d), 0);
+}
+function finPrevistoDia(fin, data, qtdDentro){
+  const d = finDia(fin, data);
+  return d ? finCentavos(d.valorPessoa) * qtdDentro : 0;
+}
+function finPendentes(fin, data, dentro){
+  if(finSemJogo(finDia(fin, data))) return [];  // dia sem jogo: não há o que cobrar
+  return dentro.filter(c => !finPagamentoDe(fin, data, c.jogadorId));
+}
+/* ---------- créditos de jogadores (dinheiro recolhido num dia sem jogo, a abater no próximo check-in) ---------- */
+// crédito.status: 'ativo' | 'devolvido' (admin devolveu o dinheiro) | 'cancelado' (o dia sem jogo foi reaberto).
+// O SALDO não é gravado: é o valor menos o que já foi usado em pagamentos por crédito AINDA VÁLIDOS. Assim, estornar um
+// pagamento por crédito devolve o saldo sozinho, e um crédito maior que o valor do dia pode ser usado em partes.
+function finSaldoCredito(fin, c){
+  const usado = (fin.pagamentos || [])
+    .filter(p => !p.estornado && finTipoPagamento(p) === 'credito' && String(p.creditoId) === String(c.id))
+    .reduce((s, p) => s + finCentavos(p.valor), 0);
+  return finCentavos(c.valor) - usado;
+}
+function finCreditosDisponiveis(fin){
+  return (fin.creditos || []).filter(c => c.status === 'ativo' && finSaldoCredito(fin, c) > 0);
+}
+function finTotalCreditos(fin){
+  return finCreditosDisponiveis(fin).reduce((s, c) => s + finSaldoCredito(fin, c), 0);
+}
+function finCreditoDe(fin, jogadorId){
+  return finCreditosDisponiveis(fin).filter(c => String(c.jogadorId) === String(jogadorId))
+    .reduce((s, c) => s + finSaldoCredito(fin, c), 0);
+}
+// o dinheiro dos créditos está no caixa mas é dos jogadores: o que sobra "de verdade" pro grupo é caixa − créditos
+function finSaldoLivre(fin){
+  return finCaixa(fin) - finTotalCreditos(fin);
+}
+// 'Crédito' se o pagamento válido dessa pessoa no dia foi feito com crédito (aparece como "(Crédito)" na lista)
+function finRotuloCredito(fin, data, jogadorId){
+  const p = finPagamentoDe(fin, data, jogadorId);
+  return p && finTipoPagamento(p) === 'credito' ? 'Crédito' : '';
+}
+// pagou mas não está mais entre os confirmados (saiu da lista ou foi pra espera): continua contando no caixa;
+// só o admin decide estornar
+function finSinalizados(fin, data, dentro){
+  const ids = new Set(dentro.map(c => String(c.jogadorId)));
+  return finPagamentosValidos(fin, data).filter(p => !ids.has(String(p.jogadorId)));
+}
+// ícone de "pagou" escolhido no dia (✅ padrão ou 💰; qualquer outro valor cai no padrão) + 🍫 se o dia tem brinde
+function finMarcas(fin, data, jogadorId){
+  if(!finPagamentoDe(fin, data, jogadorId)) return '';
+  const d = finDia(fin, data);
+  const icone = d && d.icone === '💰' ? '💰' : '✅';
+  return icone + (d && d.temBrinde ? '🍫' : '');
+}
+function finResumoMes(fin, ano, mes){
+  const pref = ano + '-' + String(mes).padStart(2, '0');
+  const noMes = (d) => String(d).indexOf(pref) === 0;
+  let entradas = 0, saidas = 0;
+  (fin.pagamentos || []).forEach(p => { if(!p.estornado && noMes(p.data)) entradas += finCentavos(p.valor); });
+  (fin.dias || []).forEach(d => { if(noMes(d.data)) saidas += finSaidaDia(fin, d.data); });
+  (fin.lancamentos || []).forEach(l => {
+    if(l.estornado || !noMes(l.data)) return;
+    if(l.tipo === 'entrada') entradas += finCentavos(l.valor); else saidas += finCentavos(l.valor);
+  });
+  return { entradas, saidas };
+}
+// linhas de valor/PIX que entram na mensagem do WhatsApp (vazio se o dia ainda não tem valor cadastrado)
+function finCabecalhoWhatsApp(fin, data){
+  const d = finDia(fin, data);
+  if(!d || !(finCentavos(d.valorPessoa) > 0)) return '';
+  let t = '💰 Valor: ' + finFormatar(finCentavos(d.valorPessoa)) + '\n\n';
+  if(d.pix) t += '📌 PIX para pagamento:\n' + d.pix + '\n\n';
+  return t;
+}
+// Saldo PREVISTO: o caixa de hoje + o que ainda falta entrar do check-in aberto, ou seja, cada confirmado dentro das
+// vagas que ainda não tem pagamento válido x o valor por pessoa do dia. Quem pagou e saiu da lista já está no caixa,
+// então não entra em "pendentes". Devolve null se o dia não tem valor por pessoa (sem isso não dá pra prever).
+function finSaldoPrevisto(fin, data, dentro){
+  const d = finDia(fin, data);
+  if(!d || finSemJogo(d) || !(finCentavos(d.valorPessoa) > 0)) return null;
+  const pendentes = finPendentes(fin, data, dentro).length;
+  const aReceber = pendentes * finCentavos(d.valorPessoa);
+  const caixa = finCaixa(fin);
+  return { caixa, pendentes, aReceber, previsto: caixa + aReceber };
+}
+// Pagamentos do mais recente pro mais antigo, pelo horário da marcação (ISO ordena como texto). Empate de horário:
+// o que foi gravado depois na planilha vem antes. Sem horário vai pro fim. Não altera a lista original.
+function finPagamentosRecentesPrimeiro(lista){
+  return (lista || []).map((p, i) => ({ p, i })).sort((a, b) => {
+    const ta = String(a.p.marcadoEm || ''), tb = String(b.p.marcadoEm || '');
+    if(ta !== tb) return ta < tb ? 1 : -1;
+    return b.i - a.i;
+  }).map(x => x.p);
+}
+// Caixa acumulado até uma data: inclusivo = conta o próprio dia; não inclusivo = o "saldo anterior" daquele dia.
+function finCaixaAte(fin, data, inclusivo){
+  return finDatas(fin).filter(d => inclusivo ? d <= data : d < data)
+    .reduce((s, d) => s + finResultadoDia(fin, d) + finAvulsosDia(fin, d), 0);
+}
+// '2026-09-18' -> '18/09/26 | SEXTA-FEIRA' (o dia da semana vem da própria data, ao meio-dia UTC pra não virar de dia por fuso)
+function finDataCurtaComDia(data){
+  const NOMES = ['DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO'];
+  const [a, m, d] = String(data).split('-');
+  const dow = new Date(data + 'T12:00:00Z').getUTCDay();
+  return d + '/' + m + '/' + a.slice(2) + ' | ' + NOMES[dow];
+}
+// Texto de fechamento do dia, pronto pra colar no grupo. A lista é de QUEM PAGOU, na ordem em que pagaram; "recebido" =
+// pagamentos válidos + entradas avulsas do dia; "despesas" = quadra + brinde (chamado de Chocolate) + saídas avulsas.
+// Saldo anterior/atual vêm da MESMA conta do caixa (finCaixaAte), então sempre fecham: anterior + recebido − despesas = atual.
+function finResumoFechamento(fin, data){
+  const dia = finDia(fin, data);
+  const money = (c) => finFormatar(c);
+  const pagos = finPagamentosRecentesPrimeiro(finPagamentosValidos(fin, data)).reverse(); // do primeiro pro último a pagar
+  // dia SEM JOGO: em vez do fechamento, um aviso curto (a saída não conta e o dinheiro recolhido fica como crédito)
+  if(finSemJogo(dia)){
+    const linhas = ['🏐 VÔLEI — SEM JOGO', '📅 ' + finDataCurtaComDia(data), '', '🌧️ Hoje não houve jogo.'];
+    const dinheiro = pagos.filter(p => finTipoPagamento(p) === 'dinheiro');
+    if(pagos.length){
+      if(dinheiro.length) linhas.push('', '💳 Pagamentos já recebidos: ' + dinheiro.length + ' (' + money(dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0)) + '), guardados como crédito para o próximo check-in.');
+      linhas.push('', '📋 Lista:', pagos.map(p => p.jogadorNome || 'Convidado').join(', ') + '.');
+    }
+    return linhas.join('\n');
+  }
+  // quem pagou com CRÉDITO está na lista e conta como pago, mas não é dinheiro novo: o total recebido é só o dinheiro
+  const emDinheiro = pagos.filter(p => finTipoPagamento(p) === 'dinheiro');
+  const comCredito = pagos.filter(p => finTipoPagamento(p) === 'credito');
+  const soma = (l) => l.reduce((s, p) => s + finCentavos(p.valor), 0);
+  const resumoGrupo = (l) => {
+    const vals = new Set(l.map(p => finCentavos(p.valor)));
+    return vals.size === 1 ? l.length + ' × ' + money(Array.from(vals)[0]) + ' = ' + money(soma(l))
+                           : l.length + ' pagamentos = ' + money(soma(l));
+  };
+  const totalPag = soma(emDinheiro);
+  const linhaPag = !pagos.length ? 'Nenhum pagamento registrado.'
+    : (!emDinheiro.length ? 'Nenhum pagamento em dinheiro.' : resumoGrupo(emDinheiro));
+  const linhaCredito = comCredito.length ? ['🎟️ Com crédito: ' + resumoGrupo(comCredito) + ' (já ' + (comCredito.length === 1 ? 'estava' : 'estavam') + ' no caixa)'] : [];
+  const avulsos = (fin.lancamentos || []).filter(l => l.data === data && !l.estornado);
+  const entradasAv = avulsos.filter(l => l.tipo === 'entrada');
+  const saidasAv = avulsos.filter(l => l.tipo !== 'entrada');
+  const recebido = totalPag + entradasAv.reduce((s, l) => s + finCentavos(l.valor), 0);
+  const despesas = [];
+  if(dia && finCentavos(dia.valorQuadra) > 0) despesas.push(['Quadra', finCentavos(dia.valorQuadra)]);
+  if(dia && dia.temBrinde && finCentavos(dia.valorBrinde) > 0) despesas.push(['Chocolate', finCentavos(dia.valorBrinde)]);
+  saidasAv.forEach(l => despesas.push([l.descricao, finCentavos(l.valor)]));
+  const totalDesp = despesas.reduce((s, x) => s + x[1], 0);
+  const anterior = finCaixaAte(fin, data, false);
+  return [
+    '🏐 FECHAMENTO VÔLEI',
+    '📅 ' + finDataCurtaComDia(data),
+    '',
+    '📋 Lista:',
+    pagos.length ? pagos.map(p => p.jogadorNome || 'Convidado').join(', ') + '.' : '—',
+    '',
+    '💰 Total recebido:',
+    linhaPag,
+    ...linhaCredito,
+    ...entradasAv.map(l => '* ' + l.descricao + ': ' + money(finCentavos(l.valor))),
+    '',
+    'Total recebido: ' + money(recebido),
+    '',
+    '💸 Despesas:',
+    ...(despesas.length ? despesas.map(x => '* ' + x[0] + ': ' + money(x[1])) : ['* Nenhuma']),
+    '',
+    'Total de despesas: ' + money(totalDesp),
+    '',
+    '📊 Resumo:',
+    '* Saldo anterior: ' + money(anterior),
+    '* Total recebido: ' + money(recebido),
+    '* Total de despesas: ' + money(totalDesp),
+    '',
+    '✅ Saldo atual em caixa: ' + money(anterior + recebido - totalDesp),
+    '',
+    'Obrigado (a), time! Que venham os próximos jogos! 🏐🙏🏻'
+  ].join('\n');
+}
+// </financeiro-puro>
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
@@ -2113,6 +2999,7 @@ async function loadData(){
     PERFIS_PUBLICOS = json.perfisPublicos || [];
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
     CHECKINS = json.checkins || [];
+    FINANCEIRO = finNormalizar(json.financeiro);
     reconstituirConvidadosDosCheckins();
   }catch(e){
     console.error('Falha ao carregar da planilha', e);
@@ -2766,6 +3653,13 @@ document.getElementById('auth-user-chip').addEventListener('click', ()=>{
   if(confirm('Sair da conta ' + (AUTH.email || '') + '?')) sairDaConta(false);
 });
 
+// "usuário registrado" = entrou com a conta Google (qualquer perfil, inclusive jogador) OU está com a chave mestra.
+// A página Controle Financeiro só aparece pra esse pessoal. É restrição VISUAL (conforto): o Check-in continua mostrando
+// valor, PIX e ✅ a todos, e o servidor ainda entrega os dados a quem consultar o endereço direto.
+function podeVerFinanceiro(){
+  return !!AUTH.logado || !!getCachedPassword();
+}
+
 // "admin de verdade agora": perfil admin no Google OU chave mestra digitada nesta aba
 function ehAdminAgora(){
   return !!getCachedPassword() || AUTH.perfil === 'admin';
@@ -2788,6 +3682,11 @@ function aplicarPermissoesUI(){
   mostrar('add-player-row', temPermissao('addPlayer'));
   mostrar('star-visibility-toggle', temPermissao('saveSettings'));
   mostrar('checkin-admin-controls', temPermissao('saveCheckinSettings'));
+  // Controle Financeiro: só usuário registrado (login do Google, qualquer perfil, ou chave mestra). Visual: ver podeVerFinanceiro()
+  mostrar('nav-financeiro-btn', podeVerFinanceiro());
+  mostrar('mais-financeiro-btn', podeVerFinanceiro());
+  const viewFin = document.getElementById('view-financeiro');
+  if(!podeVerFinanceiro() && viewFin && viewFin.classList.contains('active')) abrirTelaVia('dashboard'); // saiu da conta com a página aberta
   mostrar('nav-usuarios-btn', temPermissao('listarUsuarios'));
   mostrar('mais-usuarios-btn', temPermissao('listarUsuarios'));
   // "Nova rodada" é uma tela de trabalho do organizador — jogador comum não vê no menu
@@ -2803,6 +3702,8 @@ function aplicarPermissoesUI(){
   }
   const checkinCtrls = document.getElementById('checkin-admin-controls');
   if(checkinCtrls && temPermissao('saveCheckinSettings')) checkinCtrls.style.display = 'flex';
+  // quem pode tocar/estornar mudou (login/logout/chave mestra): repinta lista do check-in e página financeira
+  renderFinanceiroTudo();
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
@@ -3143,6 +4044,7 @@ atualizarBotaoSom();
 // isso evita que uma gravação apague o que outra pessoa acabou de salvar.
 // 'cred' é o que o requireAuth() devolveu: { idToken, senha }. Os dois vão juntos e
 // o backend decide qual usar (chave mestra primeiro, token depois).
+let ULTIMA_RESPOSTA_POST = null; // JSON da última resposta OK (o financeiro lê o snapshot devolvido daqui)
 async function postAction(action, payload, cred){
   if(!sheetReady) return true;
   mostrarCarregando('Salvando...');
@@ -3175,6 +4077,7 @@ async function postAction(action, payload, cred){
       }
       return false;
     }
+    ULTIMA_RESPOSTA_POST = json;
     return true;
   }catch(e){
     console.error('Falha ao salvar na planilha', e);
@@ -3183,6 +4086,26 @@ async function postAction(action, payload, cred){
   }finally{
     esconderCarregando();
   }
+}
+
+// Envia uma ação do financeiro e troca o estado local pelo snapshot que o servidor devolveu (fonte da verdade).
+// Devolve true se salvou. Erros já viram toast dentro do postAction.
+async function finPost(acao, payload){
+  const cred = await requireAuth(acao);
+  if(!cred) return false;
+  ULTIMA_RESPOSTA_POST = null;
+  const ok = await postAction(acao, payload, cred);
+  if(!ok) return false;
+  if(ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.financeiro){
+    FINANCEIRO = finNormalizar(ULTIMA_RESPOSTA_POST.financeiro);
+  }
+  renderFinanceiroTudo();
+  return true;
+}
+// repinta tudo que depende do financeiro; as funções abaixo são criadas nas próximas tasks (typeof = pode faltar por enquanto)
+function renderFinanceiroTudo(){
+  if(typeof renderCheckinOrdenados === 'function') renderCheckinOrdenados();
+  if(typeof renderFinanceiro === 'function') renderFinanceiro();
 }
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -3263,8 +4186,9 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='sorteio'){ renderSorteioList(); atualizarBotoesImportarCheckin(); }
   if(btn.dataset.view==='checkin'){ renderCheckinStatus(); renderCheckinList(); }
   if(btn.dataset.view==='usuarios') renderUsuarios();
+  if(btn.dataset.view==='financeiro') renderFinanceiro();
   if(btn.dataset.view==='meuperfil') renderMeuPerfil();
-  if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); }
+  if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); if(document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
 });
@@ -3643,9 +4567,13 @@ function jogadorCardHtml(d, opcoes){
         : `<span class="jc-valor">${m.titulos}</span>`);
     const colunas = [
       jcMetricaHtml('ti-calendar', 'jc-cor-accent', 'Partidas', `<span class="jc-valor">${m.partidas}</span>`),
-      jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo),
-      jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`)
+      jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo)
     ];
+    // rodadas seguidas sem faltar (0 = faltou a mais recente). Sem "sequencia" (chamador antigo) a coluna não existe.
+    if(m.sequencia != null){
+      colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-laranja', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
+    }
+    colunas.push(jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`));
     // média de vitórias por partida (ex.: 93 vitórias em 19 partidas = 4,9). Sem "vitorias" (chamador antigo) a coluna não existe.
     if(m.vitorias != null && m.partidas > 0){
       colunas.push(jcMetricaHtml('ti-ball-volleyball', 'jc-cor-verde', 'Vit./partida',
@@ -3655,7 +4583,7 @@ function jogadorCardHtml(d, opcoes){
     if(d.estrelas != null && d.estrelas > 0){
       colunas.push(jcMetricaHtml('ti-star', 'jc-cor-ouro', 'Estrelas', `<span class="jc-valor">${jcFormatarEstrelas(d.estrelas)}</span>`));
     }
-    painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
+    painel = `<div class="jc-painel"><div class="jc-painel-int"><div class="jc-metricas${colunas.length >= 6 ? ' jc-seis' : ''}" style="--jc-cols:${colunas.length}">${colunas.join('')}</div></div></div>`;
   }
 
   const classes = ['jogador-card', perfil ? 'jc-perfil' : (reduzido ? 'jc-reduzido' : 'jc-lista')];
@@ -3695,7 +4623,7 @@ function montarDadosCard(p, ctx, extras){
     temConta: temContaVinculada(p.id),
     emblemasHtml: badgeIconsHtml(p.id, ctx.badges),
     posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
-    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas } : null,
+    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas, sequencia: computeSequenciaAtualPresenca(p.id) } : null,
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
     estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
@@ -3751,7 +4679,11 @@ function renderPlayers(){
   const agora = Date.now();
   const podeEditar = temPermissao('updatePlayer');
   const podeRemover = temPermissao('removePlayer');
-  list.innerHTML = sorted.map(p=>{
+  // só aparece em celular/tablet (CSS) e só pra quem tem permissão de editar ou remover
+  const avisoHtml = (podeEditar || podeRemover)
+    ? `<div class="player-list-aviso">Segure o dedo no card por 2 segundos para editar ou excluir.</div>`
+    : '';
+  list.innerHTML = avisoHtml + sorted.map(p=>{
     if(p.id === EDITING_PLAYER_ID) return editPlayerRowHtml(p);
     let ausenciaHtml;
     if(ultimaVez[p.id]===undefined){
@@ -3776,28 +4708,99 @@ function renderPlayers(){
   }).join('');
 
   list.querySelectorAll('[data-edit]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const cred = await requireAuth('updatePlayer');
-      if(!cred) return;
-      EDITING_PLAYER_ID = btn.dataset.edit;
-      renderPlayers();
-    });
+    btn.addEventListener('click', ()=> editarJogadorNaLista(btn.dataset.edit));
   });
   wireEditPlayerRow();
 
   list.querySelectorAll('[data-remove]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
-      const cred = await requireAuth('removePlayer');
-      if(!cred) return;
-      const removed = DATA.players.find(p=>p.id===btn.dataset.remove);
-      DATA.players = DATA.players.filter(p=>p.id!==btn.dataset.remove);
-      const ok = await postAction('removePlayer', {id: btn.dataset.remove}, cred);
-      if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
-      renderPlayers();
-    });
+    btn.addEventListener('click', ()=> removerJogadorDaLista(btn.dataset.remove));
   });
 }
+
+// Editar/remover são chamados tanto pelos botões do cartão (computador) quanto pelo menu da pressão longa (celular/tablet)
+async function editarJogadorNaLista(id){
+  const cred = await requireAuth('updatePlayer');
+  if(!cred) return;
+  EDITING_PLAYER_ID = id;
+  renderPlayers();
+}
+async function removerJogadorDaLista(id){
+  if(!confirm('Remover este jogador? Rodadas passadas mantêm o registro.')) return;
+  const cred = await requireAuth('removePlayer');
+  if(!cred) return;
+  const removed = DATA.players.find(p=>p.id===id);
+  DATA.players = DATA.players.filter(p=>p.id!==id);
+  const ok = await postAction('removePlayer', {id}, cred);
+  if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
+  renderPlayers();
+}
+
+// Menu "EDITAR / EXCLUIR" que abre depois de segurar o dedo no cartão. Só oferece o que o perfil pode fazer
+// (a checagem de verdade continua no requireAuth e no backend).
+function abrirMenuAcoesJogador(id){
+  const p = DATA.players.find(x=>x.id===id);
+  const podeEditar = temPermissao('updatePlayer');
+  const podeRemover = temPermissao('removePlayer');
+  if(!p || (!podeEditar && !podeRemover)) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">${escapeHtml(p.apelido || p.nome || '')}</p>
+      <div class="password-actions">
+        ${podeEditar ? '<button class="btn" data-acao="editar">EDITAR</button>' : ''}
+        ${podeRemover ? '<button class="btn danger" data-acao="excluir">EXCLUIR</button>' : ''}
+        <button class="btn secondary" data-acao="cancelar">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const abertoEm = Date.now();
+  overlay.addEventListener('click', (e)=>{
+    const acao = e.target.dataset && e.target.dataset.acao;
+    if(e.target !== overlay && !acao) return;
+    // o "click" de quando o dedo solta logo depois dos 2s não pode fechar o menu recém-aberto
+    if(e.target === overlay && Date.now() - abertoEm < 500) return;
+    overlay.remove();
+    if(acao === 'editar') editarJogadorNaLista(id);
+    else if(acao === 'excluir') removerJogadorDaLista(id);
+  });
+}
+
+// Pressão longa (2s) no cartão, só com toque. Ligado uma vez na #player-list (o renderPlayers troca o innerHTML,
+// então listener por cartão se perderia). Mexeu o dedo ou soltou antes do tempo = era rolagem/toque normal, cancela.
+(function ligarPressaoLongaJogadores(){
+  const list = document.getElementById('player-list');
+  const TEMPO_MS = 2000, TOLERANCIA_PX = 10;
+  let timer = null, origem = null, disparou = false;
+  function cancelar(){ clearTimeout(timer); timer = null; }
+  list.addEventListener('pointerdown', (e)=>{
+    if(e.pointerType !== 'touch') return;
+    const card = e.target.closest('.jogador-card');
+    if(!card) return;
+    if(!temPermissao('updatePlayer') && !temPermissao('removePlayer')) return;
+    disparou = false;
+    origem = { x: e.clientX, y: e.clientY };
+    cancelar();
+    timer = setTimeout(()=>{
+      timer = null;
+      disparou = true;
+      if(navigator.vibrate) navigator.vibrate(30);
+      abrirMenuAcoesJogador(card.dataset.jcId);
+    }, TEMPO_MS);
+  });
+  list.addEventListener('pointermove', (e)=>{
+    if(timer && origem && Math.hypot(e.clientX-origem.x, e.clientY-origem.y) > TOLERANCIA_PX) cancelar();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=> list.addEventListener(ev, cancelar));
+  // soltar o dedo depois do menu aberto geraria um "click" no cartão (abriria perfil/estatísticas por baixo): engole esse
+  list.addEventListener('click', (e)=>{
+    if(!disparou) return;
+    disparou = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+  list.addEventListener('contextmenu', (e)=>{ if(e.target.closest('.jogador-card')) e.preventDefault(); });
+})();
 
 
 
@@ -4574,6 +5577,8 @@ let AOVIVO_POLL_TIMER = null;
 let AOVIVO_CRONOMETRO_TIMER = null;
 const AOVIVO_PENDENTE = new Set(); // roundIds com stepper alterado mas ainda não salvo
 const AOVIVO_VITORIAS_LOCAIS = new Map(); // roundId -> array de vitórias local (inclui as pendentes)
+// modo "reduzido" (uma faixa por time) é preferência de quem assiste, então lembra entre visitas — e o app funciona igual sem o storage
+let AOVIVO_REDUZIDO = (()=>{ try{ return localStorage.getItem('volei-aovivo-reduzido') === '1'; }catch(e){ return false; } })();
 
 // Busca o estado mais recente da transmissão via POST (nunca GET — GET pode ficar em
 // cache e essa tela depende de dado sempre fresco). Silenciosa em caso de falha de
@@ -4671,7 +5676,86 @@ function atualizarCronometrosAoVivo(){
   });
 }
 
+// Faixa do modo reduzido: nome do time, fotos sobrepostas e placar com − / + (mesmos data-attributes dos steppers
+// do modo completo, então wireAoVivoSteppers() cuida dos dois sem saber a diferença)
+// classe que define a cor do time (anel das fotos): 1º time azul, 2º vermelho, 3º amarelo, 4º verde, 5º magenta, 6º laranja
+function classeCorDoTime(idx){ return 'time-cor-' + ((((idx|0) % 6) + 6) % 6 + 1); }
+
+function aoVivoTimeReduzidoHtml(r, t, idx, pontos, lider, podeControlar){
+  const integrante = t.playerIds.map(getPlayer).find(Boolean); // o nome de UM integrante (o primeiro do time) aparece sobre as fotos
+  const avatares = t.playerIds.map(pid=>{
+    const p = getPlayer(pid);
+    return p ? `<span class="sb-avatar-wrap" data-open-profile="${p.id}" title="${escapeHtml(p.apelido||p.nome)}">${avatarHtml(p,'sm')}</span>` : '';
+  }).join('');
+  return `
+    <div class="rz-time ${lider ? 'lider' : ''}">
+      <div class="rz-nome">${escapeHtml(t.nome)}</div>
+      <div class="rz-avatares ${classeCorDoTime(idx)}">${avatares}${integrante ? `<b class="rz-membro">${escapeHtml(integrante.apelido || integrante.nome)}</b>` : ''}</div>
+      <div class="rz-pontos">
+        ${podeControlar ? `<button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" aria-label="Tirar um ponto de ${escapeHtml(t.nome)}" ${pontos<=0?'disabled':''}>−</button>` : ''}
+        <span class="rz-valor">${pontos}</span>
+        ${podeControlar ? `<button type="button" data-aovivo-mais="${r.id}" data-time="${idx}" aria-label="Dar um ponto para ${escapeHtml(t.nome)}">+</button>` : ''}
+      </div>
+    </div>`;
+}
+
+// Sincroniza a barra de ferramentas (texto do botão de reduzido, ícone de tela cheia) e a classe da tela com o estado atual
+function atualizarBotoesAoVivo(){
+  const view = document.getElementById('view-aovivo');
+  if(view) view.classList.toggle('aovivo-reduzido', AOVIVO_REDUZIDO);
+  const btn = document.getElementById('aovivo-reduzido-btn');
+  if(btn){
+    btn.textContent = AOVIVO_REDUZIDO ? '▦ Ver completo' : '▤ Ver reduzido';
+    btn.setAttribute('aria-pressed', AOVIVO_REDUZIDO ? 'true' : 'false');
+  }
+  const fs = document.getElementById('aovivo-fs-btn');
+  if(fs){
+    const emFs = document.body.classList.contains('aovivo-fs');
+    fs.title = emFs ? 'Sair da tela cheia' : 'Tela cheia';
+    fs.setAttribute('aria-label', fs.title);
+  }
+}
+document.getElementById('aovivo-reduzido-btn').addEventListener('click', ()=>{
+  AOVIVO_REDUZIDO = !AOVIVO_REDUZIDO;
+  try{ localStorage.setItem('volei-aovivo-reduzido', AOVIVO_REDUZIDO ? '1' : '0'); }catch(e){}
+  renderAoVivo();
+});
+
+/* Tela cheia do Ao Vivo. A classe no <body> esconde o que não é jogo (menus, rodapé, títulos) e mantém só a logomarca;
+   a Fullscreen API é pedida na página inteira (não só na seção) pra que login e avisos continuem aparecendo por cima.
+   Onde a API não existe (iPhone) a classe sozinha já dá o "quase tela cheia". */
+function entrarTelaCheiaAoVivo(){
+  document.body.classList.add('aovivo-fs');
+  const el = document.documentElement;
+  const pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(pedir){
+    try{ const p = pedir.call(el); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+  }
+  atualizarBotoesAoVivo();
+}
+function sairTelaCheiaAoVivo(){
+  document.body.classList.remove('aovivo-fs');
+  if(document.fullscreenElement || document.webkitFullscreenElement){
+    try{ (document.exitFullscreen || document.webkitExitFullscreen).call(document); }catch(e){}
+  }
+  atualizarBotoesAoVivo();
+}
+document.getElementById('aovivo-fs-btn').addEventListener('click', ()=>{
+  if(document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); else entrarTelaCheiaAoVivo();
+});
+// Esc (ou o gesto do sistema) sai da tela cheia do navegador: a classe precisa sair junto
+function aoSairFullscreenDoNavegador(){
+  if(!document.fullscreenElement && !document.webkitFullscreenElement && document.body.classList.contains('aovivo-fs')){
+    document.body.classList.remove('aovivo-fs');
+    atualizarBotoesAoVivo();
+  }
+}
+document.addEventListener('fullscreenchange', aoSairFullscreenDoNavegador);
+document.addEventListener('webkitfullscreenchange', aoSairFullscreenDoNavegador);
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); });
+
 function renderAoVivo(){
+  atualizarBotoesAoVivo();
   const ctxCards = contextoCards(); // uma vez por render (roda a cada poll de 9s e a cada clique nos steppers)
   const container = document.getElementById('aovivo-list');
   const empty = document.getElementById('aovivo-empty');
@@ -4685,27 +5769,32 @@ function renderAoVivo(){
     // clique do organizador antes dele apertar "Salvar parcial"
     const vitoriasAtuais = AOVIVO_PENDENTE.has(r.id) ? AOVIVO_VITORIAS_LOCAIS.get(r.id) : r.times.map(t=>t.vitorias);
     const logDaRodada = DATA.aoVivo.log.filter(l=>l.roundId===r.id);
+    // quem tem a maior pontuação (todos os empatados no topo) ganha a borda de destaque; 0 x 0 não destaca ninguém
+    const maiorPontuacao = Math.max(0, ...vitoriasAtuais);
     return `
     <div class="aovivo-card ${AOVIVO_PENDENTE.has(r.id)?'aovivo-pendente':''}" data-aovivo-round="${r.id}">
       <div class="aovivo-card-head">
         <span class="history-date">${formatDate(r.data)} — início ${new Date(r.iniciadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
         <span class="aovivo-timer" data-aovivo-timer="${r.id}"></span>
       </div>
+      ${AOVIVO_REDUZIDO ? `<div class="rz-times">${r.times.map((t, idx)=> aoVivoTimeReduzidoHtml(r, t, idx, vitoriasAtuais[idx], vitoriasAtuais[idx] > 0 && vitoriasAtuais[idx] === maiorPontuacao, podeControlar)).join('')}</div>` : `
       <div class="history-teams">
         ${r.times.map((t, idx)=>`
-          <div class="history-team">
+          <div class="history-team ${vitoriasAtuais[idx] > 0 && vitoriasAtuais[idx] === maiorPontuacao ? 'lider' : ''}">
             <div class="tn">${escapeHtml(t.nome)}</div>
             ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return p ? cartaoDaTela('aovivo', p, ctxCards, null, { semAnimacao: true }) : '<div style="color:var(--muted);font-size:12px;margin-bottom:4px;">(removido)</div>'; }).join('') || '<div style="color:var(--muted);font-size:12px;">Sem jogadores</div>'}
-            ${podeControlar ? `
-              <div class="aovivo-stepper">
-                <button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" ${vitoriasAtuais[idx]<=0?'disabled':''}>−</button>
-                <span class="valor">${vitoriasAtuais[idx]}</span>
-                <button type="button" data-aovivo-mais="${r.id}" data-time="${idx}">+</button>
-              </div>
-            ` : `<div class="aovivo-stepper"><span class="valor">${vitoriasAtuais[idx]}</span></div>`}
+            <div class="aovivo-pontos">
+              <span class="aovivo-pontos-valor">${vitoriasAtuais[idx]}</span>
+              ${podeControlar ? `
+                <div class="aovivo-stepper">
+                  <button type="button" data-aovivo-menos="${r.id}" data-time="${idx}" aria-label="Tirar um ponto de ${escapeHtml(t.nome)}" ${vitoriasAtuais[idx]<=0?'disabled':''}>−</button>
+                  <button type="button" data-aovivo-mais="${r.id}" data-time="${idx}" aria-label="Dar um ponto para ${escapeHtml(t.nome)}">+</button>
+                </div>
+              ` : ''}
+            </div>
           </div>
         `).join('')}
-      </div>
+      </div>`}
       <div class="aovivo-log">
         ${logDaRodada.length === 0 ? 'Nenhuma mudança registrada ainda.' : logDaRodada.map(l=>{
           const hora = new Date(l.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -4715,8 +5804,10 @@ function renderAoVivo(){
         }).join('')}
       </div>
       ${podeControlar ? `
-        <div class="aovivo-acoes">
+        <div class="aovivo-salvar">
           <button class="btn" data-aovivo-salvar="${r.id}" ${AOVIVO_PENDENTE.has(r.id)?'':'disabled'}>💾 Salvar parcial</button>
+        </div>
+        <div class="aovivo-acoes">
           <button class="btn secondary" data-aovivo-lancar="${r.id}">Lançar placar final →</button>
           <button class="btn secondary" data-aovivo-cancelar="${r.id}">Cancelar transmissão</button>
         </div>
@@ -4825,29 +5916,32 @@ function renderDashboard(){
     const rotuloBase = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
     const rotuloCampeao = empatado ? rotuloBase.replace('Campeão','Campeões') + ' (empate)' : rotuloBase;
 
-    function blocoTimeCampeaoHtml(team, compacto){
+    function blocoTimeCampeaoHtml(team, compacto, idxTime){
       const names = team.playerIds.map(id=> getPlayer(id));
-      const avatares = `<div class="sb-avatars ${compacto?'sb-avatars-mini':''}">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>`;
+      const avatares = `<div class="sb-avatars ${compacto?'sb-avatars-mini':''} ${classeCorDoTime(idxTime)}">${names.map(p=>`<span class="sb-avatar-wrap" data-open-profile="${p&&p.id}" title="${p?escapeHtml(p.nome):'?'}">${avatarHtml(p,'sm')}</span>`).join('')}</div>`;
       if(compacto){
         // versão enxuta pro empate: nome do time + avatares (com tooltip do nome ao passar o mouse/tocar),
         // sem repetir a lista completa de nomes/apelidos duas vezes lado a lado — isso é o que verso completo
         // já mostra no verso da carta ("times da rodada"), então aqui só precisa dar pra reconhecer o time
         return `<p class="sb-team sb-team-mini">${escapeHtml(team.nome)}</p>${avatares}`;
       }
+      // nome do time e avatares na mesma linha (quebra pra baixo em tela estreita); os cartões vêm logo depois
       return `
-        <p class="sb-team">${escapeHtml(team.nome)}</p>
-        ${avatares}
+        <div class="sb-titulo-linha">
+          <p class="sb-team">${escapeHtml(team.nome)}</p>
+          ${avatares}
+        </div>
         <div class="sb-jogadores" style="--sb-cols:${colunasQuadroCampeao(names.filter(Boolean).length)}">${names.filter(Boolean).map(p=> cartaoDaTela('inicio', p, ctxCards)).join('')}</div>`;
     }
     const corpoCampeoesHtml = empatado
-      ? `<div class="sb-empate-teams">${timesCampeoes.map(t=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true)}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
-      : blocoTimeCampeaoHtml(timesCampeoes[0], false);
+      ? `<div class="sb-empate-teams">${timesCampeoes.map((t, i)=>`<div class="sb-empate-team">${blocoTimeCampeaoHtml(t, true, lastRound.vencedores[i])}</div>`).join('<div class="sb-empate-x">✕</div>')}</div>`
+      : blocoTimeCampeaoHtml(timesCampeoes[0], false, lastRound.vencedores[0]);
 
     hero.innerHTML = `
       <div class="scoreboard">
         <div>
           <p class="sb-label">${rotuloCampeao}</p>
-          <p class="sb-date">${formatDate(lastRound.data)} · ${timesCampeoes[0].vitorias||0} vitória(s) de partida</p>
+          <p class="sb-date"><i class="ti ti-calendar-check" aria-hidden="true"></i>${formatDate(lastRound.data)} · ${timesCampeoes[0].vitorias||0} vitória(s) de partida</p>
           ${corpoCampeoesHtml}
         </div>
         <div class="sb-stats">
@@ -5254,7 +6348,8 @@ function renderPhotoChart(){
     const p = getPlayer(d.id);
     if(!p) return '';
     return cartaoDaTela('fotos', p, ctxCards, {
-      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span></span>`
+      // mesma barra de progresso do 4º em diante (largura = vezes do jogador ÷ vezes do líder), ids podium-fill-N
+      tagsExtraHtml: `<span class="jc-tag jc-tag-ouro">${posicaoReal}º · <span id="podium-count-${posicaoReal}">0×</span> na foto</span><div class="leaderboard-track jc-barra"><div class="leaderboard-fill" id="podium-fill-${posicaoReal}"></div></div>`
     });
   }
 
@@ -5328,6 +6423,11 @@ function renderPhotoChart(){
     grupoPrimeiro.forEach((d,gi)=> animarContador(document.getElementById('podium-count-1-'+gi), d.vezes, '×'));
     if(segundo) animarContador(document.getElementById('podium-count-2'), segundo.vezes, '×');
     if(terceiro) animarContador(document.getElementById('podium-count-3'), terceiro.vezes, '×');
+    // barras do 2º/3º (só existem na faixa de empate; no pódio clássico o id não existe e nada acontece)
+    [[segundo, 2], [terceiro, 3]].forEach(([d, pos])=>{
+      const fill = d && document.getElementById('podium-fill-' + pos);
+      if(fill) fill.style.width = (d.vezes / max * 100) + '%';
+    });
     restanteLista.forEach((d,i)=>{
       const fill = document.getElementById('lb-fill-'+i);
       if(fill) fill.style.width = (d.vezes / max * 100) + '%';
@@ -5784,7 +6884,18 @@ function renderCheckinStatus(){
   const adminHorarioInput = document.getElementById('checkin-admin-horario');
   if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
-  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar inclusões/exclusões' : '🔒 Travar inclusões/exclusões';
+  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar lista' : '🔒 Travar lista';
+  // só aparece o botão que faz sentido no estado atual: fechado → só "Abrir"; aberto → "Travar" e "Fechar",
+  // e "Abrir" só volta (como "Trocar para dd/mm") quando a data escolhida é diferente da que está aberta
+  const openBtn = document.getElementById('open-checkin-btn');
+  const closeBtn = document.getElementById('close-checkin-btn');
+  const dataEscolhida = adminDateInput ? adminDateInput.value : '';
+  if(lockBtn) lockBtn.hidden = !data;
+  if(closeBtn) closeBtn.hidden = !data;
+  if(openBtn){
+    openBtn.hidden = !!data && dataEscolhida === data;
+    openBtn.textContent = !data ? 'Abrir check-in' : (dataEscolhida ? `📅 Trocar para ${formatDate(dataEscolhida)}` : '📅 Trocar data');
+  }
 
   // a LISTA de quem confirmou fica visível pra todos mesmo travado — só o formulário de
   // convidado é escondido, já que adicionar convidado também cria uma nova confirmação
@@ -5808,6 +6919,9 @@ function renderCheckinStatus(){
   }
   if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
 }
+
+// trocar a data no seletor já atualiza os botões (aparece/some o "Trocar para dd/mm")
+['input','change'].forEach(ev => document.getElementById('checkin-admin-date').addEventListener(ev, renderCheckinStatus));
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
   const cred = await requireAuth('saveCheckinSettings');
@@ -5909,14 +7023,30 @@ function checkinsDentroEReserva(data){
 }
 
 function renderCheckinOrdenados(){
+  renderFinDiaCard();
+  renderFinResumoCheckin();
   const data = SETTINGS.checkinDataAberta;
   const el = document.getElementById('checkin-ordenados');
   if(!data){ el.innerHTML = ''; return; }
   const { dentro, reserva } = checkinsDentroEReserva(data);
+  const dia = finDia(FINANCEIRO, data);
+  const cobrando = !!dia && !finSemJogo(dia) && finCentavos(dia.valorPessoa) > 0; // dia sem jogo não cobra
+  const podeMarcar = cobrando && temPermissao('marcarPagamento'); // só admin/organizador tocam; os demais só veem os ícones
   let html = '';
   if(dentro.length){
-    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">✅ Confirmados</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">';
-    dentro.forEach(c=>{ html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}</li>`; });
+    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">✅ Confirmados</strong><ol class="fin-lista">';
+    dentro.forEach(c=>{
+      const nome = c.jogadorNome || 'Convidado';
+      const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
+      const porCredito = !!finRotuloCredito(FINANCEIRO, data, c.jogadorId);   // pago com crédito de um dia sem jogo
+      const creditoDisp = (!marcas && cobrando) ? finCreditoDe(FINANCEIRO, c.jogadorId) : 0; // tem crédito mas ainda não foi aplicado
+      const dica = marcas ? (porCredito ? 'desmarcar o pagamento por crédito (o crédito volta ao saldo)' : 'desmarcar o pagamento') : 'marcar o pagamento';
+      const atrib = podeMarcar ? ` class="fin-toque" role="button" tabindex="0" data-fin-jogador="${escapeHtml(c.jogadorId)}" data-fin-nome="${escapeHtml(nome)}" title="Toque para ${dica}"` : '';
+      html += `<li${atrib}>${escapeHtml(nome)}${marcas ? `<span class="fin-marca" title="Pago">${marcas}</span>` : ''}`
+        + (porCredito ? '<span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo">(Crédito)</span>' : '')
+        + (creditoDisp ? `<span class="fin-credito-tag" title="Tem crédito de um dia sem jogo que ainda não cobre este dia">🎟️ crédito ${finFormatar(creditoDisp)}</span>` : '')
+        + '</li>';
+    });
     html += '</ol></div>';
   }
   if(reserva.length){
@@ -5924,8 +7054,487 @@ function renderCheckinOrdenados(){
     reserva.forEach(c=>{ html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}</li>`; });
     html += '</ol></div>';
   }
+  // pagou e não está mais entre os confirmados: continua contando no caixa; só o admin vê o botão de estornar
+  const sinalizados = finSinalizados(FINANCEIRO, data, dentro);
+  if(sinalizados.length){
+    html += '<div class="fin-alerta"><strong>⚠️ Pagaram e não estão mais entre os confirmados</strong> <span style="color:var(--muted);">(o valor continua no caixa)</span>';
+    sinalizados.forEach(p=>{
+      html += `<div class="fin-alerta-linha"><span>${escapeHtml(p.jogadorNome || 'Convidado')} — ${finFormatar(finCentavos(p.valor))}</span>`
+        + (ehAdminAgora() ? `<button type="button" class="btn secondary" data-fin-estornar="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || 'Convidado')}" data-fin-valor="${finCentavos(p.valor)}">Estornar</button>` : '')
+        + '</div>';
+    });
+    html += '</div>';
+  }
   el.innerHTML = html;
 }
+
+// tocar no nome: marca o pagamento; se já estava pago, pergunta antes de desmarcar (evita toque errado)
+async function alternarPagamentoCheckin(jogadorId, nome){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const pago = finPagamentoDe(FINANCEIRO, data, jogadorId);
+  if(pago){
+    const porCredito = finTipoPagamento(pago) === 'credito';
+    if(!confirm(porCredito ? 'Desmarcar o pagamento por CRÉDITO de ' + nome + '? O crédito volta ao saldo dela(e).' : 'Desmarcar o pagamento de ' + nome + '?')) return;
+    await finPost('estornarPagamento', { id: pago.id });
+  } else {
+    await finPost('marcarPagamento', { data, jogadorId, jogadorNome: nome });
+  }
+}
+
+document.getElementById('checkin-ordenados').addEventListener('click', async (e)=>{
+  const est = e.target.closest('[data-fin-estornar]');
+  if(est){
+    const valor = finFormatar(Number(est.dataset.finValor));
+    if(!confirm('Estornar o pagamento de ' + est.dataset.finNome + ' (' + valor + ')? O valor sai do caixa.')) return;
+    await finPost('estornarPagamento', { id: est.dataset.finEstornar });
+    return;
+  }
+  const li = e.target.closest('[data-fin-jogador]');
+  if(li) await alternarPagamentoCheckin(li.dataset.finJogador, li.dataset.finNome);
+});
+document.getElementById('checkin-ordenados').addEventListener('keydown', async (e)=>{
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const li = e.target.closest('[data-fin-jogador]');
+  if(!li) return;
+  e.preventDefault();
+  await alternarPagamentoCheckin(li.dataset.finJogador, li.dataset.finNome);
+});
+
+/* Cartão "Financeiro do dia" (só admin/organizador): valores da data aberta. Sem registro salvo, mostra os do dia
+   anterior mais recente como sugestão — só valem depois de tocar em Salvar. */
+function renderFinDiaCard(){
+  const card = document.getElementById('fin-dia-card');
+  if(!card) return;
+  const data = SETTINGS.checkinDataAberta;
+  card.style.display = data ? '' : 'none';
+  if(!data) return;
+  const { dia, herdado } = finDiaOuHerdado(FINANCEIRO, data);
+  const foco = document.activeElement; // não sobrescreve o campo que a pessoa está digitando
+  const preencher = (id, v)=>{ const el = document.getElementById(id); if(el && el !== foco) el.value = v; };
+  preencher('fin-valor-pessoa', dia && dia.valorPessoa ? dia.valorPessoa : '');
+  preencher('fin-pix', dia ? dia.pix : '');
+  preencher('fin-valor-quadra', dia && dia.valorQuadra ? dia.valorQuadra : '');
+  preencher('fin-valor-brinde', dia && dia.valorBrinde ? dia.valorBrinde : '');
+  marcarIconeAtivoNoCartao(finIconeDoCartao(dia));
+  const chip = document.getElementById('fin-dia-chip');
+  const semJogo = !herdado && finSemJogo(dia);
+  // chip curto pra caber numa linha só; a explicação da sugestão fica dentro do cartão
+  chip.textContent = semJogo ? 'sem jogo 🌧️' : (herdado ? 'pendente' : (dia ? 'salvo ✓' : 'não configurado'));
+  chip.classList.toggle('ok', !!dia && !herdado && !semJogo);
+  chip.classList.toggle('pendente', !!herdado);
+  document.getElementById('fin-dia-dica').style.display = herdado ? '' : 'none';
+  // "Dia sem jogo" só existe pra um dia já salvo; num dia sem jogo o mesmo botão vira "Reabrir dia"
+  const linha = document.getElementById('fin-semjogo-linha');
+  linha.style.display = (dia && !herdado) ? '' : 'none';
+  const btn = document.getElementById('fin-semjogo-btn');
+  btn.textContent = semJogo ? '☀️ Reabrir dia' : '🌧️ Dia sem jogo';
+  btn.dataset.acao = semJogo ? 'reabrir' : 'marcar';
+}
+document.getElementById('fin-semjogo-btn').addEventListener('click', (e)=>{
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  if(e.currentTarget.dataset.acao === 'reabrir') reabrirDiaFinanceiro(data); else abrirDiaSemJogo();
+});
+
+// Dia sem jogo (chuva, poucos jogadores): a quadra/brinde deixam de contar e o dinheiro já recolhido vira crédito (padrão) ou é devolvido
+function abrirDiaSemJogo(){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+  const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+  const corpo = `<p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5;">Use quando <strong>não houve jogo</strong> (chuva, poucos jogadores). A <strong>quadra e o brinde deixam de contar</strong> neste dia.</p>`
+    + (dinheiro.length
+      ? `<div class="fin-campo">O que fazer com os ${dinheiro.length} pagamento(s) já recebido(s) (${finFormatar(total)})?</div>
+         <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="credito" checked><span><strong>Guardar como crédito</strong> (recomendado)<br><small>Cada pessoa aparece já paga, com "(Crédito)", no próximo check-in em que confirmar presença.</small></span></label>
+         <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="devolver"><span><strong>Devolver</strong> (estornar todos)<br><small>O valor sai do caixa.${ehAdminAgora() ? '' : ' Como organizador, quem já saiu da lista não é estornado (só o admin).'}</small></span></label>`
+      : `<p style="margin:0;font-size:13px;color:var(--muted);">Ninguém pagou neste dia, então não há nada a guardar ou devolver.</p>`);
+  finAbrirModal('Dia sem jogo 🌧️ — ' + formatDate(data), corpo, async (ov)=>{
+    const sel = ov.querySelector('input[name="fin-sj-destino"]:checked');
+    const destino = sel ? sel.value : 'credito';
+    if(!(await finPost('marcarDiaSemJogo', { data, destino }))) return false;
+    const r = ULTIMA_RESPOSTA_POST || {};
+    mostrarToast(destino === 'devolver'
+      ? (r.estornados || 0) + ' pagamento(s) devolvido(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin devolve).' : '')
+      : (r.creditos ? r.creditos + ' pagamento(s) guardado(s) como crédito.' : 'Dia marcado como sem jogo.'), 'sucesso');
+    return true;
+  }, 'Marcar sem jogo');
+}
+async function reabrirDiaFinanceiro(data){
+  if(!confirm('Reabrir este dia?\n\nA quadra e o brinde voltam a contar, e os créditos deste dia (que ainda não foram usados) voltam a ser pagamentos comuns.')) return;
+  if(await finPost('reabrirDia', { data })) mostrarToast('Dia reaberto.', 'sucesso');
+}
+// ícone escolhido no cartão e ainda NÃO salvo (null = vale o do dia); só grava quando toca em Salvar, como os outros campos
+let FIN_ICONE_ESCOLHIDO = null;
+function finIconeDoCartao(dia){ return FIN_ICONE_ESCOLHIDO || (dia && dia.icone) || '✅'; }
+function marcarIconeAtivoNoCartao(icone){
+  document.querySelectorAll('#fin-icone-sel [data-fin-icone]').forEach(b=>{
+    const ativo = b.dataset.finIcone === icone;
+    b.classList.toggle('ativo', ativo);
+    b.setAttribute('aria-checked', ativo ? 'true' : 'false');
+  });
+}
+document.getElementById('fin-icone-sel').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-fin-icone]');
+  if(!b) return;
+  FIN_ICONE_ESCOLHIDO = b.dataset.finIcone;
+  marcarIconeAtivoNoCartao(FIN_ICONE_ESCOLHIDO);
+});
+document.getElementById('fin-salvar-dia-btn').addEventListener('click', async ()=>{
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const valorBrinde = document.getElementById('fin-valor-brinde').value;
+  const dia = {
+    data,
+    valorPessoa: document.getElementById('fin-valor-pessoa').value,
+    pix: document.getElementById('fin-pix').value.trim(),
+    valorQuadra: document.getElementById('fin-valor-quadra').value,
+    valorBrinde,
+    temBrinde: finCentavos(valorBrinde) > 0,   // brinde = valor maior que zero (o servidor decide do mesmo jeito)
+    icone: finIconeDoCartao(finDiaOuHerdado(FINANCEIRO, data).dia)
+  };
+  if(await finPost('salvarFinDia', { dia })){
+    FIN_ICONE_ESCOLHIDO = null;
+    renderFinDiaCard(); // volta a refletir o que ficou salvo
+    mostrarToast('Financeiro do dia salvo.', 'sucesso');
+  }
+});
+
+// linha visível a todos: valor por pessoa, PIX (copiável) e quanto já entrou do que era esperado
+function renderFinResumoCheckin(){
+  const el = document.getElementById('fin-resumo-checkin');
+  if(!el) return;
+  const data = SETTINGS.checkinDataAberta;
+  const dia = data ? finDia(FINANCEIRO, data) : null;
+  // dia SEM JOGO: em vez do resumo de cobrança, uma faixa explicando o que aconteceu (visível a todos)
+  if(dia && finSemJogo(dia)){
+    const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+    const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+    el.innerHTML = `<div class="fin-resumo fin-semjogo">
+      <div class="fin-resumo-linha"><span>🌧️ <strong>Dia sem jogo</strong></span></div>
+      <div class="fin-resumo-sub">A quadra e o brinde não contam neste dia.${dinheiro.length ? ' ' + dinheiro.length + ' pagamento(s) já recebido(s) (' + finFormatar(total) + ') ficaram como crédito para o próximo check-in.' : ''}</div>
+    </div>`;
+    return;
+  }
+  if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ el.innerHTML = ''; return; }
+  const { dentro } = checkinsDentroEReserva(data);
+  const arrecadado = finArrecadadoDia(FINANCEIRO, data);
+  const previsto = finPrevistoDia(FINANCEIRO, data, dentro.length);
+  const pct = previsto > 0 ? Math.min(100, Math.round(arrecadado / previsto * 100)) : 0;
+  const pendentes = finPendentes(FINANCEIRO, data, dentro).length;          // confirmados que ainda não pagaram
+  const validos = finPagamentosValidos(FINANCEIRO, data).length;            // pagamentos que o "Cancelar todos" estornaria
+  el.innerHTML = `<div class="fin-resumo">
+    <div class="fin-resumo-linha"><span>💰 <strong>${finFormatar(finCentavos(dia.valorPessoa))}</strong> por pessoa</span>
+      ${dia.pix ? `<button type="button" class="fin-pix" data-fin-copiar-pix="${escapeHtml(dia.pix)}" title="Copiar a chave PIX">📌 PIX ${escapeHtml(dia.pix)} <i class="ti ti-copy"></i></button>` : ''}</div>
+    <div class="fin-barra"><div class="fin-barra-fill" style="width:${pct}%"></div></div>
+    <div class="fin-resumo-sub fin-resumo-linha"><span>Arrecadado <strong>${finFormatar(arrecadado)}</strong> de ${finFormatar(previsto)}</span><span>Saída do dia ${finFormatar(finSaidaDia(FINANCEIRO, data))}</span></div>
+    ${temPermissao('marcarTodosPagamentos') ? `<div class="fin-massa">
+      <button type="button" class="btn secondary" data-fin-massa="marcar" ${pendentes ? '' : 'disabled'} title="Marca como pago quem está confirmado e ainda não pagou">Confirmar todos (${pendentes})</button>
+      <button type="button" class="btn danger" data-fin-massa="cancelar" ${validos ? '' : 'disabled'} title="Estorna todos os pagamentos deste dia">Cancelar todos (${validos})</button>
+    </div>` : ''}
+  </div>`;
+}
+document.getElementById('fin-resumo-checkin').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-fin-copiar-pix]');
+  if(b){ copiarTexto(b.dataset.finCopiarPix, b); return; }
+  const massa = e.target.closest('[data-fin-massa]');
+  if(massa && !massa.disabled) pagamentosEmMassa(massa.dataset.finMassa);
+});
+
+// "Confirmar todos" / "Cancelar todos" pagamentos do dia (só admin/organizador). Cancelar = ESTORNAR (nada é apagado):
+// o servidor faz tudo numa ação só e devolve quantos foram estornados e quantos ficaram (organizador não estorna quem saiu da lista).
+async function pagamentosEmMassa(tipo){
+  const data = SETTINGS.checkinDataAberta;
+  const dia = data ? finDia(FINANCEIRO, data) : null;
+  if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ alert('Cadastre o valor por pessoa do dia antes de marcar pagamentos.'); return; }
+  const { dentro } = checkinsDentroEReserva(data);
+  if(tipo === 'marcar'){
+    const n = finPendentes(FINANCEIRO, data, dentro).length;
+    if(!n) return;
+    const valor = finCentavos(dia.valorPessoa);
+    if(!confirm('Marcar como PAGO os ' + n + ' confirmado(s) que ainda não pagaram?\n\n' + n + ' × ' + finFormatar(valor) + ' = ' + finFormatar(n * valor))) return;
+    if(await finPost('marcarTodosPagamentos', { data })) mostrarToast(n + ' pagamento(s) marcado(s).', 'sucesso');
+    return;
+  }
+  const validos = finPagamentosValidos(FINANCEIRO, data);
+  if(!validos.length) return;
+  const total = validos.reduce((s, p) => s + finCentavos(p.valor), 0);
+  let msg = 'CANCELAR TODOS os ' + validos.length + ' pagamentos deste dia (' + finFormatar(total) + ')?\n\nEles são estornados automaticamente e o valor sai do caixa. Nada é apagado: fica registrado na auditoria.';
+  if(!ehAdminAgora()) msg += '\n\nComo organizador, os pagamentos de quem já saiu da lista NÃO são estornados (só o admin faz isso).';
+  if(!confirm(msg)) return;
+  if(await finPost('estornarTodosPagamentos', { data })){
+    const r = ULTIMA_RESPOSTA_POST || {};
+    mostrarToast((r.estornados || 0) + ' pagamento(s) estornado(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin estorna).' : ''), 'sucesso');
+  }
+}
+
+/* ---------- PÁGINA Controle Financeiro ---------- */
+const FIN_ACOES_ROTULO = {
+  salvarFinDia: 'configurou o dia', marcarPagamento: 'marcou pagamento', estornarPagamento: 'estornou pagamento',
+  addLancamento: 'fez um lançamento', estornarLancamento: 'estornou um lançamento',
+  marcarTodosPagamentos: 'confirmou todos os pagamentos', estornarTodosPagamentos: 'cancelou todos os pagamentos',
+  marcarDiaSemJogo: 'marcou o dia como sem jogo', reabrirDia: 'reabriu o dia', aplicarCreditos: 'aplicou créditos',
+  devolverCredito: 'devolveu um crédito'
+};
+// "18/09 19:05" a partir do ISO; texto vazio se não der pra ler
+function finQuando(iso){
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+function finClasseValor(c){ return c < 0 ? 'fin-neg' : (c > 0 ? 'fin-pos' : ''); }
+function finDetalheLegivel(acao, detalhe){
+  let d; try{ d = JSON.parse(detalhe); }catch(e){ return escapeHtml(detalhe || ''); }
+  if(!d) return '';
+  const quando = d.data ? formatDate(d.data) : '';
+  if(acao === 'marcarPagamento' || acao === 'estornarPagamento')
+    return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))} (${quando})${d.motivo ? ' · ' + escapeHtml(d.motivo) : ''}`;
+  if(acao === 'addLancamento' || acao === 'estornarLancamento')
+    return `${d.tipo === 'entrada' ? 'entrada' : 'saída'} de ${finFormatar(finCentavos(d.valor))} — ${escapeHtml(d.descricao || '')} (${quando})`;
+  if(acao === 'marcarTodosPagamentos')
+    return `${d.quantidade} pagamento(s) de ${finFormatar(finCentavos(d.valorCada))} (${quando}): ${escapeHtml((d.nomes || []).join(', '))}`;
+  if(acao === 'estornarTodosPagamentos')
+    return `${d.quantidade} pagamento(s) estornado(s) (${quando})` + ((d.ignoradosForaDaLista || []).length ? ` · ${d.ignoradosForaDaLista.length} de quem saiu da lista ficaram` : '');
+  if(acao === 'marcarDiaSemJogo')
+    return `${quando}: ` + (d.destino === 'devolver' ? `${d.estornados} pagamento(s) devolvido(s)` : `${d.creditos} pagamento(s) viraram crédito`);
+  if(acao === 'reabrirDia') return `${quando}: ${d.creditosCancelados} crédito(s) cancelado(s)`;
+  if(acao === 'aplicarCreditos') return `${d.quantidade} pagamento(s) por crédito em ${quando}: ${escapeHtml((d.nomes || []).join(', '))}`;
+  if(acao === 'devolverCredito') return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))} (crédito de ${d.dataOrigem ? formatDate(d.dataOrigem) : ''})`;
+  if(acao === 'salvarFinDia' && d.depois)
+    return `${quando}: ${finFormatar(finCentavos(d.depois.valorPessoa))}/pessoa · quadra ${finFormatar(finCentavos(d.depois.valorQuadra))}${d.depois.temBrinde ? ' · brinde ' + finFormatar(finCentavos(d.depois.valorBrinde)) : ''}${d.antes ? ' (antes: ' + finFormatar(finCentavos(d.antes.valorPessoa)) + '/pessoa)' : ''}`;
+  return '';
+}
+
+function finDiaHtml(data, pode, admin){
+  const fin = FINANCEIRO;
+  const dia = finDia(fin, data);
+  const { dentro } = checkinsDentroEReserva(data);
+  const validos = finPagamentosValidos(fin, data).length;
+  const resultado = finResultadoDia(fin, data) + finAvulsosDia(fin, data);
+  const sinal = new Set(finSinalizados(fin, data, dentro).map(p => p.id));
+  const pagamentos = finPagamentosRecentesPrimeiro((fin.pagamentos || []).filter(p => p.data === data)); // o último pagamento aparece primeiro
+  const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
+  const pendentes = dia && finCentavos(dia.valorPessoa) > 0 ? finPendentes(fin, data, dentro) : [];
+
+  const semJogo = finSemJogo(dia);
+  let h = `<details class="fin-dia ${semJogo ? 'fin-dia-semjogo' : ''}"><summary><span class="fin-dia-data">${formatDate(data)}</span>
+    ${semJogo ? '<span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}
+    <span class="fin-dia-n">${validos} pagamento${validos === 1 ? '' : 's'}</span>
+    ${dia ? `<button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>` : ''}
+    <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
+
+  if(semJogo){
+    // dia sem jogo: a saída (quadra/brinde) NÃO conta; o dinheiro já recolhido virou crédito (ou foi devolvido)
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Dia sem jogo 🌧️</div>
+      <div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(dia.valorQuadra))})${dia.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(dia.valorBrinde)) + ')' : ''} não contam neste dia. O dinheiro já recebido ficou como crédito para os próximos check-ins (ou foi devolvido).</span></div>
+      ${pode ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}">☀️ Reabrir dia</button>
+        <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button></div>` : ''}</div>`;
+  } else if(dia){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Saídas do dia</div>
+      <div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorQuadra))}</span></div>
+      ${dia.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorBrinde))}</span></div>` : ''}
+      <div class="fin-linha"><span class="fin-linha-meta">${finFormatar(finCentavos(dia.valorPessoa))} por pessoa${dia.pix ? ' · PIX ' + escapeHtml(dia.pix) : ''}</span></div>
+      ${pode ? `<button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button>` : ''}</div>`;
+  }
+  if(pagamentos.length){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>`;
+    pagamentos.forEach(p=>{
+      const marcas = !p.estornado ? finMarcas(fin, data, p.jogadorId) : '';
+      const porCredito = finTipoPagamento(p) === 'credito';
+      // dinheiro de um dia sem jogo que virou crédito: mostra o estado do crédito
+      const cred = !porCredito ? (fin.creditos || []).find(c => c.origemPagamentoId === p.id && c.status !== 'cancelado') : null;
+      let selo = '';
+      if(cred && cred.status === 'devolvido') selo = '<span class="fin-selo fin-selo-info">crédito devolvido</span>';
+      else if(cred) selo = finSaldoCredito(fin, cred) > 0
+        ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>'
+        : '<span class="fin-selo fin-selo-info">crédito usado</span>';
+      h += `<div class="fin-linha ${p.estornado ? 'fin-estornado' : ''}">
+        <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Convidado')} ${marcas}${porCredito ? ' <span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo: não é dinheiro novo (já estava no caixa)">(Crédito)</span>' : ''}</span>
+        ${selo}
+        ${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
+        ${admin && sinal.has(p.id) ? `<button type="button" class="btn secondary" data-fin-estornar="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || 'Convidado')}" data-fin-valor="${finCentavos(p.valor)}">Estornar</button>` : ''}
+        ${porCredito ? `<span class="fin-linha-valor" style="color:var(--muted);">🎟️ ${finFormatar(finCentavos(p.valor))}</span>` : `<span class="fin-linha-valor fin-pos">+${finFormatar(finCentavos(p.valor))}</span>`}
+        <span class="fin-linha-meta">${p.estornado ? `estornado por ${escapeHtml(p.estornadoPor)} em ${finQuando(p.estornadoEm)} · ` : ''}marcado por ${escapeHtml(p.marcadoPor)} em ${finQuando(p.marcadoEm)}</span></div>`;
+    });
+    h += '</div>';
+  }
+  if(avulsos.length){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Lançamentos avulsos</div>`;
+    avulsos.forEach(l=>{
+      const cls = l.tipo === 'entrada' ? 'fin-pos' : 'fin-neg';
+      h += `<div class="fin-linha ${l.estornado ? 'fin-estornado' : ''}">
+        <span class="fin-linha-nome">${escapeHtml(l.descricao)}</span>
+        ${admin && !l.estornado ? `<button type="button" class="btn secondary" data-fin-estornar-lanc="${escapeHtml(l.id)}" data-fin-nome="${escapeHtml(l.descricao)}">Estornar</button>` : ''}
+        <span class="fin-linha-valor ${cls}">${l.tipo === 'entrada' ? '+' : '−'}${finFormatar(finCentavos(l.valor))}</span>
+        <span class="fin-linha-meta">${l.estornado ? `estornado por ${escapeHtml(l.estornadoPor)} em ${finQuando(l.estornadoEm)} · ` : ''}lançado por ${escapeHtml(l.criadoPor)} em ${finQuando(l.criadoEm)}</span></div>`;
+    });
+    h += '</div>';
+  }
+  if(pendentes.length){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Ainda não pagaram (${pendentes.length})</div><div class="fin-pendentes">${pendentes.map(c=>`<span>${escapeHtml(c.jogadorNome || 'Convidado')}</span>`).join('')}</div></div>`;
+  }
+  return h + '</div></details>';
+}
+
+function renderFinanceiro(){
+  const topo = document.getElementById('fin-topo');
+  if(!topo) return;
+  // visitante sem login: só o aviso de acesso restrito, nada do conteúdo é desenhado
+  const liberado = podeVerFinanceiro();
+  document.getElementById('fin-bloqueado').style.display = liberado ? 'none' : '';
+  document.getElementById('fin-conteudo').style.display = liberado ? '' : 'none';
+  if(!liberado){
+    ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+    return;
+  }
+  const fin = FINANCEIRO;
+  const pode = temPermissao('addLancamento');
+  const admin = ehAdminAgora();
+  const caixa = finCaixa(fin);
+  const hoje = new Date();
+  const mes = finResumoMes(fin, hoje.getFullYear(), hoje.getMonth() + 1);
+  // saldo previsto: só faz sentido com check-in aberto e valor do dia cadastrado
+  const dataAberta = SETTINGS.checkinDataAberta;
+  const prev = dataAberta ? finSaldoPrevisto(fin, dataAberta, checkinsDentroEReserva(dataAberta).dentro) : null;
+  let previstoHtml = '';
+  if(prev){
+    const n = prev.pendentes;
+    previstoHtml = `<div class="fin-previsto">
+      <div class="fin-previsto-rotulo">Saldo previsto</div>
+      <div class="fin-previsto-valor ${prev.previsto < 0 ? 'neg' : ''}">${finFormatar(prev.previsto)}</div>
+      <div class="fin-previsto-sub">${n
+        ? `quando os <strong>${n} pendente${n === 1 ? '' : 's'}</strong> do check-in de ${formatDate(dataAberta)} pagarem (<span class="fin-pos">+${finFormatar(prev.aReceber)}</span> a receber)`
+        : `todos do check-in de ${formatDate(dataAberta)} já pagaram — nada a receber`}</div>
+    </div>`;
+  } else if(dataAberta && finSemJogo(finDia(fin, dataAberta))){
+    previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: o check-in de ${formatDate(dataAberta)} está marcado como <strong>sem jogo</strong>, então não há o que cobrar.</div>`;
+  } else if(dataAberta){
+    previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: cadastre o valor por pessoa do check-in de ${formatDate(dataAberta)} para ver a previsão.</div>`;
+  }
+  // o dinheiro dos créditos está no caixa, mas é dos jogadores: o "saldo livre" é o que sobra de verdade pro grupo
+  const totalCred = finTotalCreditos(fin);
+  const creditosHtml = totalCred > 0
+    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(fin))}</strong></span></div>` : '';
+  topo.innerHTML = `<div class="fin-saldo">
+    <div class="fin-saldo-rotulo">Saldo do caixa</div>
+    <div class="fin-saldo-valor ${caixa < 0 ? 'neg' : ''}">${finFormatar(caixa)}</div>
+    <div class="fin-saldo-mes"><span>Este mês: <span class="fin-pos">+${finFormatar(mes.entradas)}</span></span><span><span class="fin-neg">−${finFormatar(mes.saidas)}</span> saídas</span></div>
+    ${creditosHtml}
+    ${previstoHtml}
+  </div>`;
+  // créditos disponíveis por pessoa; só o admin devolve o dinheiro (e só de crédito ainda não usado)
+  const creds = finCreditosDisponiveis(fin);
+  document.getElementById('fin-creditos-sec').style.display = creds.length ? '' : 'none';
+  document.getElementById('fin-creditos-lista').innerHTML = creds.map(c => {
+    const saldo = finSaldoCredito(fin, c);
+    const inteiro = saldo === finCentavos(c.valor);
+    return `<div class="fin-linha"><span class="fin-linha-nome">${escapeHtml(c.jogadorNome || 'Convidado')}</span>
+      <span class="fin-linha-meta" style="flex-basis:auto;">de ${formatDate(c.dataOrigem)}${inteiro ? '' : ' · já usado em parte'}</span>
+      ${admin && inteiro ? `<button type="button" class="btn secondary" data-fin-devolver-credito="${escapeHtml(c.id)}" data-fin-nome="${escapeHtml(c.jogadorNome || 'Convidado')}" data-fin-valor="${saldo}">Devolver</button>` : ''}
+      <span class="fin-linha-valor" style="color:var(--accent);">${finFormatar(saldo)}</span></div>`;
+  }).join('');
+  document.getElementById('fin-acoes').innerHTML = pode
+    ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button>' : '';
+  const datas = finDatas(fin);
+  document.getElementById('fin-extrato').innerHTML = datas.length
+    ? datas.map(d => finDiaHtml(d, pode, admin)).join('')
+    : '<div class="empty"><i class="ti ti-coin"></i>Nenhum movimento ainda. Configure o "Financeiro do dia" no Check-in ou faça um lançamento.</div>';
+  document.getElementById('fin-auditoria-lista').innerHTML = (fin.log || []).length
+    ? fin.log.map(l => `<div class="fin-log-item"><span class="fin-log-quando">${finQuando(l.timestamp)}</span><strong>${escapeHtml(l.nome)}</strong> ${FIN_ACOES_ROTULO[l.acao] || escapeHtml(l.acao)}: ${finDetalheLegivel(l.acao, l.detalhe)}</div>`).join('')
+    : '<div class="empty" style="padding:20px;">Sem ações registradas ainda.</div>';
+}
+
+// modal genérico (reaproveita o visual dos modais de senha); aoSalvar(overlay) devolve true pra fechar
+function finAbrirModal(titulo, corpoHtml, aoSalvar, rotuloOk){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `<div class="password-card fin-modal"><p class="password-title">${titulo}</p><div class="fin-modal-corpo">${corpoHtml}</div>
+    <div class="password-actions"><button type="button" class="btn" data-fin-ok>${rotuloOk || 'Salvar'}</button><button type="button" class="btn secondary" data-fin-cancelar>Cancelar</button></div></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', async (e)=>{
+    if(e.target === overlay || e.target.closest('[data-fin-cancelar]')){ overlay.remove(); return; }
+    if(e.target.closest('[data-fin-ok]') && await aoSalvar(overlay)) overlay.remove();
+  });
+  return overlay;
+}
+function finCampoNum(id, rotulo, valor, ph){
+  return `<label class="fin-campo">${rotulo}<input type="number" id="${id}" min="0" step="0.01" inputmode="decimal" value="${valor === '' || valor == null ? '' : valor}" placeholder="${ph || ''}"></label>`;
+}
+
+function finAbrirEditarDia(data){
+  const d = finDia(FINANCEIRO, data) || { valorPessoa: '', pix: '', valorQuadra: '', valorBrinde: '', icone: '✅' };
+  finAbrirModal('Editar ' + formatDate(data), `
+    ${finCampoNum('fin-m-vp', 'Valor por pessoa (R$)', d.valorPessoa)}
+    <label class="fin-campo">PIX<input type="text" id="fin-m-pix" maxlength="80" value="${escapeHtml(d.pix || '')}"></label>
+    ${finCampoNum('fin-m-vq', 'Quadra (R$)', d.valorQuadra)}
+    ${finCampoNum('fin-m-vb', 'Brinde 🍫 — valor total (R$)', d.valorBrinde, '0 = sem brinde')}
+    <label class="fin-campo">Ícone de quem pagou
+      <select id="fin-m-icone"><option value="✅" ${d.icone !== '💰' ? 'selected' : ''}>✅</option><option value="💰" ${d.icone === '💰' ? 'selected' : ''}>💰</option></select>
+    </label>`,
+    async (ov)=> {
+      const valorBrinde = ov.querySelector('#fin-m-vb').value;
+      return finPost('salvarFinDia', { dia: {
+        data, valorPessoa: ov.querySelector('#fin-m-vp').value, pix: ov.querySelector('#fin-m-pix').value.trim(),
+        valorQuadra: ov.querySelector('#fin-m-vq').value, valorBrinde, temBrinde: finCentavos(valorBrinde) > 0,
+        icone: ov.querySelector('#fin-m-icone').value } });
+    });
+}
+function finAbrirLancar(){
+  const hoje = new Date().toISOString().slice(0, 10);
+  finAbrirModal('Novo lançamento', `
+    <label class="fin-campo">Tipo<select id="fin-m-tipo"><option value="entrada">Entrada (+)</option><option value="saida">Saída (−)</option></select></label>
+    <label class="fin-campo">Descrição<input type="text" id="fin-m-desc" maxlength="120" placeholder="Ex.: Saldo inicial, Bola nova"></label>
+    ${finCampoNum('fin-m-valor', 'Valor (R$)', '', '0,00')}
+    <label class="fin-campo">Data<input type="date" id="fin-m-data" value="${hoje}"></label>`,
+    async (ov)=> finPost('addLancamento', { lancamento: {
+      data: ov.querySelector('#fin-m-data').value, tipo: ov.querySelector('#fin-m-tipo').value,
+      descricao: ov.querySelector('#fin-m-desc').value, valor: ov.querySelector('#fin-m-valor').value } }));
+}
+// "acertar o caixa": a pessoa digita o saldo REAL; o app lança só a diferença (o cálculo do caixa continua num lugar só)
+function finAbrirAjustarCaixa(){
+  const atual = finCaixa(FINANCEIRO);
+  finAbrirModal('Ajustar caixa', `<p style="margin:0;font-size:13px;color:var(--muted);">Saldo no app agora: <strong>${finFormatar(atual)}</strong>. Digite o saldo real e o app faz um lançamento "Ajuste de saldo" com a diferença.</p>
+    ${finCampoNum('fin-m-alvo', 'Saldo real (R$)', '', '0,00')}`,
+    async (ov)=>{
+      const alvo = finCentavos(ov.querySelector('#fin-m-alvo').value);
+      const dif = alvo - atual;
+      if(dif === 0){ mostrarToast('O caixa já está nesse valor.', 'sucesso'); return true; }
+      if(!confirm('O caixa vai de ' + finFormatar(atual) + ' para ' + finFormatar(alvo) + ' (lançamento de ' + finFormatar(Math.abs(dif)) + '). Confirmar?')) return false;
+      return finPost('addLancamento', { lancamento: { data: new Date().toISOString().slice(0, 10),
+        tipo: dif > 0 ? 'entrada' : 'saida', descricao: 'Ajuste de saldo', valor: Math.abs(dif) / 100 } });
+    });
+}
+
+document.getElementById('view-financeiro').addEventListener('click', async (e)=>{
+  // copiar o resumo do dia (vale pra qualquer visitante); está dentro do <summary>, então não pode abrir/fechar o dia
+  const cp = e.target.closest('[data-fin-copiar-resumo]');
+  if(cp){
+    e.preventDefault(); e.stopPropagation();
+    copiarTexto(finResumoFechamento(FINANCEIRO, cp.dataset.finCopiarResumo), cp);
+    return;
+  }
+  const reab = e.target.closest('[data-fin-reabrir-dia]');
+  if(reab) return reabrirDiaFinanceiro(reab.dataset.finReabrirDia);
+  const dev = e.target.closest('[data-fin-devolver-credito]');
+  if(dev){
+    if(!confirm('Devolver o crédito de ' + dev.dataset.finNome + ' (' + finFormatar(Number(dev.dataset.finValor)) + ')?\n\nO dinheiro é devolvido: o pagamento de origem é estornado e o valor sai do caixa.')) return;
+    return finPost('devolverCredito', { id: dev.dataset.finDevolverCredito });
+  }
+  if(e.target.closest('#fin-lancar-btn')) return finAbrirLancar();
+  if(e.target.closest('#fin-ajustar-btn')) return finAbrirAjustarCaixa();
+  const ed = e.target.closest('[data-fin-editar-dia]');
+  if(ed) return finAbrirEditarDia(ed.dataset.finEditarDia);
+  const est = e.target.closest('[data-fin-estornar]');
+  if(est){
+    if(!confirm('Estornar o pagamento de ' + est.dataset.finNome + ' (' + finFormatar(Number(est.dataset.finValor)) + ')? O valor sai do caixa.')) return;
+    return finPost('estornarPagamento', { id: est.dataset.finEstornar });
+  }
+  const estL = e.target.closest('[data-fin-estornar-lanc]');
+  if(estL){
+    if(!confirm('Estornar o lançamento "' + estL.dataset.finNome + '"?')) return;
+    return finPost('estornarLancamento', { id: estL.dataset.finEstornarLanc });
+  }
+});
 
 function renderCheckinList(){
   const data = SETTINGS.checkinDataAberta;
@@ -6075,8 +7684,13 @@ function montarTextoCheckinsWhatsApp(){
     alert('Ninguém confirmou presença para essa data ainda.');
     return '';
   }
-  let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n';
-  dentro.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
+  // valor e PIX do dia entram logo depois do texto de abertura (só se o dia já tem valor cadastrado)
+  let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + finCabecalhoWhatsApp(FINANCEIRO, data);
+  dentro.forEach((c,i)=>{
+    const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
+    const credito = finRotuloCredito(FINANCEIRO, data, c.jogadorId) ? ' (Crédito)' : '';   // pago com crédito de um dia sem jogo
+    texto += `${i+1}- ${c.jogadorNome || 'Convidado'}${marcas ? ' ' + marcas : ''}${credito}\n`;
+  });
   if(reserva.length){
     texto += `\nEspera:\n\n`;
     reserva.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
