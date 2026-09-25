@@ -6,3 +6,23 @@
 # plano futuro não repetir o vazamento que a revisão final do Placar Ao Vivo encontrou
 # e corrigiu (história reescrita) em 2026-09-18.
 *.gs
+
+# Dependências do Node.js
+node_modules/
+
+# Credenciais do Supabase (URL, anon key, service_role key) do projeto de estudo
+# "Terça no Supabase" — a service_role ignora toda regra de segurança do banco,
+# nunca pode ir pro repositório.
+.env
+.env.*
+
+# Chave JSON da service account do Google (credencial privada, dá acesso de leitura
+# à planilha do Terça) — nunca pode ir pro repositório.
+CHAVE/
+
+# Cópia gerada por "npm run preparar-edge" (scripts/preparar-edge.js) de backend/*.js para o deploy da Edge Function:
+# o bundler do Supabase só enxerga supabase/functions/. Não editar nem versionar (a fonte é backend/).
+supabase/functions/terca-api-teste/backend/
+
+# Estado local do Supabase CLI (link do projeto: cont�m o ref e pode conter dados de sess�o)
+supabase/.temp/
