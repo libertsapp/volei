@@ -3,16 +3,20 @@
 //  - a tarefa automática que avisa de pedidos pendentes nunca abre a tela da chave mestra nem
 //    força logout quando o token do Google já venceu — só usa credencial que já existe.
 // Extrai o código direto do HTML, então testa exatamente o que vai pro ar.
-// Rodar: node tests/login-silencioso.test.js   (MEME=1 roda contra o HTML do Meme)
+// Rodar: node tests/login-silencioso.test.js
+//   HTML_ARQUIVO=<caminho> roda contra outro HTML (o Meme mora em outro repositório: voleimeme/index.html)
+//   MEME=1 roda contra o HTML do Meme que estiver na raiz deste repositório
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
 const nomesDoMeme = ['volei-meme-dashboard.html', 'volei-meme-dashboard - Copia.html', 'volei-meme-dashboard - Copia - Copia.html'];
-const arquivo = process.env.MEME
-  ? (nomesDoMeme.find(n => fs.existsSync(path.join(__dirname, '..', n))) || nomesDoMeme[0])
-  : 'volei-dashboard.html';
-const html = fs.readFileSync(path.join(__dirname, '..', arquivo), 'utf8').replace(/\r/g, '');
+const caminho = process.env.HTML_ARQUIVO
+  ? path.resolve(process.env.HTML_ARQUIVO)
+  : path.join(__dirname, '..', process.env.MEME
+    ? (nomesDoMeme.find(n => fs.existsSync(path.join(__dirname, '..', n))) || nomesDoMeme[0])
+    : 'volei-dashboard.html');
+const html = fs.readFileSync(caminho, 'utf8').replace(/\r/g, '');
 
 function pegar(inicio, fim){
   const i = html.indexOf(inicio);
