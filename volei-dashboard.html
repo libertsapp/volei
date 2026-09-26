@@ -2603,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3034,8 +3034,10 @@ window.onGoogleLibraryLoad = function(){
   google.accounts.id.renderButton(document.getElementById('google-signin-btn'), {
     theme: 'filled_black', size: 'medium', shape: 'pill', text: 'signin_with', locale: 'pt-BR'
   });
-  // One Tap: reentra em silêncio quem já tinha autorizado, sem clique nenhum
-  google.accounts.id.prompt();
+  // De propósito NÃO chama google.accounts.id.prompt() aqui: o One Tap abria o seletor de contas a cada
+  // F5 mesmo com a sessão já restaurada do localStorage (e, com 2 contas no celular, nunca escolhia sozinho).
+  // Entrar = botão "Entrar com Google"; renovar o token vencido = renovarTokenGoogle(), que só roda quando
+  // a pessoa está salvando algo.
 };
 
 // chamado pelo Google com o ID Token recém-emitido
@@ -3279,8 +3281,20 @@ function perguntarVinculoJogador(sugestao){
 /* ---------- GERENCIAR USUÁRIOS (só admin) ---------- */
 // a lista de e-mails NÃO vem no doGet público de propósito — ela é buscada por POST
 // autenticado, senão qualquer visitante leria os e-mails de todo mundo
-async function carregarUsuarios(){
-  const cred = await requireAuth('listarUsuarios');
+// 'silencioso' = chamada automática (ex.: aviso de pendentes ao abrir a página), não um clique da pessoa.
+// Nesse modo NUNCA abre pop-up nem desloga: só usa a chave mestra em cache ou um token ainda válido e, se
+// não tiver nenhum dos dois, desiste em silêncio (o aviso só atualiza quando a pessoa fizer algo ou abrir
+// "Gerenciar usuários"). Sem isso, um token vencido no F5 fazia aparecer a tela da chave mestra do nada.
+async function carregarUsuarios(silencioso){
+  let cred;
+  if(silencioso){
+    const senha = getCachedPassword();
+    if(senha) cred = { idToken: AUTH.idToken || '', senha: senha };
+    else if(AUTH.logado && !tokenExpirado(120)) cred = { idToken: AUTH.idToken, senha: '' };
+    else return null;
+  } else {
+    cred = await requireAuth('listarUsuarios');
+  }
   if(!cred) return null;
   try{
     const res = await fetch(SHEET_API_URL, {
@@ -3438,7 +3452,7 @@ async function atualizarAvisoUsuariosPendentes(){
     if(maisBadge) maisBadge.style.display = 'none';
     return;
   }
-  const usuarios = await carregarUsuarios();
+  const usuarios = await carregarUsuarios(true); // automático: sem pop-up (ver carregarUsuarios)
   if(!usuarios) return;
   const pendentes = usuarios.filter(u => !u.jogadorId && u.jogadorIdPendente).length;
   [navBadge, maisBadge].forEach(el=>{
