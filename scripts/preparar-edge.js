@@ -1,4 +1,5 @@
-// Copia backend/*.js (os módulos puros) para supabase/functions/terca-api-teste/backend/, byte a byte, para o
+// Uso: npm run preparar-edge [-- nome-da-função]   (padrão: terca-api-teste; para o Meme: npm run preparar-edge -- meme-api)
+// Copia backend/*.js (os módulos puros) para supabase/functions/<função>/backend/, byte a byte, para o
 // "supabase functions deploy" enxergar tudo dentro de supabase/functions/. A pasta de destino é GERADA (está no .gitignore):
 // rode de novo sempre que mexer em backend/. Não toca em rede, em .env nem no Supabase.
 // Uso: npm run preparar-edge
@@ -46,10 +47,23 @@ edite backend/ e rode o comando de novo. Ela não vai para o git (.gitignore).
 Cada arquivo é uma cópia idêntica, byte a byte, de backend/*.js (sem servidor*.js, que usa o Node).
 `;
 
-function executar() {
+// O nome vira parte de um caminho: só minúsculas, dígitos e hífen (nada de "../" nem espaço).
+function validarNomeFuncao(nome) {
+  if (typeof nome !== 'string' || !/^[a-z][a-z0-9-]{1,60}$/.test(nome)) {
+    throw new Error('nome de função inválido: ' + JSON.stringify(nome) + ' (use minúsculas, dígitos e hífen, ex.: meme-api)');
+  }
+  return nome;
+}
+
+function executar(nomeFuncao = 'terca-api-teste') {
   const raiz = path.join(__dirname, '..');
   const origem = path.join(raiz, 'backend');
-  const destino = path.join(raiz, 'supabase', 'functions', 'terca-api-teste', 'backend');
+  const nome = validarNomeFuncao(nomeFuncao);
+  if (!fs.existsSync(path.join(raiz, 'supabase', 'functions', nome, 'index.ts'))) {
+    console.error('A função "' + nome + '" não existe em supabase/functions/ (falta o index.ts).');
+    process.exit(1);
+  }
+  const destino = path.join(raiz, 'supabase', 'functions', nome, 'backend');
   const arquivos = fs.readdirSync(origem).filter((n) => fs.statSync(path.join(origem, n)).isFile())
     .map((nome) => ({ nome, conteudo: deveCopiar(nome) ? fs.readFileSync(path.join(origem, nome), 'utf8') : '' }));
   const plano = planejarCopia(arquivos);
@@ -61,8 +75,8 @@ function executar() {
   fs.mkdirSync(destino, { recursive: true });
   for (const nome of plano.copiar) fs.copyFileSync(path.join(origem, nome), path.join(destino, nome));
   fs.writeFileSync(path.join(destino, 'LEIA-ME.txt'), LEIA_ME);
-  console.log(`Copiados ${plano.copiar.length} arquivos para supabase/functions/terca-api-teste/backend/ (ignorados: ${plano.ignorados.join(', ')})`);
+  console.log(`Copiados ${plano.copiar.length} arquivos para supabase/functions/${nome}/backend/ (ignorados: ${plano.ignorados.join(', ')})`);
 }
 
-if (require.main === module) executar();
-module.exports = { planejarCopia, deveCopiar };
+if (require.main === module) executar(process.argv[2]);
+module.exports = { planejarCopia, deveCopiar, validarNomeFuncao };
