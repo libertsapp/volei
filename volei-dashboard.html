@@ -2603,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3052,6 +3052,7 @@ function handleGoogleCredential(resposta){
     AUTH.idToken = idToken;
     AUTH.exp = Number(payload.exp) || 0;
     salvarSessaoAuth();
+    sincronizarContaComServidor(); // não bloqueia quem está esperando o token (ver comentário na função)
     avisar(idToken);
     return;
   }
@@ -3120,6 +3121,38 @@ async function loginComGoogle(idToken){
   }catch(e){
     console.error('Falha ao confirmar o login no servidor', e);
     alert('Entrou no Google, mas não foi possível falar com a planilha agora. Recarregue a página.');
+  }
+}
+
+/* Bug real (2026-09): AUTH.jogadorId é gravado no localStorage no primeiro login e NUNCA mais era reconferido
+   com o servidor — a renovação silenciosa do token só atualizava idToken/exp. Se o vínculo da conta mudasse
+   depois do primeiro login naquele aparelho, "Meu Perfil" ficava mostrando "jogador não encontrado" pra
+   sempre, mesmo com o servidor certo, só se autocorrigindo se um admin resalvasse a conta na tela Usuários.
+   Reconfere com o token já em mãos (sem pedir Google de novo) e NUNCA abre os popups do primeiro login
+   (convite de vínculo, oferta de bootstrap) — só sincroniza os campos, em silêncio. */
+async function sincronizarContaComServidor(){
+  if(!AUTH.logado || !AUTH.idToken || !sheetReady) return;
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'loginGoogle', idToken: AUTH.idToken })
+    });
+    const json = await res.json();
+    if(!json || json.error) return; // token vencido ou erro do servidor: silencioso, tenta de novo na próxima renovação
+    const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
+    AUTH.perfil = json.perfil || 'jogador';
+    AUTH.jogadorId = json.jogadorId || '';
+    AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
+    AUTH.nome = json.nome || AUTH.nome;
+    salvarSessaoAuth();
+    if(mudou){
+      atualizarStatusAuth();
+      aplicarPermissoesUI();
+      renderAll();
+    }
+  }catch(e){
+    console.error('Falha ao sincronizar a conta com o servidor (silencioso; tenta de novo mais tarde)', e);
   }
 }
 
@@ -8999,6 +9032,7 @@ renderPlacar();
 
 restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
 loadData();
+sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
 atualizarAvisoUsuariosPendentes();
 </script>
 </body>
