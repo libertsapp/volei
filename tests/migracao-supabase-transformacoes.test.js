@@ -68,6 +68,11 @@ t('paraTimestampISO: dd/mm/aaaa hh:mm:ss em São Paulo (UTC-03:00) vira ISO', ()
   assert.equal(paraTimestampISO('18/09/2026 19:30:00'), '2026-09-18T22:30:00.000Z');
 });
 
+t('paraTimestampISO: dd/mm/aaaa SEM hora (caso real do Meme, aba Usuarios) vira meia-noite em São Paulo', () => {
+  assert.equal(paraTimestampISO('13/09/2026'), '2026-09-13T03:00:00.000Z');
+  assert.equal(paraTimestampISO('01/01/2026'), '2026-01-01T03:00:00.000Z');
+});
+
 t('nomeDoConvidado: extrai nome de id "convidado:NOME#xxxx"', () => {
   assert.equal(nomeDoConvidado('convidado:CAUA#0z6z'), 'CAUA');
   assert.equal(nomeDoConvidado('convidado:VITOR SANTOS#ham8'), 'VITOR SANTOS');
