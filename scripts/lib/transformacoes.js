@@ -53,6 +53,12 @@ function paraTimestampISO(valor) {
     const d = new Date(`${br[3]}-${br[2]}-${br[1]}T${br[4]}:${br[5]}:${br[6]}-03:00`);
     if (!isNaN(d.getTime())) return d.toISOString();
   }
+  // "13/09/2026" sem hora (a aba Usuarios do Meme grava assim quando o vínculo é antigo): meia-noite em São Paulo
+  const brSemHora = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brSemHora) {
+    const d2 = new Date(`${brSemHora[3]}-${brSemHora[2]}-${brSemHora[1]}T00:00:00-03:00`);
+    if (!isNaN(d2.getTime())) return d2.toISOString();
+  }
   const d = new Date(texto);
   if (isNaN(d.getTime())) throw new Error('Timestamp em formato inesperado: "' + texto + '"');
   return d.toISOString();

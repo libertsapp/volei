@@ -1,12 +1,14 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
-const { lerPlanilhaTerca } = require('./lib/planilha');
+const { lerPlanilha } = require('./lib/planilha');
+const { configDoGrupo, opcoesDoCliente } = require('./lib/grupo');
 const {
   paraBooleano, dividirJogadores, paraJsonb, paraDataISO, paraTimestampISO, paraNumero,
   coletarConvidados, anularOrfaos
 } = require('./lib/transformacoes');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const cfg = configDoGrupo(); // GRUPO=meme migra a planilha do Meme para o schema "meme"; sem GRUPO, o Terça (como sempre)
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, opcoesDoCliente(cfg));
 const resumo = [];
 const excecoes = [];
 
@@ -58,7 +60,8 @@ async function gravarSeVazia(tabela, registros) {
 }
 
 async function migrar() {
-  const dados = await lerPlanilhaTerca();
+  console.log('Grupo: ' + cfg.grupo + ' (schema ' + cfg.schema + ')');
+  const dados = await lerPlanilha(cfg.spreadsheetId);
 
   // 1. jogadores
   const jogadores = mapear('jogadores', paraObjetos(dados.Jogadores), (j) => ({

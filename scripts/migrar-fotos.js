@@ -1,4 +1,4 @@
-// Copia as fotos dos jogadores do Google Drive para o bucket "fotos" do Supabase e atualiza jogadores.foto.
+// Copia as fotos dos jogadores do Google Drive para o bucket do grupo (fotos ou fotos-meme) do Supabase e atualiza jogadores.foto.
 // Uso: npm run migrar-fotos                 (SIMULAÇÃO: só lista o que faria; não baixa nem grava nada)
 //      npm run migrar-fotos -- --aplicar    (baixa, envia e atualiza de verdade)
 // Idempotente: jogador cuja foto já aponta para o nosso Storage é pulado. Um erro num jogador não para os outros.
@@ -6,10 +6,12 @@
 // são puladas e reportadas. Os originais continuam no Drive.
 require('dotenv').config({ quiet: true });
 const { createClient } = require('@supabase/supabase-js');
+const { configDoGrupo, opcoesDoCliente } = require('./lib/grupo');
 
+const cfg = configDoGrupo(); // GRUPO=meme usa o schema e o bucket do Meme; sem GRUPO, o Terça (como sempre)
 const LIMITE_BYTES = 300 * 1024;
 const DRIVE = /(drive\.google\.com|googleusercontent\.com|usercontent\.google\.com)/;
-const NOSSO_STORAGE = '/storage/v1/object/public/fotos/';
+const NOSSO_STORAGE = '/storage/v1/object/public/' + cfg.bucket + '/';
 const aplicar = process.argv.includes('--aplicar');
 
 const ehJpeg = (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
@@ -27,10 +29,11 @@ async function main() {
     process.exit(1);
   }
   const urlBase = process.env.SUPABASE_URL.replace(/\/+$/, '');
-  const cliente = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const cliente = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, opcoesDoCliente(cfg));
   const { data: jogadores, error } = await cliente.from('jogadores').select('id, nome, foto');
   if (error) throw new Error('Não consegui ler jogadores: ' + error.message);
 
+  console.log('Grupo: ' + cfg.grupo + ' (schema ' + cfg.schema + ', bucket ' + cfg.bucket + ')');
   console.log(aplicar ? 'MODO APLICAR: vai copiar e atualizar.' : 'SIMULAÇÃO (nada será baixado nem gravado). Use --aplicar para valer.');
   const r = { migrados: 0, jaNoStorage: 0, semFoto: 0, pulados: [], falhas: [] };
 
@@ -50,13 +53,13 @@ async function main() {
       if (bytes.length > LIMITE_BYTES) { r.pulados.push(`${j.id}: arquivo com ${Math.round(bytes.length / 1024)} KB (máximo 300 KB)`); continue; }
 
       const caminho = novoCaminho(j.id);
-      const { error: erroUp } = await cliente.storage.from('fotos').upload(caminho, bytes, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+      const { error: erroUp } = await cliente.storage.from(cfg.bucket).upload(caminho, bytes, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
       if (erroUp) throw new Error('envio ao bucket falhou: ' + erroUp.message);
       const novaUrl = urlBase + NOSSO_STORAGE + caminho + '?id=' + caminho;
       const { error: erroUpd } = await cliente.from('jogadores').update({ foto: novaUrl }).eq('id', j.id);
       if (erroUpd) {
         let extra = '';
-        try { await cliente.storage.from('fotos').remove([caminho]); } // não deixa arquivo órfão no bucket
+        try { await cliente.storage.from(cfg.bucket).remove([caminho]); } // não deixa arquivo órfão no bucket
         catch (e2) { extra = '; e a limpeza do arquivo ' + caminho + ' também falhou: ' + e2.message; }
         throw new Error('atualizar jogadores.foto falhou: ' + erroUpd.message + extra);
       }
