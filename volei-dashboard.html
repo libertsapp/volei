@@ -2603,7 +2603,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3199,8 +3199,12 @@ function tokenExpirado(margemSegundos){
   return (AUTH.exp * 1000) - Date.now() < (margemSegundos || 120) * 1000;
 }
 
+// dedup: se a renovação já estiver em andamento (ex.: a proativa e a de uma ação de admin dispararam quase
+// juntas), a segunda chamada espera a mesma promessa em vez de abrir um 2º prompt() por cima do 1º
+let RENOVACAO_EM_ANDAMENTO = null;
 function renovarTokenGoogle(){
-  return new Promise((resolve)=>{
+  if(RENOVACAO_EM_ANDAMENTO) return RENOVACAO_EM_ANDAMENTO;
+  RENOVACAO_EM_ANDAMENTO = new Promise((resolve)=>{
     if(typeof google === 'undefined' || !google.accounts || !google.accounts.id){ resolve(null); return; }
     let respondeu = false;
     AUTH.aoRenovar = (token)=>{ respondeu = true; resolve(token); };
@@ -3208,18 +3212,38 @@ function renovarTokenGoogle(){
     setTimeout(()=>{
       if(!respondeu){ AUTH.aoRenovar = null; resolve(null); }
     }, 8000);
-  });
+  }).finally(()=>{ RENOVACAO_EM_ANDAMENTO = null; });
+  return RENOVACAO_EM_ANDAMENTO;
 }
 
+/* Bug real (2026-09): a renovação só era tentada NA HORA de uma ação de admin, nunca proativamente ao reabrir
+   o app; e quando falhava (comum depois de muito tempo fechado — o navegador nem sempre consegue renovar em
+   silêncio), o app deslogava tudo com um alert() feio, mesmo o servidor sabendo perfeitamente quem era a
+   pessoa. Agora NUNCA desloga sozinho (o requireAuth() já cai pra chave mestra sozinho quando isso devolve
+   null) e usa toast em vez de alert(). ULTIMA_FALHA_RENOVACAO evita ficar tentando (e travando ~8s) de novo
+   em toda ação seguinte logo depois de uma falha — só tenta de novo depois do cooldown, ou quando a pessoa
+   clicar em "Entrar com Google" de propósito (isso passa por outro caminho, loginComGoogle). */
+let ULTIMA_FALHA_RENOVACAO = 0;
+const COOLDOWN_RENOVACAO_MS = 5 * 60 * 1000;
 async function garantirTokenFresco(){
   if(!AUTH.logado) return null;
   if(!tokenExpirado(120)) return AUTH.idToken;
+  if(Date.now() - ULTIMA_FALHA_RENOVACAO < COOLDOWN_RENOVACAO_MS) return null;
   const novo = await renovarTokenGoogle();
-  if(novo) return novo;
-  alert('Seu login do Google expirou. Clique em "Entrar com Google" de novo pra continuar.');
-  sairDaConta(true);
+  if(novo){ ULTIMA_FALHA_RENOVACAO = 0; return novo; }
+  ULTIMA_FALHA_RENOVACAO = Date.now();
+  mostrarToast('Seu login do Google expirou. Toque em "Entrar com Google" pra continuar (ou use a chave mestra).', 'erro');
   return null;
 }
+
+// renovação proativa: tenta assim que o app volta a ficar visível (reabrir a aba, voltar do fundo no
+// celular) — na maioria das vezes já resolve em silêncio antes da pessoa clicar em qualquer coisa, em vez de
+// só descobrir que o token venceu na hora de uma ação de admin
+function tentarRenovarSeNecessario(){
+  if(AUTH.logado && tokenExpirado(300)) renovarTokenGoogle();
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') tentarRenovarSeNecessario(); });
+window.addEventListener('focus', tentarRenovarSeNecessario);
 
 // renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
 // a aba aberta a tarde inteira não travar na hora de salvar a rodada
@@ -9033,6 +9057,7 @@ renderPlacar();
 restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
 loadData();
 sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
+tentarRenovarSeNecessario(); // cobre a abertura a frio (visibilitychange/focus não disparam no 1º load)
 atualizarAvisoUsuariosPendentes();
 </script>
 </body>
