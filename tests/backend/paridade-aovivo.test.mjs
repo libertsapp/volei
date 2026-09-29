@@ -96,7 +96,7 @@ async function rodar(titulo, env, passos) {
         else if (esperado === 'contador') assert.equal(typeof esperadoGs.contadorAcessos, 'number');
         else if (esperado) assert.ok(String(esperadoGs.error).includes(esperado), 'erro esperado "' + esperado + '", veio ' + JSON.stringify(esperadoGs.error));
       }
-      assert.deepEqual(json(await env.novo.get()), env.gs.get(), 'o GET (com o aoVivo e o contador) ficou diferente depois deste passo');
+      assert.deepEqual((({ removidos, ...r }) => r)(json(await env.novo.get())), env.gs.get(), 'o GET (com o aoVivo e o contador) ficou diferente depois deste passo');
     });
   }
 }

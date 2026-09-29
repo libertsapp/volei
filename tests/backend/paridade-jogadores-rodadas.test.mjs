@@ -108,7 +108,9 @@ for (const [i, [nome, corpo]] of passos.entries()) {
     const esperado = gs.post(corpo);
     const obtido = json(await novo.post(corpo));
     assert.deepEqual(obtido, esperado, 'resposta diferente');
-    assert.deepEqual(json(await novo.get()), gs.get(), 'o GET completo ficou diferente depois deste passo');
+    // "removidos" (jogadores arquivados) é campo novo: o .gs apaga a linha e não tem equivalente, então fica fora da comparação
+    const { removidos, ...getNovo } = json(await novo.get());
+    assert.deepEqual(getNovo, gs.get(), 'o GET completo ficou diferente depois deste passo');
   });
 }
 

@@ -1,5 +1,5 @@
 import {
-  mapearJogadores, mapearRodadas, mapearConfig, mapearCheckins,
+  mapearJogadores, mapearJogadoresRemovidos, mapearRodadas, mapearConfig, mapearCheckins,
   mapearPerfisPublicos, mapearAoVivo, mapearFinanceiro
 } from './mapeadores.js';
 import { autorizar } from './porteiro.js';
@@ -7,7 +7,7 @@ import {
   loginGoogle, bootstrapAdmin, listarUsuarios, salvarUsuario, removerUsuario,
   solicitarVinculo, aprovarVinculo, rejeitarVinculo
 } from './usuarios.js';
-import { addPlayer, updatePlayer, removePlayer } from './jogadores.js';
+import { addPlayer, updatePlayer, removePlayer, restorePlayer } from './jogadores.js';
 import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
@@ -51,6 +51,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         const t = await repo.lerTudo();
         return {
           players: mapearJogadores(t.jogadores),
+          removidos: mapearJogadoresRemovidos(t.jogadores), // arquivados: a aba Jogadores lista pra reativar; o resto do app ignora
           rounds: mapearRodadas(t.rodadas, t.times_rodada, t.time_jogadores),
           settings: mapearConfig(t.config),
           checkins: mapearCheckins(t.checkins),
@@ -101,6 +102,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'addPlayer': return await addPlayer(deps, b.player);
           case 'updatePlayer': return await updatePlayer(deps, b.player);
           case 'removePlayer': return await removePlayer(deps, b.id);
+          case 'restorePlayer': return await restorePlayer(deps, b.id);
           case 'addRound': return await addRound(deps, b.round);
           case 'updateRound': return await updateRound(deps, b.round);
           case 'removeRound': return await removeRound(deps, b.id);

@@ -32,6 +32,25 @@ await ta('organizador cadastra, edita e o admin arquiva um jogador; o GET reflet
   assert.equal((await h.get()).players.some((p) => p.id === 'p7'), false);
 });
 
+await ta('jogador removido vai pra "removidos" (fora de players); organizador e admin reativam, jogador comum não', async () => {
+  const { h } = novo();
+  await h.post({ action: 'addPlayer', idToken: 'tok-b', player: { id: 'p7', nome: 'Diego', estrelas: 4, sexo: 'M', porte: 'G' } });
+  await h.post({ action: 'removePlayer', idToken: 'tok-a', id: 'p7' });
+  let g = await h.get();
+  assert.equal(g.players.some((p) => p.id === 'p7'), false);                     // fora da lista, check-in, ranking...
+  assert.deepEqual(g.removidos.map((p) => p.id), ['p7']);                        // ...mas guardado à parte
+  assert.equal(g.removidos[0].nome, 'Diego');
+  assert.deepEqual(await h.post({ action: 'restorePlayer', idToken: 'tok-c', id: 'p7' }), { error: 'Seu perfil (jogador) não tem permissão para esta ação.' });
+  assert.deepEqual(await h.post({ action: 'restorePlayer', id: 'p7' }), { error: 'Sem token de login. Entre com sua conta Google.' });
+  assert.deepEqual(await h.post({ action: 'restorePlayer', idToken: 'tok-b', id: 'p7' }), { status: 'ok' }); // organizador
+  g = await h.get();
+  assert.equal(g.players.some((p) => p.id === 'p7'), true);
+  assert.deepEqual(g.removidos, []);
+  assert.deepEqual(await h.post({ action: 'restorePlayer', idToken: 'tok-a', id: 'p7' }), { error: 'Jogador removido não encontrado (pode já ter sido reativado por outra pessoa).' });
+  await h.post({ action: 'removePlayer', idToken: 'tok-a', id: 'p7' });
+  assert.deepEqual(await h.post({ action: 'restorePlayer', idToken: 'tok-a', id: 'p7' }), { status: 'ok' }); // admin
+});
+
 await ta('rodadas: organizador salva e edita; só o admin remove', async () => {
   const { h } = novo();
   const rodada = { id: 'r9', data: '2026-09-30', rascunho: false, vencedores: [0], times: [{ nome: 'A', vitorias: 2, playerIds: ['p1'] }, { nome: 'B', vitorias: 1, playerIds: ['p2'] }] };

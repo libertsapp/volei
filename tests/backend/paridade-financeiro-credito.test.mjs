@@ -109,7 +109,7 @@ async function rodar(titulo, env, passos) {
         if (esperado === 'ok') assert.equal(esperadoGs.status, 'ok', 'era para dar ok: ' + JSON.stringify(esperadoGs.error));
         else if (esperado) assert.ok(String(esperadoGs.error).includes(esperado), 'erro esperado "' + esperado + '", veio ' + JSON.stringify(esperadoGs.error));
       }
-      assert.deepEqual(json(await env.novo.get()), env.gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
+      assert.deepEqual((({ removidos, ...r }) => r)(json(await env.novo.get())), env.gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
     });
   }
 }

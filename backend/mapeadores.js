@@ -29,6 +29,18 @@ export function mapearJogadores(jogadores) {
     }));
 }
 
+// jogadores ARQUIVADOS (removido = true), mesma forma de mapearJogadores. Convidado nunca entra: ele não tem cadastro pra reativar.
+// Ficam num campo à parte do GET (removidos) pra jamais vazarem pro check-in, buscas ou ranking, que só leem "players".
+export function mapearJogadoresRemovidos(jogadores) {
+  return jogadores
+    .filter((j) => !j.convidado && j.removido)
+    .slice().sort(porOrdem)
+    .map((j) => ({
+      id: texto(j.id), nome: texto(j.nome), apelido: texto(j.apelido), foto: texto(j.foto),
+      estrelas: numero(j.estrelas), sexo: texto(j.sexo), porte: texto(j.porte)
+    }));
+}
+
 export function mapearRodadas(rodadas, times, timeJogadores) {
   const jogadoresPorTime = new Map();
   for (const tj of timeJogadores.slice().sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0))) {

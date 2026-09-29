@@ -9,6 +9,7 @@ export const PERMISSOES = {
   addRound:         ['organizador', 'admin'],
   updateRound:      ['organizador', 'admin'],
   removePlayer:     ['admin'],
+  restorePlayer:    ['organizador', 'admin'], // só existe no backend novo: o .gs apaga a linha e não tem como restaurar
   removeRound:      ['admin'],
   saveSettings:       ['admin'],
   saveCheckinSettings: ['organizador', 'admin'],

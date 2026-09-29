@@ -23,6 +23,7 @@ const { criarAmbiente } = require('../helpers/planilha-falsa.js');
 await ta('paridade do GET: o backend novo devolve o mesmo JSON que o doGet do .gs real', async () => {
   const esperado = criarAmbiente(dbParaAbas(fixture), [caminhoGs]).get();
   const obtido = JSON.parse(JSON.stringify(await criarHandler({ repo: criarRepoMemoria(fixture) }).get()));
+  delete obtido.removidos; // campo novo (jogadores arquivados): o .gs apaga a linha e não tem equivalente
   assert.deepEqual(obtido, esperado);
 });
 

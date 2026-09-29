@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { ta, fim } from './executor.mjs';
 import { fixture } from './fixture.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
-import { addPlayer, updatePlayer, removePlayer } from '../../backend/jogadores.js';
+import { addPlayer, updatePlayer, removePlayer, restorePlayer } from '../../backend/jogadores.js';
 import { saveSettings } from '../../backend/configuracoes.js';
-import { mapearJogadores, mapearConfig } from '../../backend/mapeadores.js';
+import { mapearJogadores, mapearJogadoresRemovidos, mapearConfig } from '../../backend/mapeadores.js';
 
 const deps = () => ({ repo: criarRepoMemoria(fixture) });
 const ativos = async (d) => mapearJogadores(await d.repo.lerJogadores());
@@ -15,6 +15,23 @@ await ta('addPlayer: grava com os campos vazios como null e estrelas numérica; 
   const bruto = (await d.repo.lerJogadores()).find((j) => j.id === 'p5');
   assert.deepEqual({ apelido: bruto.apelido, foto: bruto.foto, estrelas: bruto.estrelas, sexo: bruto.sexo, porte: bruto.porte, convidado: bruto.convidado, removido: bruto.removido }, { apelido: null, foto: null, estrelas: 3.5, sexo: 'M', porte: 'G', convidado: false, removido: false });
   assert.deepEqual((await ativos(d)).map((p) => p.id), ['p1', 'p2', 'p5']);
+});
+
+await ta('restorePlayer: reativa só arquivado de verdade; convidado, ativo e inexistente dão erro; volta ao lugar de antes', async () => {
+  const d = deps();
+  const antes = (await ativos(d)).map((p) => p.id);
+  await removePlayer(d, 'p1');
+  assert.deepEqual((await ativos(d)).map((p) => p.id), antes.filter((id) => id !== 'p1'));
+  assert.deepEqual(await restorePlayer(d, 'p1'), { status: 'ok' });
+  assert.deepEqual((await ativos(d)).map((p) => p.id), antes);                       // mesma ordem de antes
+  const erro = { error: 'Jogador removido não encontrado (pode já ter sido reativado por outra pessoa).' };
+  assert.deepEqual(await restorePlayer(d, 'p1'), erro);                              // já ativo
+  assert.deepEqual(await restorePlayer(d, 'nao-existe'), erro);
+  assert.deepEqual(await restorePlayer(d, undefined), erro);
+  // convidado arquivado nunca reativa (não tem cadastro): fica de fora de removidos também
+  await d.repo.inserirJogador({ id: 'g1', nome: 'Visitante', convidado: true, removido: true });
+  assert.deepEqual(await restorePlayer(d, 'g1'), erro);
+  assert.deepEqual(mapearJogadoresRemovidos(await d.repo.lerJogadores()), []);
 });
 
 await ta('addPlayer: sem id ou com id repetido devolve erro', async () => {

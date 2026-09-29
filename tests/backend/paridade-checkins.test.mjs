@@ -102,7 +102,7 @@ for (const [i, [nome, corpo]] of passos.entries()) {
     const esperado = gs.post(corpo);
     const obtido = json(await novo.post(corpo));
     assert.deepEqual(obtido, esperado, 'resposta diferente');
-    assert.deepEqual(json(await novo.get()), gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
+    assert.deepEqual((({ removidos, ...r }) => r)(json(await novo.get())), gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
   });
 }
 

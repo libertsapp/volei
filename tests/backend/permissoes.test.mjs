@@ -28,7 +28,10 @@ if (!fs.existsSync(caminhoGs)) {
   t('matriz: idêntica à do .gs real (ações e perfis)', () => {
     const amb = criarAmbiente({}, [caminhoGs]);
     const doGs = JSON.parse(amb.rodar('JSON.stringify(Object.assign({}, PERMISSOES, PERMISSOES_FIN_))'));
-    assert.deepEqual(PERMISSOES, doGs);
+    // restorePlayer só existe no backend novo (o .gs apaga a linha do jogador e não tem como restaurar)
+    const { restorePlayer, ...resto } = PERMISSOES;
+    assert.deepEqual(resto, doGs);
+    assert.deepEqual(restorePlayer, ['organizador', 'admin']);
   });
 }
 

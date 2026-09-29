@@ -6,10 +6,11 @@ import { criarHandler } from '../../backend/handler.js';
 
 const handler = () => criarHandler({ repo: criarRepoMemoria(fixture) });
 
-await ta('get: devolve as 7 chaves do contrato', async () => {
+await ta('get: devolve as 8 chaves do contrato', async () => {
   const r = await handler().get();
-  assert.deepEqual(Object.keys(r).sort(), ['aoVivo', 'checkins', 'financeiro', 'perfisPublicos', 'players', 'rounds', 'settings']);
+  assert.deepEqual(Object.keys(r).sort(), ['aoVivo', 'checkins', 'financeiro', 'perfisPublicos', 'players', 'removidos', 'rounds', 'settings']);
   assert.equal(r.players.length, 2);
+  assert.deepEqual(r.removidos, []); // a fixture não tem ninguém arquivado
   assert.equal(r.rounds.length, 2);
   assert.equal(r.checkins.length, 3);
   assert.equal(r.settings.checkinVagas, 12);
