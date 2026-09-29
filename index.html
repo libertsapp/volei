@@ -308,6 +308,12 @@
   /* celular/tablet (toque sem hover): editar/excluir jogador saem do cartão e passam a ser por pressão longa
      (ver ligarPressaoLongaJogadores). No computador nada muda: os botões continuam no cartão e o aviso não aparece. */
   .player-list-aviso{display:none;color:var(--danger);font-size:11px;opacity:.85;margin:0 2px;}
+  .revisao-estrelas-box{background:var(--court-navy-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 14px;}
+  .revisao-estrelas-box summary{cursor:pointer;font-weight:600;}
+  .revisao-estrelas-explicacao{font-size:12px;color:var(--muted);margin:8px 0 12px;line-height:1.5;}
+  .revisao-estrelas-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);}
+  .revisao-estrelas-nota{color:var(--muted);font-weight:400;}
+  .revisao-estrelas-numeros{font-size:12px;color:var(--muted);}
   @media (hover:none) and (pointer:coarse){
     .player-list-aviso{display:block;}
     .player-list .icon-btn[data-edit], .player-list .icon-btn[data-remove]{display:none;}
@@ -1949,6 +1955,7 @@
           <button class="btn" id="add-player-btn">Adicionar</button>
         </div>
       </details>
+      <div id="revisao-estrelas"></div>
       <div class="player-list" id="player-list"></div>
     </section>
 
@@ -2603,7 +2610,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4739,6 +4746,36 @@ document.addEventListener('click', (e)=>{
   if(abrir) JOGADOR_CARD_ABERTOS.add(chave); else JOGADOR_CARD_ABERTOS.delete(chave);
 });
 
+// Lista, só pra quem edita jogador, de quem tem nota baixa (1-3 estrelas) mas desempenho recente
+// de time forte — sinal de nota desatualizada. Não muda nada sozinho: só linka pra edição existente.
+function renderRevisaoEstrelas(podeEditar){
+  const wrap = document.getElementById('revisao-estrelas');
+  if(!wrap) return;
+  if(!podeEditar){ wrap.innerHTML = ''; return; }
+  const jogadores = DATA.players
+    .filter(p=> !p.isGuest && !p.isGuestMarker)
+    .map(p=>{
+      const stats = computePlayerAllTimeStats(p.id);
+      return { id: p.id, nome: p.nome, estrelas: parseFloat(p.estrelas) || 0, jogos: stats.jogos, rounds: stats.rounds };
+    });
+  const discrepantes = computeRevisaoEstrelas(jogadores);
+  if(discrepantes.length === 0){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <details class="revisao-estrelas-box" open>
+      <summary>⭐ Revisão de estrelas (${discrepantes.length})</summary>
+      <p class="revisao-estrelas-explicacao">Estes jogadores têm nota baixa (1-3 estrelas) mas Vit./partida recente igual ou acima da média de quem tem 4-5 estrelas — pode ser hora de reavaliar a nota.</p>
+      ${discrepantes.map(j=> `
+        <div class="revisao-estrelas-item">
+          <span class="revisao-estrelas-nome">${escapeHtml(j.nome)} <span class="revisao-estrelas-nota">(${j.estrelas}★)</span></span>
+          <span class="revisao-estrelas-numeros">${j.vitPartida.toFixed(1)} vit./partida — referência (4-5★): ${j.mediaReferencia.toFixed(1)}</span>
+          <button class="btn secondary" data-revisar="${j.id}">Editar jogador</button>
+        </div>`).join('')}
+    </details>`;
+  wrap.querySelectorAll('[data-revisar]').forEach(btn=>{
+    btn.addEventListener('click', ()=> editarJogadorNaLista(btn.dataset.revisar));
+  });
+}
+
 function renderPlayers(){
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
@@ -4751,6 +4788,7 @@ function renderPlayers(){
   const agora = Date.now();
   const podeEditar = temPermissao('updatePlayer');
   const podeRemover = temPermissao('removePlayer');
+  renderRevisaoEstrelas(podeEditar);
   // só aparece em celular/tablet (CSS) e só pra quem tem permissão de editar ou remover
   const avisoHtml = (podeEditar || podeRemover)
     ? `<div class="player-list-aviso">Segure o dedo no card por 2 segundos para editar ou excluir.</div>`
@@ -4968,6 +5006,34 @@ function computeAproveitamentoSeries(stats){
     return { data: r.data, pct: Math.round((vitorias / recorte.length) * 100) };
   });
 }
+
+// <estrelas-revisao-pura>
+// Média de vitórias por partida nas últimas "janela" rodadas (rounds vem do mais recente pro
+// mais antigo, mesmo formato de computePlayerAllTimeStats) — ignora o histórico antigo de propósito,
+// pra refletir a fase atual do jogador, não a carreira toda.
+function vitPartidaRecente(rounds, janela){
+  const recorte = rounds.slice(0, janela);
+  if(recorte.length === 0) return 0;
+  const total = recorte.reduce((soma, r)=> soma + (r.vitorias||0), 0);
+  return total / recorte.length;
+}
+
+// Acha jogadores de nota baixa (1-3 estrelas) cuja Vit./partida recente já iguala ou supera a
+// média dos jogadores de referência (4-5 estrelas) — sinal de que a nota ficou desatualizada.
+// Exige amostra mínima nos dois lados pra não reagir a sorte de poucas partidas.
+function computeRevisaoEstrelas(jogadores, opcoes){
+  const minPartidas = (opcoes && opcoes.minPartidas) || 10;
+  const janela = (opcoes && opcoes.janela) || 12;
+  const referencia = jogadores.filter(j=> j.estrelas >= 4 && j.jogos >= minPartidas);
+  if(referencia.length === 0) return [];
+  const mediaReferencia = referencia.reduce((soma, j)=> soma + vitPartidaRecente(j.rounds, janela), 0) / referencia.length;
+  return jogadores
+    .filter(j=> j.estrelas >= 1 && j.estrelas <= 3 && j.jogos >= minPartidas)
+    .map(j=> ({ id: j.id, nome: j.nome, estrelas: j.estrelas, vitPartida: vitPartidaRecente(j.rounds, janela), mediaReferencia }))
+    .filter(j=> j.vitPartida >= mediaReferencia)
+    .sort((a,b)=> (b.vitPartida - b.mediaReferencia) - (a.vitPartida - a.mediaReferencia));
+}
+// </estrelas-revisao-pura>
 
 // <radar-puro>
 const RADAR_EIXOS = ['Aproveitamento', 'Fase atual', 'Títulos', 'Vitórias', 'Presença', 'Sequência'];
