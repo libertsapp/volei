@@ -59,10 +59,16 @@ for (const perfil of ['admin', 'organizador']) {
 c = cenario({ perfil: 'jogador' });
 c.renderJogadoresRemovidos();
 assert.equal(c.els['removidos-sec'].style.display, 'none');
-// sem removidos com jogos: escondida também
+// sem removidos com jogos: continua visível pra quem pode, com título (0) e o aviso
 c = cenario(); c.DATA.removidos = [{ id: 'd', nome: 'Duda' }];
 c.renderJogadoresRemovidos();
-assert.equal(c.els['removidos-sec'].style.display, 'none');
+assert.equal(c.els['removidos-sec'].style.display, '');
+assert.equal(c.els['removidos-titulo'].textContent, 'Jogadores removidos (0)');
+assert.match(c.els['removidos-lista'].innerHTML, /Nenhum jogador removido com partidas/);
+// sem o campo (backend ainda não reimplantado): visível e vazia, sem quebrar
+c = cenario(); delete c.DATA.removidos;
+c.renderJogadoresRemovidos();
+assert.equal(c.els['removidos-titulo'].textContent, 'Jogadores removidos (0)');
 
 // reativar: sai de removidos, entra em players, manda a ação certa
 (async () => {

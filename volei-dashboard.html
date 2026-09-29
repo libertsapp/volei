@@ -1955,7 +1955,7 @@
         </div>
       </details>
       <div class="player-list" id="player-list"></div>
-      <!-- jogadores removidos que têm jogos: começa fechado e só aparece pra quem pode reativar (renderJogadoresRemovidos) -->
+      <!-- jogadores removidos que têm jogos: começa fechado; visível (mesmo vazio) só pra quem pode reativar (renderJogadoresRemovidos) -->
       <details class="dash-accordion" id="removidos-sec" style="display:none;margin-top:14px;">
         <summary id="removidos-titulo">Jogadores removidos</summary>
         <div>
@@ -2616,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4753,7 +4753,8 @@ document.addEventListener('click', (e)=>{
   if(abrir) JOGADOR_CARD_ABERTOS.add(chave); else JOGADOR_CARD_ABERTOS.delete(chave);
 });
 
-// Removidos COM jogos (rodada oficial), pra reativar. Só aparece pra quem pode (organizador/admin) e some se não há nenhum.
+// Removidos COM jogos (rodada oficial), pra reativar. Só aparece pra quem pode (organizador/admin); fica sempre visível,
+// mesmo vazio (com um aviso), pra quem pode reativar saber que o recurso existe e onde fica.
 // O <details> é fixo no HTML (só o miolo é repintado) pra não fechar sozinho a cada re-render da aba.
 function jogadoresRemovidosComJogos(){
   const jogos = {};
@@ -4763,10 +4764,12 @@ function jogadoresRemovidosComJogos(){
 function renderJogadoresRemovidos(){
   const sec = document.getElementById('removidos-sec');
   const lista = jogadoresRemovidosComJogos();
-  if(!temPermissao('restorePlayer') || lista.length === 0){ sec.style.display = 'none'; return; }
+  if(!temPermissao('restorePlayer')){ sec.style.display = 'none'; return; }
   sec.style.display = '';
   document.getElementById('removidos-titulo').textContent = `Jogadores removidos (${lista.length})`;
-  document.getElementById('removidos-lista').innerHTML = lista.map(({jogador:p, jogos})=>`
+  document.getElementById('removidos-lista').innerHTML = lista.length === 0
+    ? '<div class="removido-jogos">Nenhum jogador removido com partidas.</div>'
+    : lista.map(({jogador:p, jogos})=>`
     <div class="removido-linha">
       ${avatarHtml(p, 'sm')}
       <div class="removido-info">
