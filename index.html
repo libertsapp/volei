@@ -305,6 +305,11 @@
   button.btn:disabled{opacity:0.4;cursor:not-allowed;}
 
   .player-list{display:flex;flex-direction:column;gap:8px;}
+  .removidos-aviso{color:var(--muted);font-size:12px;margin:0 0 10px;}
+  .removido-linha{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+  .removido-linha .removido-info{flex:1;min-width:0;}
+  .removido-linha .removido-nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .removido-linha .removido-jogos{color:var(--muted);font-size:12px;}
   /* celular/tablet (toque sem hover): editar/excluir jogador saem do cartão e passam a ser por pressão longa
      (ver ligarPressaoLongaJogadores). No computador nada muda: os botões continuam no cartão e o aviso não aparece. */
   .player-list-aviso{display:none;color:var(--danger);font-size:11px;opacity:.85;margin:0 2px;}
@@ -1950,6 +1955,14 @@
         </div>
       </details>
       <div class="player-list" id="player-list"></div>
+      <!-- jogadores removidos que têm jogos: começa fechado e só aparece pra quem pode reativar (renderJogadoresRemovidos) -->
+      <details class="dash-accordion" id="removidos-sec" style="display:none;margin-top:14px;">
+        <summary id="removidos-titulo">Jogadores removidos</summary>
+        <div>
+          <p class="removidos-aviso">Não aparecem no check-in, no sorteio, nas buscas nem no ranking. Reativar traz o jogador de volta.</p>
+          <div id="removidos-lista"></div>
+        </div>
+      </details>
     </section>
 
     <section id="view-rodada">
@@ -2603,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2616,7 +2629,7 @@
 <div id="toast-container" class="toast-container"></div>
 
 <script>
-let DATA = { players: [], rounds: [], aoVivo: { rounds: [], log: [] } };
+let DATA = { players: [], removidos: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
 // Controle Financeiro: espelho do que o backend devolve em "financeiro" (formato no plano). Nunca é editado à mão:
@@ -2648,6 +2661,7 @@ const PERMISSOES_UI = {
   salvarParcialAoVivo:       ['organizador','admin'],
   cancelarTransmissaoAoVivo: ['organizador','admin'],
   removePlayer:       ['admin'],
+  restorePlayer:      ['organizador','admin'], // reativar jogador removido (a aba Jogadores lista os removidos com jogos)
   removeRound:        ['admin'],
   saveSettings:        ['admin'], // visibilidade das estrelas pro público (config global)
   saveCheckinSettings: ['organizador','admin'], // travar/abrir/fechar check-in
@@ -2995,7 +3009,7 @@ async function loadData(){
       document.getElementById('config-warning').style.display = 'block';
       document.getElementById('config-warning').innerHTML = '⚠️ O Apps Script respondeu com um erro: <strong>' + json.error + '</strong>';
     }
-    DATA = { players: json.players || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
+    DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
     if(json.settings) SETTINGS = json.settings;
     PERFIS_PUBLICOS = json.perfisPublicos || [];
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
@@ -4739,7 +4753,50 @@ document.addEventListener('click', (e)=>{
   if(abrir) JOGADOR_CARD_ABERTOS.add(chave); else JOGADOR_CARD_ABERTOS.delete(chave);
 });
 
+// Removidos COM jogos (rodada oficial), pra reativar. Só aparece pra quem pode (organizador/admin) e some se não há nenhum.
+// O <details> é fixo no HTML (só o miolo é repintado) pra não fechar sozinho a cada re-render da aba.
+function jogadoresRemovidosComJogos(){
+  const jogos = {};
+  roundsOficiais().forEach(r=> r.times.forEach(t=> (t.playerIds||[]).forEach(id=>{ jogos[id] = (jogos[id]||0) + 1; })));
+  return sortByName((DATA.removidos||[]).filter(p=> jogos[p.id] > 0)).map(p=> ({ jogador: p, jogos: jogos[p.id] }));
+}
+function renderJogadoresRemovidos(){
+  const sec = document.getElementById('removidos-sec');
+  const lista = jogadoresRemovidosComJogos();
+  if(!temPermissao('restorePlayer') || lista.length === 0){ sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  document.getElementById('removidos-titulo').textContent = `Jogadores removidos (${lista.length})`;
+  document.getElementById('removidos-lista').innerHTML = lista.map(({jogador:p, jogos})=>`
+    <div class="removido-linha">
+      ${avatarHtml(p, 'sm')}
+      <div class="removido-info">
+        <div class="removido-nome">${nomeComApelidoHtml(p)}</div>
+        <div class="removido-jogos">${jogos} partida${jogos===1?'':'s'}</div>
+      </div>
+      <button class="btn secondary" data-restaurar="${escapeHtml(p.id)}">Reativar</button>
+    </div>`).join('');
+  document.querySelectorAll('#removidos-lista [data-restaurar]').forEach(btn=>{
+    btn.addEventListener('click', ()=> reativarJogadorRemovido(btn.dataset.restaurar));
+  });
+}
+async function reativarJogadorRemovido(id){
+  const p = (DATA.removidos||[]).find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`Reativar ${p.apelido || p.nome}? Ele volta para a lista, o check-in e o ranking.`)) return;
+  const cred = await requireAuth('restorePlayer');
+  if(!cred) return;
+  DATA.removidos = DATA.removidos.filter(x=>x.id!==id);
+  DATA.players.push(p);
+  const ok = await postAction('restorePlayer', {id}, cred);
+  if(!ok){ // desfaz se não salvou
+    DATA.players = DATA.players.filter(x=>x.id!==id);
+    DATA.removidos.push(p);
+  }
+  renderPlayers();
+}
+
 function renderPlayers(){
+  renderJogadoresRemovidos();
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador cadastrado ainda. Adicione o primeiro acima.</div>';
@@ -4802,8 +4859,12 @@ async function removerJogadorDaLista(id){
   if(!cred) return;
   const removed = DATA.players.find(p=>p.id===id);
   DATA.players = DATA.players.filter(p=>p.id!==id);
+  if(removed) DATA.removidos = (DATA.removidos||[]).concat(removed); // já entra na seção "removidos" (se tiver jogos)
   const ok = await postAction('removePlayer', {id}, cred);
-  if(!ok && removed){ DATA.players.push(removed); } // desfaz se não salvou
+  if(!ok && removed){ // desfaz se não salvou
+    DATA.players.push(removed);
+    DATA.removidos = DATA.removidos.filter(x=>x.id!==id);
+  }
   renderPlayers();
 }
 
