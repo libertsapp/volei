@@ -3,7 +3,8 @@
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const html = fs.readFileSync(path.join(__dirname, '..', 'volei-dashboard.html'), 'utf8').replace(/\r/g, '');
+// HTML_ARQUIVO=<caminho> roda contra outra página (ex.: o index.html do Meme)
+const html = fs.readFileSync(process.env.HTML_ARQUIVO || path.join(__dirname, '..', 'volei-dashboard.html'), 'utf8').replace(/\r/g, '');
 const ini = html.indexOf('// Removidos COM jogos');
 const fim = html.indexOf('function renderPlayers(){');
 assert.ok(ini > -1 && fim > ini, 'bloco dos removidos não encontrado');
