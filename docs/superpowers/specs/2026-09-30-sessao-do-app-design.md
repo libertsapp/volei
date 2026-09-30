@@ -67,7 +67,9 @@ Arquivos: `sql/schema-terca-supabase-ajuste-8.sql` (schema `public`) e o equival
 - **`removerUsuario`:** também apaga as sessões do e-mail removido.
 - **Mensagem de sessão inválida/vencida:** `'Sua sessão expirou. Entre com o Google de novo.'` (o app reconhece por
   "sessão expirou").
-- Permissões: as ações novas entram na matriz como públicas para quem tem sessão (`jogador`, `organizador`, `admin`).
+- Permissões: as ações novas ficam **fora da matriz** (tratadas antes do porteiro, como o check-in): exigem uma sessão
+  válida e só agem sobre a conta dona dela; a chave mestra não vale para elas (não identifica uma pessoa). Assim a
+  matriz continua idêntica à do `.gs`.
 
 ### Front (`volei-dashboard.html`; Meme só depois de autorizado)
 
