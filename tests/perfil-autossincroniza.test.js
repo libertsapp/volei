@@ -5,6 +5,8 @@
 // — só se autocorrigia se um admin resalvasse aquela conta na tela Usuários (o único lugar que resincronizava).
 // sincronizarContaComServidor() fecha essa lacuna: reconfere no servidor usando o token já em mãos, sem pedir
 // login do Google de novo e SEM nunca abrir os popups do primeiro login (convite de vínculo, oferta de bootstrap).
+// v14.0: a função mora no bloco <sessao-front> (sessão do app). Com sessão ela usa a ação minhaConta; sem sessão, só
+// quem ainda tem o token do Google VÁLIDO troca por uma sessão via loginGoogle. As garantias abaixo valem nos dois.
 // Extrai o código direto do HTML, então testa exatamente o que vai pro ar.
 // Rodar: node tests/perfil-autossincroniza.test.js   (HTML_ARQUIVO=<caminho> roda contra outro HTML, ex. o Meme)
 const assert = require('node:assert/strict');
@@ -23,7 +25,7 @@ function pegar(inicio, fim){
   assert.ok(f > i, 'não encontrei o fim de: ' + inicio);
   return html.slice(i, f + fim.length);
 }
-const codigo = pegar('async function sincronizarContaComServidor(', '\n}\n');
+const codigo = pegar('// <sessao-front>', '// </sessao-front>');
 
 let falhas = 0;
 async function t(nome, fn){
@@ -33,10 +35,11 @@ async function t(nome, fn){
 
 // monta a função com espiões no lugar de tudo que ela toca (AUTH, fetch, os re-render, e os popups que NUNCA
 // podem ser chamados por essa função — só existem no escopo pra provar que não são referenciados)
-function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogadorId = 'velho-id', jogadorIdPendente = '', sheetReady = true, resposta, erroFetch }){
+function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogadorId = 'velho-id', jogadorIdPendente = '', sheetReady = true, resposta, erroFetch,
+  sessao = '', exp = Math.floor(Date.now() / 1000) + 1800 }){
   const chamadas = { fetch: [], salvarSessaoAuth: 0, atualizarStatusAuth: 0, aplicarPermissoesUI: 0, renderAll: 0,
-    perguntarVinculoJogador: 0, pedirBootstrapAdmin: 0, consoleError: 0 };
-  const AUTH = { logado, idToken, perfil, jogadorId, jogadorIdPendente, nome: 'Fulano', exp: 0 };
+    perguntarVinculoJogador: 0, pedirBootstrapAdmin: 0, consoleError: 0, sairDaConta: 0 };
+  const AUTH = { logado, idToken, perfil, jogadorId, jogadorIdPendente, nome: 'Fulano', exp, sessao };
   const fabrica = new Function('ctx', `
     const { AUTH, chamadas, sheetReady, SHEET_API_URL } = ctx;
     const salvarSessaoAuth = () => { chamadas.salvarSessaoAuth++; };
@@ -45,6 +48,9 @@ function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogado
     const renderAll = () => { chamadas.renderAll++; };
     const perguntarVinculoJogador = () => { chamadas.perguntarVinculoJogador++; };
     const pedirBootstrapAdmin = () => { chamadas.pedirBootstrapAdmin++; };
+    const sairDaConta = () => { chamadas.sairDaConta++; };
+    const mostrarToast = () => {};
+    const garantirTokenFresco = async () => null;
     const fetch = async (url, opts) => { chamadas.fetch.push({ url, body: JSON.parse(opts.body) }); ${erroFetch ? 'throw new Error("rede fora do ar");' : 'return { json: async () => (ctx.resposta) };'} };
     const console = { error: () => { chamadas.consoleError++; } };
     ${codigo}
@@ -98,6 +104,8 @@ function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogado
   await t('token vencido (erro do servidor): não mexe em AUTH nem re-renderiza (tenta de novo na próxima renovação)', async () => {
     const m = montar({ jogadorId: 'velho-id', resposta: { error: 'Login do Google expirado.' } });
     await m.fn();
+    assert.equal(m.chamadas.fetch.length, 1); // chegou a perguntar ao servidor
+    assert.equal(m.chamadas.sairDaConta, 0);  // erro do Google não desloga
     assert.equal(m.AUTH.jogadorId, 'velho-id');
     assert.equal(m.chamadas.salvarSessaoAuth, 0);
     assert.equal(m.chamadas.renderAll, 0);
@@ -115,6 +123,21 @@ function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogado
       resposta: { status: 'ok', perfil: 'jogador', jogadorId: '', jogadorIdPendente: '', totalUsuarios: 1, sugestao: { id: 'x', nome: 'X' } }
     });
     await m.fn();
+    assert.equal(m.chamadas.fetch.length, 1); // a resposta do servidor foi processada (o teste não passa "por não chamar")
+    assert.equal(m.chamadas.perguntarVinculoJogador, 0);
+    assert.equal(m.chamadas.pedirBootstrapAdmin, 0);
+  });
+
+  await t('com sessão do app (v14.0): usa minhaConta, aplica o vínculo novo e também nunca abre popup', async () => {
+    const m = montar({
+      sessao: 'S1', idToken: '', jogadorId: 'velho-id', perfil: 'jogador',
+      resposta: { status: 'ok', perfil: 'admin', jogadorId: 'novo-id', jogadorIdPendente: '', nome: 'X', totalUsuarios: 1, sugestao: { id: 'x', nome: 'X' } }
+    });
+    await m.fn();
+    assert.equal(m.chamadas.fetch[0].body.action, 'minhaConta');
+    assert.equal(m.chamadas.fetch[0].body.sessao, 'S1');
+    assert.equal(m.AUTH.jogadorId, 'novo-id');
+    assert.equal(m.chamadas.renderAll, 1);
     assert.equal(m.chamadas.perguntarVinculoJogador, 0);
     assert.equal(m.chamadas.pedirBootstrapAdmin, 0);
   });

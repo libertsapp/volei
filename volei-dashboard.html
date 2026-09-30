@@ -2638,12 +2638,13 @@ let FINANCEIRO = finNormalizar(null);
 let CHECKINS = [];
 let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a uma conta (qualquer perfil), sem e-mail (ver perfisPublicos_ no .gs)
 
-/* Quem está logado com conta Google agora. O idToken é o que prova a identidade pro
-   Apps Script — ele vive ~1h e é renovado em segundo plano (ver garantirTokenFresco).
+/* Quem está logado. Desde a v14.0 a prova de identidade é AUTH.sessao (sessão do app, 90 dias renovando a cada
+   uso); o idToken do Google só é usado no login e por quem ainda não tem sessão (ver credencialLogada).
    'logado' falso = visitante anônimo, que continua vendo tudo e fazendo check-in. */
 let AUTH = {
   idToken: '', exp: 0, email: '', nome: '', foto: '',
   perfil: '', jogadorId: '', jogadorIdPendente: '', logado: false,
+  sessao: '', sessaoExpiraEm: '',
   aoRenovar: null // callback temporário usado pela renovação silenciosa do token
 };
 
@@ -3161,6 +3162,8 @@ async function loginComGoogle(idToken){
     AUTH.jogadorId = json.jogadorId || '';
     AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
     AUTH.nome = json.nome || AUTH.nome;
+    AUTH.sessao = json.sessao || '';                 // a partir daqui a identidade é a sessão do app (90 dias)
+    AUTH.sessaoExpiraEm = json.sessaoExpiraEm || '';
     salvarSessaoAuth();
     atualizarStatusAuth();
     aplicarPermissoesUI();
@@ -3183,46 +3186,66 @@ async function loginComGoogle(idToken){
   }
 }
 
-/* Bug real (2026-09): AUTH.jogadorId é gravado no localStorage no primeiro login e NUNCA mais era reconferido
-   com o servidor — a renovação silenciosa do token só atualizava idToken/exp. Se o vínculo da conta mudasse
-   depois do primeiro login naquele aparelho, "Meu Perfil" ficava mostrando "jogador não encontrado" pra
-   sempre, mesmo com o servidor certo, só se autocorrigindo se um admin resalvasse a conta na tela Usuários.
-   Reconfere com o token já em mãos (sem pedir Google de novo) e NUNCA abre os popups do primeiro login
-   (convite de vínculo, oferta de bootstrap) — só sincroniza os campos, em silêncio. */
+// <sessao-front>
+/* Sessão do app (spec 2026-09-30): o Google só entra no LOGIN; depois toda gravação manda AUTH.sessao, que o servidor
+   confere no banco e renova sozinho (90 dias a cada uso). Só quem ainda não tem sessão (app antigo, login de antes da
+   v14.0) continua no caminho velho do token do Google. */
+function sessaoExpirou(msg){ return String(msg || '').toLowerCase().includes('sessão expirou'); }
+function tratarSessaoExpirada(){
+  sairDaConta(true);
+  mostrarToast('Sua sessão expirou. Toque em "Entrar com Google" pra continuar.', 'erro');
+}
+async function credencialLogada(){
+  if(!AUTH.logado) return null;
+  if(AUTH.sessao) return { sessao: AUTH.sessao, idToken: '', senha: '' };
+  const token = await garantirTokenFresco();
+  return token ? { sessao: '', idToken: token, senha: '' } : null;
+}
+function aplicarDadosDaConta(json){
+  const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
+  AUTH.perfil = json.perfil || 'jogador';
+  AUTH.jogadorId = json.jogadorId || '';
+  AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
+  AUTH.nome = json.nome || AUTH.nome;
+  if(json.sessao) AUTH.sessao = json.sessao;
+  if(json.sessaoExpiraEm) AUTH.sessaoExpiraEm = json.sessaoExpiraEm;
+  salvarSessaoAuth();
+  if(mudou){ atualizarStatusAuth(); aplicarPermissoesUI(); renderAll(); }
+}
+/* Reconfere a conta com o servidor ao abrir o app (perfil/vínculo podem ter mudado em outro aparelho — bug real de
+   2026-09: o vínculo gravado no aparelho nunca era reconferido). Com sessão: ação minhaConta. Sem sessão mas com token
+   do Google ainda válido: loginGoogle, que devolve uma sessão (migração silenciosa de quem logou antes da v14.0).
+   Nunca abre popup (convite de vínculo, oferta de bootstrap: só no primeiro login de verdade); só sai da conta se o
+   SERVIDOR disser que a sessão expirou — falha de rede ou do banco mantém a pessoa logada. */
 async function sincronizarContaComServidor(){
-  if(!AUTH.logado || !AUTH.idToken || !sheetReady) return;
+  if(!AUTH.logado || !sheetReady) return;
+  let corpo;
+  if(AUTH.sessao) corpo = { action:'minhaConta', sessao: AUTH.sessao };
+  else if(AUTH.idToken && AUTH.exp && (AUTH.exp * 1000 - Date.now()) > 120000) corpo = { action:'loginGoogle', idToken: AUTH.idToken };
+  else return;
   try{
-    const res = await fetch(SHEET_API_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'loginGoogle', idToken: AUTH.idToken })
-    });
+    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
     const json = await res.json();
-    if(!json || json.error) return; // token vencido ou erro do servidor: silencioso, tenta de novo na próxima renovação
-    const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
-    AUTH.perfil = json.perfil || 'jogador';
-    AUTH.jogadorId = json.jogadorId || '';
-    AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
-    AUTH.nome = json.nome || AUTH.nome;
-    salvarSessaoAuth();
-    if(mudou){
-      atualizarStatusAuth();
-      aplicarPermissoesUI();
-      renderAll();
+    if(json && json.error){
+      if(AUTH.sessao && sessaoExpirou(json.error)) tratarSessaoExpirada();
+      return;
     }
+    if(json) aplicarDadosDaConta(json);
   }catch(e){
-    console.error('Falha ao sincronizar a conta com o servidor (silencioso; tenta de novo mais tarde)', e);
+    console.error('Falha ao sincronizar a conta (silencioso; tenta de novo ao reabrir)', e);
   }
 }
+// </sessao-front>
 
 /* A sessão mora no localStorage (sobrevive a fechar a aba/app — só sai quando a
    pessoa clica em "sair" de propósito). Diferente da senha de admin, que continua
    no sessionStorage por ser uma chave mestra de emergência.
-   O backend não guarda sessão nenhuma: cada requisição revalida o token. */
+   O backend guarda só o hash da sessão do app (tabela sessoes) e a confere a cada requisição. */
 function salvarSessaoAuth(){
   localStorage.setItem('volei-auth-v1', JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
-    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente
+    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente,
+    sessao: AUTH.sessao, sessaoExpiraEm: AUTH.sessaoExpiraEm
   }));
 }
 function restaurarSessaoAuth(){
@@ -3230,7 +3253,7 @@ function restaurarSessaoAuth(){
     const raw = localStorage.getItem('volei-auth-v1');
     if(!raw) return;
     const s = JSON.parse(raw);
-    if(!s || !s.idToken) return;
+    if(!s || (!s.idToken && !s.sessao)) return; // desde a v14.0 pode haver só a sessão do app, sem token do Google
     Object.assign(AUTH, s, { logado:true, aoRenovar:null });
     // token vencido enquanto o app estava fechado: mantém nome/perfil na tela e deixa
     // a renovação silenciosa do Google resolver quando a pessoa for salvar algo
@@ -3240,7 +3263,11 @@ function restaurarSessaoAuth(){
   }
 }
 function sairDaConta(silencioso){
-  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', logado:false, aoRenovar:null };
+  // avisa o servidor pra apagar esta sessão (melhor esforço: sem internet, o aparelho sai mesmo assim)
+  if(AUTH.sessao && sheetReady){
+    fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
+  }
+  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' };
   localStorage.removeItem('volei-auth-v1');
   if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
@@ -3299,14 +3326,14 @@ async function garantirTokenFresco(){
 // celular) — na maioria das vezes já resolve em silêncio antes da pessoa clicar em qualquer coisa, em vez de
 // só descobrir que o token venceu na hora de uma ação de admin
 function tentarRenovarSeNecessario(){
-  if(AUTH.logado && tokenExpirado(300)) renovarTokenGoogle();
+  if(AUTH.logado && !AUTH.sessao && tokenExpirado(300)) renovarTokenGoogle(); // com sessão do app não precisa do Google
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') tentarRenovarSeNecessario(); });
 window.addEventListener('focus', tentarRenovarSeNecessario);
 
 // renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
 // a aba aberta a tarde inteira não travar na hora de salvar a rodada
-setInterval(()=>{ if(AUTH.logado && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
+setInterval(()=>{ if(AUTH.logado && !AUTH.sessao && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
 
 /* Primeiro admin: a aba Usuarios começa vazia, então quem logar com Google E souber
    a chave mestra vira admin. Depois disso esse convite não aparece mais. */
@@ -3398,14 +3425,15 @@ function perguntarVinculoJogador(sugestao){
 // a lista de e-mails NÃO vem no doGet público de propósito — ela é buscada por POST
 // autenticado, senão qualquer visitante leria os e-mails de todo mundo
 // 'silencioso' = chamada automática (ex.: aviso de pendentes ao abrir a página), não um clique da pessoa.
-// Nesse modo NUNCA abre pop-up nem desloga: só usa a chave mestra em cache ou um token ainda válido e, se
+// Nesse modo NUNCA abre pop-up nem desloga: só usa a chave mestra em cache, a sessão do app ou um token ainda válido e, se
 // não tiver nenhum dos dois, desiste em silêncio (o aviso só atualiza quando a pessoa fizer algo ou abrir
 // "Gerenciar usuários"). Sem isso, um token vencido no F5 fazia aparecer a tela da chave mestra do nada.
 async function carregarUsuarios(silencioso){
   let cred;
   if(silencioso){
     const senha = getCachedPassword();
-    if(senha) cred = { idToken: AUTH.idToken || '', senha: senha };
+    if(senha) cred = { idToken: AUTH.idToken || '', senha: senha, sessao: AUTH.sessao || '' };
+    else if(AUTH.logado && AUTH.sessao) cred = { sessao: AUTH.sessao, idToken: '', senha: '' };
     else if(AUTH.logado && !tokenExpirado(120)) cred = { idToken: AUTH.idToken, senha: '' };
     else return null;
   } else {
@@ -3416,7 +3444,7 @@ async function carregarUsuarios(silencioso){
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'listarUsuarios', senha: cred.senha || '', idToken: cred.idToken || '' })
+      body: JSON.stringify({ action:'listarUsuarios', senha: cred.senha || '', idToken: cred.idToken || '', sessao: cred.sessao || '' })
     });
     const json = await res.json();
     if(json && json.error){ alert('Não foi possível carregar os usuários: ' + json.error); return null; }
@@ -4012,12 +4040,12 @@ function temPermissao(acao){
 async function requireAuth(acao, proprioJogadorId){
   if(AUTH.logado && (podePerfil(acao, AUTH.perfil)
       || (acao === 'updatePlayer' && proprioJogadorId && String(AUTH.jogadorId) === String(proprioJogadorId)))){
-    const token = await garantirTokenFresco();
-    if(token) return { idToken: token, senha: '' };
+    const cred = await credencialLogada(); // sessão do app; sem ela, o token do Google (app de antes da v14.0)
+    if(cred) return cred;
   }
 
   const cacheada = getCachedPassword();
-  if(cacheada) return { idToken: AUTH.idToken || '', senha: cacheada };
+  if(cacheada) return { idToken: AUTH.idToken || '', senha: cacheada, sessao: AUTH.sessao || '' };
 
   if(AUTH.logado && !podePerfil(acao, AUTH.perfil)){
     if(!confirm('Seu perfil (' + (AUTH.perfil || 'jogador') + ') não tem permissão pra isso.\n\nSe você tem a chave mestra do administrador, pode usá-la agora. Quer digitar?')) return null;
@@ -4025,7 +4053,7 @@ async function requireAuth(acao, proprioJogadorId){
 
   const digitada = await pedirSenhaModal();
   if(!digitada) return null;
-  if(!sheetReady){ setCachedPassword(digitada); updateAdminStatusBtn(); return { idToken:'', senha: digitada }; }
+  if(!sheetReady){ setCachedPassword(digitada); updateAdminStatusBtn(); return { idToken:'', senha: digitada, sessao: AUTH.sessao || '' }; }
   try{
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
@@ -4044,7 +4072,7 @@ async function requireAuth(acao, proprioJogadorId){
   }
   setCachedPassword(digitada);
   updateAdminStatusBtn();
-  return { idToken: AUTH.idToken || '', senha: digitada };
+  return { idToken: AUTH.idToken || '', senha: digitada, sessao: AUTH.sessao || '' };
 }
 
 /* ---------- feedback visual de salvamento — substitui o alert()/confirm() cinza do
@@ -4187,6 +4215,7 @@ async function postAction(action, payload, cred){
         action,
         senha: (cred && cred.senha) || '',
         idToken: (cred && cred.idToken) || '',
+        sessao: (cred && cred.sessao) || '',
         ...payload
       })
     });
@@ -4197,6 +4226,8 @@ async function postAction(action, payload, cred){
         clearCachedPassword();
         updateAdminStatusBtn();
         mostrarToast('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.', 'erro');
+      } else if(sessaoExpirou(json.error)){
+        tratarSessaoExpirada(); // o servidor não reconhece mais a sessão: sai e mostra o botão "Entrar com Google"
       } else if(erro.includes('login do google')){
         AUTH.idToken = ''; AUTH.exp = 0;
         salvarSessaoAuth();
@@ -4549,7 +4580,7 @@ async function uploadPhoto(file, cred, fileIdAntigo){
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '' })
+      body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '', sessao: (cred && cred.sessao) || '' })
     });
     const json = await res.json();
     if(json.error){ throw new Error(json.error); }
@@ -7165,8 +7196,8 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   if(!SETTINGS.checkinDataAberta){ alert('O check-in está fechado no momento.'); return; }
   if(SETTINGS.checkinTravado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
   if(!exigirLoginParaCheckin()) return;
-  const token = await garantirTokenFresco();
-  if(!token) return;
+  const cred = await credencialLogada();
+  if(!cred) return;
   const nameInput = document.getElementById('checkin-guest-name');
   const genderSelect = document.getElementById('checkin-guest-gender');
   const starsEl = document.getElementById('checkin-guest-stars');
@@ -7186,7 +7217,7 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
   const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo };
   CHECKINS.push(novoCheckin);
-  await postAction('addCheckin', {checkin: novoCheckin}, {idToken: token, senha:''});
+  await postAction('addCheckin', {checkin: novoCheckin}, cred);
 
   renderCheckinList();
 });
@@ -7781,17 +7812,17 @@ function renderCheckinList(){
       const pid = btn.dataset.checkinBtn;
       const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid);
       if(!jaConfirmado && !exigirLoginParaCheckin()) return;
-      const token = await garantirTokenFresco();
-      if(!token) return;
+      const cred = await credencialLogada();
+      if(!cred) return;
       btn.disabled = true;
       if(jaConfirmado){
-        const ok = await postAction('removeCheckin', {id: jaConfirmado.id}, {idToken: token, senha:''});
+        const ok = await postAction('removeCheckin', {id: jaConfirmado.id}, cred);
         if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
       } else {
         const player = getPlayer(pid);
         const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'' };
         CHECKINS.push(novoCheckin);
-        const ok = await postAction('addCheckin', {checkin: novoCheckin}, {idToken: token, senha:''});
+        const ok = await postAction('addCheckin', {checkin: novoCheckin}, cred);
         if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
       }
       renderCheckinList();

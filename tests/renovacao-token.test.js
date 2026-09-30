@@ -37,9 +37,9 @@ async function t(nome, fn){
 // monta as três funções com espiões: google.accounts.id.prompt() resolve via AUTH.aoRenovar (como o Google faz de
 // verdade, chamando handleGoogleCredential); "resolverCom" controla o que a renovação simulada devolve (token
 // novo, ou nunca resolve = expira em 8s -> mockeamos o setTimeout pra não esperar de verdade no teste)
-function montar({ logado = true, exp, resolverCom = null }){
+function montar({ logado = true, exp, resolverCom = null, sessao = '' }){
   const chamadas = { prompt: 0, mostrarToast: [], sairDaConta: 0, timeouts: [] };
-  const AUTH = { logado, idToken: 'tok-velho', exp, aoRenovar: null };
+  const AUTH = { logado, idToken: 'tok-velho', exp, aoRenovar: null, sessao };
   const fabrica = new Function('ctx', `
     const { AUTH, chamadas } = ctx;
     const mostrarToast = (msg, tipo) => { chamadas.mostrarToast.push({ msg, tipo }); };
@@ -111,6 +111,12 @@ const FRESCO = Math.floor(Date.now() / 1000) + 3600; // vence daqui 1h
 
   await t('tentarRenovarSeNecessario: token ainda fresco -> não faz nada', async () => {
     const m = montar({ logado: true, exp: FRESCO });
+    m.tentarRenovarSeNecessario();
+    assert.equal(m.chamadas.prompt, 0);
+  });
+
+  await t('tentarRenovarSeNecessario: com sessão do app (v14.0) nunca pede token ao Google, mesmo com o token vencido', async () => {
+    const m = montar({ logado: true, exp: EXPIRADO, resolverCom: 'tok-novo', sessao: 'S1' });
     m.tentarRenovarSeNecessario();
     assert.equal(m.chamadas.prompt, 0);
   });
