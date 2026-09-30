@@ -38,12 +38,13 @@ async function t(nome, fn){
 // verdade, chamando handleGoogleCredential); "resolverCom" controla o que a renovação simulada devolve (token
 // novo, ou nunca resolve = expira em 8s -> mockeamos o setTimeout pra não esperar de verdade no teste)
 function montar({ logado = true, exp, resolverCom = null, sessao = '' }){
-  const chamadas = { prompt: 0, mostrarToast: [], sairDaConta: 0, timeouts: [] };
+  const chamadas = { prompt: 0, mostrarToast: [], sairDaConta: 0, timeouts: [], sincronizarConta: 0 };
   const AUTH = { logado, idToken: 'tok-velho', exp, aoRenovar: null, sessao };
   const fabrica = new Function('ctx', `
     const { AUTH, chamadas } = ctx;
     const mostrarToast = (msg, tipo) => { chamadas.mostrarToast.push({ msg, tipo }); };
     const sairDaConta = () => { chamadas.sairDaConta++; };
+    const sincronizarContaSeFazTempo = () => { chamadas.sincronizarConta++; };
     const google = { accounts: { id: { prompt: () => {
       chamadas.prompt++;
       // resolve na hora (síncrono, como AUTH.aoRenovar já está setado antes do prompt() no código real):
@@ -107,6 +108,7 @@ const FRESCO = Math.floor(Date.now() / 1000) + 3600; // vence daqui 1h
     const m = montar({ logado: true, exp: EXPIRADO, resolverCom: 'tok-novo' });
     m.tentarRenovarSeNecessario();
     assert.equal(m.chamadas.prompt, 1);
+    assert.equal(m.chamadas.sincronizarConta, 0); // sem sessão, quem reconfere a conta é a renovação do Google
   });
 
   await t('tentarRenovarSeNecessario: token ainda fresco -> não faz nada', async () => {
@@ -115,10 +117,11 @@ const FRESCO = Math.floor(Date.now() / 1000) + 3600; // vence daqui 1h
     assert.equal(m.chamadas.prompt, 0);
   });
 
-  await t('tentarRenovarSeNecessario: com sessão do app (v14.0) nunca pede token ao Google, mesmo com o token vencido', async () => {
+  await t('tentarRenovarSeNecessario: com sessão do app (v14.0) nunca pede token ao Google; em vez disso reconfere a conta', async () => {
     const m = montar({ logado: true, exp: EXPIRADO, resolverCom: 'tok-novo', sessao: 'S1' });
     m.tentarRenovarSeNecessario();
     assert.equal(m.chamadas.prompt, 0);
+    assert.equal(m.chamadas.sincronizarConta, 1);
   });
 
   await t('tentarRenovarSeNecessario: deslogado -> não faz nada', async () => {

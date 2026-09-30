@@ -122,6 +122,16 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
     assert.equal(a.toasts.length, 1);
   });
 
+  await t('postAction com "não tem permissão": avisa e reconfere a conta na hora (o cargo pode ter mudado em outro aparelho)', async () => {
+    const a = pagina({ auth: { logado: true, perfil: 'organizador', sessao: 'S1' }, respostas: [{ error: 'Seu perfil (jogador) não tem permissão para esta ação.' }, { status: 'ok', perfil: 'jogador' }] });
+    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '', senha: '' }), false);
+    await umInstante();
+    assert.equal(a.toasts.length, 1);
+    assert.equal(a.posts[1].action, 'minhaConta');
+    assert.equal(a.auth().perfil, 'jogador');
+    assert.equal(a.auth().logado, true);
+  });
+
   await t('envio de foto manda a sessão', async () => {
     const a = pagina({ auth: { logado: true, sessao: 'S1' }, respostas: [{ url: 'https://x/f.jpg' }] });
     assert.equal(await a.uploadPhoto({ name: 'foto.png' }, { sessao: 'S1', idToken: '', senha: '' }, ''), 'https://x/f.jpg');

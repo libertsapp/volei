@@ -3212,6 +3212,16 @@ function aplicarDadosDaConta(json){
   salvarSessaoAuth();
   if(mudou){ atualizarStatusAuth(); aplicarPermissoesUI(); renderAll(); }
 }
+// Quando a conta foi reconferida pela última vez (ms). Com sessão não há mais renovação do Google (que antes, de
+// carona, reconferia a conta a cada ~1 h): "voltar ao app" reconfere direto, no máximo a cada 5 min, para um cargo
+// ou vínculo mudado em outro aparelho aparecer sem precisar recarregar a página.
+let ULTIMA_SINCRONIZACAO_CONTA = 0;
+const SINCRONIZAR_CONTA_A_CADA_MS = 5 * 60 * 1000;
+function sincronizarContaSeFazTempo(){
+  if(!AUTH.logado || !AUTH.sessao) return;
+  if(Date.now() - ULTIMA_SINCRONIZACAO_CONTA < SINCRONIZAR_CONTA_A_CADA_MS) return;
+  sincronizarContaComServidor();
+}
 /* Reconfere a conta com o servidor ao abrir o app (perfil/vínculo podem ter mudado em outro aparelho — bug real de
    2026-09: o vínculo gravado no aparelho nunca era reconferido). Com sessão: ação minhaConta. Sem sessão mas com token
    do Google ainda válido: loginGoogle, que devolve uma sessão (migração silenciosa de quem logou antes da v14.0).
@@ -3223,6 +3233,7 @@ async function sincronizarContaComServidor(){
   if(AUTH.sessao) corpo = { action:'minhaConta', sessao: AUTH.sessao };
   else if(AUTH.idToken && AUTH.exp && (AUTH.exp * 1000 - Date.now()) > 120000) corpo = { action:'loginGoogle', idToken: AUTH.idToken };
   else return;
+  ULTIMA_SINCRONIZACAO_CONTA = Date.now();
   try{
     const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
     const json = await res.json();
@@ -3344,14 +3355,16 @@ async function garantirTokenFresco(){
 // celular) — na maioria das vezes já resolve em silêncio antes da pessoa clicar em qualquer coisa, em vez de
 // só descobrir que o token venceu na hora de uma ação de admin
 function tentarRenovarSeNecessario(){
-  if(AUTH.logado && !AUTH.sessao && tokenExpirado(300)) renovarTokenGoogle(); // com sessão do app não precisa do Google
+  // com sessão do app não precisa do Google: "voltar ao app" só reconfere a conta (perfil, vínculo, validade)
+  if(AUTH.logado && AUTH.sessao){ sincronizarContaSeFazTempo(); return; }
+  if(AUTH.logado && tokenExpirado(300)) renovarTokenGoogle();
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') tentarRenovarSeNecessario(); });
 window.addEventListener('focus', tentarRenovarSeNecessario);
 
 // renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
 // a aba aberta a tarde inteira não travar na hora de salvar a rodada
-setInterval(()=>{ if(AUTH.logado && !AUTH.sessao && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
+setInterval(()=>{ if(AUTH.logado && AUTH.sessao) sincronizarContaSeFazTempo(); else if(AUTH.logado && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
 
 /* Primeiro admin: a aba Usuarios começa vazia, então quem logar com Google E souber
    a chave mestra vira admin. Depois disso esse convite não aparece mais. */
@@ -4281,6 +4294,7 @@ async function postAction(action, payload, cred){
         mostrarToast('Seu login do Google expirou. Entre com sua conta Google de novo e tente salvar novamente.', 'erro');
       } else if(erro.includes('não tem permissão')){
         mostrarToast(json.error, 'erro');
+        sincronizarContaComServidor(); // o cargo pode ter mudado em outro aparelho: a tela se corrige na hora
       } else {
         mostrarToast('Não foi possível salvar: ' + json.error, 'erro');
       }

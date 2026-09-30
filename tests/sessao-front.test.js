@@ -10,18 +10,20 @@ const fim = html.indexOf('// </sessao-front>');
 assert.ok(ini > -1 && fim > ini, 'bloco <sessao-front> não encontrado');
 const bloco = html.slice(ini, fim);
 
-function amb({ auth, garantir = async () => null, respostas = [] } = {}) {
+// relogio.ms: o "agora" que o bloco enxerga (Date.now) — os testes do intervalo de 5 min andam com ele
+function amb({ auth, garantir = async () => null, respostas = [], relogio = { ms: Date.now() } } = {}) {
   const posts = [], toasts = [];
   let saiu = 0;
-  const F = new Function('AUTH', 'garantirTokenFresco', 'respostas', 'posts', 'toasts', 'marcarSaida', `
+  class DateFalso extends Date { static now() { return relogio.ms; } }
+  const F = new Function('AUTH', 'garantirTokenFresco', 'respostas', 'posts', 'toasts', 'marcarSaida', 'Date', `
     const SHEET_API_URL = 'x'; const sheetReady = true; const console = { error(){} };
     const fetch = async (u, o) => { const b = JSON.parse(o.body); posts.push(b); const r = respostas.shift(); if (r === 'rede') throw new TypeError('Failed to fetch'); return { json: async () => r || { status: 'ok' } }; };
     const mostrarToast = (m) => toasts.push(m);
     const salvarSessaoAuth = () => {}; const atualizarStatusAuth = () => {}; const aplicarPermissoesUI = () => {}; const renderAll = () => {};
     const sairDaConta = () => { marcarSaida(); AUTH.logado = false; AUTH.sessao = ''; };
     ${bloco}
-    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor, textoValidadeSessao, sairDeTodosOsAparelhos };`);
-  const api = F(auth, garantir, respostas, posts, toasts, () => { saiu++; });
+    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor, textoValidadeSessao, sairDeTodosOsAparelhos, sincronizarContaSeFazTempo };`);
+  const api = F(auth, garantir, respostas, posts, toasts, () => { saiu++; }, DateFalso);
   return { ...api, posts, toasts, saidas: () => saiu, auth };
 }
 
@@ -84,5 +86,23 @@ function amb({ auth, garantir = async () => null, respostas = [] } = {}) {
   assert.equal(await a.sairDeTodosOsAparelhos(), false);
   assert.equal(a.saidas(), 0);
   assert.equal(a.toasts.length, 1);
+  // voltar ao app com sessão reconfere a conta (perfil/vínculo/validade), mas no máximo a cada 5 minutos
+  const relogio = { ms: new Date('2026-10-01T12:00:00.000Z').getTime() };
+  a = amb({ auth: { logado: true, sessao: 'S1', perfil: 'admin', jogadorId: 'p1', jogadorIdPendente: '' }, relogio,
+    respostas: [{ status: 'ok', perfil: 'admin', jogadorId: 'p1' }, { status: 'ok', perfil: 'admin', jogadorId: 'p1' }] });
+  await a.sincronizarContaComServidor();           // abertura do app
+  a.sincronizarContaSeFazTempo();                  // foco logo em seguida: não repete
+  relogio.ms += 4 * 60 * 1000 + 59 * 1000;         // 4min59s depois: ainda não
+  a.sincronizarContaSeFazTempo();
+  assert.equal(a.posts.length, 1);
+  relogio.ms += 1000;                              // 5 min depois da abertura: reconfere
+  a.sincronizarContaSeFazTempo();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(a.posts.length, 2);
+  assert.equal(a.posts[1].action, 'minhaConta');
+  // sem sessão não é com ela (quem ainda está no token do Google segue o caminho da renovação)
+  a = amb({ auth: { logado: true, sessao: '', idToken: 'G', exp: Math.floor(Date.now() / 1000) + 1800 } });
+  a.sincronizarContaSeFazTempo();
+  assert.equal(a.posts.length, 0);
   console.log('ok — sessão do app no front');
 })().catch(e => { console.error(e); process.exit(1); });
