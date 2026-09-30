@@ -3,6 +3,7 @@
 // apps-script-codigo.gs. As mensagens de erro são as mesmas do .gs (o app reconhece várias delas).
 import { mapearJogadores, texto, porOrdem } from './mapeadores.js';
 import { conferirChaveMestra, MSG_MUITAS_TENTATIVAS } from './limitador.js';
+import { criarSessao, validarSessao, encerrarSessao, MSG_SESSAO_EXPIRADA } from './sessoes.js';
 
 const PERFIS = ['admin', 'organizador', 'jogador'];
 export const normalizarEmail = (v) => texto(v).trim().toLowerCase();
@@ -94,14 +95,16 @@ export async function loginGoogle({ repo, relogio, verificarToken }, body) {
       perfil: existente.perfil || 'jogador', jogadorId: existente.jogadorId, jogadorIdPendente: existente.jogadorIdPendente,
       // já vinculado OU já com pedido em análise: não repete a sugestão de vínculo
       sugestao: (existente.jogadorId || existente.jogadorIdPendente) ? null : await sugerirJogador(repo, token.nome),
-      primeiroLogin: false, totalUsuarios: usuarios.length
+      primeiroLogin: false, totalUsuarios: usuarios.length,
+      ...(await criarSessao({ repo, relogio }, existente.email)) // o Google provou quem é: a partir daqui vale a sessão do app
     };
   }
 
   await gravar(repo, relogio, { email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '' });
   return {
     status: 'ok', email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
-    sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1
+    sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1,
+    ...(await criarSessao({ repo, relogio }, token.email))
   };
 }
 
@@ -164,6 +167,7 @@ export async function removerUsuario({ repo }, email) {
   const bruto = (await repo.lerUsuarios()).find((x) => normalizarEmail(x.email) === alvo);
   if (!bruto) return { error: 'Usuário não encontrado (pode já ter sido removido).' };
   await repo.removerUsuario(bruto.email);
+  await repo.apagarSessoesDe(alvo); // sem isso a pessoa removida seguiria usando o app até a sessão vencer
   return { status: 'ok' };
 }
 
@@ -207,5 +211,26 @@ export async function rejeitarVinculo({ repo, relogio }, email) {
   const atual = (await lerUsuarios(repo)).find((u) => u.email === alvo);
   if (!atual) return { error: 'Usuário não encontrado.' };
   await gravar(repo, relogio, { email: atual.email, nome: atual.nome, perfil: atual.perfil, jogadorIdPendente: '' });
+  return { status: 'ok' };
+}
+
+// Ações da própria conta (sessão do app obrigatória; a chave mestra não identifica uma pessoa).
+export async function minhaConta({ repo, relogio }, body) {
+  const s = await validarSessao({ repo, relogio }, body.sessao);
+  if (!s.ok) return { error: s.erro };
+  const u = (await lerUsuarios(repo)).find((x) => x.email === s.email);
+  if (!u) return { error: MSG_SESSAO_EXPIRADA };
+  return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, sessaoExpiraEm: s.expiraEm };
+}
+// sair nunca "falha" para quem chama: se a sessão já não existe, o objetivo (não estar logado) já foi atingido
+export async function sair({ repo }, body) {
+  await encerrarSessao({ repo }, body.sessao);
+  return { status: 'ok' };
+}
+// derruba a sessão em todos os aparelhos daquela conta (celular perdido, computador emprestado)
+export async function sairDeTodosOsAparelhos({ repo, relogio }, body) {
+  const s = await validarSessao({ repo, relogio }, body.sessao);
+  if (!s.ok) return { error: s.erro };
+  await repo.apagarSessoesDe(s.email);
   return { status: 'ok' };
 }

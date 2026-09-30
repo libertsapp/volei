@@ -2,10 +2,10 @@ import {
   mapearJogadores, mapearJogadoresRemovidos, mapearRodadas, mapearConfig, mapearCheckins,
   mapearPerfisPublicos, mapearAoVivo, mapearFinanceiro
 } from './mapeadores.js';
-import { autorizar } from './porteiro.js';
+import { autorizar, identificar } from './porteiro.js';
 import {
   loginGoogle, bootstrapAdmin, listarUsuarios, salvarUsuario, removerUsuario,
-  solicitarVinculo, aprovarVinculo, rejeitarVinculo
+  solicitarVinculo, aprovarVinculo, rejeitarVinculo, minhaConta, sair, sairDeTodosOsAparelhos
 } from './usuarios.js';
 import { addPlayer, updatePlayer, removePlayer, restorePlayer } from './jogadores.js';
 import { addRound, updateRound, removeRound } from './rodadas.js';
@@ -78,9 +78,14 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         if (acao === 'loginGoogle') return await loginGoogle(deps, b);
         if (acao === 'bootstrapAdmin') return await bootstrapAdmin(deps, b, contexto);
 
+        // conta da própria pessoa: só com sessão do app (nunca com chave mestra, que não identifica ninguém)
+        if (acao === 'minhaConta') return await minhaConta(deps, b);
+        if (acao === 'sair') return await sair(deps, b);
+        if (acao === 'sairDeTodosOsAparelhos') return await sairDeTodosOsAparelhos(deps, b);
+
         // check-in não pede senha nem perfil, só login (a chave mestra sozinha NÃO vale, como no .gs)
         if (acao === 'addCheckin' || acao === 'removeCheckin') {
-          const token = await verificarToken(b.idToken);
+          const token = await identificar(deps, b); // sessão do app ou token do Google
           if (!token.ok) return { error: token.erro };
           // os ganchos do financeiro rodam dentro de addCheckin/removeCheckin, sob a mesma trava
           return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id)));

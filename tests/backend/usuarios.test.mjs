@@ -26,18 +26,23 @@ const usuariosNoBanco = (deps) => deps.repo.lerUsuarios();
 
 await ta('login de conta existente: devolve perfil e vínculo, sem sugestão', async () => {
   const deps = novo();
-  assert.deepEqual(await loginGoogle(deps, { idToken: 'tok-a' }), {
+  // desde 2026-09-30 o login também entrega a sessão do app (token aleatório + validade de 90 dias)
+  const { sessao, ...resto } = await loginGoogle(deps, { idToken: 'tok-a' });
+  assert.match(sessao, /^[A-Za-z0-9_-]{43}$/);
+  assert.deepEqual(resto, {
     status: 'ok', email: 'a@exemplo.com', nome: 'A', perfil: 'admin', jogadorId: 'p1', jogadorIdPendente: '',
-    sugestao: null, primeiroLogin: false, totalUsuarios: 3
+    sugestao: null, primeiroLogin: false, totalUsuarios: 3, sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
   });
 });
 
 await ta('login de conta nova: cria como jogador no fim da lista, com sugestão por nome', async () => {
   const deps = novo();
-  const r = await loginGoogle(deps, { idToken: 'tok-n' });
+  const { sessao, ...r } = await loginGoogle(deps, { idToken: 'tok-n' });
+  assert.match(sessao, /^[A-Za-z0-9_-]{43}$/);
   assert.deepEqual(r, {
     status: 'ok', email: 'n@exemplo.com', nome: 'Carla Souza', perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
-    sugestao: { id: 'p3', nome: 'Carla Souza', motivo: 'exato' }, primeiroLogin: true, totalUsuarios: 4
+    sugestao: { id: 'p3', nome: 'Carla Souza', motivo: 'exato' }, primeiroLogin: true, totalUsuarios: 4,
+    sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
   });
   const us = await usuariosNoBanco(deps);
   assert.deepEqual(us[3], { email: 'n@exemplo.com', nome: 'Carla Souza', perfil: 'jogador', jogador_id: null, criado_em: '2026-09-23T15:00:00.000Z', jogador_id_pendente: null, ordem: 4 });
