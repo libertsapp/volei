@@ -2616,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3022,6 +3022,7 @@ function aplicarDados(json){
 }
 // cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
 // não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
+// Chave própria de cada app (Terça e Meme dividem o localStorage — ver CHAVE_LOGIN_LOCAL).
 const CHAVE_COPIA_DADOS = 'volei-copia-dados-v1';
 function salvarCopiaDosDados(json){
   try{
@@ -3190,6 +3191,10 @@ async function loginComGoogle(idToken){
 /* Sessão do app (spec 2026-09-30): o Google só entra no LOGIN; depois toda gravação manda AUTH.sessao, que o servidor
    confere no banco e renova sozinho (90 dias a cada uso). Só quem ainda não tem sessão (app antigo, login de antes da
    v14.0) continua no caminho velho do token do Google. */
+// Onde o login fica guardado no aparelho. O Terça e o Meme moram no mesmo endereço (libertsapp.github.io, só muda a
+// pasta), então dividem o localStorage: cada app precisa da SUA chave, senão um lê (e apaga) o login do outro — com a
+// sessão do app, que só vale no servidor que a criou, isso deslogaria quem usa os dois (tests/chaves-por-app.test.js).
+const CHAVE_LOGIN_LOCAL = 'volei-auth-v1';
 function sessaoExpirou(msg){ return String(msg || '').toLowerCase().includes('sessão expirou'); }
 function tratarSessaoExpirada(){
   sairDaConta(true);
@@ -3271,7 +3276,7 @@ async function sairDeTodosOsAparelhos(){
    no sessionStorage por ser uma chave mestra de emergência.
    O backend guarda só o hash da sessão do app (tabela sessoes) e a confere a cada requisição. */
 function salvarSessaoAuth(){
-  localStorage.setItem('volei-auth-v1', JSON.stringify({
+  localStorage.setItem(CHAVE_LOGIN_LOCAL, JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
     foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente,
     sessao: AUTH.sessao, sessaoExpiraEm: AUTH.sessaoExpiraEm
@@ -3279,7 +3284,7 @@ function salvarSessaoAuth(){
 }
 function restaurarSessaoAuth(){
   try{
-    const raw = localStorage.getItem('volei-auth-v1');
+    const raw = localStorage.getItem(CHAVE_LOGIN_LOCAL);
     if(!raw) return;
     const s = JSON.parse(raw);
     if(!s || (!s.idToken && !s.sessao)) return; // desde a v14.0 pode haver só a sessão do app, sem token do Google
@@ -3288,7 +3293,7 @@ function restaurarSessaoAuth(){
     // a renovação silenciosa do Google resolver quando a pessoa for salvar algo
   }catch(e){
     console.error('Sessão de login corrompida, descartando', e);
-    localStorage.removeItem('volei-auth-v1');
+    localStorage.removeItem(CHAVE_LOGIN_LOCAL);
   }
 }
 function sairDaConta(silencioso){
@@ -3297,7 +3302,7 @@ function sairDaConta(silencioso){
     fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
   }
   AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' };
-  localStorage.removeItem('volei-auth-v1');
+  localStorage.removeItem(CHAVE_LOGIN_LOCAL);
   if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
   }
