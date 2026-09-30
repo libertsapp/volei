@@ -142,6 +142,70 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
     assert.equal(a.posts.length, 0);
   });
 
+  // Área da conta (modal do chip): qual botão faz o quê. DOM mínimo: o overlay guarda o ouvinte de clique.
+  function modal({ auth, confirmar = true }) {
+    const chamadas = { sair: [], todos: 0, removido: 0 };
+    let overlay = null;
+    const F = new Function('ctx', `
+      const { chamadas } = ctx;
+      const AUTH = ctx.auth;
+      const escapeHtml = (x) => String(x);
+      const confirm = () => ctx.confirmar;
+      const sairDaConta = (silencioso) => { chamadas.sair.push(silencioso); };
+      const sairDeTodosOsAparelhos = async () => { chamadas.todos++; return true; };
+      const textoValidadeSessao = (iso) => (iso ? 'Conectado neste aparelho até 29/12/2026' : '');
+      const document = {
+        createElement: () => { const el = { className: '', innerHTML: '', ouvinte: null, addEventListener: (ev, fn) => { el.ouvinte = fn; }, remove: () => { chamadas.removido++; } }; ctx.criado(el); return el; },
+        body: { appendChild: () => {} }
+      };
+      ${funcao('function abrirAreaDaConta(){')}
+      return abrirAreaDaConta;`);
+    const abrir = F({ auth, confirmar, chamadas, criado: (el) => { overlay = el; } });
+    abrir();
+    // clicar(acao): botão com data-acao; clicar(null): fundo escuro (o próprio overlay); clicar(''): dentro do cartão
+    const clicar = (acao) => overlay.ouvinte({ target: acao === null ? overlay : { dataset: acao ? { acao } : {} } });
+    return { overlay, clicar, chamadas };
+  }
+
+  await t('área da conta: mostra e-mail, perfil e validade; "sair de todos" só aparece com sessão do app', async () => {
+    const m = modal({ auth: { email: 'a@exemplo.com', perfil: 'admin', sessao: 'S1', sessaoExpiraEm: '2026-12-29T15:00:00.000Z' } });
+    assert.match(m.overlay.innerHTML, /a@exemplo\.com/);
+    assert.match(m.overlay.innerHTML, /ADMIN/);
+    assert.match(m.overlay.innerHTML, /Conectado neste aparelho até 29\/12\/2026/);
+    assert.match(m.overlay.innerHTML, /data-acao="todos"/);
+    const antigo = modal({ auth: { email: 'a@exemplo.com', perfil: 'admin', sessao: '' } });
+    assert.doesNotMatch(antigo.overlay.innerHTML, /data-acao="todos"/);
+  });
+
+  await t('área da conta: Sair sai (não silencioso); Fechar e o fundo só fecham; clicar no cartão não fecha', async () => {
+    const auth = { email: 'a@exemplo.com', perfil: 'admin', sessao: 'S1' };
+    let m = modal({ auth });
+    await m.clicar('sair');
+    assert.deepEqual(m.chamadas.sair, [false]);
+    assert.equal(m.chamadas.removido, 1);
+    m = modal({ auth });
+    await m.clicar('fechar');
+    assert.deepEqual(m.chamadas.sair, []);
+    assert.equal(m.chamadas.removido, 1);
+    m = modal({ auth });
+    await m.clicar(null);
+    assert.equal(m.chamadas.removido, 1);
+    m = modal({ auth });
+    await m.clicar('');
+    assert.equal(m.chamadas.removido, 0);
+  });
+
+  await t('área da conta: "sair de todos" pede confirmação; sem confirmar não faz nada', async () => {
+    const auth = { email: 'a@exemplo.com', perfil: 'admin', sessao: 'S1' };
+    let m = modal({ auth, confirmar: true });
+    await m.clicar('todos');
+    assert.equal(m.chamadas.todos, 1);
+    m = modal({ auth, confirmar: false });
+    await m.clicar('todos');
+    assert.equal(m.chamadas.todos, 0);
+    assert.equal(m.chamadas.removido, 0);
+  });
+
   console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');
   process.exit(falhas ? 1 : 0);
 })();

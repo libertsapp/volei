@@ -2616,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3235,6 +3235,24 @@ async function sincronizarContaComServidor(){
     console.error('Falha ao sincronizar a conta (silencioso; tenta de novo ao reabrir)', e);
   }
 }
+function textoValidadeSessao(iso){
+  if(!iso) return '';
+  return 'Conectado neste aparelho até ' + new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+// derruba a sessão em TODOS os aparelhos (celular perdido, computador emprestado); este aparelho sai junto
+async function sairDeTodosOsAparelhos(){
+  try{
+    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sairDeTodosOsAparelhos', sessao: AUTH.sessao }) });
+    const json = await res.json();
+    if(json && json.error && !sessaoExpirou(json.error)){ mostrarToast('Não deu: ' + json.error, 'erro'); return false; }
+    sairDaConta(true);
+    renderAll();
+    return true;
+  }catch(e){
+    mostrarToast('Sem conexão com o servidor agora. Tente de novo.', 'erro');
+    return false;
+  }
+}
 // </sessao-front>
 
 /* A sessão mora no localStorage (sobrevive a fechar a aba/app — só sai quando a
@@ -3687,7 +3705,9 @@ async function renderMeuPerfil(){
       montarDadosCard(player, ctxCards, { temConta: true }), // quem está no Meu Perfil, por definição, tem conta vinculada
       { variante: 'perfil', tituloId: 'meuperfil-titulos-clicavel' }
     )}
-    <div class="usuario-sub" style="margin:-6px 0 14px;">${escapeHtml(AUTH.email)}</div>
+    <div class="usuario-sub" style="margin:-6px 0 6px;">${escapeHtml(AUTH.email)}</div>
+    ${AUTH.sessaoExpiraEm ? `<div class="usuario-sub" style="margin:0 0 8px;">${escapeHtml(textoValidadeSessao(AUTH.sessaoExpiraEm))}</div>` : ''}
+    <button class="btn secondary" id="meuperfil-conta-btn" style="margin-bottom:14px;">Gerenciar conta</button>
 
     <div style="margin:14px 0;">
       <input type="file" id="meuperfil-foto-input" accept="image/*" style="display:none;">
@@ -3757,6 +3777,7 @@ async function renderMeuPerfil(){
   document.getElementById('meuperfil-trocar-foto-btn').addEventListener('click', ()=>{
     document.getElementById('meuperfil-foto-input').click();
   });
+  document.getElementById('meuperfil-conta-btn').addEventListener('click', abrirAreaDaConta);
   document.getElementById('meuperfil-foto-input').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
     if(!file) return;
@@ -3808,9 +3829,35 @@ function atualizarStatusAuth(){
   if(tabMeuPerfil) tabMeuPerfil.style.display = AUTH.logado ? '' : 'none';
 }
 
-document.getElementById('auth-user-chip').addEventListener('click', ()=>{
-  if(confirm('Sair da conta ' + (AUTH.email || '') + '?')) sairDaConta(false);
-});
+document.getElementById('auth-user-chip').addEventListener('click', abrirAreaDaConta);
+// Área da conta: quem está conectado, até quando, e os dois jeitos de sair. Mesmo visual dos outros modais
+// (profile-overlay + password-card), z-index já acima dos modais do app.
+function abrirAreaDaConta(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  const validade = textoValidadeSessao(AUTH.sessaoExpiraEm);
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">Sua conta</p>
+      <p style="margin:0 0 4px;">${escapeHtml(AUTH.email || '')}</p>
+      <p style="margin:0 0 4px;color:var(--muted);font-size:13px;">Perfil: ${escapeHtml((AUTH.perfil || 'jogador').toUpperCase())}</p>
+      ${validade ? `<p style="margin:0 0 12px;color:var(--muted);font-size:13px;">${validade}</p>` : ''}
+      <div class="password-actions">
+        <button class="btn danger" data-acao="sair">Sair</button>
+        ${AUTH.sessao ? '<button class="btn secondary" data-acao="todos">Sair de todos os aparelhos</button>' : ''}
+        <button class="btn secondary" data-acao="fechar">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', async (e)=>{
+    const acao = e.target.dataset && e.target.dataset.acao;
+    if(e.target !== overlay && !acao) return;
+    if(acao === 'todos' && !confirm('Sair desta conta em TODOS os aparelhos (celular, computador...)?')) return;
+    overlay.remove();
+    if(acao === 'sair') sairDaConta(false);
+    else if(acao === 'todos') await sairDeTodosOsAparelhos();
+  });
+}
 
 // "usuário registrado" = entrou com a conta Google (qualquer perfil, inclusive jogador) OU está com a chave mestra.
 // A página Controle Financeiro só aparece pra esse pessoal. É restrição VISUAL (conforto): o Check-in continua mostrando

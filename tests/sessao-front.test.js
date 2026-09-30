@@ -20,7 +20,7 @@ function amb({ auth, garantir = async () => null, respostas = [] } = {}) {
     const salvarSessaoAuth = () => {}; const atualizarStatusAuth = () => {}; const aplicarPermissoesUI = () => {}; const renderAll = () => {};
     const sairDaConta = () => { marcarSaida(); AUTH.logado = false; AUTH.sessao = ''; };
     ${bloco}
-    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor };`);
+    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor, textoValidadeSessao, sairDeTodosOsAparelhos };`);
   const api = F(auth, garantir, respostas, posts, toasts, () => { saiu++; });
   return { ...api, posts, toasts, saidas: () => saiu, auth };
 }
@@ -70,5 +70,19 @@ function amb({ auth, garantir = async () => null, respostas = [] } = {}) {
   a = amb({ auth: { logado: true, sessao: '', idToken: 'G', exp: 1 } });
   await a.sincronizarContaComServidor();
   assert.equal(a.posts.length, 0);
+  // área da conta: validade legível e "sair de todos os aparelhos"
+  assert.equal(a.textoValidadeSessao(''), '');
+  assert.match(a.textoValidadeSessao('2026-12-29T15:00:00.000Z'), /^Conectado neste aparelho até \d{2}\/\d{2}\/\d{4}$/);
+  // sair de todos: manda a ação certa e sai deste aparelho também
+  a = amb({ auth: { logado: true, sessao: 'S1' }, respostas: [{ status: 'ok' }] });
+  assert.equal(await a.sairDeTodosOsAparelhos(), true);
+  assert.equal(a.posts[0].action, 'sairDeTodosOsAparelhos');
+  assert.equal(a.posts[0].sessao, 'S1');
+  assert.equal(a.saidas(), 1);
+  // servidor fora do ar: não sai e avisa (a pessoa tenta de novo)
+  a = amb({ auth: { logado: true, sessao: 'S1' }, respostas: ['rede'] });
+  assert.equal(await a.sairDeTodosOsAparelhos(), false);
+  assert.equal(a.saidas(), 0);
+  assert.equal(a.toasts.length, 1);
   console.log('ok — sessão do app no front');
 })().catch(e => { console.error(e); process.exit(1); });
