@@ -11,14 +11,33 @@ const CHAVES = {
 
 const DICA_AJUSTE_6 = ' (rode sql/schema-terca-supabase-ajuste-6.sql no SQL Editor do Supabase)';
 
-async function lerTabela(cliente, tabela) {
+// LEITURAS tentam de novo: o GET lê 13 tabelas em paralelo e, sem isso, UMA falha passageira (conexão que cai,
+// função "acordando") derrubava a tela inteira com "Erro interno no servidor" (visto em produção, 2026-09-30).
+// Só leitura: repetir uma gravação poderia gravar duas vezes. esperar é injetável (os testes não dormem).
+const TENTATIVAS_LEITURA = 3;
+const esperarDeVerdade = (ms) => new Promise((r) => setTimeout(r, ms));
+async function comNovasTentativas(fn, esperar) {
+  for (let tentativa = 1; ; tentativa++) {
+    try {
+      return await fn();
+    } catch (erro) {
+      if (tentativa >= TENTATIVAS_LEITURA) throw erro;
+      await esperar(200 * tentativa); // 200 ms, depois 400 ms
+    }
+  }
+}
+
+async function lerTabela(cliente, tabela, esperar = esperarDeVerdade) {
   let saida = [];
   for (let de = 0; ; de += PAGINA) {
-    // sem ORDER BY estável, páginas seguidas podem repetir ou pular linhas
-    let consulta = cliente.from(tabela).select('*');
-    for (const coluna of CHAVES[tabela] || []) consulta = consulta.order(coluna);
-    const { data, error } = await consulta.range(de, de + PAGINA - 1);
-    if (error) throw new Error(tabela + ': ' + error.message);
+    const data = await comNovasTentativas(async () => {
+      // sem ORDER BY estável, páginas seguidas podem repetir ou pular linhas
+      let consulta = cliente.from(tabela).select('*');
+      for (const coluna of CHAVES[tabela] || []) consulta = consulta.order(coluna);
+      const r = await consulta.range(de, de + PAGINA - 1);
+      if (r.error) throw new Error(tabela + ': ' + r.error.message);
+      return r.data;
+    }, esperar);
     saida = saida.concat(data);
     if (data.length < PAGINA) break;
   }
@@ -27,22 +46,24 @@ async function lerTabela(cliente, tabela) {
 
 // Repositório de verdade: lê todas as tabelas (em paralelo). O cliente recebido deve usar a
 // service_role, porque o RLS está ligado sem políticas (o navegador nunca acessa o banco direto).
-export function criarRepoSupabase(cliente) {
+export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) {
   return {
     async lerTudo() {
       const pares = await Promise.all(TABELAS.map(async (tabela) => {
         if (tabela === 'fin_log') {
           // o app só usa os 100 mais recentes
-          const { data, error } = await cliente.from(tabela).select('*').order('id', { ascending: false }).limit(100);
-          if (error) throw new Error(tabela + ': ' + error.message);
-          return [tabela, data];
+          return [tabela, await comNovasTentativas(async () => {
+            const { data, error } = await cliente.from(tabela).select('*').order('id', { ascending: false }).limit(100);
+            if (error) throw new Error(tabela + ': ' + error.message);
+            return data;
+          }, esperar)];
         }
-        return [tabela, await lerTabela(cliente, tabela)];
+        return [tabela, await lerTabela(cliente, tabela, esperar)];
       }));
       return Object.fromEntries(pares);
     },
-    async lerUsuarios() { return lerTabela(cliente, 'usuarios'); },
-    async lerJogadores() { return lerTabela(cliente, 'jogadores'); },
+    async lerUsuarios() { return lerTabela(cliente, 'usuarios', esperar); },
+    async lerJogadores() { return lerTabela(cliente, 'jogadores', esperar); },
     // upsert pela chave email (a linha já vem completa do domínio: com criado_em/ordem quando é novo)
     async gravarUsuario(linha) {
       const { error } = await cliente.from('usuarios').upsert(linha);
