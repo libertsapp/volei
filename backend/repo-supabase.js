@@ -73,6 +73,35 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
       const { error } = await cliente.from('usuarios').delete().eq('email', email);
       if (error) throw new Error('usuarios: ' + error.message);
     },
+    // sessões do app (ajuste 8). lerSessao é leitura: tenta de novo numa falha passageira (sem isso, uma queda de um
+    // instante viraria "não consegui conferir sua sessão" em qualquer clique). Gravações não repetem.
+    async lerSessao(tokenHash) {
+      return comNovasTentativas(async () => {
+        const { data, error } = await cliente.from('sessoes').select('*').eq('token_hash', tokenHash).maybeSingle();
+        if (error) throw new Error('sessoes: ' + error.message);
+        return data || null;
+      }, esperar);
+    },
+    async inserirSessao(linha) {
+      const { error } = await cliente.from('sessoes').insert(linha);
+      if (error) throw new Error('sessoes: ' + error.message);
+    },
+    async renovarSessao(tokenHash, campos) {
+      const { error } = await cliente.from('sessoes').update(campos).eq('token_hash', tokenHash);
+      if (error) throw new Error('sessoes: ' + error.message);
+    },
+    async apagarSessao(tokenHash) {
+      const { error } = await cliente.from('sessoes').delete().eq('token_hash', tokenHash);
+      if (error) throw new Error('sessoes: ' + error.message);
+    },
+    async apagarSessoesDe(email) {
+      const { error } = await cliente.from('sessoes').delete().eq('email', email);
+      if (error) throw new Error('sessoes: ' + error.message);
+    },
+    async apagarSessoesVencidas(email, agoraIso) {
+      const { error } = await cliente.from('sessoes').delete().eq('email', email).lte('expira_em', agoraIso);
+      if (error) throw new Error('sessoes: ' + error.message);
+    },
     async inserirJogador(linha) {
       const { error } = await cliente.from('jogadores').insert(linha);
       if (error) throw new Error('jogadores: ' + error.message);

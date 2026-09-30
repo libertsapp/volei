@@ -13,6 +13,7 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
   const agoraMs = opcoes.agora || (() => Date.now());
   const travas = new Map(); // nome -> { dono, expira } (na memória; no banco é a tabela "travas", ajuste 5)
   const tentativas = new Map(); // chave -> { tentativas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
+  let sessoes = []; // tabela "sessoes" (ajuste 8): fora de TABELAS de propósito, o lerTudo (GET público) não a lê
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -51,6 +52,16 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       else tabelas.usuarios[i] = { ...tabelas.usuarios[i], ...linha };
     },
     async removerUsuario(email) { tabelas.usuarios = tabelas.usuarios.filter((u) => u.email !== email); },
+
+    // sessões do app (ajuste 8): só o hash do token é guardado
+    async lerSessao(tokenHash) { const s = sessoes.find((x) => x.token_hash === tokenHash); return s ? { ...s } : null; },
+    async inserirSessao(linha) { sessoes.push({ ...linha }); },
+    async renovarSessao(tokenHash, campos) { sessoes = sessoes.map((x) => (x.token_hash === tokenHash ? { ...x, ...campos } : x)); },
+    async apagarSessao(tokenHash) { sessoes = sessoes.filter((x) => x.token_hash !== tokenHash); },
+    async apagarSessoesDe(email) { sessoes = sessoes.filter((x) => x.email !== email); },
+    async apagarSessoesVencidas(email, agoraIso) {
+      sessoes = sessoes.filter((x) => !(x.email === email && new Date(x.expira_em) <= new Date(agoraIso)));
+    },
 
     async inserirJogador(linha) {
       if (tabelas.jogadores.some((j) => j.id === linha.id)) {
