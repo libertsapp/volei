@@ -2616,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 13.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 13.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2994,6 +2994,47 @@ async function registrarAcesso(){
   }
 }
 
+/* Leitura inicial resistente a falha passageira (visto em produção, 2026-09-30: uma falha de um instante no
+   servidor abria o app vazio com "Erro interno no servidor"). Tenta até 3 vezes (espera 1 s e depois 2 s); erro
+   devolvido pelo servidor e falha de rede contam igual. Devolve o JSON bom ou null. */
+async function buscarDadosComNovasTentativas(){
+  for(let tentativa = 1; tentativa <= 3; tentativa++){
+    try{
+      const res = await fetch(SHEET_API_URL);
+      const json = await res.json();
+      if(json && !json.error && Array.isArray(json.players)) return json;
+      console.error('Servidor respondeu com erro ao carregar (tentativa ' + tentativa + ')', json && json.error);
+    }catch(e){
+      console.error('Falha de conexão ao carregar (tentativa ' + tentativa + ')', e);
+    }
+    if(tentativa < 3) await new Promise(r=> setTimeout(r, 1000 * tentativa));
+  }
+  return null;
+}
+function aplicarDados(json){
+  DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
+  if(json.settings) SETTINGS = json.settings;
+  PERFIS_PUBLICOS = json.perfisPublicos || [];
+  CHECKINS = json.checkins || [];
+  FINANCEIRO = finNormalizar(json.financeiro);
+  reconstituirConvidadosDosCheckins();
+}
+// cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
+// não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
+const CHAVE_COPIA_DADOS = 'volei-copia-dados-v1';
+function salvarCopiaDosDados(json){
+  try{
+    const { financeiro, ...semFinanceiro } = json;
+    localStorage.setItem(CHAVE_COPIA_DADOS, JSON.stringify({ salvoEm: Date.now(), dados: semFinanceiro }));
+  }catch(e){ /* sem espaço ou bloqueado: segue sem cópia */ }
+}
+function lerCopiaDosDados(){
+  try{
+    const c = JSON.parse(localStorage.getItem(CHAVE_COPIA_DADOS) || 'null');
+    return (c && c.dados && Array.isArray(c.dados.players)) ? c : null;
+  }catch(e){ return null; }
+}
+
 async function loadData(){
   if(!sheetReady){
     document.getElementById('config-warning').style.display = 'block';
@@ -3002,24 +3043,28 @@ async function loadData(){
     renderAll();
     return;
   }
-  try{
-    const res = await fetch(SHEET_API_URL);
-    const json = await res.json();
-    if(json && json.error){
-      document.getElementById('config-warning').style.display = 'block';
-      document.getElementById('config-warning').innerHTML = '⚠️ O Apps Script respondeu com um erro: <strong>' + json.error + '</strong>';
-    }
-    DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
-    if(json.settings) SETTINGS = json.settings;
-    PERFIS_PUBLICOS = json.perfisPublicos || [];
+  const aviso = document.getElementById('config-warning');
+  const json = await buscarDadosComNovasTentativas();
+  if(json){
+    aviso.style.display = 'none';
+    aplicarDados(json);
     registrarAcesso(); // não trava o carregamento do resto — atualiza o contador quando responder
-    CHECKINS = json.checkins || [];
-    FINANCEIRO = finNormalizar(json.financeiro);
-    reconstituirConvidadosDosCheckins();
-  }catch(e){
-    console.error('Falha ao carregar da planilha', e);
-    document.getElementById('config-warning').style.display = 'block';
-    document.getElementById('config-warning').innerHTML = '⚠️ Não foi possível conectar à planilha. Verifique a URL do Apps Script e se a implantação está pública ("Qualquer pessoa").';
+    salvarCopiaDosDados(json);
+  } else {
+    // o servidor não respondeu nem depois das novas tentativas: em vez da tela vazia, mostra a última cópia
+    // boa que este aparelho guardou (se houver), avisando que pode estar desatualizada
+    const copia = lerCopiaDosDados();
+    aviso.style.display = 'block';
+    if(copia){
+      aplicarDados(copia.dados);
+      aviso.innerHTML = '⚠️ Sem conexão com o servidor agora. Mostrando os dados salvos neste aparelho em <strong>'
+        + new Date(copia.salvoEm).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' })
+        + '</strong> (podem estar desatualizados). <a href="#" id="recarregar-dados-link">Tentar de novo</a>';
+    } else {
+      aviso.innerHTML = '⚠️ Não foi possível carregar os dados do servidor agora. Verifique a internet. <a href="#" id="recarregar-dados-link">Tentar de novo</a>';
+    }
+    const link = document.getElementById('recarregar-dados-link');
+    if(link) link.addEventListener('click', (e)=>{ e.preventDefault(); location.reload(); });
   }
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -3134,7 +3179,7 @@ async function loginComGoogle(idToken){
     }
   }catch(e){
     console.error('Falha ao confirmar o login no servidor', e);
-    alert('Entrou no Google, mas não foi possível falar com a planilha agora. Recarregue a página.');
+    alert('Entrou no Google, mas não foi possível falar com o servidor agora. Recarregue a página.');
   }
 }
 
@@ -3288,7 +3333,7 @@ async function pedirBootstrapAdmin(){
     return true;
   }catch(e){
     console.error('Falha no bootstrap de admin', e);
-    mostrarToast('Não foi possível falar com a planilha agora. Tente de novo.', 'erro');
+    mostrarToast('Não foi possível falar com o servidor agora. Tente de novo.', 'erro');
     return false;
   }
 }
@@ -4167,7 +4212,7 @@ async function postAction(action, payload, cred){
     return true;
   }catch(e){
     console.error('Falha ao salvar na planilha', e);
-    mostrarToast('Não foi possível salvar. Verifique sua conexão e a configuração da planilha.', 'erro');
+    mostrarToast('Não foi possível salvar. Verifique sua conexão e tente de novo.', 'erro');
     return false;
   }finally{
     esconderCarregando();
