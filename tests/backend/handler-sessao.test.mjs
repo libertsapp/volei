@@ -37,6 +37,22 @@ await ta('loginGoogle devolve sessão e validade de 90 dias (conta existente e c
   assert.equal((await h.post({ action: 'ping', sessao: n.sessao })).perfil, 'jogador');
 });
 
+await ta('login NÃO falha se a sessão não puder ser criada (tabela ausente / banco piscou): vem sem sessão e avisa no log', async () => {
+  for (const quebrar of ['apagarSessoesVencidas', 'inserirSessao']) {
+    const repo = criarRepoMemoria(structuredClone(fixture));
+    repo[quebrar] = async () => { throw new Error('sessoes: relation "sessoes" does not exist'); };
+    const avisos = [];
+    const h = criarHandler({ repo, config: { adminPassword: 'chave-de-teste' }, verificarToken: async (t) => TOKENS[t], relogio: () => AGORA, avisar: (...a) => avisos.push(a.join(' ')) });
+    const r = await h.post({ action: 'loginGoogle', idToken: 'tok-b' });
+    assert.equal(r.status, 'ok', quebrar);
+    assert.equal(r.perfil, 'organizador');
+    assert.equal('sessao' in r, false);
+    assert.equal('sessaoExpiraEm' in r, false);
+    assert.equal(avisos.length, 1);
+    assert.match(avisos[0], /relation "sessoes" does not exist/);
+  }
+});
+
 await ta('com sessão, ações sensíveis e check-in funcionam SEM falar com o Google', async () => {
   const { h, google } = novo();
   const sessao = await logar(h, 'tok-b');

@@ -78,7 +78,19 @@ async function sugerirJogador(repo, nomeConta) {
   return acharJogadorPorNome(mapearJogadores(await repo.lerJogadores()), nomeConta);
 }
 
-export async function loginGoogle({ repo, relogio, verificarToken }, body) {
+// A sessão do app é um BÔNUS sobre o login: se ela não puder ser criada (tabela "sessoes" ainda não existe porque a
+// função foi publicada antes do SQL, ou o banco piscou agora), o login segue sem sessão — o app continua no caminho
+// antigo do token do Google — em vez de falhar inteiro. O motivo vai para o log (avisar) para dar para diagnosticar.
+async function sessaoOuNada({ repo, relogio, avisar }, email) {
+  try {
+    return await criarSessao({ repo, relogio }, email);
+  } catch (e) {
+    avisar('sessão do app não criada no login: ' + (e && e.message ? e.message : e));
+    return {};
+  }
+}
+
+export async function loginGoogle({ repo, relogio, verificarToken, avisar = () => {} }, body) {
   const token = await verificarToken(body.idToken);
   if (!token.ok) return { error: token.erro };
 
@@ -96,7 +108,7 @@ export async function loginGoogle({ repo, relogio, verificarToken }, body) {
       // já vinculado OU já com pedido em análise: não repete a sugestão de vínculo
       sugestao: (existente.jogadorId || existente.jogadorIdPendente) ? null : await sugerirJogador(repo, token.nome),
       primeiroLogin: false, totalUsuarios: usuarios.length,
-      ...(await criarSessao({ repo, relogio }, existente.email)) // o Google provou quem é: a partir daqui vale a sessão do app
+      ...(await sessaoOuNada({ repo, relogio, avisar }, existente.email)) // o Google provou quem é: a partir daqui vale a sessão do app
     };
   }
 
@@ -104,7 +116,7 @@ export async function loginGoogle({ repo, relogio, verificarToken }, body) {
   return {
     status: 'ok', email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
     sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1,
-    ...(await criarSessao({ repo, relogio }, token.email))
+    ...(await sessaoOuNada({ repo, relogio, avisar }, token.email))
   };
 }
 
