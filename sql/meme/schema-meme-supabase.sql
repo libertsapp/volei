@@ -514,6 +514,21 @@ revoke execute on function limpar_falhas(text) from public, anon, authenticated;
 grant execute on function registrar_tentativa(text, int, int, int) to service_role;
 grant execute on function limpar_falhas(text) to service_role;
 
+-- ==== schema-terca-supabase-ajuste-8.sql (fonte: sql/schema-terca-supabase-ajuste-8.sql) ====
+-- Ajuste 8: sessões do app (login que não cai). Pode ser executado mais de uma vez sem estragar nada.
+-- QUEM RODA: o usuário, no SQL Editor do Supabase, ANTES de publicar a função nova.
+-- Guarda só o hash SHA-256 do token (quem lê o banco não consegue usar a sessão de ninguém).
+create table if not exists sessoes (
+  token_hash  text primary key,
+  email       text not null,
+  criada_em   timestamptz not null default now(),
+  expira_em   timestamptz not null,
+  renovada_em timestamptz not null default now()
+);
+create index if not exists sessoes_email_idx on sessoes (email);
+-- como as outras tabelas: RLS ligado e nenhuma política (só a service_role, que ignora o RLS, chega aqui)
+alter table sessoes enable row level security;
+
 -- ==== acesso e search_path (gerado) ====
 -- funções que não fixavam search_path passam a apontar para este schema, sem depender da requisição:
 alter function gravar_rodada(jsonb) set search_path = meme;

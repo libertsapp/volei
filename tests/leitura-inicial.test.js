@@ -25,7 +25,7 @@ function ambiente(respostas) {
     let DATA, SETTINGS, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO;
     const finNormalizar = f => f || {}; const reconstituirConvidadosDosCheckins = () => {};
     ${bloco}
-    return { buscarDadosComNovasTentativas, salvarCopiaDosDados, lerCopiaDosDados, aplicarDados, dados: () => ({ DATA, CHECKINS }) };`);
+    return { buscarDadosComNovasTentativas, salvarCopiaDosDados, lerCopiaDosDados, aplicarDados, dados: () => ({ DATA, CHECKINS }), chaveCopia: CHAVE_COPIA_DADOS };`);
   return { ...F(fetch, localStorage, setTimeout), chamadas: () => chamadas, esperas, guardado };
 }
 const BOM = { players: [{ id: 'p1' }], rounds: [], checkins: [{ id: 'c1' }], financeiro: { dias: [1] } };
@@ -51,7 +51,7 @@ const BOM = { players: [{ id: 'p1' }], rounds: [], checkins: [{ id: 'c1' }], fin
   assert.deepEqual(c.dados.players, BOM.players);
   assert.equal('financeiro' in c.dados, false);
   assert.ok(Math.abs(c.salvoEm - Date.now()) < 5000);
-  a.guardado['volei-copia-dados-v1'] = '{quebrado';
+  a.guardado[a.chaveCopia] = '{quebrado';
   assert.equal(a.lerCopiaDosDados(), null);
   assert.equal(ambiente([]).lerCopiaDosDados(), null); // aparelho sem cópia
   // aplicarDados a partir da cópia (sem financeiro) não quebra

@@ -57,6 +57,8 @@ await ta('arquivos reais: nenhum "search_path = public" nem regclass "public." s
   assert.ok(conta(s) >= nasFontes, 'o SQL do Meme perdeu revoke de PUBLIC');
   // as 5 funções que fixavam public agora fixam meme
   assert.equal((s.match(/set search_path = meme as/g) || []).length, 5);
+  // sessões do app (ajuste 8, 2026-09-30): uma instalação nova do Meme já nasce com a tabela
+  assert.match(s, /create table if not exists sessoes \(/);
 });
 
 await ta('é determinístico e o arquivo gerado no repositório está em dia (rode: npm run gerar-sql-meme)', () => {

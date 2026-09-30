@@ -53,7 +53,7 @@ function pagina({ auth = {}, guardado = {}, respostas = [], senhaCacheada = '', 
     ${postActionSrc}
     ${uploadPhotoSrc}
     ${carregarUsuariosSrc}
-    return { salvarSessaoAuth, restaurarSessaoAuth, sairDaConta, requireAuth, postAction, uploadPhoto, carregarUsuarios, auth: () => AUTH };`);
+    return { salvarSessaoAuth, restaurarSessaoAuth, sairDaConta, requireAuth, postAction, uploadPhoto, carregarUsuarios, auth: () => AUTH, chaveLogin: CHAVE_LOGIN_LOCAL };`);
   return { ...F({ auth, guardado, respostas, posts, toasts, espioes, senhaCacheada, podePerfil, garantir }), posts, toasts, espioes, guardado };
 }
 const umInstante = () => new Promise((r) => setTimeout(r, 0));
@@ -61,7 +61,9 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
 (async () => {
   await t('guardar e restaurar: a sessão sobrevive a fechar o app, mesmo sem token do Google', async () => {
     const guardado = {};
-    pagina({ auth: { logado: true, email: 'a@exemplo.com', perfil: 'admin', sessao: 'S1', sessaoExpiraEm: '2026-12-29T15:00:00.000Z' }, guardado }).salvarSessaoAuth();
+    const a = pagina({ auth: { logado: true, email: 'a@exemplo.com', perfil: 'admin', sessao: 'S1', sessaoExpiraEm: '2026-12-29T15:00:00.000Z' }, guardado });
+    a.salvarSessaoAuth();
+    assert.deepEqual(Object.keys(guardado), [a.chaveLogin]); // grava na chave do app (Terça e Meme dividem o localStorage)
     const b = pagina({ guardado });
     b.restaurarSessaoAuth();
     assert.equal(b.auth().logado, true);
@@ -71,13 +73,14 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
   });
 
   await t('sair: avisa o servidor (ação sair com a sessão) e limpa o aparelho', async () => {
-    const a = pagina({ auth: { logado: true, sessao: 'S1' }, guardado: { 'volei-auth-v1': '{}' } });
+    const a = pagina({ auth: { logado: true, sessao: 'S1' } });
+    a.guardado[a.chaveLogin] = '{}';
     a.sairDaConta(false);
     await umInstante();
     assert.deepEqual(a.posts, [{ action: 'sair', sessao: 'S1' }]);
     assert.equal(a.auth().logado, false);
     assert.equal(a.auth().sessao, '');
-    assert.equal('volei-auth-v1' in a.guardado, false);
+    assert.equal(a.chaveLogin in a.guardado, false);
   });
 
   await t('sair sem internet: o aparelho sai mesmo assim, sem erro solto', async () => {
