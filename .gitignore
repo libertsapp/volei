@@ -26,3 +26,6 @@ supabase/functions/*/backend/
 
 # Estado local do Supabase CLI (link do projeto: cont�m o ref e pode conter dados de sess�o)
 supabase/.temp/
+
+# pasta montada pelo Vercel no deploy (vercel.json: buildCommand) — nunca versionar
+publicar/

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo 'site estatico: nada para instalar'",
+  "buildCommand": "rm -rf publicar && mkdir publicar && cp volei-dashboard.html publicar/index.html && cp sw.js publicar/sw.js",
+  "outputDirectory": "publicar"
+}
