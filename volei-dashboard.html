@@ -2587,7 +2587,7 @@
             <li>Pra cada rodada que o jogador participou, o sistema olha se o time dele foi o campeão daquele dia (venceu ou não).</li>
             <li>Em vez de mostrar cada rodada isolada (o que deixaria o gráfico "serrilhado" e difícil de ler), é calculada uma <strong>média móvel das últimas 5 rodadas</strong> — ou seja, cada ponto do gráfico representa o aproveitamento considerando aquela rodada e as 4 anteriores.</li>
             <li>Isso suaviza oscilações pontuais (tipo perder um dia ruim isolado) e mostra a <strong>tendência real</strong> de forma mais confiável.</li>
-            <li>No final, o app compara o ponto de agora com o da <strong>antepenúltima rodada</strong> (comparar com o primeiro ponto era injusto: quem ganhava a estreia começava em 100%). Se melhorou, mostra <strong>"📈 Melhorando"</strong> em verde; se piorou ou ficou igual, mostra em vermelho <strong>"📉 Piorando"</strong> ou <strong>"➡️ Sem melhora"</strong>.</li>
+            <li>No final, o app compara o ponto de agora com o da <strong>antepenúltima rodada</strong> (comparar com o primeiro ponto era injusto: quem ganhava a estreia começava em 100%). Se melhorou, mostra <strong>"📈 Melhorando"</strong> em verde; se piorou, <strong>"📉 Piorando"</strong> em vermelho; se ficou igual, <strong>"➡️ Sem melhora"</strong> em cinza.</li>
           </ol>
           <p style="line-height:1.6;color:var(--muted);font-size:13px;">É preciso pelo menos 2 rodadas jogadas pra o gráfico conseguir mostrar alguma tendência.</p>
         </div>
@@ -3769,7 +3769,7 @@ async function renderMeuPerfil(){
     ` : '<div style="color:var(--muted);font-size:12px;margin-bottom:16px;">O radar aparece depois da sua primeira rodada.</div>'}
 
     <div class="profile-section-title">Evolução do aproveitamento</div>
-    <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se não.">${renderAproveitamentoChart(serie)}</div>
+    <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se piorou, cinza se ficou igual.">${renderAproveitamentoChart(serie)}</div>
 
     ${parceiros.length ? `
       <div class="profile-section-title">Jogadores que mais jogou junto</div>
@@ -5271,11 +5271,11 @@ function renderAproveitamentoChart(pontos){
   });
   // Tendência: compara o ponto de AGORA com o da ANTEPENÚLTIMA rodada (com só 2 rodadas, com a anterior). Comparar com o
   // primeiro ponto era injusto: quem ganhava a estreia começava em 100% e aparecia "Piorando" para sempre (bug real,
-  // 2026-10). Verde só quando melhorou; piorou ou ficou igual é vermelho.
+  // 2026-10). Verde se melhorou, vermelho se piorou, cinza neutro se ficou igual.
   const base = pontos[Math.max(0, pontos.length - 3)].pct, ultimo = pontos[pontos.length-1].pct;
   const rotuloBase = pontos.length >= 3 ? 'antepenúltima rodada' : 'rodada anterior';
   const diff = ultimo - base;
-  const cor = diff > 0 ? '#5fd68a' : 'var(--danger)';
+  const cor = diff > 0 ? '#5fd68a' : (diff < 0 ? 'var(--danger)' : 'var(--muted)');
   const textoTendencia = diff > 0 ? `📈 Melhorando (+${diff} pontos)` : (diff < 0 ? `📉 Piorando (${diff} pontos)` : `➡️ Sem melhora (igual à ${rotuloBase})`);
   const pathPoints = coords.map(c=>c.join(',')).join(' ');
   return `
@@ -5313,7 +5313,7 @@ function openPlayerProfile(id){
         <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></div></div>
       </div>
       <div class="profile-section-title">Evolução do aproveitamento</div>
-      <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se não.">${renderAproveitamentoChart(serieAproveitamento)}</div>
+      <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se piorou, cinza se ficou igual.">${renderAproveitamentoChart(serieAproveitamento)}</div>
       ${parceiros.length ? `
         <div class="profile-section-title">Jogadores que mais jogou junto</div>
         ${parceiros.map(par=>{

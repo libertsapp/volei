@@ -1,6 +1,6 @@
 // Tendência do gráfico "Evolução do aproveitamento" (perfil): compara o ponto de AGORA com o da ANTEPENÚLTIMA rodada,
 // não com o primeiro ponto — quem ganhou a estreia começava em 100% e aparecia "Piorando" para sempre (bug real, 2026-10).
-// Verde se melhorou; vermelho em qualquer outro caso. Extrai o código do HTML.
+// Verde se melhorou, vermelho se piorou, cinza neutro se ficou igual. Extrai o código do HTML.
 // Rodar: node tests/aproveitamento-tendencia.test.js   (HTML_ARQUIVO=<caminho> roda contra outra página, ex. o Meme)
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -13,6 +13,7 @@ const render = new Function(`${codigo}; return renderAproveitamentoChart;`)();
 
 const VERDE = '#5fd68a';
 const VERMELHO = 'var(--danger)';
+const NEUTRO = 'var(--muted)';
 const grafico = (pcts) => render(pcts.map((pct, i) => ({ data: '2026-0' + (1 + (i % 9)) + '-01', pct })));
 const corDaLinha = (saida) => (saida.match(/<polyline[^>]*stroke="([^"]+)"/) || [])[1];
 
@@ -29,11 +30,12 @@ assert.match(s, /📉 Piorando \(-40 pontos\)/);        // 80 -> 40
 assert.match(s, /de 80% \(antepenúltima rodada\) pra 40% \(agora\)/);
 assert.equal(corDaLinha(s), VERMELHO);
 
-// igual à antepenúltima: não melhorou, então vermelho
+// igual à antepenúltima: "Sem melhora" numa cor neutra (nem verde nem vermelho)
 s = grafico([100, 40, 40, 40]);
 assert.match(s, /Sem melhora/);
 assert.doesNotMatch(s, /Melhorando|Piorando/);
-assert.equal(corDaLinha(s), VERMELHO);
+assert.equal(corDaLinha(s), NEUTRO);
+assert.ok(s.includes('color:' + NEUTRO + ';font-weight:700'), 'o texto "Sem melhora" também deve ser neutro');
 
 // qualquer melhora conta (não existe mais a faixa de ±5 pontos)
 s = grafico([40, 50, 43]);
