@@ -2616,7 +2616,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6307,6 +6307,27 @@ function computeUltimaParticipacao(){
   return ultimaVez;
 }
 
+// Paneleiro (🍳) e Mochila (🎒) são opostos: a mesma pessoa não pode ficar com os dois. Quem cairia nos dois top N fica
+// com o emblema em que tem MAIS vezes (empate: onde está mais bem colocado; empate de novo: Paneleiro) e a vaga do outro
+// passa para o próximo daquela lista — repetindo até não sobrar ninguém com os dois (o promovido pode ter o mesmo
+// conflito). Quem só estaria em UMA das listas não é afetado. Testada em tests/emblemas-paneleiro-mochila.test.js.
+function escolherPaneleiroEMochila(contagensPanela, contagensMochila, quantos){
+  const ranking = (contagens)=> Object.entries(contagens).sort((a,b)=> b[1]-a[1]).map(([pid])=>pid);
+  const rankPanela = ranking(contagensPanela), rankMochila = ranking(contagensMochila);
+  const foraPanela = new Set(), foraMochila = new Set();
+  const topo = (rank, fora)=> rank.filter(pid=> !fora.has(pid)).slice(0, quantos);
+  for(;;){
+    const panela = topo(rankPanela, foraPanela), mochila = topo(rankMochila, foraMochila);
+    const nosDois = panela.filter(pid=> mochila.includes(pid));
+    if(nosDois.length === 0) return { paneleiro: new Set(panela), mochila: new Set(mochila) };
+    nosDois.forEach(pid=>{
+      const vezesPanela = contagensPanela[pid], vezesMochila = contagensMochila[pid];
+      const ficaComPanela = vezesPanela !== vezesMochila ? vezesPanela > vezesMochila : panela.indexOf(pid) <= mochila.indexOf(pid);
+      (ficaComPanela ? foraMochila : foraPanela).add(pid);
+    });
+  }
+}
+
 function computeBadges(){
   const anoAtual = new Date().getFullYear().toString();
 
@@ -6320,9 +6341,6 @@ function computeBadges(){
   computeAllPanelaEntries(anoAtual).filter(p=>p.diff>0).forEach(p=>{
     p.playerIds.forEach(pid=> paneleiroCounts[pid] = (paneleiroCounts[pid]||0) + 1);
   });
-  const paneleiro = new Set(
-    Object.entries(paneleiroCounts).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
-  );
 
   // CARREGADOR DE MOCHILA — o inverso do Paneleiro: os 3 jogadores com nota ACIMA de 3
   // (não faz sentido "prejudicar" quem já não é tão bem avaliado) que mais vezes caíram
@@ -6338,9 +6356,8 @@ function computeBadges(){
     });
     return counts;
   }
-  const mochila = new Set(
-    Object.entries(computeMochilaCounts()).sort((a,b)=> b[1]-a[1]).slice(0,3).map(([pid])=>pid)
-  );
+  // os 3 de cada, sem ninguém com os dois (ver escolherPaneleiroEMochila)
+  const { paneleiro, mochila } = escolherPaneleiroEMochila(paneleiroCounts, computeMochilaCounts(), 3);
 
 
   // GRUDENTO — os dois jogadores da dupla #1 do ranking "Duplas mais sorteadas juntas" NO ANO CORRENTE
