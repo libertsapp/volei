@@ -1894,6 +1894,7 @@
       <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Ver a lista é livre pra todo mundo — pra confirmar presença é só entrar com sua conta Google, sem senha. Só funciona quando o admin/organizador abre o check-in pra uma data.</p>
 
       <div id="checkin-status"></div>
+      <div id="checkin-jogos-abas"></div>
 
       <div class="checkin-admin-controls" id="checkin-admin-controls" style="display:none;">
         <div class="checkin-admin-row">
@@ -1905,19 +1906,13 @@
             <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
             <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
             <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+            <button class="btn secondary cheio" id="add-jogo2-btn" style="display:none;">➕ Adicionar 2º jogo neste dia</button>
           </div>
         </div>
         <details class="checkin-admin-ajustes">
           <summary><span class="linha-titulo">⚙️ Ajustes do check-in</span></summary>
           <div class="checkin-admin-ajustes-body">
-            <div class="checkin-admin-field">
-              <label for="checkin-admin-vagas">Vagas</label>
-              <input type="number" id="checkin-admin-vagas" min="1">
-            </div>
-            <div class="checkin-admin-field">
-              <label for="checkin-admin-horario">Horário</label>
-              <input type="time" id="checkin-admin-horario">
-            </div>
+            <div id="jogos-ajustes-corpo"></div>
             <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
           </div>
         </details>
@@ -2741,7 +2736,8 @@
 <script>
 let DATA = { players: [], removidos: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
-let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
+let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO, checkinJogo2: null };
+let JOGO_ATIVO = 1; // 1 ou 2 — a aba do check-in; reaproveitado como "chave do financeiro" quando o dia é separado
 // Controle Financeiro: espelho do que o backend devolve em "financeiro" (formato no plano). Nunca é editado à mão:
 // cada ação devolve o estado completo e ele é substituído inteiro em finPost().
 let FINANCEIRO = finNormalizar(null);
@@ -2793,7 +2789,10 @@ const PERMISSOES_UI = {
   aplicarCreditosDoDia:['organizador','admin'],
   devolverCredito:     ['admin'],                   // devolver o DINHEIRO de um crédito é do admin
   addLancamento:       ['organizador','admin'],
-  estornarLancamento:  ['admin']
+  estornarLancamento:  ['admin'],
+  moverCheckin:       ['organizador','admin'],
+  salvarJogo2:        ['organizador','admin'],
+  removerJogo2:       ['organizador','admin']
 };
 
 // <financeiro-puro>
@@ -3191,6 +3190,19 @@ function fechamentoDoDia(settings, checkins, fin, data) {
     'Obrigado (a), time! Que venham os próximos jogos! 🏐🙏🏻');
   return linhas.join('\n');
 }
+// HTML das abas (uma por jogo); vazio quando há só 1 jogo (nada aparece na tela, como hoje)
+function jogosAbasHtml(settings, checkins, data, jogoAtivo, auth) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  if (jogos.length < 2) return '';
+  return '<div class="jogos-abas" role="tablist" aria-label="Jogos do dia">' + jogos.map((j) => {
+    const { dentro, reserva } = dentroEReservaDoJogo(checkins, data, j.numero, j.vagas);
+    const eu = auth && auth.logado && estaNoJogo(checkins, data, j.numero, auth.jogadorId);
+    return '<button type="button" class="jogo-aba ' + (j.numero === jogoAtivo ? 'ativa' : '') + '" role="tab" aria-selected="' + (j.numero === jogoAtivo) + '" data-jogo-aba="' + j.numero + '">'
+      + '<span class="jogo-aba-rot">' + j.numero + 'º jogo</span><span class="jogo-aba-hora">' + j.horario + '</span>'
+      + '<span class="jogo-aba-sub">' + dentro.length + '/' + j.vagas + (reserva.length ? ' · ' + reserva.length + ' na reserva' : '') + (j.travado ? ' · 🔒' : '') + '</span>'
+      + (eu ? '<span class="jogo-aba-eu">você ✅</span>' : '') + '</button>';
+  }).join('') + '</div>';
+}
 // </dois-jogos-puro>
 
 /* ==========================================================
@@ -3282,6 +3294,7 @@ function aplicarDados(json){
   CHECKINS = json.checkins || [];
   FINANCEIRO = finNormalizar(json.financeiro);
   reconstituirConvidadosDosCheckins();
+  JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
 // cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
 // não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
@@ -7537,11 +7550,120 @@ function exigirLoginParaCheckin(){
   return false;
 }
 
+// linha de horário+vagas de UM jogo dentro de "⚙️ Ajustes do check-in"; com 2 jogos, cada um ganha o botão 🗑
+function jogoAjusteHtml(j, total){
+  return `<div class="jogo-cfg ${total > 1 ? 'novo' : ''}">
+    ${total > 1 ? `<div class="jogo-cfg-tit">${j.numero}º jogo</div>` : ''}
+    <div class="checkin-admin-field"><label for="jogo-horario-${j.numero}">Horário</label><input type="time" id="jogo-horario-${j.numero}" data-jogo-ajuste="horario" data-jogo="${j.numero}" value="${j.horario}"></div>
+    <div class="checkin-admin-field"><label for="jogo-vagas-${j.numero}">Vagas</label><input type="number" id="jogo-vagas-${j.numero}" data-jogo-ajuste="vagas" data-jogo="${j.numero}" min="1" value="${j.vagas}"></div>
+    ${total > 1 ? `<button type="button" class="btn danger" data-jogo-remover="${j.numero}" title="Remover este jogo" aria-label="Remover o jogo das ${j.horario}">🗑</button>` : '<span></span>'}
+  </div>`;
+}
+function renderJogosAjustes(){
+  const cont = document.getElementById('jogos-ajustes-corpo');
+  if(!cont) return;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta);
+  cont.innerHTML = jogos.map(j => jogoAjusteHtml(j, jogos.length)).join('');
+}
+function renderJogosAbas(){
+  const cont = document.getElementById('checkin-jogos-abas');
+  if(!cont) return;
+  cont.innerHTML = jogosAbasHtml(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta, JOGO_ATIVO, AUTH);
+}
+document.getElementById('checkin-jogos-abas').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-jogo-aba]');
+  if(!b) return;
+  JOGO_ATIVO = Number(b.dataset.jogoAba);
+  renderCheckinStatus();
+  renderCheckinList();
+});
+document.getElementById('jogos-ajustes-corpo').addEventListener('change', async (e)=>{
+  const campo = e.target.dataset.jogoAjuste;
+  if(!campo) return;
+  const jogo = Number(e.target.dataset.jogo);
+  const cred = await requireAuth(jogo === 2 ? 'salvarJogo2' : 'saveCheckinSettings');
+  if(!cred){ renderJogosAjustes(); return; }
+  if(jogo === 1){
+    const anterior = { h: SETTINGS.checkinHorario, v: SETTINGS.checkinVagas };
+    if(campo === 'horario') SETTINGS.checkinHorario = e.target.value || anterior.h;
+    else SETTINGS.checkinVagas = parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : anterior.v;
+    const ok = await postAction('saveCheckinSettings', { settings: SETTINGS }, cred);
+    if(!ok){ SETTINGS.checkinHorario = anterior.h; SETTINGS.checkinVagas = anterior.v; }
+  } else {
+    const j2 = Object.assign({}, SETTINGS.checkinJogo2);
+    if(campo === 'horario') j2.horario = e.target.value || j2.horario;
+    else j2.vagas = parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : j2.vagas;
+    const ok = await postAction('salvarJogo2', { jogo2: { data: SETTINGS.checkinDataAberta, horario: j2.horario, vagas: j2.vagas, travado: j2.travado } }, cred);
+    if(ok) SETTINGS.checkinJogo2 = j2;
+  }
+  renderCheckinStatus();
+  renderCheckinList();
+});
+document.getElementById('jogos-ajustes-corpo').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-jogo-remover]');
+  if(b) abrirModalRemoverJogo(Number(b.dataset.jogoRemover));
+});
+
+// modal "➕ Adicionar 2º jogo" (sugere +2h do 1º jogo, até 23h, e as mesmas vagas)
+function abrirModalAdicionarJogo2(){
+  const [h, m] = (SETTINGS.checkinHorario || '20:00').split(':').map(Number);
+  const sugestao = String(Math.min(23, (h || 0) + 2)).padStart(2, '0') + ':' + String(m || 0).padStart(2, '0');
+  finAbrirModal('➕ 2º jogo em ' + formatDate(SETTINGS.checkinDataAberta), `
+    <label class="fin-campo">Horário<input type="time" id="j2-horario" value="${sugestao}"></label>
+    <label class="fin-campo">Vagas<input type="number" id="j2-vagas" min="1" value="${SETTINGS.checkinVagas || 16}"></label>`,
+    async (ov)=>{
+      const horario = ov.querySelector('#j2-horario').value;
+      const vagas = parseInt(ov.querySelector('#j2-vagas').value, 10) || (SETTINGS.checkinVagas || 16);
+      if(!horario){ alert('Escolha o horário.'); return false; }
+      if(!(await finPost('salvarJogo2', { jogo2: { data: SETTINGS.checkinDataAberta, horario, vagas, travado: false } }))) return false;
+      SETTINGS.checkinJogo2 = { data: SETTINGS.checkinDataAberta, horario, vagas, travado: false };
+      JOGO_ATIVO = 2;
+      renderCheckinStatus();
+      renderCheckinList();
+      mostrarToast('2º jogo criado às ' + horario + '. A aba dele já está aberta.', 'sucesso');
+      return true;
+    }, 'Adicionar jogo');
+}
+document.getElementById('add-jogo2-btn').addEventListener('click', abrirModalAdicionarJogo2);
+
+// modal de remover um jogo: se tem gente na lista, pergunta mover (fim da fila do outro) ou desconfirmar;
+// remover o jogo 1 reaproveita a MESMA ação com manter:2 ("trocar os papéis" — o servidor explica em backend/jogos2.js)
+function abrirModalRemoverJogo(jogo){
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const alvo = jogos.find(j => j.numero === jogo);
+  const outro = jogos.find(j => j.numero !== jogo);
+  if(!alvo || !outro) return;
+  const n = checkinsDoJogo(CHECKINS, data, jogo).length;
+  const corpo = n
+    ? `<p>O jogo das <strong>${alvo.horario}</strong> tem ${n} nome(s) na lista. O que fazer com eles?</p>
+       <label class="fin-opcao" style="margin-bottom:8px;"><input type="radio" name="j2-dest" value="mover" checked><span><strong>Mover para o jogo das ${outro.horario}</strong><br><small>Entram no fim da fila, na mesma ordem em que estavam.</small></span></label>
+       <label class="fin-opcao"><input type="radio" name="j2-dest" value="desconfirmar"><span><strong>Desconfirmar todos</strong></span></label>`
+    : `<p>Remover o jogo das <strong>${alvo.horario}</strong>? Ele não tem ninguém na lista.</p>`;
+  finAbrirModal('Remover o jogo das ' + alvo.horario + '?', corpo, async (ov)=>{
+    const destino = n ? ov.querySelector('input[name="j2-dest"]:checked').value : 'mover';
+    const payload = { data, destino };
+    if(jogo === 1) payload.manter = 2;
+    if(!(await finPost('removerJogo2', payload))) return false;
+    if(jogo === 1){ SETTINGS.checkinHorario = outro.horario; SETTINGS.checkinVagas = outro.vagas; SETTINGS.checkinTravado = outro.travado; }
+    SETTINGS.checkinJogo2 = null;
+    JOGO_ATIVO = 1;
+    renderCheckinStatus();
+    renderCheckinList();
+    mostrarToast('Jogo das ' + alvo.horario + ' removido. O dia voltou a ter 1 jogo.', 'sucesso');
+    return true;
+  }, 'Remover jogo');
+}
+
 function renderCheckinStatus(){
   const statusEl = document.getElementById('checkin-status');
   const data = SETTINGS.checkinDataAberta;
   const travado = SETTINGS.checkinTravado;
   const vagas = SETTINGS.checkinVagas || 16;
+  renderJogosAbas();
+  renderJogosAjustes();
+  const addJogo2Btn = document.getElementById('add-jogo2-btn');
+  if(addJogo2Btn) addJogo2Btn.style.display = (data && jogosDoDia(SETTINGS, CHECKINS, data).length === 1) ? 'inline-block' : 'none';
   statusEl.innerHTML = data
     ? `<div class="checkin-open-badge">✅ Check-in aberto para <strong>${formatDate(data)}</strong> às <strong>${SETTINGS.checkinHorario || '20:00'}</strong> — ${vagas} vaga(s)${travado ? ' — <strong>lista travada</strong>, sem novas confirmações' : ' — pode confirmar presença!'}</div>`
     : `<div class="checkin-closed-badge">🔒 Check-in fechado no momento. Aguarde o admin abrir pra próxima rodada.</div>`;
@@ -7550,10 +7672,6 @@ function renderCheckinStatus(){
   if(adminDateInput && !adminDateInput.value){
     adminDateInput.value = data || new Date().toISOString().slice(0,10);
   }
-  const adminVagasInput = document.getElementById('checkin-admin-vagas');
-  if(adminVagasInput && document.activeElement !== adminVagasInput) adminVagasInput.value = vagas;
-  const adminHorarioInput = document.getElementById('checkin-admin-horario');
-  if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
   if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar lista' : '🔒 Travar lista';
   // só aparece o botão que faz sentido no estado atual: fechado → só "Abrir"; aberto → "Travar" e "Fechar",
@@ -7605,28 +7723,6 @@ document.getElementById('toggle-checkin-lock-btn').addEventListener('click', asy
   renderCheckinList();
   const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
-});
-
-document.getElementById('checkin-admin-vagas').addEventListener('change', async (e)=>{
-  const cred = await requireAuth('saveCheckinSettings');
-  if(!cred){ e.target.value = SETTINGS.checkinVagas || 16; return; }
-  const anterior = SETTINGS.checkinVagas;
-  const nova = parseInt(e.target.value, 10);
-  SETTINGS.checkinVagas = (nova > 0) ? nova : 16;
-  renderCheckinStatus();
-  renderCheckinList();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinVagas = anterior; renderCheckinStatus(); renderCheckinList(); }
-});
-
-document.getElementById('checkin-admin-horario').addEventListener('change', async (e)=>{
-  const cred = await requireAuth('saveCheckinSettings');
-  if(!cred){ e.target.value = SETTINGS.checkinHorario || '20:00'; return; }
-  const anterior = SETTINGS.checkinHorario;
-  SETTINGS.checkinHorario = e.target.value || '20:00';
-  renderCheckinStatus();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinHorario = anterior; renderCheckinStatus(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
