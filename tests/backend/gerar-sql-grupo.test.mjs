@@ -55,8 +55,8 @@ await ta('arquivos reais: nenhum "search_path = public" nem regclass "public." s
   const nasFontes = reais.reduce((n, a) => n + conta(a.conteudo), 0);
   assert.ok(nasFontes >= 5, 'as fontes do Terça têm revoke de PUBLIC: ' + nasFontes);
   assert.ok(conta(s) >= nasFontes, 'o SQL do Meme perdeu revoke de PUBLIC');
-  // as 5 funções que fixavam public agora fixam meme
-  assert.equal((s.match(/set search_path = meme as/g) || []).length, 5);
+  // as 7 funções que fixavam meme agora fixam meme
+  assert.equal((s.match(/set search_path = meme as/g) || []).length, 7);
   // sessões do app (ajuste 8, 2026-09-30): uma instalação nova do Meme já nasce com a tabela
   assert.match(s, /create table if not exists sessoes \(/);
 });
