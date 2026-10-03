@@ -27,6 +27,7 @@ function resumo({ times, estrelasVisiveis = true, paneleiro = ['a'], mochila = [
     const formatDate = (d) => d;
     const computeBadges = () => ({ top1: new Set(), grudento: new Set(), paneleiro: new Set(ctx.paneleiro), mochila: new Set(ctx.mochila), rip: new Set(), aposentado: new Set() });
     const computeRanking = () => [];
+    ${html.slice(html.indexOf('// <rodada-dupla-puro>'), html.indexOf('// </rodada-dupla-puro>'))}
     ${pegar('function notaTotalDoTime(')}
     ${pegar('function formatarNotaTotal(')}
     ${pegar('function timesMaisFortes(')}
@@ -58,4 +59,14 @@ t = resumo({ times: doisTimes, mochila: [] });
 assert.doesNotMatch(t, /Carregadores de mochila/);
 t = resumo({ rodadas: [] });
 assert.doesNotMatch(t, /Time mais forte|Times mais fortes/);
-console.log('ok — resumo da semana (paneleiros, mochila e time mais forte)');
+// rodada dupla (dois jogos no mesmo dia): campeão de cada jogo, dobradinha e o time mais forte entre os times dos dois
+const r1 = { id: 'r1', data: '2026-10-06', rascunho: false, vencedores: [0], times: [{ nome: 'Azul', playerIds: ['a', 'c'] }, { nome: 'Verde', playerIds: ['b', 'd'] }] };   // 8 x 7
+const r2 = { id: 'r2', data: '2026-10-06', rascunho: false, vencedores: [1], times: [{ nome: 'Preto', playerIds: ['e', 'f'] }, { nome: 'Branco', playerIds: ['a', 'b'] }] }; // 5 x 9
+const rAntiga = { id: 'r0', data: '2026-09-29', rascunho: false, vencedores: [0], times: [{ nome: 'Velho', playerIds: ['c'] }] };
+t = resumo({ rodadas: [rAntiga, r1, r2] });
+assert.match(t, /🏆 \*Campeão do 1º jogo de 2026-10-06\*\nAna, Caio\n/);
+assert.match(t, /🏆 \*Campeão do 2º jogo de 2026-10-06\*\nAna, Beto\n/);
+assert.match(t, /🏆🏆 \*Dobradinha:\* Ana venceu os dois jogos\n/);
+assert.match(t, /💪 \*Time mais forte da semana\* — Branco \(2º jogo\) \(★ 9\)\nAna, Beto\n/);
+assert.doesNotMatch(t, /Velho/); // o dia anterior não entra
+console.log('ok — resumo da semana (paneleiros, mochila, time mais forte e rodada dupla)');
