@@ -3039,6 +3039,159 @@ function finResumoFechamento(fin, data){
   ].join('\n');
 }
 // </financeiro-puro>
+// <dois-jogos-puro>
+/* Dois jogos no mesmo dia (2026-10-03). PURO: não lê DATA, DOM nem rede. Reaproveita <financeiro-puro> SEM mudá-lo:
+   "chave de cobrança" é null (o dia inteiro, modo único — o padrão) ou 1/2 (um jogo, modo separado). Para qualquer
+   chave, finViewDaChave() monta um "fin" do mesmo formato que <financeiro-puro> já entende, e as funções de lá
+   (finPagamentoDe, finPendentes, finMarcas...) são chamadas sem alteração nenhuma. Testado em tests/dois-jogos.test.js. */
+
+// jogos que existem na data: 1 sempre; 2 só se checkinJogo2 bate com a data, OU (órfão: app antigo/corrida) se
+// já existe check-in com jogo=2 nessa data mesmo sem config — nesse caso ninguém some da tela
+function jogosDoDia(settings, checkins, data) {
+  const jogos = [{ numero: 1, horario: settings.checkinHorario || '20:00', vagas: settings.checkinVagas || 16, travado: !!settings.checkinTravado }];
+  const j2cfg = settings.checkinJogo2 && settings.checkinJogo2.data === data ? settings.checkinJogo2 : null;
+  const orfao = !j2cfg && checkins.some((c) => c.data === data && (Number(c.jogo) || 1) === 2);
+  if (j2cfg) jogos.push({ numero: 2, horario: j2cfg.horario || '21:00', vagas: j2cfg.vagas || 16, travado: !!j2cfg.travado });
+  else if (orfao) jogos.push({ numero: 2, horario: jogos[0].horario, vagas: jogos[0].vagas, travado: false });
+  return jogos.slice().sort((a, b) => a.horario.localeCompare(b.horario));
+}
+function checkinsDoJogo(checkins, data, jogo) {
+  return checkins.filter((c) => c.data === data && (Number(c.jogo) || 1) === jogo);
+}
+function dentroEReservaDoJogo(checkins, data, jogo, vagas) {
+  const lista = checkinsDoJogo(checkins, data, jogo);
+  return { dentro: lista.slice(0, vagas), reserva: lista.slice(vagas) };
+}
+function estaNoJogo(checkins, data, jogo, jogadorId) {
+  return checkins.some((c) => c.data === data && (Number(c.jogo) || 1) === jogo && c.jogadorId === jogadorId);
+}
+function vagasLivresDoJogo(checkins, data, jogo, vagas) {
+  return Math.max(0, vagas - checkinsDoJogo(checkins, data, jogo).length);
+}
+// confirmados "pela chave": null = união de quem está confirmado, dentro das vagas, em QUALQUER jogo do dia (sem
+// repetir pessoa, na ordem em que os jogos aparecem); 1/2 = só os confirmados daquele jogo, dentro das vagas dele
+function confirmadosPelaChave(settings, checkins, data, chave) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  if (chave !== null) {
+    const j = jogos.find((x) => x.numero === chave);
+    return j ? dentroEReservaDoJogo(checkins, data, chave, j.vagas).dentro : [];
+  }
+  const vistos = new Set();
+  const out = [];
+  jogos.forEach((j) => {
+    dentroEReservaDoJogo(checkins, data, j.numero, j.vagas).dentro.forEach((c) => {
+      if (vistos.has(c.jogadorId)) return;
+      vistos.add(c.jogadorId);
+      out.push(c);
+    });
+  });
+  return out;
+}
+// a chave que vale AGORA pra essa data: null se o dia não é "separado por jogo" (mesmo com 2 jogos — um financeiro
+// só, pelo dia); o número do jogo ativo (a aba) quando é separado
+function chaveAtiva(fin, data, jogoAtivo) {
+  const dia = (fin.dias || []).find((d) => d.data === data);
+  return dia && dia.porJogo ? jogoAtivo : null;
+}
+// configuração (mesmo formato de um item de fin.dias) de uma chave: 2 vem de fin.jogos; null/1 vem de fin.dias
+function cfgFinDaChave(fin, data, chave) {
+  if (chave === 2) return (fin.jogos || []).find((j) => j.data === data && j.jogo === 2) || null;
+  return (fin.dias || []).find((d) => d.data === data) || null;
+}
+// "visão" no formato que <financeiro-puro> entende, só com o que pertence a essa chave — assim finPagamentoDe,
+// finPendentes, finMarcas etc. funcionam SEM MUDAR NADA nelas, só recebendo isto no lugar de FINANCEIRO
+function finViewDaChave(fin, data, chave) {
+  const cfg = cfgFinDaChave(fin, data, chave);
+  return {
+    dias: cfg ? [cfg] : [],
+    pagamentos: (fin.pagamentos || []).filter((p) => p.data === data && (chave === null ? p.jogo == null : p.jogo === chave)),
+    lancamentos: [],
+    creditos: (fin.creditos || []).filter((c) => c.dataOrigem === data && (chave === null ? c.jogoOrigem == null : c.jogoOrigem === chave))
+  };
+}
+// a configuração "do dia inteiro" pra quem só quer o CAIXA (soma as 2 quadras/brindes dos jogos que não estão sem
+// jogo; "sem jogo" global só quando os 2 estão sem jogo). Usada só pelo caixa — nunca pra cobrar ninguém.
+function finDiaMesclado(fin, data) {
+  const base = finDia(fin, data);
+  const jogo2 = (fin.jogos || []).find((j) => j.data === data && j.jogo === 2);
+  if (!jogo2) return base;
+  const normal1 = base && base.status !== 'semjogo';
+  const normal2 = jogo2.status !== 'semjogo';
+  const quadra = (normal1 ? (base.valorQuadra || 0) : 0) + (normal2 ? (jogo2.valorQuadra || 0) : 0);
+  const brinde = (normal1 && base.temBrinde ? (base.valorBrinde || 0) : 0) + (normal2 && jogo2.temBrinde ? (jogo2.valorBrinde || 0) : 0);
+  return { data, valorPessoa: base ? base.valorPessoa : 0, pix: base ? base.pix : '', valorQuadra: quadra,
+    temBrinde: true, valorBrinde: brinde, icone: base ? base.icone : '✅', status: (!normal1 && !normal2) ? 'semjogo' : '' };
+}
+// um "fin" com os dias de 2 jogos trocados pela versão mesclada — passar isto (no lugar de FINANCEIRO) pra
+// finCaixa/finDatas/finResultadoDia/finSaidaDia/finCaixaAte/finResumoFechamento continuarem corretos sem mudar nelas
+function finVisaoCaixa(fin) {
+  const datas = new Set((fin.jogos || []).map((j) => j.data));
+  if (!datas.size) return fin;
+  const dias = (fin.dias || []).map((d) => (datas.has(d.data) ? finDiaMesclado(fin, d.data) : d));
+  datas.forEach((data) => { if (!dias.some((d) => d.data === data)) dias.push(finDiaMesclado(fin, data)); });
+  return Object.assign({}, fin, { dias });
+}
+// linhas de valor/PIX + as listas numeradas (confirmados/reserva) de 1 ou 2 jogos, prontas pra colar depois do texto
+// de abertura (que continua vindo de preencherMensagemCheckin, no app — ver <lista-whatsapp-puro>/montarTextoCheckinsWhatsApp)
+function corpoWhatsAppDoDia(settings, checkins, fin, data) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  const porJogo = !!((fin.dias || []).find((d) => d.data === data) || {}).porJogo;
+  let t = '';
+  if (!porJogo) t += finCabecalhoWhatsApp(finViewDaChave(fin, data, null), data);
+  jogos.forEach((j) => {
+    const chave = porJogo ? j.numero : null;
+    const view = finViewDaChave(fin, data, chave);
+    if (jogos.length > 1) t += '🏐 *JOGO DAS ' + j.horario + '* (' + j.vagas + ' vagas)\n';
+    if (porJogo) t += finCabecalhoWhatsApp(view, data);
+    const { dentro, reserva } = dentroEReservaDoJogo(checkins, data, j.numero, j.vagas);
+    dentro.forEach((c, i) => {
+      const marcas = finMarcas(view, data, c.jogadorId);
+      const credito = finRotuloCredito(view, data, c.jogadorId) ? ' (Crédito)' : '';
+      t += (i + 1) + '- ' + (c.jogadorNome || 'Convidado') + (marcas ? ' ' + marcas : '') + credito + '\n';
+    });
+    if (reserva.length) {
+      t += '\nEspera:\n\n';
+      reserva.forEach((c, i) => { t += (i + 1) + '- ' + (c.jogadorNome || 'Convidado') + '\n'; });
+    }
+    t += '\n';
+  });
+  return t;
+}
+// Fechamento (texto pra colar no grupo): único reaproveita finResumoFechamento de <financeiro-puro> sem mudar nada
+// (a visão mesclada já resolve a quadra/brinde somados); separado monta um bloco por jogo.
+function fechamentoDoDia(settings, checkins, fin, data) {
+  const dia = (fin.dias || []).find((d) => d.data === data);
+  if (!dia || !dia.porJogo) return finResumoFechamento(finVisaoCaixa(fin), data);
+  const jogos = jogosDoDia(settings, checkins, data);
+  const money = (c) => finFormatar(c);
+  const linhas = ['🏐 FECHAMENTO VÔLEI', '📅 ' + finDataCurtaComDia(data) + ' · ' + jogos.length + ' jogos', ''];
+  let recebidoTotal = 0, despesasTotal = 0;
+  jogos.forEach((j) => {
+    const view = finViewDaChave(fin, data, j.numero);
+    const cfg = cfgFinDaChave(fin, data, j.numero);
+    const pagos = finPagamentosRecentesPrimeiro(finPagamentosValidos(view, data)).reverse();
+    linhas.push('⏰ JOGO DAS ' + j.horario + (finSemJogo(cfg) ? ' — 🌧️ SEM JOGO' : ''));
+    linhas.push('📋 Lista: ' + (pagos.length ? pagos.map((p) => p.jogadorNome || 'Convidado').join(', ') + '.' : '—'));
+    if (finSemJogo(cfg)) {
+      const dinheiro = pagos.filter((p) => finTipoPagamento(p) === 'dinheiro');
+      if (dinheiro.length) linhas.push('💳 ' + dinheiro.length + ' pagamento(s) guardado(s) como crédito.');
+    } else if (cfg) {
+      const dinheiro = pagos.filter((p) => finTipoPagamento(p) === 'dinheiro');
+      const recebido = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+      const despesa = finCentavos(cfg.valorQuadra) + (cfg.temBrinde ? finCentavos(cfg.valorBrinde) : 0);
+      linhas.push('💰 Recebido: ' + money(recebido), '💸 Quadra' + (cfg.temBrinde ? '+brinde' : '') + ': ' + money(despesa));
+      recebidoTotal += recebido; despesasTotal += despesa;
+    }
+    linhas.push('');
+  });
+  const anterior = finCaixaAte(finVisaoCaixa(fin), data, false);
+  linhas.push('📊 Resumo do dia (os ' + jogos.length + ' jogos):',
+    '* Saldo anterior: ' + money(anterior), '* Total recebido: ' + money(recebidoTotal), '* Total de despesas: ' + money(despesasTotal), '',
+    '✅ Saldo atual em caixa: ' + money(anterior + recebidoTotal - despesasTotal), '',
+    'Obrigado (a), time! Que venham os próximos jogos! 🏐🙏🏻');
+  return linhas.join('\n');
+}
+// </dois-jogos-puro>
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
