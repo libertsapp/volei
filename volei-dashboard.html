@@ -8809,9 +8809,12 @@ function dataCurta(iso){
 }
 
 // troca {diaSemana} {data} {horario} {vagas} pelos valores de verdade da data aberta
+// troca {diaSemana} {data} {horario} {vagas} pelos valores de verdade; com 2 jogos, {horario} vira "19:00 e 21:00"
+// e {vagas} vira "16 + 12"
 function preencherMensagemCheckin(template, data){
-  const vagas = SETTINGS.checkinVagas || 16;
-  const horario = SETTINGS.checkinHorario || '20:00';
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const horario = jogos.map(j => j.horario).join(' e ');
+  const vagas = jogos.map(j => j.vagas).join(' + ');
   return String(template || CHECKIN_MENSAGEM_PADRAO)
     .replace(/\{diaSemana\}/g, nomeDiaSemana(data))
     .replace(/\{data\}/g, dataCurta(data))
@@ -8821,23 +8824,9 @@ function preencherMensagemCheckin(template, data){
 
 function montarTextoCheckinsWhatsApp(){
   const data = SETTINGS.checkinDataAberta;
-  const { dentro, reserva } = checkinsDentroEReserva(data);
-  if(dentro.length===0 && reserva.length===0){
-    alert('Ninguém confirmou presença para essa data ainda.');
-    return '';
-  }
-  // valor e PIX do dia entram logo depois do texto de abertura (só se o dia já tem valor cadastrado)
-  let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + finCabecalhoWhatsApp(FINANCEIRO, data);
-  dentro.forEach((c,i)=>{
-    const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
-    const credito = finRotuloCredito(FINANCEIRO, data, c.jogadorId) ? ' (Crédito)' : '';   // pago com crédito de um dia sem jogo
-    texto += `${i+1}- ${c.jogadorNome || 'Convidado'}${marcas ? ' ' + marcas : ''}${credito}\n`;
-  });
-  if(reserva.length){
-    texto += `\nEspera:\n\n`;
-    reserva.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
-  }
-  return texto;
+  const temAlguem = jogosDoDia(SETTINGS, CHECKINS, data).some(j => checkinsDoJogo(CHECKINS, data, j.numero).length > 0);
+  if(!temAlguem){ alert('Ninguém confirmou presença para essa data ainda.'); return ''; }
+  return (preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + corpoWhatsAppDoDia(SETTINGS, CHECKINS, FINANCEIRO, data)).trim();
 }
 
 /* ---------- engrenagem: editar o texto de abertura da mensagem de compartilhar ---------- */
