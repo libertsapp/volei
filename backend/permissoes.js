@@ -23,6 +23,10 @@ export const PERMISSOES = {
   iniciarTransmissaoAoVivo:  ['organizador', 'admin'],
   salvarParcialAoVivo:       ['organizador', 'admin'],
   cancelarTransmissaoAoVivo: ['organizador', 'admin'],
+  // dois jogos no mesmo dia (2026-10-03)
+  moverCheckin:       ['organizador', 'admin'],
+  salvarJogo2:        ['organizador', 'admin'],
+  removerJogo2:       ['organizador', 'admin'],
   // controle financeiro
   salvarFinDia:       ['organizador', 'admin'],
   marcarPagamento:    ['organizador', 'admin'],

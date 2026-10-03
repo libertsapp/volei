@@ -11,7 +11,8 @@ import { addPlayer, updatePlayer, removePlayer, restorePlayer } from './jogadore
 import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
-import { addCheckin, removeCheckin, salvarEstrelasAjustadas } from './checkins.js';
+import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin } from './checkins.js';
+import { salvarJogo2, removerJogo2 } from './jogos2.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
   addLancamento, estornarLancamento, marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito
@@ -44,6 +45,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
     return { error: String(erro && erro.message ? erro.message : erro) };
   };
   const travar = (fn) => comTrava(deps, 'gravacao', fn);
+  // "jogo" vindo do app é 1, 2 ou ausente/null; a "chave de cobrança" do financeiro é sempre null (o dia) ou 1/2
+  const chaveDe = (b) => (b.jogo === 1 || b.jogo === 2 ? b.jogo : null);
 
   return {
     async get() {
@@ -114,16 +117,21 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
+          // dois jogos no mesmo dia (2026-10-03): b.jogo vindo do app é 1, 2 ou ausente/null — normaliza pra "chave de
+          // cobrança" (null = o dia; 1/2 = um jogo) antes de chamar o financeiro
+          case 'moverCheckin': return await travar(() => moverCheckin(deps, b, auth));
+          case 'salvarJogo2': return await travar(() => salvarJogo2(deps, b.jogo2, auth));
+          case 'removerJogo2': return await travar(() => removerJogo2(deps, b, auth));
           // controle financeiro (etapas 4a e 4b): toda gravação sob a trava 'gravacao'
           case 'salvarFinDia': return await travar(() => salvarFinDia(deps, b.dia, auth));
-          case 'marcarPagamento': return await travar(() => marcarPagamento(deps, b.data, null, b.jogadorId, b.jogadorNome, auth));
+          case 'marcarPagamento': return await travar(() => marcarPagamento(deps, b.data, chaveDe(b), b.jogadorId, b.jogadorNome, auth));
           case 'estornarPagamento': return await travar(() => estornarPagamento(deps, b.id, auth));
-          case 'marcarTodosPagamentos': return await travar(() => marcarTodosPagamentos(deps, b.data, null, auth));
-          case 'estornarTodosPagamentos': return await travar(() => estornarTodosPagamentos(deps, b.data, null, auth));
+          case 'marcarTodosPagamentos': return await travar(() => marcarTodosPagamentos(deps, b.data, chaveDe(b), auth));
+          case 'estornarTodosPagamentos': return await travar(() => estornarTodosPagamentos(deps, b.data, chaveDe(b), auth));
           case 'addLancamento': return await travar(() => addLancamento(deps, b.lancamento, auth));
           case 'estornarLancamento': return await travar(() => estornarLancamento(deps, b.id, auth));
-          case 'marcarDiaSemJogo': return await travar(() => marcarDiaSemJogo(deps, b.data, null, b.destino, auth));
-          case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, null, auth));
+          case 'marcarDiaSemJogo': return await travar(() => marcarDiaSemJogo(deps, b.data, chaveDe(b), b.destino, auth));
+          case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, chaveDe(b), auth));
           case 'aplicarCreditosDoDia': return await travar(() => aplicarCreditosDoDia(deps, b.data, auth));
           case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
           // Ao Vivo (etapa 5): o .gs segurava a trava nas três
