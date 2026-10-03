@@ -3,10 +3,12 @@
 // gravar_rodada / remover_rodada (mesma regra: valida as chaves estrangeiras antes de mexer e substitui a rodada).
 export const TABELAS = [
   'jogadores', 'rodadas', 'times_rodada', 'time_jogadores', 'checkins', 'config', 'usuarios',
-  'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos', 'fin_log', 'ao_vivo', 'ao_vivo_log'
+  'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos', 'fin_log', 'fin_jogos', 'ao_vivo', 'ao_vivo_log'
 ];
 
 const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos'];
+
+const porOrdemLocal = (a, b) => { const x = a.ordem ?? Infinity, y = b.ordem ?? Infinity; return x === y ? 0 : (x < y ? -1 : 1); };
 
 // opcoes.agora: relógio da trava em milissegundos (padrão Date.now); os testes injetam um relógio falso para ser determinístico
 export function criarRepoMemoria(dados = {}, opcoes = {}) {
@@ -155,6 +157,47 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
         throw new Error('fin_creditos: duplicate key value violates unique constraint "fin_creditos_pkey"');
       }
       inserir('fin_creditos', { status: 'ativo', ...linha });
+    },
+
+    // fin_jogos: upsert por (data, jogo); numa atualização só os campos enviados mudam (igual a gravarFinDia)
+    async gravarFinJogo(linha) {
+      const i = tabelas.fin_jogos.findIndex((j) => j.data === linha.data && j.jogo === linha.jogo);
+      if (i === -1) tabelas.fin_jogos.push({ status: 'normal', ...linha });
+      else tabelas.fin_jogos[i] = { ...tabelas.fin_jogos[i], ...linha };
+    },
+    async definirStatusFinJogo(data, jogo, status) {
+      const i = tabelas.fin_jogos.findIndex((j) => j.data === data && j.jogo === jogo);
+      if (i === -1) return false;
+      tabelas.fin_jogos[i] = { ...tabelas.fin_jogos[i], status };
+      return true;
+    },
+    // botão ⇄: move pro fim da fila do destino; false se o check-in não existe ou se a pessoa já está lá
+    async moverCheckinDeJogo(id, paraJogo) {
+      const c = tabelas.checkins.find((x) => x.id === id);
+      if (!c) return false;
+      if (c.jogador_id != null && tabelas.checkins.some((x) => x.data === c.data && x.jogo === paraJogo && x.jogador_id === c.jogador_id)) return false;
+      const proximaOrdem = tabelas.checkins.reduce((m, x) => (x.data === c.data && x.jogo === paraJogo ? Math.max(m, x.ordem ?? 0) : m), 0) + 1;
+      c.jogo = paraJogo;
+      c.ordem = proximaOrdem;
+      return true;
+    },
+    // remover o 2º jogo (destino: mover): descarta quem já está no 1º, move o resto pro fim, na ordem de chegada
+    async moverJogo2ParaJogo1(data) {
+      const doJogo1 = new Set(tabelas.checkins.filter((c) => c.data === data && c.jogo === 1).map((c) => c.jogador_id));
+      const doJogo2 = tabelas.checkins.filter((c) => c.data === data && c.jogo === 2).sort(porOrdemLocal);
+      let proximaOrdem = tabelas.checkins.reduce((m, x) => (x.data === data && x.jogo === 1 ? Math.max(m, x.ordem ?? 0) : m), 0);
+      let movidos = 0;
+      for (const c of doJogo2) {
+        if (c.jogador_id != null && doJogo1.has(c.jogador_id)) {
+          tabelas.checkins = tabelas.checkins.filter((x) => x !== c);
+          continue;
+        }
+        proximaOrdem += 1;
+        c.jogo = 1;
+        c.ordem = proximaOrdem;
+        movidos += 1;
+      }
+      return movidos;
     },
 
     // ---- trava de gravação (etapa 4b). Mesma regra da função pegar_trava do Postgres: só toma se não existe, se o aluguel
