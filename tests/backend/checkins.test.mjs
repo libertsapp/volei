@@ -12,7 +12,7 @@ await ta('addCheckin: entra no fim, com padrões (nome vazio, estrelas 0, sexo v
   const d = deps();
   assert.deepEqual(await addCheckin(d, { id: 'c9', data: '2026-09-29', jogadorId: 'p1' }), { status: 'ok' });
   assert.deepEqual((await lista(d)).map((c) => c.id), ['c1', 'c2', 'c3', 'c9']);
-  assert.deepEqual((await lista(d)).at(-1), { id: 'c9', data: '2026-09-29', jogadorId: 'p1', jogadorNome: '', estrelas: 0, sexo: '', estrelasAjustadas: '' });
+  assert.deepEqual((await lista(d)).at(-1), { id: 'c9', data: '2026-09-29', jogadorId: 'p1', jogadorNome: '', estrelas: 0, sexo: '', estrelasAjustadas: '', jogo: 1 });
 });
 
 await ta('addCheckin: o mesmo jogador pode entrar duas vezes (dias diferentes) e não há limite de vagas', async () => {
@@ -29,7 +29,7 @@ await ta('addCheckin: jogadorId desconhecido (convidado do app) cria o convidado
   const d = deps();
   const antes = (await d.repo.lerJogadores()).length;
   assert.deepEqual(await addCheckin(d, { id: 'g1', data: '2026-09-29', jogadorId: 'uid-xyz', jogadorNome: 'Visitante', estrelas: 3, sexo: 'M' }), { status: 'ok' });
-  assert.deepEqual((await lista(d)).at(-1), { id: 'g1', data: '2026-09-29', jogadorId: 'uid-xyz', jogadorNome: 'Visitante', estrelas: 3, sexo: 'M', estrelasAjustadas: '' });
+  assert.deepEqual((await lista(d)).at(-1), { id: 'g1', data: '2026-09-29', jogadorId: 'uid-xyz', jogadorNome: 'Visitante', estrelas: 3, sexo: 'M', estrelasAjustadas: '', jogo: 1 });
   const js = await d.repo.lerJogadores();
   assert.equal(js.length, antes + 1);
   const g = js.find((j) => j.id === 'uid-xyz');

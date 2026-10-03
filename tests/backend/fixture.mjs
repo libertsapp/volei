@@ -58,6 +58,7 @@ export const fixture = {
     { id: 3, timestamp: '2026-09-22T20:00:00+00:00', nome: 'Adm', email: 'a@exemplo.com', acao: 'nota', detalhe: { texto: 'texto solto' } },
     { id: 1, timestamp: '2026-09-22T19:00:00+00:00', nome: 'Org', email: 'b@exemplo.com', acao: 'marcarPagamento', detalhe: { data: '2026-09-22', jogadorNome: 'Ana', valor: 14 } }
   ],
+  fin_jogos: [],
   ao_vivo: [],
   ao_vivo_log: []
 };

@@ -29,7 +29,7 @@ await ta('salvarFinDia: dia novo é gravado com valores em centavos, brinde deci
   const r = await salvarFinDia(d, { data: '2026-10-06', valorPessoa: '13,999', pix: '  k  ', valorQuadra: '180.005', temBrinde: false, valorBrinde: '0,285', icone: '💰' }, ORG);
   assert.equal(r.status, 'ok');
   const dia = r.financeiro.dias.find((x) => x.data === '2026-10-06');
-  assert.deepEqual(dia, { data: '2026-10-06', valorPessoa: 14, pix: 'k', valorQuadra: 180.01, temBrinde: true, valorBrinde: 0.28, icone: '💰', status: '' });
+  assert.deepEqual(dia, { data: '2026-10-06', valorPessoa: 14, pix: 'k', valorQuadra: 180.01, temBrinde: true, valorBrinde: 0.28, icone: '💰', porJogo: false, status: 'normal' });
   assert.equal(r.financeiro.dias.at(-1).data, '2026-10-06'); // ordem: dia novo no fim
   assert.deepEqual(r.financeiro.log[0], { timestamp: '2026-09-24T12:00:00.000Z', nome: 'Org', acao: 'salvarFinDia',
     detalhe: '{"data":"2026-10-06","antes":null,"depois":{"valorPessoa":14,"pix":"k","valorQuadra":180.01,"temBrinde":true,"valorBrinde":0.28,"icone":"💰"}}' });

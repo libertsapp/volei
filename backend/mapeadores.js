@@ -69,8 +69,10 @@ export function mapearRodadas(rodadas, times, timeJogadores) {
 export function mapearConfig(linhas) {
   const s = {
     estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16,
-    checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO, contadorAcessos: 0
+    checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO, contadorAcessos: 0,
+    checkinJogo2: null // { data, horario, vagas, travado } quando o 2º jogo existe
   };
+  const jogo2 = {};
   for (const { chave, valor } of linhas) {
     if (chave === 'estrelasVisiveis') s.estrelasVisiveis = String(valor).toUpperCase() === 'TRUE';
     if (chave === 'checkinDataAberta') s.checkinDataAberta = texto(valor);
@@ -79,7 +81,12 @@ export function mapearConfig(linhas) {
     if (chave === 'checkinHorario') s.checkinHorario = texto(valor) || '20:00';
     if (chave === 'checkinMensagemTemplate') s.checkinMensagemTemplate = texto(valor) || CHECKIN_MENSAGEM_PADRAO;
     if (chave === 'contadorAcessos') s.contadorAcessos = Number(valor) || 0;
+    if (chave === 'checkinJogo2Data') jogo2.data = texto(valor);
+    if (chave === 'checkinJogo2Horario') jogo2.horario = texto(valor);
+    if (chave === 'checkinJogo2Vagas') jogo2.vagas = Number(valor) || 16;
+    if (chave === 'checkinJogo2Travado') jogo2.travado = String(valor).toUpperCase() === 'TRUE';
   }
+  if (jogo2.data) s.checkinJogo2 = { data: jogo2.data, horario: jogo2.horario || '21:00', vagas: jogo2.vagas || 16, travado: !!jogo2.travado };
   return s;
 }
 
@@ -87,8 +94,8 @@ export function mapearCheckins(checkins) {
   return checkins.slice().sort(porOrdem).map((c) => ({
     id: texto(c.id), data: texto(c.data), jogadorId: texto(c.jogador_id), jogadorNome: texto(c.jogador_nome),
     estrelas: numero(c.estrelas), sexo: texto(c.sexo),
-    // nota só pra ESTE check-in; vazia = usa a estrela do cadastro
-    estrelasAjustadas: texto(c.estrelas_ajustadas)
+    estrelasAjustadas: texto(c.estrelas_ajustadas),
+    jogo: Number(c.jogo) || 1
   }));
 }
 
@@ -132,7 +139,10 @@ export function mapearAoVivo(aoVivo, aoVivoLog) {
 }
 
 const icone = (v) => (texto(v).trim() === '💰' ? '💰' : '✅');
-const statusDia = (v) => (texto(v).trim() === 'semjogo' ? 'semjogo' : '');
+const statusDia = (v) => {
+  const normalized = texto(v).trim();
+  return (normalized === 'semjogo' || normalized === 'normal') ? normalized : '';
+};
 const tipoPagamento = (v) => (texto(v).trim() === 'credito' ? 'credito' : 'dinheiro');
 
 // o .gs devolve o "detalhe" do log como texto: JSON serializado, ou o texto solto
@@ -144,21 +154,28 @@ function detalheComoTexto(d) {
   return JSON.stringify(d);
 }
 
-export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_lancamentos, fin_log }) {
+export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_lancamentos, fin_log, fin_jogos }) {
   const dias = fin_dias.slice().sort(porOrdem).map((d) => ({
     data: texto(d.data), valorPessoa: numero(d.valor_pessoa), pix: texto(d.pix), valorQuadra: numero(d.valor_quadra),
-    temBrinde: d.tem_brinde === true, valorBrinde: numero(d.valor_brinde), icone: icone(d.icone), status: statusDia(d.status)
+    temBrinde: d.tem_brinde === true, valorBrinde: numero(d.valor_brinde), icone: icone(d.icone), status: statusDia(d.status),
+    porJogo: d.por_jogo === true
+  }));
+  const jogos = (fin_jogos || []).slice().sort((a, b) => (texto(a.data) === texto(b.data) ? a.jogo - b.jogo : (texto(a.data) < texto(b.data) ? -1 : 1))).map((j) => ({
+    data: texto(j.data), jogo: Number(j.jogo), valorPessoa: numero(j.valor_pessoa), pix: texto(j.pix), valorQuadra: numero(j.valor_quadra),
+    temBrinde: j.tem_brinde === true, valorBrinde: numero(j.valor_brinde), icone: icone(j.icone), status: statusDia(j.status)
   }));
   const pagamentos = fin_pagamentos.slice().sort(porOrdem).map((p) => ({
     id: texto(p.id), data: texto(p.data), jogadorId: texto(p.jogador_id), jogadorNome: texto(p.jogador_nome),
     valor: numero(p.valor), marcadoPor: texto(p.marcado_por), marcadoEm: iso(p.marcado_em),
     estornado: p.estornado === true, estornadoPor: texto(p.estornado_por), estornadoEm: iso(p.estornado_em),
-    tipo: tipoPagamento(p.tipo), creditoId: texto(p.credito_id)
+    tipo: tipoPagamento(p.tipo), creditoId: texto(p.credito_id),
+    jogo: p.jogo == null ? null : Number(p.jogo)
   }));
   const creditos = fin_creditos.slice().sort(porOrdem).map((c) => ({
     id: texto(c.id), jogadorId: texto(c.jogador_id), jogadorNome: texto(c.jogador_nome), valor: numero(c.valor),
     origemPagamentoId: texto(c.origem_pagamento_id), dataOrigem: texto(c.data_origem), criadoPor: texto(c.criado_por),
-    criadoEm: iso(c.criado_em), status: texto(c.status) || 'ativo', encerradoPor: texto(c.encerrado_por), encerradoEm: iso(c.encerrado_em)
+    criadoEm: iso(c.criado_em), status: texto(c.status) || 'ativo', encerradoPor: texto(c.encerrado_por), encerradoEm: iso(c.encerrado_em),
+    jogoOrigem: c.jogo_origem == null ? null : Number(c.jogo_origem)
   }));
   const lancamentos = fin_lancamentos.slice().sort(porOrdem).map((l) => ({
     id: texto(l.id), data: texto(l.data), tipo: texto(l.tipo), descricao: texto(l.descricao), valor: numero(l.valor),
@@ -166,7 +183,7 @@ export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_l
     estornado: l.estornado === true, estornadoPor: texto(l.estornado_por), estornadoEm: iso(l.estornado_em)
   }));
   const log = fin_log.slice().sort((a, b) => b.id - a.id).slice(0, 100).map((l) => ({
-    timestamp: iso(l.timestamp), nome: texto(l.nome), acao: texto(l.acao), detalhe: detalheComoTexto(l.detalhe) // e-mail nunca sai daqui
+    timestamp: iso(l.timestamp), nome: texto(l.nome), acao: texto(l.acao), detalhe: detalheComoTexto(l.detalhe)
   }));
-  return { dias, pagamentos, lancamentos, log, creditos };
+  return { dias, jogos, pagamentos, lancamentos, log, creditos };
 }

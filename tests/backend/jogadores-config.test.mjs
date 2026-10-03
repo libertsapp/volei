@@ -66,7 +66,7 @@ await ta('saveSettings: grava as 7 chaves como o writeSettings do .gs e preserva
   const d = deps();
   assert.deepEqual(await saveSettings(d, { estrelasVisiveis: false, checkinDataAberta: '2026-10-06', checkinTravado: true, checkinVagas: 14, checkinHorario: '21:00', checkinMensagemTemplate: 'Oi {vagas}', contadorAcessos: 9999 }), { status: 'ok' });
   const c = mapearConfig(await d.repo.lerConfig());
-  assert.deepEqual(c, { estrelasVisiveis: false, checkinDataAberta: '2026-10-06', checkinTravado: true, checkinVagas: 14, checkinHorario: '21:00', checkinMensagemTemplate: 'Oi {vagas}', contadorAcessos: 41 });
+  assert.deepEqual(c, { estrelasVisiveis: false, checkinDataAberta: '2026-10-06', checkinTravado: true, checkinVagas: 14, checkinHorario: '21:00', checkinMensagemTemplate: 'Oi {vagas}', contadorAcessos: 41, checkinJogo2: null });
 });
 
 await ta('saveSettings: chaves ausentes viram os padrões do .gs (estrelasVisiveis vira FALSE)', async () => {
