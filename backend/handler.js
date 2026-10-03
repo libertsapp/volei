@@ -116,14 +116,14 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
           // controle financeiro (etapas 4a e 4b): toda gravação sob a trava 'gravacao'
           case 'salvarFinDia': return await travar(() => salvarFinDia(deps, b.dia, auth));
-          case 'marcarPagamento': return await travar(() => marcarPagamento(deps, b.data, b.jogadorId, b.jogadorNome, auth));
+          case 'marcarPagamento': return await travar(() => marcarPagamento(deps, b.data, null, b.jogadorId, b.jogadorNome, auth));
           case 'estornarPagamento': return await travar(() => estornarPagamento(deps, b.id, auth));
-          case 'marcarTodosPagamentos': return await travar(() => marcarTodosPagamentos(deps, b.data, auth));
-          case 'estornarTodosPagamentos': return await travar(() => estornarTodosPagamentos(deps, b.data, auth));
+          case 'marcarTodosPagamentos': return await travar(() => marcarTodosPagamentos(deps, b.data, null, auth));
+          case 'estornarTodosPagamentos': return await travar(() => estornarTodosPagamentos(deps, b.data, null, auth));
           case 'addLancamento': return await travar(() => addLancamento(deps, b.lancamento, auth));
           case 'estornarLancamento': return await travar(() => estornarLancamento(deps, b.id, auth));
-          case 'marcarDiaSemJogo': return await travar(() => marcarDiaSemJogo(deps, b.data, b.destino, auth));
-          case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, auth));
+          case 'marcarDiaSemJogo': return await travar(() => marcarDiaSemJogo(deps, b.data, null, b.destino, auth));
+          case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, null, auth));
           case 'aplicarCreditosDoDia': return await travar(() => aplicarCreditosDoDia(deps, b.data, auth));
           case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
           // Ao Vivo (etapa 5): o .gs segurava a trava nas três

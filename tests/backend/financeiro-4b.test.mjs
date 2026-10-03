@@ -37,7 +37,7 @@ const validos = (f, data) => f.pagamentos.filter((p) => p.data === data && !p.es
 
 await ta('marcarDiaSemJogo (crédito): o dinheiro do dia vira crédito (com nome/valor/origem), o dia fica semjogo, log verbatim e resposta com contadores', async () => {
   const d = ambiente();
-  const r = await marcarDiaSemJogo(d, '2026-09-22', undefined, ORG);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, undefined, ORG);
   assert.deepEqual([r.status, r.creditos, r.estornados, r.ignorados], ['ok', 2, 0, 0]);
   assert.equal(r.financeiro.dias.find((x) => x.data === '2026-09-22').status, 'semjogo');
   const novos = r.financeiro.creditos.slice(1); // o cr1 do fixture vem antes
@@ -51,14 +51,14 @@ await ta('marcarDiaSemJogo (crédito): o dinheiro do dia vira crédito (com nome
 await ta('marcarDiaSemJogo: validações (mensagens do .gs), idempotência sem log e destino desconhecido vira crédito', async () => {
   const d = ambiente();
   const antes = await fin(d);
-  assert.deepEqual(await marcarDiaSemJogo(d, 'x', 'credito', ORG), { error: 'Data inválida.' });
-  assert.deepEqual(await marcarDiaSemJogo(d, undefined, 'credito', ORG), { error: 'Data inválida.' });
-  assert.deepEqual(await marcarDiaSemJogo(d, '2026-11-03', 'credito', ORG), { error: 'Configure o dia (valor por pessoa etc.) antes de marcá-lo como sem jogo.' });
+  assert.deepEqual(await marcarDiaSemJogo(d, 'x', null, 'credito', ORG), { error: 'Data inválida.' });
+  assert.deepEqual(await marcarDiaSemJogo(d, undefined, null, 'credito', ORG), { error: 'Data inválida.' });
+  assert.deepEqual(await marcarDiaSemJogo(d, '2026-11-03', null, 'credito', ORG), { error: 'Configure o dia (valor por pessoa etc.) antes de marcá-lo como sem jogo.' });
   assert.deepEqual(await fin(d), antes);
-  const r = await marcarDiaSemJogo(d, '2026-09-15', 'devolver', ADM); // já era semjogo
+  const r = await marcarDiaSemJogo(d, '2026-09-15', null, 'devolver', ADM); // já era semjogo
   assert.deepEqual([r.creditos, r.estornados, r.ignorados], [0, 0, 0]);
   assert.equal(r.financeiro.log.length, antes.log.length);
-  const r2 = await marcarDiaSemJogo(d, '2026-09-22', 'qualquer-coisa', ORG);
+  const r2 = await marcarDiaSemJogo(d, '2026-09-22', null, 'qualquer-coisa', ORG);
   assert.match(r2.financeiro.log[0].detalhe, /"destino":"credito"/);
 });
 
@@ -68,7 +68,7 @@ await ta('marcarDiaSemJogo (devolver): organizador ignora dinheiro de quem saiu 
     x.jogadores.push(jog('p9', 'Fora', 9));
   };
   const d = ambiente(setup);
-  const r = await marcarDiaSemJogo(d, '2026-09-22', 'devolver', ORG);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, 'devolver', ORG);
   assert.deepEqual([r.creditos, r.estornados, r.ignorados], [0, 2, 1]);
   assert.equal(r.financeiro.log[0].detalhe, '{"data":"2026-09-22","destino":"devolver","creditos":0,"estornados":2,"ignorados":1,"nomes":["Ana","Antigo"]}');
   const p = (id) => r.financeiro.pagamentos.find((x) => x.id === id);
@@ -76,7 +76,7 @@ await ta('marcarDiaSemJogo (devolver): organizador ignora dinheiro de quem saiu 
   assert.deepEqual([p('pg1').estornadoPor, p('pgc').estornadoPor], ['Org', 'Org']);
   assert.equal(r.financeiro.creditos.find((c) => c.id === 'cr1').status, 'ativo'); // o crédito do Bruno voltou ao saldo (o pagamento por crédito foi estornado)
   const d2 = ambiente(setup);
-  const r2 = await marcarDiaSemJogo(d2, '2026-09-22', 'devolver', ADM);
+  const r2 = await marcarDiaSemJogo(d2, '2026-09-22', null, 'devolver', ADM);
   assert.deepEqual([r2.creditos, r2.estornados, r2.ignorados], [0, 3, 0]);
   assert.match(r2.financeiro.log[0].detalhe, /"nomes":\["Ana","Antigo","Fora"\]/);
 });
@@ -89,7 +89,7 @@ await ta('marcarDiaSemJogo (crédito): pagamento que já tem crédito ativo não
     x.checkins.push(ck('k1', '2026-09-22', 'p3', 'Carla', 4), ck('k2', '2026-09-29', 'p3', 'Carla', 5), ck('k3', '2026-09-29', 'p1', 'Ana', 6));
     x.fin_dias.push(diaLinha('2026-09-29', 10, 3));
   });
-  const r = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   assert.equal(r.creditos, 2); // Antigo (pg3) e Carla (pg7); Ana não
   const f = r.financeiro;
   // 29/09 (10 por pessoa): Carla usa o crédito novo (14), Ana o cr9 (14); ordem do log: o do dia sem jogo vem antes dos aplicados
@@ -103,18 +103,18 @@ await ta('marcarDiaSemJogo (crédito): pagamento que já tem crédito ativo não
 
 await ta('reabrirDia: validações, dia normal só devolve ok (sem log) e crédito usado em outro dia impede (nada muda)', async () => {
   const d = ambiente();
-  assert.deepEqual(await reabrirDia(d, 'x', ORG), { error: 'Data inválida.' });
-  assert.deepEqual(await reabrirDia(d, '2027-01-01', ORG), { error: 'Dia não encontrado.' });
+  assert.deepEqual(await reabrirDia(d, 'x', null, ORG), { error: 'Data inválida.' });
+  assert.deepEqual(await reabrirDia(d, '2027-01-01', null, ORG), { error: 'Dia não encontrado.' });
   const n = (await fin(d)).log.length;
-  assert.equal((await reabrirDia(d, '2026-09-22', ORG)).financeiro.log.length, n); // já normal
-  await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  assert.equal((await reabrirDia(d, '2026-09-22', null, ORG)).financeiro.log.length, n); // já normal
+  await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   // um dos créditos novos (Ana) é gasto em 29/09
   await d.repo.gravarFinDia({ data: '2026-09-29', valor_pessoa: 10 });
   const antesUso = await fin(d);
   const idAna = antesUso.creditos.find((c) => c.jogadorId === 'p1' && c.dataOrigem === '2026-09-22').id;
   await d.repo.inserirFinPagamento(pg('pgu', '2026-09-29', 'p1', 'Ana', 10, 99, { tipo: 'credito', credito_id: idAna }));
   const antes = await fin(d);
-  assert.deepEqual(await reabrirDia(d, '2026-09-22', ORG), { error: 'Não dá para reabrir: 1 crédito(s) deste dia já foram usados em outro dia.' });
+  assert.deepEqual(await reabrirDia(d, '2026-09-22', null, ORG), { error: 'Não dá para reabrir: 1 crédito(s) deste dia já foram usados em outro dia.' });
   assert.deepEqual(await fin(d), antes);
 });
 
@@ -124,16 +124,16 @@ await ta('reabrirDia: cancela os créditos do dia (quem/quando), volta a normal,
     x.checkins.push(ck('k1', '2026-10-06', 'p1', 'Ana', 4));
     x.fin_creditos.push(cr('cr7', 'p1', 'Ana', 14, 'pgz', '2026-09-08', 2));
   });
-  await marcarDiaSemJogo(d, '2026-10-06', 'credito', ORG); // dia sem jogo sem pagamento: cria 0 créditos
-  const r = await reabrirDia(d, '2026-10-06', ADM);
+  await marcarDiaSemJogo(d, '2026-10-06', null, 'credito', ORG); // dia sem jogo sem pagamento: cria 0 créditos
+  const r = await reabrirDia(d, '2026-10-06', null, ADM);
   assert.equal(r.financeiro.dias.find((x) => x.data === '2026-10-06').status, '');
   assert.equal(r.financeiro.log[1].detalhe, '{"data":"2026-10-06","creditosCancelados":0}');
   assert.equal(r.financeiro.log[0].acao, 'aplicarCreditos'); // Ana paga o 06/10 com o cr7
   assert.equal(r.financeiro.log[0].nome, 'Adm');
   // com créditos do dia: 22/09
-  const r2 = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  const r2 = await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   assert.equal(r2.creditos, 2);
-  const r3 = await reabrirDia(d, '2026-09-22', ADM);
+  const r3 = await reabrirDia(d, '2026-09-22', null, ADM);
   const cancelados = r3.financeiro.creditos.filter((c) => c.dataOrigem === '2026-09-22');
   assert.deepEqual(cancelados.map((c) => [c.status, c.encerradoPor, c.encerradoEm]), [['cancelado', 'Adm', '2026-09-24T12:00:00.000Z'], ['cancelado', 'Adm', '2026-09-24T12:00:00.000Z']]);
   assert.equal(r3.financeiro.dias.find((x) => x.data === '2026-09-22').status, '');
@@ -294,7 +294,7 @@ await ta('gancho: check-in sem jogador (jogadorId vazio) nunca recebe crédito �
   assert.equal((await fin(d)).pagamentos.some((p) => p.creditoId === 'crO'), false);
   const f = await fin(d);
   assert.deepEqual(f.pagamentos.filter((p) => p.tipo === 'credito' && !p.estornado).map((p) => [p.jogadorId, p.creditoId]), [['p2', 'cr1']]); // só o Bruno
-  assert.equal(await aplicarCreditos(d, '2026-09-22', ORG), 0);
+  assert.equal(await aplicarCreditos(d, '2026-09-22', null, ORG), 0);
 });
 
 await ta('gancho de entrada: crédito pago por salvarFinDia e por check-in usam o mesmo caminho (mesma linha de log e de pagamento)', async () => {
@@ -302,7 +302,7 @@ await ta('gancho de entrada: crédito pago por salvarFinDia e por check-in usam 
   const r = await salvarFinDia(d, { data: '2026-09-29', valorPessoa: 14, pix: '', valorQuadra: 0, valorBrinde: 0 }, ORG);
   assert.equal(r.financeiro.pagamentos.at(-1).creditoId, 'cr1');
   // marcarPagamento em dia com crédito já aplicado é idempotente
-  const r2 = await marcarPagamento(d, '2026-09-29', 'p2', 'Bruno', ORG);
+  const r2 = await marcarPagamento(d, '2026-09-29', null, 'p2', 'Bruno', ORG);
   assert.equal(r2.financeiro.pagamentos.length, r.financeiro.pagamentos.length);
 });
 
@@ -322,12 +322,12 @@ const falharNa = (repo, metodo, n) => {
 await ta('marcarDiaSemJogo: falha no meio da criação de créditos e nova tentativa termina o serviço (sem duplicar, com log e contagem só do que faltava)', async () => {
   const d = ambiente(tresDinheiros);
   falharNa(d.repo, 'inserirFinCredito', 2);
-  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG), /falha injetada/);
+  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG), /falha injetada/);
   let f = await fin(d);
   assert.equal(f.dias.find((x) => x.data === '2026-09-22').status, 'semjogo');
   assert.equal(f.creditos.filter((c) => c.dataOrigem === '2026-09-22').length, 1);
   assert.equal(f.log.some((l) => l.acao === 'marcarDiaSemJogo'), false);
-  const r = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   assert.deepEqual([r.creditos, r.estornados, r.ignorados], [3, 0, 0]); // os 4 pagamentos válidos: 1 já tinha crédito, faltam 3
   f = await fin(d);
   const doDia = f.creditos.filter((c) => c.dataOrigem === '2026-09-22');
@@ -337,12 +337,12 @@ await ta('marcarDiaSemJogo: falha no meio da criação de créditos e nova tenta
 
 await ta('marcarDiaSemJogo: repetição sem nada a fazer não grava nada (nem log) e responde como o .gs; a repetição também não desfaz crédito com "devolver"', async () => {
   const d = ambiente(tresDinheiros);
-  await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   const antes = await fin(d);
-  const r = await marcarDiaSemJogo(d, '2026-09-22', 'credito', ORG);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, 'credito', ORG);
   assert.deepEqual([r.creditos, r.estornados, r.ignorados], [0, 0, 0]);
   assert.deepEqual(r.financeiro, antes);
-  const r2 = await marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM);
+  const r2 = await marcarDiaSemJogo(d, '2026-09-22', null, 'devolver', ADM);
   assert.deepEqual(r2.financeiro, antes);
   assert.equal(r2.financeiro.pagamentos.filter((p) => p.data === '2026-09-22' && p.estornado && p.tipo === 'dinheiro').length, 0);
 });
@@ -350,9 +350,9 @@ await ta('marcarDiaSemJogo: repetição sem nada a fazer não grava nada (nem lo
 await ta('marcarDiaSemJogo (devolver): falha no meio dos estornos e nova tentativa estorna o que faltou', async () => {
   const d = ambiente(tresDinheiros);
   falharNa(d.repo, 'estornarFinPagamento', 2);
-  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM), /falha injetada/);
+  await assert.rejects(() => marcarDiaSemJogo(d, '2026-09-22', null, 'devolver', ADM), /falha injetada/);
   assert.equal((await fin(d)).pagamentos.filter((p) => p.data === '2026-09-22' && !p.estornado).length, 3);
-  const r = await marcarDiaSemJogo(d, '2026-09-22', 'devolver', ADM);
+  const r = await marcarDiaSemJogo(d, '2026-09-22', null, 'devolver', ADM);
   assert.equal(r.financeiro.pagamentos.filter((p) => p.data === '2026-09-22' && !p.estornado).length, 0);
   assert.equal(r.estornados, 3);
   assert.equal(r.financeiro.log.filter((l) => l.acao === 'marcarDiaSemJogo').length, 1);

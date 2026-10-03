@@ -53,7 +53,7 @@ await ta('4b: admin e chave mestra; a resposta traz o financeiro no formato do G
   assert.equal(d.financeiro.log[0].nome, 'Chave mestra');
 });
 
-await ta('4b: check-in pelo handler roda os ganchos (crédito aplicado ao entrar e devolvido ao sair) sob a trava, que fica solta', async () => {
+await ta('4b: check-in pelo handler roda os ganchos (crédito aplicado ao entrar; único: continuar no outro jogo mantém o crédito ao sair) sob a trava, que fica solta', async () => {
   const dados = structuredClone(fixture);
   dados.fin_pagamentos = dados.fin_pagamentos.filter((p) => p.id !== 'pg2');
   // Bruno confirmado nos dois jogos do dia (o novo recurso permite): c2 (fixture) é o jogo 1; n1 abaixo é o jogo 2
@@ -64,11 +64,13 @@ await ta('4b: check-in pelo handler roda os ganchos (crédito aplicado ao entrar
   const p = (await h.get()).financeiro.pagamentos.filter((x) => x.tipo === 'credito' && !x.estornado);
   assert.deepEqual(p.map((x) => x.creditoId), ['cr1']);
   assert.deepEqual(await h.post({ action: 'removeCheckin', idToken: 'tok-c', id: 'n1' }), { status: 'ok' });
-  // o c2 do fixture (o outro check-in do Bruno no dia) continua na lista: o crédito devolvido é reaplicado logo em seguida
+  // modo único (Task 7, chave de cobrança): o c2 do fixture (o outro check-in do Bruno no dia, jogo 1) continua na
+  // lista, e no único continuar no OUTRO jogo CONTA como ainda confirmado — então o crédito usado NÃO é devolvido
+  // nem reaplicado (nada muda; sem "saiu da lista" no log)
   const f = (await h.get()).financeiro;
-  assert.equal(f.pagamentos.filter((x) => x.tipo === 'credito').length, 2);
-  assert.equal(f.pagamentos.filter((x) => x.tipo === 'credito' && x.estornado).length, 1);
-  assert.ok(f.log.some((l) => l.detalhe.includes('saiu da lista')));
+  assert.equal(f.pagamentos.filter((x) => x.tipo === 'credito').length, 1);
+  assert.equal(f.pagamentos.filter((x) => x.tipo === 'credito' && x.estornado).length, 0);
+  assert.ok(!f.log.some((l) => l.detalhe.includes('saiu da lista')));
   assert.equal(repo.travas.size, 0);
 });
 

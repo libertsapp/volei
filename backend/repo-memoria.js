@@ -107,14 +107,18 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       if (i === -1) inserir('fin_dias', { status: 'normal', ...linha });
       else tabelas.fin_dias[i] = { ...tabelas.fin_dias[i], ...linha };
     },
-    // fin_pagamentos: emula o índice único parcial fin_pagamentos_valido_uniq (data, jogador_id) onde não estornado
-    // (sql/schema-terca-supabase-ajuste-4.sql): devolve false se já existe pagamento válido, true se inseriu
+    // fin_pagamentos: emula o índice único parcial fin_pagamentos_valido_uniq (data, coalesce(jogo, 0), jogador_id)
+    // onde não estornado (sql/schema-terca-supabase-ajuste-4.sql, atualizado no ajuste 9 — dois jogos no mesmo dia):
+    // devolve false se já existe pagamento válido NESSA MESMA chave (dia inteiro = jogo null; ou aquele jogo
+    // específico), true se inseriu. Sem o "coalesce(jogo,0)" aqui, a mesma pessoa não poderia ter um pagamento
+    // válido por jogo 1 E por jogo 2 no modo separado — exatamente o caso que esta tabela precisa suportar agora.
     async inserirFinPagamento(linha) {
       if (tabelas.fin_pagamentos.some((p) => p.id === linha.id)) {
         throw new Error('fin_pagamentos: duplicate key value violates unique constraint "fin_pagamentos_pkey"');
       }
+      const chaveJogo = linha.jogo == null ? 0 : linha.jogo;
       if (linha.jogador_id != null && linha.estornado !== true && tabelas.fin_pagamentos.some((p) =>
-        p.data === linha.data && p.jogador_id === linha.jogador_id && p.estornado !== true)) return false;
+        p.data === linha.data && p.jogador_id === linha.jogador_id && (p.jogo == null ? 0 : p.jogo) === chaveJogo && p.estornado !== true)) return false;
       inserir('fin_pagamentos', { estornado: false, tipo: 'dinheiro', ...linha });
       return true;
     },

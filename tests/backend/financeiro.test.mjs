@@ -67,7 +67,7 @@ await ta('salvarFinDia: dia normal aplica o crédito ativo de um dia anterior (t
   assert.equal(r.financeiro.log[0].acao, 'aplicarCreditos');
   assert.equal(r.financeiro.log[0].nome, 'Org'); // o log usa o auth de quem salvou o dia
   assert.equal(r.financeiro.log[0].detalhe, '{"data":"2026-09-29","quantidade":1,"nomes":["Bruno"]}');
-  assert.equal(await aplicarCreditos(d, '2026-09-29', ORG), 0); // já tem pagamento válido
+  assert.equal(await aplicarCreditos(d, '2026-09-29', null, ORG), 0); // já tem pagamento válido
 });
 
 await ta('marcarPagamento: valor SEMPRE do dia; nome cortado em 80 (no log não); segundo toque não cobra de novo nem loga', async () => {
@@ -75,10 +75,10 @@ await ta('marcarPagamento: valor SEMPRE do dia; nome cortado em 80 (no log não)
     x.jogadores.push({ id: 'p3', nome: 'Carla', apelido: null, foto: null, estrelas: 1, sexo: 'F', porte: null, convidado: false, removido: false, ordem: 3 });
     x.checkins.push({ id: 'k5', data: '2026-09-22', jogador_id: 'p3', jogador_nome: 'Carla', estrelas: 1, sexo: 'F', estrelas_ajustadas: null, ordem: 4 });
   });
-  const r = await marcarPagamento(d, '2026-09-22', 'p3', 'C'.repeat(100), ORG);
+  const r = await marcarPagamento(d, '2026-09-22', null, 'p3', 'C'.repeat(100), ORG);
   const p = r.financeiro.pagamentos.at(-1);
   assert.deepEqual({ id: p.id, v: p.valor, n: p.jogadorNome.length, por: p.marcadoPor, t: p.tipo, e: p.estornado }, { id: 'id-1', v: 14, n: 80, por: 'Org', t: 'dinheiro', e: false });
-  const r2 = await marcarPagamento(d, '2026-09-22', 'p3', 'Carla', ORG);
+  const r2 = await marcarPagamento(d, '2026-09-22', null, 'p3', 'Carla', ORG);
   assert.equal(r2.financeiro.pagamentos.length, r.financeiro.pagamentos.length);
   assert.equal(r2.financeiro.log.length, r.financeiro.log.length);
   assert.match(r.financeiro.log[0].detalhe, /^\{"data":"2026-09-22","jogadorId":"p3","jogadorNome":"C{100}","valor":14\}$/);
@@ -86,18 +86,18 @@ await ta('marcarPagamento: valor SEMPRE do dia; nome cortado em 80 (no log não)
 
 await ta('marcarPagamento: erros na ordem do .gs (dados, dia, valor, sem jogo, lista de check-in)', async () => {
   const d = ambiente();
-  assert.deepEqual(await marcarPagamento(d, '2026-09-22', '', 'x', ORG), { error: 'Dados do pagamento incompletos.' });
-  assert.deepEqual(await marcarPagamento(d, 'x', 'p1', 'x', ORG), { error: 'Dados do pagamento incompletos.' });
-  assert.deepEqual(await marcarPagamento(d, '2026-11-03', 'p1', 'x', ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
+  assert.deepEqual(await marcarPagamento(d, '2026-09-22', null, '', 'x', ORG), { error: 'Dados do pagamento incompletos.' });
+  assert.deepEqual(await marcarPagamento(d, 'x', null, 'p1', 'x', ORG), { error: 'Dados do pagamento incompletos.' });
+  assert.deepEqual(await marcarPagamento(d, '2026-11-03', null, 'p1', 'x', ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
   await salvarFinDia(d, { data: '2026-11-03', valorPessoa: 0 }, ORG);
-  assert.deepEqual(await marcarPagamento(d, '2026-11-03', 'p1', 'x', ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
-  assert.deepEqual(await marcarPagamento(d, '2026-09-15', 'p1', 'x', ORG), { error: 'Este dia está marcado como sem jogo. Reabra o dia para marcar pagamentos.' });
-  assert.deepEqual(await marcarPagamento(d, '2026-09-22', 'zzz', 'x', ORG), { error: 'Essa pessoa não está na lista de check-in deste dia.' });
+  assert.deepEqual(await marcarPagamento(d, '2026-11-03', null, 'p1', 'x', ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
+  assert.deepEqual(await marcarPagamento(d, '2026-09-15', null, 'p1', 'x', ORG), { error: 'Este dia está marcado como sem jogo. Reabra o dia para marcar pagamentos.' });
+  assert.deepEqual(await marcarPagamento(d, '2026-09-22', null, 'zzz', 'x', ORG), { error: 'Essa pessoa não está na lista de check-in deste dia.' });
 });
 
 await ta('marcarPagamento: dois toques quase simultâneos geram UM pagamento válido e UM log (índice único parcial)', async () => {
   const d = ambiente();
-  const [a, b] = await Promise.all([marcarPagamento(d, '2026-09-22', 'p2', 'Bruno', ORG), marcarPagamento(d, '2026-09-22', 'p2', 'Bruno', ADM)]);
+  const [a, b] = await Promise.all([marcarPagamento(d, '2026-09-22', null, 'p2', 'Bruno', ORG), marcarPagamento(d, '2026-09-22', null, 'p2', 'Bruno', ADM)]);
   assert.equal(a.status, 'ok');
   assert.equal(b.status, 'ok');
   const f = await fin(d);
@@ -145,27 +145,27 @@ await ta('marcarTodosPagamentos: só os dentro das vagas sem pagamento válido; 
     x.fin_pagamentos = [];
     x.fin_creditos = [];
   });
-  const r = await marcarTodosPagamentos(d, '2026-09-22', ORG);
+  const r = await marcarTodosPagamentos(d, '2026-09-22', null, ORG);
   assert.deepEqual(r.financeiro.pagamentos.map((p) => [p.jogadorId, p.valor, p.marcadoPor, p.id]), [['p1', 14, 'Org', 'id-1'], ['p2', 14, 'Org', 'id-2']]);
   assert.equal(r.financeiro.log[0].detalhe, '{"data":"2026-09-22","quantidade":2,"valorCada":14,"nomes":["Ana","Bruno"]}');
-  assert.equal((await marcarTodosPagamentos(d, '2026-09-22', ORG)).financeiro.log.length, r.financeiro.log.length);
-  assert.deepEqual(await marcarTodosPagamentos(d, 'x', ORG), { error: 'Data inválida.' });
-  assert.deepEqual(await marcarTodosPagamentos(d, '2026-09-15', ORG), { error: 'Este dia está marcado como sem jogo. Reabra o dia para marcar pagamentos.' });
-  assert.deepEqual(await marcarTodosPagamentos(d, '2026-11-03', ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
+  assert.equal((await marcarTodosPagamentos(d, '2026-09-22', null, ORG)).financeiro.log.length, r.financeiro.log.length);
+  assert.deepEqual(await marcarTodosPagamentos(d, 'x', null, ORG), { error: 'Data inválida.' });
+  assert.deepEqual(await marcarTodosPagamentos(d, '2026-09-15', null, ORG), { error: 'Este dia está marcado como sem jogo. Reabra o dia para marcar pagamentos.' });
+  assert.deepEqual(await marcarTodosPagamentos(d, '2026-11-03', null, ORG), { error: 'Configure o valor por pessoa deste dia antes de marcar pagamentos.' });
 });
 
 await ta('estornarTodosPagamentos: organizador ignora dinheiro de quem saiu da lista (admin estorna); dia sem jogo é recusado', async () => {
   const d = ambiente((x) => x.fin_pagamentos.push(pgLinha({ id: 'pgx', valor: 7.5, ordem: 4 })));
-  const r = await estornarTodosPagamentos(d, '2026-09-22', ORG);
+  const r = await estornarTodosPagamentos(d, '2026-09-22', null, ORG);
   assert.deepEqual([r.estornados, r.ignorados], [2, 1]); // pg1 e pg3 (check-in sem jogador conta como na lista); pgx fica
   assert.equal(r.financeiro.log[0].detalhe, '{"data":"2026-09-22","quantidade":2,"nomes":["Ana","Antigo"],"total":28,"ignoradosForaDaLista":["Fora"]}');
-  const r2 = await estornarTodosPagamentos(d, '2026-09-22', ADM);
+  const r2 = await estornarTodosPagamentos(d, '2026-09-22', null, ADM);
   assert.deepEqual([r2.estornados, r2.ignorados], [1, 0]);
-  const r3 = await estornarTodosPagamentos(d, '2026-09-22', ADM);
+  const r3 = await estornarTodosPagamentos(d, '2026-09-22', null, ADM);
   assert.deepEqual([r3.estornados, r3.ignorados], [0, 0]);
   assert.equal(r3.financeiro.log.length, r2.financeiro.log.length); // nada a fazer: sem log
-  assert.deepEqual(await estornarTodosPagamentos(d, '2026-09-15', ADM), { error: 'Este dia está marcado como sem jogo. Reabra o dia para cancelar pagamentos em massa.' });
-  assert.deepEqual(await estornarTodosPagamentos(d, '', ADM), { error: 'Data inválida.' });
+  assert.deepEqual(await estornarTodosPagamentos(d, '2026-09-15', null, ADM), { error: 'Este dia está marcado como sem jogo. Reabra o dia para cancelar pagamentos em massa.' });
+  assert.deepEqual(await estornarTodosPagamentos(d, '', null, ADM), { error: 'Data inválida.' });
 });
 
 await ta('addLancamento: valida na ordem do .gs, arredonda, corta a descrição em 120 e loga', async () => {
