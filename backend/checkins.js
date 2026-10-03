@@ -1,9 +1,16 @@
+// Check-in. Port de addCheckin, removeCheckin e salvarEstrelasAjustadas_ de apps-script-codigo.gs (mesmas mensagens).
+// Como no .gs: não há limite de vagas. Checagem de repetição por jogador/dia agora existe, mas só DENTRO do mesmo
+// jogo (dois jogos no mesmo dia: a mesma pessoa pode estar nos dois — moverCheckin, também aqui, troca ela de um
+// jogo pro outro). Os ganchos do financeiro (finAposAdicionarCheckin_ / finAposRemoverCheckin_) rodam depois de
+// gravar, como no .gs; nunca quebram o check-in.
 import { texto } from './mapeadores.js';
 import { aposAdicionarCheckin, aposRemoverCheckin } from './financeiro.js';
 import { mapearConfig } from './mapeadores.js';
 
+// nome de check-in maior que isto não é nome: corta (o app usa nomes curtos) para um login qualquer do Google não encher o banco
 const MAX_NOME = 120;
 
+// "nota só para este check-in": vazio (ou 0, como no .gs) vira null; o resto precisa ser número (a coluna é numeric)
 function notaAjustada(v) {
   const s = String(v || '');
   if (s === '') return null;
