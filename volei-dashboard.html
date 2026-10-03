@@ -1902,6 +1902,7 @@
             <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
             <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
             <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+            <button class="btn secondary" id="desconfirmar-todos-btn" hidden title="Tira todo mundo da lista deste dia (inclusive a reserva)">🧹 Desconfirmar todos</button>
           </div>
         </div>
         <details class="checkin-admin-ajustes">
@@ -4035,6 +4036,7 @@ function aplicarPermissoesUI(){
   renderFinanceiroTudo();
   renderHistory(); // a nota total dos times no Histórico é só do admin
   atualizarBlocoListaGrupo(); // a lista colada do WhatsApp é só de organizador/admin
+  atualizarBotaoDesconfirmarTodos();
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
@@ -7419,6 +7421,7 @@ function renderCheckinStatus(){
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
   if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
   atualizarBlocoListaGrupo(); // "Colar lista do WhatsApp": mesma regra do convidado, mas só organizador/admin
+  atualizarBotaoDesconfirmarTodos();
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
   if(shareArea){
     if(data && !shareArea.dataset.wired){
@@ -8066,6 +8069,7 @@ function renderCheckinList(){
     return;
   }
 
+  atualizarBotaoDesconfirmarTodos(); // aparece/some conforme a lista ganha ou perde gente
   const term = document.getElementById('checkin-search').value;
   const { dentro, reserva } = checkinsDentroEReserva(data);
   const confirmadosHoje = new Set(dentro.concat(reserva).map(c=>c.jogadorId));
@@ -8318,6 +8322,51 @@ document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()
   const confirmados = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
   LISTA_GRUPO_LINHAS = montarConferencia(nomes, DATA.players, DATA.removidos || [], confirmados);
   renderConferenciaListaGrupo();
+});
+
+// <desconfirmar-todos>
+// "Desconfirmar todos": tira da lista TODOS os confirmados do dia aberto (inclusive a reserva), um por vez, do mesmo jeito
+// que o "Vou jogar" desmarca — então o financeiro faz o de sempre (crédito volta ao saldo; PIX/dinheiro fica registrado
+// como "saiu da lista"). Quem falhar continua na lista. Testado em tests/desconfirmar-todos.test.js.
+async function desconfirmarTodosDoDia(aoProgresso = ()=>{}){
+  const data = SETTINGS.checkinDataAberta;
+  const doDia = CHECKINS.filter(c=> c.data === data);
+  const cred = await credencialLogada();
+  if(!cred) return { removidos: 0, falhas: doDia.map(c=> c.jogadorNome || '?') };
+  let removidos = 0;
+  const falhas = [];
+  for(let i = 0; i < doDia.length; i++){
+    const c = doDia[i];
+    aoProgresso(i + 1, doDia.length, c.jogadorNome);
+    if(await postAction('removeCheckin', { id: c.id }, cred)){ CHECKINS = CHECKINS.filter(x=> x.id !== c.id); removidos++; }
+    else falhas.push(c.jogadorNome || '?');
+  }
+  return { removidos, falhas };
+}
+// só organizador/admin logado (a chave mestra sozinha não desmarca check-in), com check-in aberto, destravado e com gente
+function atualizarBotaoDesconfirmarTodos(){
+  const botao = document.getElementById('desconfirmar-todos-btn');
+  if(!botao) return;
+  const data = SETTINGS.checkinDataAberta;
+  botao.hidden = !(data && !SETTINGS.checkinTravado && podeColarListaDoGrupo() && CHECKINS.some(c=> c.data === data));
+}
+// </desconfirmar-todos>
+document.getElementById('desconfirmar-todos-btn').addEventListener('click', async ()=>{
+  const data = SETTINGS.checkinDataAberta;
+  const doDia = CHECKINS.filter(c=> c.data === data);
+  if(!doDia.length) return;
+  const pagos = ((FINANCEIRO && FINANCEIRO.pagamentos) || []).filter(p=> p.data === data && !p.estornado).length;
+  const avisoPagos = pagos ? `\n\nHá ${pagos} pagamento(s) marcado(s) neste dia: quem pagou com crédito recebe o crédito de volta; PIX ou dinheiro continua registrado no Financeiro como "saiu da lista".` : '';
+  if(!confirm(`Desconfirmar os ${doDia.length} confirmados de ${formatDate(data)}? Não dá para desfazer.${avisoPagos}`)) return;
+  const botao = document.getElementById('desconfirmar-todos-btn');
+  botao.disabled = true;
+  const res = await desconfirmarTodosDoDia((i, total)=>{ botao.textContent = `Desconfirmando ${i} de ${total}...`; });
+  botao.disabled = false;
+  botao.textContent = '🧹 Desconfirmar todos';
+  renderCheckinList();
+  mostrarToast(res.falhas.length
+    ? `${res.removidos} desconfirmado(s). Não deu para: ${res.falhas.join(', ')}. Tente de novo.`
+    : `Pronto: ${res.removidos} desconfirmado(s).`, res.falhas.length ? 'erro' : 'sucesso');
 });
 
 document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()=>{
