@@ -989,6 +989,29 @@
   .checkin-admin-ajustes-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;padding:4px 14px 14px;}
   .checkin-admin-ajustes-body input{width:100%;}
   .checkin-admin-ajustes-body .btn{grid-column:1/-1;min-height:44px;}
+  /* ===== DOIS JOGOS NO MESMO DIA ===== */
+  .jogos-abas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;}
+  .jogo-aba{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;
+    border:1px solid var(--line);border-radius:12px;background:var(--court-navy-2);color:var(--chalk-dim);cursor:pointer;
+    text-align:left;font-family:'Work Sans',sans-serif;}
+  .jogo-aba-rot{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+  .jogo-aba-hora{font-family:'Space Mono',monospace;font-weight:700;font-size:20px;line-height:1.15;color:var(--chalk);}
+  .jogo-aba-sub{font-size:11px;color:var(--muted);}
+  .jogo-aba.ativa{border-color:var(--accent);box-shadow:var(--glass-brilho);background:color-mix(in srgb, var(--accent) 8%, var(--court-navy-2));}
+  .jogo-aba.ativa .jogo-aba-hora{color:var(--accent);}
+  .jogo-aba-eu{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#3fbf6f;}
+  .jogo-cfg{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;}
+  .jogo-cfg + .jogo-cfg{padding-top:10px;border-top:1px dashed var(--line);margin-top:10px;}
+  .jogo-cfg-tit{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;}
+  .jogo-cfg .btn{min-height:40px;padding:6px 12px;}
+  .fin-modo{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;}
+  .tag-outro{margin-left:6px;font-size:10px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius:999px;padding:0 6px;white-space:nowrap;vertical-align:middle;}
+  @media (max-width:640px){
+    .jogos-abas{grid-template-columns:1fr;}
+    .jogo-cfg{grid-template-columns:1fr 1fr;}
+    .jogo-cfg button[data-jogo-remover]{grid-column:1/-1;}
+  }
 
   /* ===== FINANCEIRO no Check-in ===== */
   .fin-dia-card{border-color:var(--glass-borda);background:color-mix(in srgb, var(--ball-yellow) 5%, transparent);}
