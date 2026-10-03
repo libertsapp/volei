@@ -9,6 +9,7 @@ import { dbParaAbas } from './dbParaAbas.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarHandler } from '../../backend/handler.js';
 import { criarVerificadorGoogle } from '../../backend/auth.js';
+import { semCamposNovos } from './semCamposNovosDoisJogos.mjs';
 
 // Teste diferencial da etapa 4b: o .gs REAL (planilha falsa) e o backend novo (repositório em memória) recebem os mesmos pedidos;
 // depois de CADA passo compara-se a resposta e o GET inteiro (com o financeiro). Cobre marcarDiaSemJogo, reabrirDia,
@@ -105,11 +106,11 @@ async function rodar(titulo, env, passos) {
         const esperadoGs = env.gs.post(corpo);
         if (process.env.DBG) { const { financeiro: f, ...r } = esperadoGs; console.log('   >', JSON.stringify(r), f && f.log.slice(0, 3).map((l) => l.acao + ' ' + l.detalhe).join(' | ')); }
         const obtido = json(await env.novo.post(corpo));
-        assert.deepEqual(obtido, esperadoGs, 'resposta diferente');
+        assert.deepEqual(semCamposNovos(obtido), esperadoGs, 'resposta diferente');
         if (esperado === 'ok') assert.equal(esperadoGs.status, 'ok', 'era para dar ok: ' + JSON.stringify(esperadoGs.error));
         else if (esperado) assert.ok(String(esperadoGs.error).includes(esperado), 'erro esperado "' + esperado + '", veio ' + JSON.stringify(esperadoGs.error));
       }
-      assert.deepEqual((({ removidos, ...r }) => r)(json(await env.novo.get())), env.gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
+      assert.deepEqual(semCamposNovos((({ removidos, ...r }) => r)(json(await env.novo.get()))), env.gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
     });
   }
 }

@@ -9,6 +9,7 @@ import { dbParaAbas } from './dbParaAbas.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarHandler } from '../../backend/handler.js';
 import { criarVerificadorGoogle } from '../../backend/auth.js';
+import { semCamposNovos } from './semCamposNovosDoisJogos.mjs';
 
 const require = createRequire(import.meta.url);
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -101,8 +102,8 @@ for (const [i, [nome, corpo]] of passos.entries()) {
     relogio.t = T0 + (i + 1) * 1000 + 123; gs.rodar('__relogio.t = ' + relogio.t);
     const esperado = gs.post(corpo);
     const obtido = json(await novo.post(corpo));
-    assert.deepEqual(obtido, esperado, 'resposta diferente');
-    assert.deepEqual((({ removidos, ...r }) => r)(json(await novo.get())), gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
+    assert.deepEqual(semCamposNovos(obtido), esperado, 'resposta diferente');
+    assert.deepEqual(semCamposNovos((({ removidos, ...r }) => r)(json(await novo.get()))), gs.get(), 'o GET (com o financeiro) ficou diferente depois deste passo');
   });
 }
 

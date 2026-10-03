@@ -8,6 +8,7 @@ import { fixture } from './fixture.mjs';
 import { dbParaAbas } from './dbParaAbas.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarHandler } from '../../backend/handler.js';
+import { semCamposNovos } from './semCamposNovosDoisJogos.mjs';
 
 const require = createRequire(import.meta.url);
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -24,7 +25,7 @@ await ta('paridade do GET: o backend novo devolve o mesmo JSON que o doGet do .g
   const esperado = criarAmbiente(dbParaAbas(fixture), [caminhoGs]).get();
   const obtido = JSON.parse(JSON.stringify(await criarHandler({ repo: criarRepoMemoria(fixture) }).get()));
   delete obtido.removidos; // campo novo (jogadores arquivados): o .gs apaga a linha e não tem equivalente
-  assert.deepEqual(obtido, esperado);
+  assert.deepEqual(semCamposNovos(obtido), esperado);
 });
 
 fim();
