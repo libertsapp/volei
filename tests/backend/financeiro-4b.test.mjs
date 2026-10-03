@@ -126,7 +126,7 @@ await ta('reabrirDia: cancela os créditos do dia (quem/quando), volta a normal,
   });
   await marcarDiaSemJogo(d, '2026-10-06', 'credito', ORG); // dia sem jogo sem pagamento: cria 0 créditos
   const r = await reabrirDia(d, '2026-10-06', ADM);
-  assert.equal(r.financeiro.dias.find((x) => x.data === '2026-10-06').status, 'normal');
+  assert.equal(r.financeiro.dias.find((x) => x.data === '2026-10-06').status, '');
   assert.equal(r.financeiro.log[1].detalhe, '{"data":"2026-10-06","creditosCancelados":0}');
   assert.equal(r.financeiro.log[0].acao, 'aplicarCreditos'); // Ana paga o 06/10 com o cr7
   assert.equal(r.financeiro.log[0].nome, 'Adm');
@@ -136,7 +136,7 @@ await ta('reabrirDia: cancela os créditos do dia (quem/quando), volta a normal,
   const r3 = await reabrirDia(d, '2026-09-22', ADM);
   const cancelados = r3.financeiro.creditos.filter((c) => c.dataOrigem === '2026-09-22');
   assert.deepEqual(cancelados.map((c) => [c.status, c.encerradoPor, c.encerradoEm]), [['cancelado', 'Adm', '2026-09-24T12:00:00.000Z'], ['cancelado', 'Adm', '2026-09-24T12:00:00.000Z']]);
-  assert.equal(r3.financeiro.dias.find((x) => x.data === '2026-09-22').status, 'normal');
+  assert.equal(r3.financeiro.dias.find((x) => x.data === '2026-09-22').status, '');
   assert.ok(r3.financeiro.log.some((l) => l.detalhe === '{"data":"2026-09-22","creditosCancelados":2}'));
   // o dinheiro volta a ser pagamento comum (Ana e o antigo) e a reabertura reaplica o cr1 do Bruno, que tem check-in no dia
   assert.deepEqual(validos(r3.financeiro, '2026-09-22').map((p) => [p.jogadorId, p.tipo, p.creditoId]), [['p1', 'dinheiro', ''], ['', 'dinheiro', ''], ['p2', 'credito', 'cr1']]);

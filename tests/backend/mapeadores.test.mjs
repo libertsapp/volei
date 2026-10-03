@@ -57,7 +57,7 @@ t('financeiro: dias, pagamentos, créditos e lançamentos na ordem, com padrões
   const f = mapearFinanceiro(fixture);
   assert.deepEqual(f.dias, [
     { data: '2026-09-15', valorPessoa: 14, pix: '', valorQuadra: 0, temBrinde: false, valorBrinde: 0, icone: '✅', status: 'semjogo', porJogo: false },
-    { data: '2026-09-22', valorPessoa: 14, pix: '31999999999', valorQuadra: 180, temBrinde: true, valorBrinde: 50, icone: '💰', status: 'normal', porJogo: false }
+    { data: '2026-09-22', valorPessoa: 14, pix: '31999999999', valorQuadra: 180, temBrinde: true, valorBrinde: 50, icone: '💰', status: '', porJogo: false }
   ]);
   assert.deepEqual(f.pagamentos.map((p) => p.id), ['pg1', 'pg2', 'pg3']);
   assert.deepEqual(f.pagamentos[1], {

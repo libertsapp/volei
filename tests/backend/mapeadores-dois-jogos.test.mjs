@@ -28,7 +28,7 @@ await ta('mapearFinanceiro: dias[].porJogo, jogos[], pagamentos[].jogo e credito
     fin_lancamentos: [], fin_log: []
   });
   assert.equal(f.dias[0].porJogo, true);
-  assert.deepEqual(f.jogos, [{ data: '2026-10-06', jogo: 2, valorPessoa: 15, pix: 'k', valorQuadra: 180, temBrinde: false, valorBrinde: 0, icone: '✅', status: 'normal' }]);
+  assert.deepEqual(f.jogos, [{ data: '2026-10-06', jogo: 2, valorPessoa: 15, pix: 'k', valorQuadra: 180, temBrinde: false, valorBrinde: 0, icone: '✅', status: '' }]);
   assert.equal(f.pagamentos[0].jogo, 2);
   assert.equal(f.creditos[0].jogoOrigem, 1);
 });

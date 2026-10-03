@@ -94,6 +94,7 @@ export function mapearCheckins(checkins) {
   return checkins.slice().sort(porOrdem).map((c) => ({
     id: texto(c.id), data: texto(c.data), jogadorId: texto(c.jogador_id), jogadorNome: texto(c.jogador_nome),
     estrelas: numero(c.estrelas), sexo: texto(c.sexo),
+    // nota só pra ESTE check-in; vazia = usa a estrela do cadastro
     estrelasAjustadas: texto(c.estrelas_ajustadas),
     jogo: Number(c.jogo) || 1
   }));
@@ -139,10 +140,7 @@ export function mapearAoVivo(aoVivo, aoVivoLog) {
 }
 
 const icone = (v) => (texto(v).trim() === '💰' ? '💰' : '✅');
-const statusDia = (v) => {
-  const normalized = texto(v).trim();
-  return (normalized === 'semjogo' || normalized === 'normal') ? normalized : '';
-};
+const statusDia = (v) => (texto(v).trim() === 'semjogo' ? 'semjogo' : '');
 const tipoPagamento = (v) => (texto(v).trim() === 'credito' ? 'credito' : 'dinheiro');
 
 // o .gs devolve o "detalhe" do log como texto: JSON serializado, ou o texto solto
@@ -183,7 +181,7 @@ export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_l
     estornado: l.estornado === true, estornadoPor: texto(l.estornado_por), estornadoEm: iso(l.estornado_em)
   }));
   const log = fin_log.slice().sort((a, b) => b.id - a.id).slice(0, 100).map((l) => ({
-    timestamp: iso(l.timestamp), nome: texto(l.nome), acao: texto(l.acao), detalhe: detalheComoTexto(l.detalhe)
+    timestamp: iso(l.timestamp), nome: texto(l.nome), acao: texto(l.acao), detalhe: detalheComoTexto(l.detalhe) // e-mail nunca sai daqui
   }));
   return { dias, jogos, pagamentos, lancamentos, log, creditos };
 }
