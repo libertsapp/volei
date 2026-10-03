@@ -1113,6 +1113,9 @@
   .selected-counter-num{font-family:'Space Mono',monospace;font-weight:700;font-size:22px;color:var(--ball-yellow);transition:transform .15s;}
   .selected-counter-num.bump{transform:scale(1.25);}
   .selected-counter-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  /* ação na linha do contador do check-in ("Desconfirmar todos"): vai pro fim da linha e quebra pra baixo no celular */
+  #checkin-counter{flex-wrap:wrap;}
+  .selected-counter .contador-acao{margin-left:auto;align-self:center;padding:6px 12px;font-size:12px;}
 
   .equilibrio-badge{
     display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
@@ -1902,7 +1905,6 @@
             <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
             <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
             <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
-            <button class="btn secondary" id="desconfirmar-todos-btn" hidden title="Tira todo mundo da lista deste dia (inclusive a reserva)">🧹 Desconfirmar todos</button>
           </div>
         </div>
         <details class="checkin-admin-ajustes">
@@ -1984,6 +1986,8 @@
       <div class="selected-counter" id="checkin-counter">
         <span class="selected-counter-num" id="checkin-counter-num">0</span>
         <span class="selected-counter-label" id="checkin-counter-label">confirmado(s)</span>
+        <!-- na linha do contador ("19 de 16 vaga(s) (3 na reserva)"), logo depois dele; só organizador/admin vê -->
+        <button type="button" class="btn secondary contador-acao" id="desconfirmar-todos-btn" hidden title="Tira todo mundo da lista deste dia (inclusive a reserva)">🧹 Desconfirmar todos</button>
       </div>
       <div id="fin-resumo-checkin"></div>
       <div id="checkin-ordenados"></div>
