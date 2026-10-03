@@ -8199,61 +8199,71 @@ function finDetalheLegivel(acao, detalhe){
   return '';
 }
 
-function finDiaHtml(data, pode, admin){
+function finBlocoChave(data, chave, pode, admin, rotulo){
   const fin = FINANCEIRO;
-  const dia = finDia(fin, data);
-  const { dentro } = checkinsDentroEReserva(data);
-  const validos = finPagamentosValidos(fin, data).length;
-  const resultado = finResultadoDia(fin, data) + finAvulsosDia(fin, data);
-  const sinal = new Set(finSinalizados(fin, data, dentro).map(p => p.id));
-  const pagamentos = finPagamentosRecentesPrimeiro((fin.pagamentos || []).filter(p => p.data === data)); // o último pagamento aparece primeiro
-  const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
-  const pendentes = dia && finCentavos(dia.valorPessoa) > 0 ? finPendentes(fin, data, dentro) : [];
-
-  const semJogo = finSemJogo(dia);
-  let h = `<details class="fin-dia ${semJogo ? 'fin-dia-semjogo' : ''}"><summary><span class="fin-dia-data">${formatDate(data)}</span>
-    ${semJogo ? '<span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}
-    <span class="fin-dia-n">${validos} pagamento${validos === 1 ? '' : 's'}</span>
-    ${dia ? `<button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>` : ''}
-    <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
-
-  if(semJogo){
-    // dia sem jogo: a saída (quadra/brinde) NÃO conta; o dinheiro já recolhido virou crédito (ou foi devolvido)
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Dia sem jogo 🌧️</div>
-      <div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(dia.valorQuadra))})${dia.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(dia.valorBrinde)) + ')' : ''} não contam neste dia. O dinheiro já recebido ficou como crédito para os próximos check-ins (ou foi devolvido).</span></div>
-      ${pode ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}">☀️ Reabrir dia</button>
-        <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button></div>` : ''}</div>`;
-  } else if(dia){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Saídas do dia</div>
-      <div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorQuadra))}</span></div>
-      ${dia.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorBrinde))}</span></div>` : ''}
-      <div class="fin-linha"><span class="fin-linha-meta">${finFormatar(finCentavos(dia.valorPessoa))} por pessoa${dia.pix ? ' · PIX ' + escapeHtml(dia.pix) : ''}</span></div>
-      ${pode ? `<button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button>` : ''}</div>`;
+  const view = finViewDaChave(fin, data, chave);
+  const cfg = cfgFinDaChave(fin, data, chave);
+  const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
+  const sinal = new Set(finSinalizados(view, data, dentro).map(p => p.id));
+  const pagamentos = finPagamentosRecentesPrimeiro(view.pagamentos || []);
+  const pendentes = cfg && finCentavos(cfg.valorPessoa) > 0 ? finPendentes(view, data, dentro) : [];
+  const semJogo = finSemJogo(cfg);
+  let h = '<div class="fin-bloco">';
+  if(rotulo) h += `<div class="fin-bloco-titulo">${rotulo}${semJogo ? ' <span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}</div>`;
+  if(semJogo && cfg){
+    h += `<div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(cfg.valorQuadra))})${cfg.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(cfg.valorBrinde)) + ')' : ''} não contam. O dinheiro já recebido ficou como crédito (ou foi devolvido).</span></div>`;
+    if(pode) h += `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}" data-fin-reabrir-jogo="${chave ?? ''}">☀️ Reabrir</button>
+      <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}" data-fin-editar-jogo="${chave ?? ''}">✏️ Editar</button></div>`;
+  } else if(cfg){
+    h += `<div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(cfg.valorQuadra))}</span></div>
+      ${cfg.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(cfg.valorBrinde))}</span></div>` : ''}
+      <div class="fin-linha"><span class="fin-linha-meta">${finFormatar(finCentavos(cfg.valorPessoa))} por pessoa${cfg.pix ? ' · PIX ' + escapeHtml(cfg.pix) : ''}</span></div>
+      ${pode ? `<button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}" data-fin-editar-jogo="${chave ?? ''}">✏️ Editar</button>` : ''}`;
   }
+  h += '</div>';
   if(pagamentos.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>`;
+    h += '<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>';
     pagamentos.forEach(p=>{
-      const marcas = !p.estornado ? finMarcas(fin, data, p.jogadorId) : '';
+      const marcas = !p.estornado ? finMarcas(view, data, p.jogadorId) : '';
       const porCredito = finTipoPagamento(p) === 'credito';
-      // dinheiro de um dia sem jogo que virou crédito: mostra o estado do crédito
       const cred = !porCredito ? (fin.creditos || []).find(c => c.origemPagamentoId === p.id && c.status !== 'cancelado') : null;
       let selo = '';
       if(cred && cred.status === 'devolvido') selo = '<span class="fin-selo fin-selo-info">crédito devolvido</span>';
-      else if(cred) selo = finSaldoCredito(fin, cred) > 0
-        ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>'
-        : '<span class="fin-selo fin-selo-info">crédito usado</span>';
+      else if(cred) selo = finSaldoCredito(fin, cred) > 0 ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>' : '<span class="fin-selo fin-selo-info">crédito usado</span>';
       h += `<div class="fin-linha ${p.estornado ? 'fin-estornado' : ''}">
         <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Convidado')} ${marcas}${porCredito ? ' <span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo: não é dinheiro novo (já estava no caixa)">(Crédito)</span>' : ''}</span>
-        ${selo}
-        ${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
+        ${selo}${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
         ${admin && sinal.has(p.id) ? `<button type="button" class="btn secondary" data-fin-estornar="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || 'Convidado')}" data-fin-valor="${finCentavos(p.valor)}">Estornar</button>` : ''}
         ${porCredito ? `<span class="fin-linha-valor" style="color:var(--muted);">🎟️ ${finFormatar(finCentavos(p.valor))}</span>` : `<span class="fin-linha-valor fin-pos">+${finFormatar(finCentavos(p.valor))}</span>`}
         <span class="fin-linha-meta">${p.estornado ? `estornado por ${escapeHtml(p.estornadoPor)} em ${finQuando(p.estornadoEm)} · ` : ''}marcado por ${escapeHtml(p.marcadoPor)} em ${finQuando(p.marcadoEm)}</span></div>`;
     });
     h += '</div>';
   }
+  if(pendentes.length){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Ainda não pagaram (${pendentes.length})</div><div class="fin-pendentes">${pendentes.map(c=>`<span>${escapeHtml(c.jogadorNome || 'Convidado')}</span>`).join('')}</div></div>`;
+  }
+  return h;
+}
+
+function finDiaHtml(data, pode, admin){
+  const fin = FINANCEIRO;
+  const diaRow = finDia(fin, data);
+  const porJogo = !!(diaRow && diaRow.porJogo);
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const dois = porJogo && jogos.length > 1;
+  const visaoCaixa = finVisaoCaixa(fin);
+  const validosTotal = (fin.pagamentos || []).filter(p => p.data === data && !p.estornado).length;
+  const resultado = finResultadoDia(visaoCaixa, data) + finAvulsosDia(visaoCaixa, data);
+  let h = `<details class="fin-dia"><summary><span class="fin-dia-data">${formatDate(data)}</span>
+    ${dois ? '<span class="fin-selo fin-selo-info">2 jogos</span>' : ''}
+    <span class="fin-dia-n">${validosTotal} pagamento${validosTotal === 1 ? '' : 's'}</span>
+    <button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>
+    <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
+  if(dois) jogos.forEach(j => { h += finBlocoChave(data, j.numero, pode, admin, `⏰ Jogo das ${j.horario}`); });
+  else h += finBlocoChave(data, null, pode, admin, null);
+  const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
   if(avulsos.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Lançamentos avulsos</div>`;
+    h += '<div class="fin-bloco"><div class="fin-bloco-titulo">Lançamentos avulsos</div>';
     avulsos.forEach(l=>{
       const cls = l.tipo === 'entrada' ? 'fin-pos' : 'fin-neg';
       h += `<div class="fin-linha ${l.estornado ? 'fin-estornado' : ''}">
@@ -8263,9 +8273,6 @@ function finDiaHtml(data, pode, admin){
         <span class="fin-linha-meta">${l.estornado ? `estornado por ${escapeHtml(l.estornadoPor)} em ${finQuando(l.estornadoEm)} · ` : ''}lançado por ${escapeHtml(l.criadoPor)} em ${finQuando(l.criadoEm)}</span></div>`;
     });
     h += '</div>';
-  }
-  if(pendentes.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Ainda não pagaram (${pendentes.length})</div><div class="fin-pendentes">${pendentes.map(c=>`<span>${escapeHtml(c.jogadorNome || 'Convidado')}</span>`).join('')}</div></div>`;
   }
   return h + '</div></details>';
 }
@@ -8281,15 +8288,33 @@ function renderFinanceiro(){
     ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
     return;
   }
-  const fin = FINANCEIRO;
+  const visaoCaixa = finVisaoCaixa(FINANCEIRO);
   const pode = temPermissao('addLancamento');
   const admin = ehAdminAgora();
-  const caixa = finCaixa(fin);
+  const caixa = finCaixa(visaoCaixa);
   const hoje = new Date();
-  const mes = finResumoMes(fin, hoje.getFullYear(), hoje.getMonth() + 1);
-  // saldo previsto: só faz sentido com check-in aberto e valor do dia cadastrado
+  const mes = finResumoMes(visaoCaixa, hoje.getFullYear(), hoje.getMonth() + 1);
   const dataAberta = SETTINGS.checkinDataAberta;
-  const prev = dataAberta ? finSaldoPrevisto(fin, dataAberta, checkinsDentroEReserva(dataAberta).dentro) : null;
+  let prev = null;
+  if(dataAberta){
+    const diaAberto = finDia(FINANCEIRO, dataAberta);
+    const jogosHoje = jogosDoDia(SETTINGS, CHECKINS, dataAberta);
+    if(diaAberto && diaAberto.porJogo){
+      let pendentes = 0, aReceber = 0;
+      jogosHoje.forEach(j => {
+        const view = finViewDaChave(FINANCEIRO, dataAberta, j.numero);
+        const dentro = dentroEReservaDoJogo(CHECKINS, dataAberta, j.numero, j.vagas).dentro;
+        const p = finSaldoPrevisto(view, dataAberta, dentro);
+        if(p){ pendentes += p.pendentes; aReceber += p.aReceber; }
+      });
+      prev = { caixa, pendentes, aReceber, previsto: caixa + aReceber };
+    } else {
+      const view = finViewDaChave(FINANCEIRO, dataAberta, null);
+      const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, dataAberta, null);
+      const p = finSaldoPrevisto(view, dataAberta, dentro);
+      prev = p ? { caixa, pendentes: p.pendentes, aReceber: p.aReceber, previsto: caixa + p.aReceber } : null;
+    }
+  }
   let previstoHtml = '';
   if(prev){
     const n = prev.pendentes;
@@ -8300,15 +8325,15 @@ function renderFinanceiro(){
         ? `quando os <strong>${n} pendente${n === 1 ? '' : 's'}</strong> do check-in de ${formatDate(dataAberta)} pagarem (<span class="fin-pos">+${finFormatar(prev.aReceber)}</span> a receber)`
         : `todos do check-in de ${formatDate(dataAberta)} já pagaram — nada a receber`}</div>
     </div>`;
-  } else if(dataAberta && finSemJogo(finDia(fin, dataAberta))){
+  } else if(dataAberta && finSemJogo(finDia(FINANCEIRO, dataAberta))){
     previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: o check-in de ${formatDate(dataAberta)} está marcado como <strong>sem jogo</strong>, então não há o que cobrar.</div>`;
   } else if(dataAberta){
     previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: cadastre o valor por pessoa do check-in de ${formatDate(dataAberta)} para ver a previsão.</div>`;
   }
   // o dinheiro dos créditos está no caixa, mas é dos jogadores: o "saldo livre" é o que sobra de verdade pro grupo
-  const totalCred = finTotalCreditos(fin);
+  const totalCred = finTotalCreditos(visaoCaixa);
   const creditosHtml = totalCred > 0
-    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(fin))}</strong></span></div>` : '';
+    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(visaoCaixa))}</strong></span></div>` : '';
   topo.innerHTML = `<div class="fin-saldo">
     <div class="fin-saldo-rotulo">Saldo do caixa</div>
     <div class="fin-saldo-valor ${caixa < 0 ? 'neg' : ''}">${finFormatar(caixa)}</div>
@@ -8317,10 +8342,10 @@ function renderFinanceiro(){
     ${previstoHtml}
   </div>`;
   // créditos disponíveis por pessoa; só o admin devolve o dinheiro (e só de crédito ainda não usado)
-  const creds = finCreditosDisponiveis(fin);
+  const creds = finCreditosDisponiveis(visaoCaixa);
   document.getElementById('fin-creditos-sec').style.display = creds.length ? '' : 'none';
   document.getElementById('fin-creditos-lista').innerHTML = creds.map(c => {
-    const saldo = finSaldoCredito(fin, c);
+    const saldo = finSaldoCredito(visaoCaixa, c);
     const inteiro = saldo === finCentavos(c.valor);
     return `<div class="fin-linha"><span class="fin-linha-nome">${escapeHtml(c.jogadorNome || 'Convidado')}</span>
       <span class="fin-linha-meta" style="flex-basis:auto;">de ${formatDate(c.dataOrigem)}${inteiro ? '' : ' · já usado em parte'}</span>
@@ -8329,12 +8354,12 @@ function renderFinanceiro(){
   }).join('');
   document.getElementById('fin-acoes').innerHTML = pode
     ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button>' : '';
-  const datas = finDatas(fin);
+  const datas = finDatas(visaoCaixa);
   document.getElementById('fin-extrato').innerHTML = datas.length
     ? datas.map(d => finDiaHtml(d, pode, admin)).join('')
     : '<div class="empty"><i class="ti ti-coin"></i>Nenhum movimento ainda. Configure o "Financeiro do dia" no Check-in ou faça um lançamento.</div>';
-  document.getElementById('fin-auditoria-lista').innerHTML = (fin.log || []).length
-    ? fin.log.map(l => `<div class="fin-log-item"><span class="fin-log-quando">${finQuando(l.timestamp)}</span><strong>${escapeHtml(l.nome)}</strong> ${FIN_ACOES_ROTULO[l.acao] || escapeHtml(l.acao)}: ${finDetalheLegivel(l.acao, l.detalhe)}</div>`).join('')
+  document.getElementById('fin-auditoria-lista').innerHTML = (FINANCEIRO.log || []).length
+    ? FINANCEIRO.log.map(l => `<div class="fin-log-item"><span class="fin-log-quando">${finQuando(l.timestamp)}</span><strong>${escapeHtml(l.nome)}</strong> ${FIN_ACOES_ROTULO[l.acao] || escapeHtml(l.acao)}: ${finDetalheLegivel(l.acao, l.detalhe)}</div>`).join('')
     : '<div class="empty" style="padding:20px;">Sem ações registradas ainda.</div>';
 }
 
@@ -8355,9 +8380,14 @@ function finCampoNum(id, rotulo, valor, ph){
   return `<label class="fin-campo">${rotulo}<input type="number" id="${id}" min="0" step="0.01" inputmode="decimal" value="${valor === '' || valor == null ? '' : valor}" placeholder="${ph || ''}"></label>`;
 }
 
-function finAbrirEditarDia(data){
-  const d = finDia(FINANCEIRO, data) || { valorPessoa: '', pix: '', valorQuadra: '', valorBrinde: '', icone: '✅' };
-  finAbrirModal('Editar ' + formatDate(data), `
+function chaveDeAtributo(s){ return (s === '' || s === undefined) ? null : Number(s); }
+
+function finAbrirEditarDia(data, jogoStr){
+  const chave = chaveDeAtributo(jogoStr);
+  const d = cfgFinDaChave(FINANCEIRO, data, chave) || { valorPessoa: '', pix: '', valorQuadra: '', valorBrinde: '', icone: '✅' };
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const titulo = chave ? `Editar jogo das ${(jogos.find(j=>j.numero===chave)||{}).horario} — ${formatDate(data)}` : 'Editar ' + formatDate(data);
+  finAbrirModal(titulo, `
     ${finCampoNum('fin-m-vp', 'Valor por pessoa (R$)', d.valorPessoa)}
     <label class="fin-campo">PIX<input type="text" id="fin-m-pix" maxlength="80" value="${escapeHtml(d.pix || '')}"></label>
     ${finCampoNum('fin-m-vq', 'Quadra (R$)', d.valorQuadra)}
@@ -8368,10 +8398,15 @@ function finAbrirEditarDia(data){
     async (ov)=> {
       const valorBrinde = ov.querySelector('#fin-m-vb').value;
       return finPost('salvarFinDia', { dia: {
-        data, valorPessoa: ov.querySelector('#fin-m-vp').value, pix: ov.querySelector('#fin-m-pix').value.trim(),
+        data, jogo: chave === 2 ? 2 : undefined, valorPessoa: ov.querySelector('#fin-m-vp').value, pix: ov.querySelector('#fin-m-pix').value.trim(),
         valorQuadra: ov.querySelector('#fin-m-vq').value, valorBrinde, temBrinde: finCentavos(valorBrinde) > 0,
         icone: ov.querySelector('#fin-m-icone').value } });
     });
+}
+async function reabrirDiaFinanceiroDoExtrato(data, jogoStr){
+  const chave = chaveDeAtributo(jogoStr);
+  if(!confirm(`Reabrir ${chave ? 'este jogo' : 'este dia'}?\n\nA quadra${chave ? '' : ' e o brinde'} volta${chave ? '' : 'm'} a contar, e os créditos (que ainda não foram usados) voltam a ser pagamentos comuns.`)) return;
+  if(await finPost('reabrirDia', { data, jogo: chave })) mostrarToast((chave ? 'Jogo' : 'Dia') + ' reaberto.', 'sucesso');
 }
 function finAbrirLancar(){
   const hoje = new Date().toISOString().slice(0, 10);
@@ -8404,11 +8439,11 @@ document.getElementById('view-financeiro').addEventListener('click', async (e)=>
   const cp = e.target.closest('[data-fin-copiar-resumo]');
   if(cp){
     e.preventDefault(); e.stopPropagation();
-    copiarTexto(finResumoFechamento(FINANCEIRO, cp.dataset.finCopiarResumo), cp);
+    copiarTexto(fechamentoDoDia(SETTINGS, CHECKINS, FINANCEIRO, cp.dataset.finCopiarResumo), cp);
     return;
   }
   const reab = e.target.closest('[data-fin-reabrir-dia]');
-  if(reab) return reabrirDiaFinanceiro(reab.dataset.finReabrirDia);
+  if(reab) return reabrirDiaFinanceiroDoExtrato(reab.dataset.finReabrirDia, reab.dataset.finReabrirJogo);
   const dev = e.target.closest('[data-fin-devolver-credito]');
   if(dev){
     if(!confirm('Devolver o crédito de ' + dev.dataset.finNome + ' (' + finFormatar(Number(dev.dataset.finValor)) + ')?\n\nO dinheiro é devolvido: o pagamento de origem é estornado e o valor sai do caixa.')) return;
@@ -8417,7 +8452,7 @@ document.getElementById('view-financeiro').addEventListener('click', async (e)=>
   if(e.target.closest('#fin-lancar-btn')) return finAbrirLancar();
   if(e.target.closest('#fin-ajustar-btn')) return finAbrirAjustarCaixa();
   const ed = e.target.closest('[data-fin-editar-dia]');
-  if(ed) return finAbrirEditarDia(ed.dataset.finEditarDia);
+  if(ed) return finAbrirEditarDia(ed.dataset.finEditarDia, ed.dataset.finEditarJogo);
   const est = e.target.closest('[data-fin-estornar]');
   if(est){
     if(!confirm('Estornar o pagamento de ' + est.dataset.finNome + ' (' + finFormatar(Number(est.dataset.finValor)) + ')? O valor sai do caixa.')) return;
