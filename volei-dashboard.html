@@ -1703,6 +1703,29 @@
       background:linear-gradient(90deg, transparent, var(--accent) 50%, transparent);}
     .sb-placa-num{font-size:104px;bottom:-24px;}
   }
+  /* lista colada do grupo do WhatsApp (check-in de vários de uma vez, organizador/admin) */
+  .lista-grupo{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--court-navy-2);}
+  .lista-grupo > summary{cursor:pointer;padding:12px 14px;font-weight:600;list-style:none;}
+  .lista-grupo > summary::-webkit-details-marker{display:none;}
+  .lista-grupo-corpo{padding:0 14px 14px;}
+  .lista-grupo-dica{color:var(--muted);font-size:13px;margin:0 0 10px;}
+  .lista-grupo textarea{
+    width:100%;box-sizing:border-box;min-height:130px;resize:vertical;font:inherit;line-height:1.5;padding:10px 12px;
+    border-radius:10px;border:1px solid var(--line);background:var(--court-navy);color:var(--chalk);
+  }
+  .lista-grupo-linhas{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .lista-grupo-linha{
+    display:grid;grid-template-columns:minmax(80px,140px) minmax(0,1fr);gap:6px 12px;align-items:center;
+    padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+  }
+  .lista-grupo-linha select{grid-column:1 / -1;max-width:100%;}
+  .lista-grupo-nome{font-weight:700;overflow-wrap:anywhere;}
+  .lista-grupo-status{font-size:13px;color:var(--chalk-dim);}
+  .lista-grupo-obs{color:var(--muted);}
+  /* precisa de um olhar: homônimos e quem não foi achado */
+  .lista-grupo-varios, .lista-grupo-nenhum{border-color:color-mix(in srgb, var(--ball-yellow) 50%, transparent);}
+  .lista-grupo-ok, .lista-grupo-repetido{opacity:.65;}
+  .lista-grupo-resultado{margin:12px 0 0;font-size:14px;line-height:1.5;}
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
   /* align-items:start: abrir um cartão (o ">") NÃO estica os vizinhos da mesma linha (o padrão "stretch" fazia parecer que todos abriam) */
   .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;align-items:start;}
@@ -1944,6 +1967,18 @@
         </div>
         <button class="btn secondary" id="add-checkin-guest-btn">Adicionar convidado</button>
       </div>
+
+      <!-- lista colada do grupo do WhatsApp: confirma vários de uma vez (só organizador/admin, check-in aberto e destravado).
+           <details>, nunca <section>: o CSS esconde todo <section> fora da aba ativa -->
+      <details class="lista-grupo" id="lista-grupo-bloco" style="display:none;">
+        <summary><span class="linha-titulo">📋 Colar lista do WhatsApp</span></summary>
+        <div class="lista-grupo-corpo">
+          <p class="lista-grupo-dica">Cole a lista de confirmados do grupo. Quem for reconhecido já vem marcado: confira cada linha e toque em Confirmar. Nada é salvo antes disso.</p>
+          <textarea id="lista-grupo-texto" rows="6" placeholder="1-Biel&#10;2-Michel&#10;3-Cássia"></textarea>
+          <div class="acoes-linha"><button type="button" class="btn" id="lista-grupo-conferir-btn">Conferir</button></div>
+          <div id="lista-grupo-conferencia"></div>
+        </div>
+      </details>
 
       <div class="selected-counter" id="checkin-counter">
         <span class="selected-counter-num" id="checkin-counter-num">0</span>
@@ -2686,7 +2721,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.8 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3999,6 +4034,7 @@ function aplicarPermissoesUI(){
   // quem pode tocar/estornar mudou (login/logout/chave mestra): repinta lista do check-in e página financeira
   renderFinanceiroTudo();
   renderHistory(); // a nota total dos times no Histórico é só do admin
+  atualizarBlocoListaGrupo(); // a lista colada do WhatsApp é só de organizador/admin
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
@@ -7382,6 +7418,7 @@ function renderCheckinStatus(){
   const loginAviso = document.getElementById('checkin-login-aviso');
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
   if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
+  atualizarBlocoListaGrupo(); // "Colar lista do WhatsApp": mesma regra do convidado, mas só organizador/admin
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
   if(shareArea){
     if(data && !shareArea.dataset.wired){
@@ -8093,6 +8130,195 @@ function renderCheckinList(){
     });
   });
 }
+
+// <lista-whatsapp-puro>
+/* Check-in pela lista do grupo do WhatsApp: o organizador cola a lista ("1-Biel", "6- Cássia"...), o app reconhece os
+   jogadores e, depois da conferência, confirma todos NA ORDEM da lista (a ordem do grupo decide quem fica nas vagas).
+   Só reconhece sozinho por nome/apelido exato (sem acento/maiúscula) ou pelo 1º nome quando um único jogador bate:
+   procurar "parecido" dava sugestão errada (Elen virava Heleno). Testado em tests/lista-whatsapp.test.js. */
+function normalizarNomeLista(s){
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// "1-Biel", "6- Cássia", "2. Beto", "3) Caio", "4 – Duda", "5 Eva"
+const PREFIXO_NUMERO_LISTA = /^\d{1,3}\s*(?:[-–—.):]+\s*|\s+)(?=\S)/;
+function lerListaDoGrupo(texto){
+  const linhas = String(texto || '').split(/\r?\n/).map(l=> l.trim()).filter(Boolean);
+  // lista numerada: só as linhas numeradas valem (cabeçalho "Vôlei 30/09 20h" e rodapé "Pix: ..." ficam de fora)
+  const numeradas = linhas.filter(l=> PREFIXO_NUMERO_LISTA.test(l));
+  const nomes = numeradas.length ? numeradas.map(l=> l.replace(PREFIXO_NUMERO_LISTA, '').trim()) : linhas;
+  return nomes.filter(n=> /\p{L}/u.test(n));
+}
+function casarNomeComJogador(nome, jogadores, removidos){
+  const k = normalizarNomeLista(nome);
+  if(!k) return { tipo: 'nenhum' };
+  const primeiroDaLista = k.split(' ')[0];
+  const primeiro = (s)=> normalizarNomeLista(s).split(' ')[0] || '';
+  const exatos = (lista)=> lista.filter(p=> normalizarNomeLista(p.apelido) === k || normalizarNomeLista(p.nome) === k);
+  const peloPrimeiro = (lista)=> lista.filter(p=> (p.apelido && primeiro(p.apelido) === primeiroDaLista) || primeiro(p.nome) === primeiroDaLista);
+  let achados = exatos(jogadores);
+  if(achados.length === 1) return { tipo: 'unico', jogador: achados[0] };
+  if(achados.length > 1) return { tipo: 'varios', candidatos: achados };
+  achados = peloPrimeiro(jogadores);
+  if(achados.length === 1) return { tipo: 'unico', jogador: achados[0], peloPrimeiroNome: true };
+  if(achados.length > 1) return { tipo: 'varios', candidatos: achados };
+  achados = exatos(removidos);
+  if(!achados.length) achados = peloPrimeiro(removidos);
+  if(achados.length === 1) return { tipo: 'removido', jogador: achados[0] };
+  return { tipo: 'nenhum' };
+}
+// uma linha por nome colado, com o valor inicial da escolha: 'p:<id>' jogador, 'r:<id>' reativar e confirmar,
+// 'g' convidado, '' nada (dúvida, repetido na lista ou já confirmado)
+function montarConferencia(nomes, jogadores, removidos, confirmadosIds){
+  const vistos = new Set();
+  return nomes.map(texto=>{
+    const linha = { texto, ...casarNomeComJogador(texto, jogadores, removidos) };
+    const id = linha.jogador ? linha.jogador.id : null;
+    if(id && linha.tipo === 'unico' && confirmadosIds.has(id)) linha.jaConfirmado = true;
+    else if(id && vistos.has(id)) linha.repetido = true;
+    if(id) vistos.add(id);
+    linha.escolhaInicial = (linha.jaConfirmado || linha.repetido) ? ''
+      : linha.tipo === 'unico' ? 'p:' + id
+      : linha.tipo === 'removido' ? 'r:' + id
+      : linha.tipo === 'nenhum' ? 'g' : '';
+    return linha;
+  });
+}
+function escolhasDaConferencia(linhas, valores){
+  const escolhas = [];
+  linhas.forEach((l, i)=>{
+    const v = valores[i] || '';
+    if(v === 'g') escolhas.push({ texto: l.texto, acao: 'convidado' });
+    else if(v.startsWith('p:')) escolhas.push({ texto: l.texto, acao: 'jogador', id: v.slice(2) });
+    else if(v.startsWith('r:')) escolhas.push({ texto: l.texto, acao: 'reativar', id: v.slice(2) });
+  });
+  return escolhas;
+}
+// </lista-whatsapp-puro>
+
+// Confirma as escolhas da conferência, uma por vez e na ordem: reativa quem estava removido, cria o convidado (como o
+// "Adicionar convidado") e grava o check-in (como o "Vou jogar"). Quem já está na lista é pulado; se uma gravação falhar,
+// desfaz só aquela e segue. Devolve { confirmados, pulados, falhas: [textos] }.
+async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
+  const data = SETTINGS.checkinDataAberta;
+  const cred = await credencialLogada();
+  if(!cred) return { confirmados: 0, pulados: 0, falhas: escolhas.map(e=> e.texto) };
+  let credReativar = null;
+  const naLista = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  let confirmados = 0, pulados = 0;
+  const falhas = [];
+  for(let i = 0; i < escolhas.length; i++){
+    const e = escolhas[i];
+    aoProgresso(i + 1, escolhas.length, e.texto);
+    let jogadorId, nome, estrelas = 0, sexo = '';
+    if(e.acao === 'convidado'){
+      const convidado = { id: uid(), nome: e.texto, apelido: '', foto: '', estrelas: 0, sexo: '', isGuest: true };
+      GUESTS.push(convidado);
+      jogadorId = convidado.id;
+      nome = e.texto;
+    } else {
+      if(naLista.has(e.id)){ pulados++; continue; }
+      if(e.acao === 'reativar'){
+        credReativar = credReativar || await requireAuth('restorePlayer');
+        const removido = (DATA.removidos || []).find(p=> p.id === e.id);
+        if(!credReativar || !removido || !(await postAction('restorePlayer', { id: e.id }, credReativar))){ falhas.push(e.texto); continue; }
+        DATA.removidos = DATA.removidos.filter(p=> p.id !== e.id);
+        DATA.players.push(removido);
+      }
+      const p = getPlayer(e.id);
+      if(!p){ falhas.push(e.texto); continue; }
+      jogadorId = p.id;
+      nome = p.apelido || p.nome;
+      estrelas = p.estrelas || 0;
+      sexo = p.sexo || '';
+    }
+    const checkin = { id: uid(), data, jogadorId, jogadorNome: nome, estrelas, sexo };
+    CHECKINS.push(checkin);
+    naLista.add(jogadorId);
+    if(await postAction('addCheckin', { checkin }, cred)) confirmados++;
+    else {
+      CHECKINS = CHECKINS.filter(c=> c.id !== checkin.id); // desfaz só esta
+      naLista.delete(jogadorId);
+      falhas.push(e.texto);
+    }
+  }
+  return { confirmados, pulados, falhas };
+}
+
+// --- tela da lista colada (só organizador/admin logado, com check-in aberto e destravado) ---
+function podeColarListaDoGrupo(){ return AUTH.logado && (AUTH.perfil === 'admin' || AUTH.perfil === 'organizador'); }
+function atualizarBlocoListaGrupo(){
+  const bloco = document.getElementById('lista-grupo-bloco');
+  if(bloco) bloco.style.display = (SETTINGS.checkinDataAberta && !SETTINGS.checkinTravado && podeColarListaDoGrupo()) ? '' : 'none';
+}
+let LISTA_GRUPO_LINHAS = [];
+function valoresDaConferencia(){
+  return LISTA_GRUPO_LINHAS.map((l, i)=>{
+    const s = document.querySelector(`.lista-grupo-escolha[data-linha="${i}"]`);
+    return s ? s.value : '';
+  });
+}
+function renderConferenciaListaGrupo(){
+  const caixa = document.getElementById('lista-grupo-conferencia');
+  const nomeDe = (p)=> escapeHtml(p.apelido || p.nome);
+  const jogadoresOrdenados = sortByName(DATA.players);
+  caixa.innerHTML = `<ol class="lista-grupo-linhas">${LISTA_GRUPO_LINHAS.map((l, i)=>{
+    let status, escolha = '';
+    if(l.jaConfirmado) status = `☑️ <strong>${nomeDe(l.jogador)}</strong> já está confirmado`;
+    else if(l.repetido) status = '↩️ Repetido na lista: conta uma vez só';
+    else {
+      status = l.tipo === 'unico' ? `✅ <strong>${nomeDe(l.jogador)}</strong>${l.peloPrimeiroNome ? ' <span class="lista-grupo-obs">(pelo 1º nome, confira)</span>' : ''}`
+        : l.tipo === 'varios' ? '⚠️ Mais de um jogador com esse nome: escolha qual'
+        : l.tipo === 'removido' ? `♻️ <strong>${nomeDe(l.jogador)}</strong> está entre os removidos`
+        : '❓ Não encontrado no cadastro';
+      const ini = l.escolhaInicial;
+      const opcao = (valor, texto)=> `<option value="${escapeHtml(valor)}"${ini === valor ? ' selected' : ''}>${texto}</option>`;
+      const possiveis = l.tipo === 'varios' ? `<optgroup label="Possíveis">${l.candidatos.map(p=> opcao('p:' + p.id, nomeDe(p))).join('')}</optgroup>` : '';
+      escolha = `<select class="lista-grupo-escolha" data-linha="${i}" aria-label="O que fazer com ${escapeHtml(l.texto)}">
+        ${l.tipo === 'removido' ? opcao('r:' + l.jogador.id, `Reativar e confirmar ${nomeDe(l.jogador)}`) : ''}
+        ${opcao('g', `Adicionar como convidado: ${escapeHtml(l.texto)}`)}
+        ${opcao('', 'Ignorar')}
+        ${possiveis}
+        <optgroup label="Jogadores">${jogadoresOrdenados.map(p=> opcao('p:' + p.id, nomeDe(p))).join('')}</optgroup>
+      </select>`;
+    }
+    const classe = l.jaConfirmado ? 'ok' : (l.repetido ? 'repetido' : l.tipo);
+    return `<li class="lista-grupo-linha lista-grupo-${classe}"><span class="lista-grupo-nome">${escapeHtml(l.texto)}</span><span class="lista-grupo-status">${status}</span>${escolha}</li>`;
+  }).join('')}</ol>
+  <div class="acoes-linha"><button type="button" class="btn" id="lista-grupo-confirmar-btn"></button><span class="lista-grupo-dica" id="lista-grupo-progresso"></span></div>`;
+  const botao = document.getElementById('lista-grupo-confirmar-btn');
+  const atualizarBotao = ()=>{
+    const n = valoresDaConferencia().filter(Boolean).length;
+    botao.textContent = `Confirmar ${n} nome(s)`;
+    botao.disabled = n === 0;
+  };
+  caixa.querySelectorAll('.lista-grupo-escolha').forEach(s=> s.addEventListener('change', atualizarBotao));
+  atualizarBotao();
+  botao.addEventListener('click', async ()=>{
+    const escolhas = escolhasDaConferencia(LISTA_GRUPO_LINHAS, valoresDaConferencia());
+    if(!escolhas.length) return;
+    botao.disabled = true;
+    caixa.querySelectorAll('.lista-grupo-escolha').forEach(s=> { s.disabled = true; });
+    const progresso = document.getElementById('lista-grupo-progresso');
+    const res = await confirmarListaDoGrupo(escolhas, (i, total, nome)=>{ progresso.textContent = `Confirmando ${i} de ${total}: ${nome}...`; });
+    const partes = [`✅ ${res.confirmados} confirmado(s)`];
+    if(res.pulados) partes.push(`${res.pulados} já estava(m) na lista`);
+    caixa.innerHTML = `<p class="lista-grupo-resultado">${partes.join(' · ')}${res.falhas.length ? `<br>❌ Não deu para confirmar: ${escapeHtml(res.falhas.join(', '))}. Confira a conexão e tente de novo.` : ''}</p>`;
+    if(!res.falhas.length) document.getElementById('lista-grupo-texto').value = '';
+    LISTA_GRUPO_LINHAS = [];
+    // reativar mexe na aba Jogadores e no ranking também: aí redesenha tudo; senão, só o check-in
+    if(escolhas.some(e=> e.acao === 'reativar')) renderAll(); else renderCheckinList();
+  });
+}
+document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()=>{
+  const caixa = document.getElementById('lista-grupo-conferencia');
+  const nomes = lerListaDoGrupo(document.getElementById('lista-grupo-texto').value);
+  if(!nomes.length){ caixa.innerHTML = '<p class="lista-grupo-dica">Nenhum nome encontrado no texto colado.</p>'; return; }
+  const data = SETTINGS.checkinDataAberta;
+  const confirmados = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  LISTA_GRUPO_LINHAS = montarConferencia(nomes, DATA.players, DATA.removidos || [], confirmados);
+  renderConferenciaListaGrupo();
+});
 
 document.getElementById('use-checkins-sorteio-btn').addEventListener('click', ()=>{
   const data = SETTINGS.checkinDataAberta;
