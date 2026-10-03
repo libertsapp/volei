@@ -6,7 +6,7 @@ const PAGINA = 1000; // limite de linhas por consulta do Supabase; as tabelas de
 const CHAVES = {
   jogadores: ['id'], rodadas: ['round_id'], times_rodada: ['id'], time_jogadores: ['time_rodada_id', 'jogador_id'],
   checkins: ['id'], config: ['chave'], usuarios: ['email'], fin_dias: ['data'], fin_pagamentos: ['id'],
-  fin_creditos: ['id'], fin_lancamentos: ['id'], ao_vivo: ['id'], ao_vivo_log: ['id']
+  fin_creditos: ['id'], fin_lancamentos: ['id'], fin_jogos: ['data', 'jogo'], ao_vivo: ['id'], ao_vivo_log: ['id']
 };
 
 const DICA_AJUSTE_6 = ' (rode sql/schema-terca-supabase-ajuste-6.sql no SQL Editor do Supabase)';
@@ -176,6 +176,26 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
     async inserirFinCredito(linha) {
       const { error } = await cliente.from('fin_creditos').insert(linha);
       if (error) throw new Error('fin_creditos: ' + error.message);
+    },
+    async gravarFinJogo(linha) {
+      const { error } = await cliente.from('fin_jogos').upsert(linha, { onConflict: 'data,jogo' });
+      if (error) throw new Error('fin_jogos: ' + error.message);
+    },
+    async definirStatusFinJogo(data, jogo, status) {
+      const { data: linhas, error } = await cliente.from('fin_jogos').update({ status }).eq('data', data).eq('jogo', jogo).select('data');
+      if (error) throw new Error('fin_jogos: ' + error.message);
+      return linhas.length > 0;
+    },
+    // botão ⇄ (ajuste 9); se a função não existir ainda, o erro cita o arquivo certo
+    async moverCheckinDeJogo(id, paraJogo) {
+      const { data, error } = await cliente.rpc('mover_checkin_de_jogo', { p_id: id, p_para_jogo: paraJogo });
+      if (error) throw new Error('mover_checkin_de_jogo: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-9.sql no SQL Editor do Supabase)');
+      return data === true;
+    },
+    async moverJogo2ParaJogo1(data) {
+      const { data: n, error } = await cliente.rpc('mover_jogo2_para_jogo1', { p_data: data });
+      if (error) throw new Error('mover_jogo2_para_jogo1: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-9.sql no SQL Editor do Supabase)');
+      return Number(n);
     },
     // ---- trava de gravação (etapa 4b; funções do sql/schema-terca-supabase-ajuste-5.sql). Se o SQL ainda não foi rodado, o erro
     // cita pegar_trava e a gravação NÃO segue sem trava ----
