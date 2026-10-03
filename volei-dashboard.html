@@ -2686,7 +2686,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6277,11 +6277,13 @@ function quadroRodadaDuplaHtml(jogos, rotulo){
             <p class="sb-placa-nomes">${(t.playerIds || []).map(pid=> escapeHtml(nomeCurto(pid))).join(', ')}</p>
           </div>`;
         }).join('');
-    return `<section class="sb-placa" aria-label="${i + 1}º jogo">
+    // <div> e NÃO <section>: o CSS do app tem "section{display:none}" (só a aba ativa aparece) — com <section> a placa
+    // sumia (bug real no Meme, 25/09/2026)
+    return `<div class="sb-placa" role="group" aria-label="${i + 1}º jogo">
       <span class="sb-placa-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
       <p class="sb-placa-tag">${i + 1}º jogo</p>
       ${corpo}
-    </section>`;
+    </div>`;
   };
   const placas = jogos.map((r, i)=> (i === 0 ? '' : `<div class="sb-costura${i > 1 ? ' sb-costura-simples' : ''}" aria-hidden="true"><span>×${jogos.length}</span></div>`) + placaHtml(r, i)).join('');
   const nomesDobradinha = [...dobradinha].map(nomeCurto);

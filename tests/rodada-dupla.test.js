@@ -45,6 +45,9 @@ assert.equal(api.contarDiasJogados([]), 0);
 // o quadro: duas placas numeradas, costura ×2, dobradinha com anel dourado só em quem venceu os dois
 let q = api.quadroRodadaDuplaHtml([r1, r2], 'Campeões da semana');
 assert.equal((q.match(/class="sb-placa"/g) || []).length, 2);
+// bug real (Meme, 25/09/2026): o CSS do app tem "section{display:none}" (só a aba ativa aparece), então placa em
+// <section> sumia e só o medalhão ×2 ficava na tela. O quadro não pode usar <section>.
+assert.doesNotMatch(q, /<section/);
 assert.match(q, /Campeões da semana/);
 assert.match(q, /06\/10\/2026 · 2 jogos/);
 assert.match(q, /aria-hidden="true">01</);
