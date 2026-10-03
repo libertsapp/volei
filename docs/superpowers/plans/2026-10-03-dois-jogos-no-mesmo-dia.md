@@ -2768,6 +2768,43 @@ Em `.checkin-admin-ajustes-body` (linha ~1912-1922), trocar os campos fixos de V
           </div>
 ```
 
+**Isto remove os `<input id="checkin-admin-vagas">` e `<input id="checkin-admin-horario">` de dentro de `.checkin-admin-ajustes-body`.** Removê-los deixa 4 referências antigas a esses dois IDs **órfãs** — `document.getElementById(...)` passa a devolver `null`, e `null.addEventListener(...)` quebra o `<script>` inteiro assim que o arquivo carrega. Essas 4 referências têm que ser **apagadas** nesta mesma task (o Step 7 já cobre toda a função delas — mostrar o valor atual e gravar a mudança — através de `jogos-ajustes-corpo`):
+
+1. `grep -n "checkin-admin-vagas\|checkin-admin-horario" volei-dashboard.html` (fora da linha do `label for=` que já foi removida junto com o input) deve mostrar, antes desta task, estas 4 ocorrências em `renderCheckinStatus()` e nos listeners logo abaixo dela:
+   ```js
+   const adminVagasInput = document.getElementById('checkin-admin-vagas');
+   if(adminVagasInput && document.activeElement !== adminVagasInput) adminVagasInput.value = vagas;
+   const adminHorarioInput = document.getElementById('checkin-admin-horario');
+   if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
+   ```
+   e, mais abaixo (dois blocos inteiros):
+   ```js
+   document.getElementById('checkin-admin-vagas').addEventListener('change', async (e)=>{
+     const cred = await requireAuth('saveCheckinSettings');
+     if(!cred){ e.target.value = SETTINGS.checkinVagas || 16; return; }
+     const anterior = SETTINGS.checkinVagas;
+     const nova = parseInt(e.target.value, 10);
+     SETTINGS.checkinVagas = (nova > 0) ? nova : 16;
+     renderCheckinStatus();
+     renderCheckinList();
+     const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
+     if(!ok){ SETTINGS.checkinVagas = anterior; renderCheckinStatus(); renderCheckinList(); }
+   });
+
+   document.getElementById('checkin-admin-horario').addEventListener('change', async (e)=>{
+     const cred = await requireAuth('saveCheckinSettings');
+     if(!cred){ e.target.value = SETTINGS.checkinHorario || '20:00'; return; }
+     const anterior = SETTINGS.checkinHorario;
+     SETTINGS.checkinHorario = e.target.value || '20:00';
+     renderCheckinStatus();
+     const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
+     if(!ok){ SETTINGS.checkinHorario = anterior; renderCheckinStatus(); }
+   });
+   ```
+2. **Apagar as 4 linhas de `renderCheckinStatus()`** listadas acima (as duas que leem `adminVagasInput`/`adminHorarioInput` e as duas que os populam) — a função `renderJogosAjustes()` do Step 7 já preenche os campos do jogo 1 (e do 2) com os valores atuais.
+3. **Apagar os dois blocos `addEventListener` inteiros** listados acima — o listener de `change` em `#jogos-ajustes-corpo` do Step 7 (`campo === 'jogo' ? ... : ...` com `jogo === 1` indo por `saveCheckinSettings`) já cobre exatamente o mesmo caso, para o jogo 1 e o jogo 2.
+4. Conferir no fim: `grep -n "checkin-admin-vagas\|checkin-admin-horario" volei-dashboard.html` não deve devolver **nenhuma** linha.
+
 - [ ] **Step 7: Funções de renderização e os dois modais**
 
 Logo antes de `function renderCheckinStatus(){` (linha ~7387), acrescentar:
