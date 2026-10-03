@@ -1974,7 +1974,7 @@
       <!-- lista colada do grupo do WhatsApp: confirma vários de uma vez (só organizador/admin, check-in aberto e destravado).
            <details>, nunca <section>: o CSS esconde todo <section> fora da aba ativa -->
       <details class="lista-grupo" id="lista-grupo-bloco" style="display:none;">
-        <summary><span class="linha-titulo">📋 Colar lista do WhatsApp</span></summary>
+        <summary><span class="linha-titulo">📋 Colar lista do WhatsApp</span><span id="lista-grupo-jogo"></span></summary>
         <div class="lista-grupo-corpo">
           <p class="lista-grupo-dica">Cole a lista de confirmados do grupo. Quem for reconhecido já vem marcado: confira cada linha e toque em Confirmar. Nada é salvo antes disso.</p>
           <textarea id="lista-grupo-texto" rows="6" placeholder="1-Biel&#10;2-Michel&#10;3-Cássia"></textarea>
@@ -7678,7 +7678,11 @@ function renderCheckinStatus(){
     adminDateInput.value = data || new Date().toISOString().slice(0,10);
   }
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
-  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar lista' : '🔒 Travar lista';
+  if(lockBtn){
+    const jogos2 = jogosDoDia(SETTINGS, CHECKINS, data);
+    const jAtivo2 = jogos2.find(j => j.numero === JOGO_ATIVO) || jogos2[0];
+    lockBtn.textContent = (jAtivo2 && jAtivo2.travado ? '🔓 Destravar' : '🔒 Travar') + (jogos2.length > 1 ? ` ${jAtivo2.horario}` : ' lista');
+  }
   // só aparece o botão que faz sentido no estado atual: fechado → só "Abrir"; aberto → "Travar" e "Fechar",
   // e "Abrir" só volta (como "Trocar para dd/mm") quando a data escolhida é diferente da que está aberta
   const openBtn = document.getElementById('open-checkin-btn');
@@ -7698,8 +7702,11 @@ function renderCheckinStatus(){
   const useBtn = document.getElementById('use-checkins-sorteio-btn');
   const shareArea = document.getElementById('share-checkins-whatsapp-area');
   const loginAviso = document.getElementById('checkin-login-aviso');
+  // trava do jogo ATIVO (aba) — jogo 1 vai por SETTINGS.checkinTravado, jogo 2 por checkinJogo2.travado
+  const jogosAtivos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const travadoAtivo = (jogosAtivos.find(j => j.numero === JOGO_ATIVO) || jogosAtivos[0]).travado;
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
-  if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
+  if(guestRow) guestRow.style.display = (data && !travadoAtivo && AUTH.logado) ? 'flex' : 'none';
   atualizarBlocoListaGrupo(); // "Colar lista do WhatsApp": mesma regra do convidado, mas só organizador/admin
   atualizarBotaoDesconfirmarTodos();
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
@@ -7713,21 +7720,31 @@ function renderCheckinStatus(){
       delete shareArea.dataset.wired;
     }
   }
-  if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
+  if(loginAviso) loginAviso.style.display = (data && !travadoAtivo && !AUTH.logado) ? 'block' : 'none';
 }
 
 // trocar a data no seletor já atualiza os botões (aparece/some o "Trocar para dd/mm")
 ['input','change'].forEach(ev => document.getElementById('checkin-admin-date').addEventListener(ev, renderCheckinStatus));
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
-  const cred = await requireAuth('saveCheckinSettings');
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const cred = await requireAuth(JOGO_ATIVO === 2 ? 'salvarJogo2' : 'saveCheckinSettings');
   if(!cred) return;
-  const anterior = SETTINGS.checkinTravado;
-  SETTINGS.checkinTravado = !anterior;
+  const novoTravado = !jAtivo.travado;
+  let ok;
+  if(JOGO_ATIVO === 2){
+    ok = await postAction('salvarJogo2', { jogo2: { data, horario: SETTINGS.checkinJogo2.horario, vagas: SETTINGS.checkinJogo2.vagas, travado: novoTravado } }, cred);
+    if(ok) SETTINGS.checkinJogo2 = Object.assign({}, SETTINGS.checkinJogo2, { travado: novoTravado });
+  } else {
+    const anterior = SETTINGS.checkinTravado;
+    SETTINGS.checkinTravado = novoTravado;
+    ok = await postAction('saveCheckinSettings', { settings: SETTINGS }, cred);
+    if(!ok) SETTINGS.checkinTravado = anterior;
+  }
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
@@ -7755,8 +7772,11 @@ document.getElementById('close-checkin-btn').addEventListener('click', async ()=
 });
 
 document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
-  if(!SETTINGS.checkinDataAberta){ alert('O check-in está fechado no momento.'); return; }
-  if(SETTINGS.checkinTravado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  if(!data){ alert('O check-in está fechado no momento.'); return; }
+  if(jAtivo.travado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
   if(!exigirLoginParaCheckin()) return;
   const cred = await credencialLogada();
   if(!cred) return;
@@ -7777,7 +7797,7 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
 
   // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
-  const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo };
+  const novoCheckin = { id: uid(), data, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo, jogo: JOGO_ATIVO };
   CHECKINS.push(novoCheckin);
   await postAction('addCheckin', {checkin: novoCheckin}, cred);
 
@@ -7785,15 +7805,16 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
 });
 document.getElementById('checkin-search').addEventListener('input', renderCheckinList);
 
-// ordem de chegada = ordem natural do array (linhas da aba Checkins, na ordem que
-// foram gravadas); os N primeiros (N = vagas) estão dentro, o resto é reserva
+// Dois jogos no mesmo dia: estas duas funções passam a devolver a fila do JOGO_ATIVO (a aba). Como quase toda a
+// tela (busca, convidado, lista colada, Desconfirmar todos não — ver abaixo, importar no Sorteio, ajustar estrelas)
+// já chamava uma delas, a aba passa a valer em todo canto sem precisar reescrever cada chamada.
 function checkinsOrdenados(data){
-  return CHECKINS.filter(c=>c.data===data);
+  return checkinsDoJogo(CHECKINS, data, JOGO_ATIVO);
 }
 function checkinsDentroEReserva(data){
-  const ordenados = checkinsOrdenados(data);
-  const vagas = SETTINGS.checkinVagas || 16;
-  return { dentro: ordenados.slice(0, vagas), reserva: ordenados.slice(vagas) };
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const j = jogos.find(x => x.numero === JOGO_ATIVO) || jogos[0];
+  return dentroEReservaDoJogo(CHECKINS, data, JOGO_ATIVO, j.vagas);
 }
 
 function renderCheckinOrdenados(){
@@ -8428,13 +8449,16 @@ function renderCheckinList(){
 
   atualizarBotaoDesconfirmarTodos(); // aparece/some conforme a lista ganha ou perde gente
   const term = document.getElementById('checkin-search').value;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const outro = jogos.find(j => j.numero !== JOGO_ATIVO);
   const { dentro, reserva } = checkinsDentroEReserva(data);
   const confirmadosHoje = new Set(dentro.concat(reserva).map(c=>c.jogadorId));
   const dentroIds = new Set(dentro.map(c=>c.jogadorId));
-  const vagas = SETTINGS.checkinVagas || 16;
+  const vagas = jAtivo.vagas;
   document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
   document.getElementById('checkin-counter-label').textContent =
-    `de ${vagas} vaga(s)${reserva.length ? ` (${reserva.length} na reserva)` : ''}`;
+    `de ${vagas} vaga(s)${reserva.length ? ` (${reserva.length} na reserva)` : ''}${jogos.length > 1 ? ` · ${jAtivo.horario}` : ''}`;
   renderCheckinOrdenados();
 
   const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
@@ -8443,11 +8467,12 @@ function renderCheckinList(){
     return;
   }
   const mostrarEstrelas = starsVisibleNow();
-  const travado = SETTINGS.checkinTravado;
+  const travado = jAtivo.travado;
   const podeMarcar = AUTH.logado && !travado;
   list.innerHTML = pool.map(p=>{
     const confirmado = confirmadosHoje.has(p.id);
     const naReserva = confirmado && !dentroIds.has(p.id);
+    const tambem = outro && estaNoJogo(CHECKINS, data, outro.numero, p.id);
     let rotulo = 'Vou jogar';
     if(confirmado) rotulo = naReserva ? '⏳ Reserva' : '✅ Confirmado';
     else if(travado) rotulo = '🔒 Travado';
@@ -8457,11 +8482,12 @@ function renderCheckinList(){
       </button>`;
     // o <label> continua em volta: tocar em qualquer ponto da linha aciona o botão, como antes.
     // O nome NÃO abre o perfil aqui (tocar na linha é pra marcar presença).
+    const tagExtra = (p.isGuest ? '<span class="badge-guest">convidado</span>' : '') + (tambem ? `<span class="tag-outro" title="Também está no jogo das ${outro.horario}">também às ${outro.horario}</span>` : '');
     return `<label class="jc-linha" data-checkin-toggle="${p.id}">${jogadorCardHtml(
       montarDadosReduzido(p, mostrarEstrelas, {
         nomeHtml: highlightMatch(p.nome, term),
         apelidoHtml: p.apelido ? highlightMatch(p.apelido, term) : '',
-        tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '',
+        tagsExtraHtml: tagExtra,
         acoesHtml: botao
       }),
       { variante: 'reduzido', nomeAbrePerfil: false }
@@ -8472,7 +8498,7 @@ function renderCheckinList(){
     btn.addEventListener('click', async (e)=>{
       e.preventDefault();
       const pid = btn.dataset.checkinBtn;
-      const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid);
+      const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid && (Number(c.jogo)||1)===JOGO_ATIVO);
       if(!jaConfirmado && !exigirLoginParaCheckin()) return;
       const cred = await credencialLogada();
       if(!cred) return;
@@ -8482,7 +8508,7 @@ function renderCheckinList(){
         if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
       } else {
         const player = getPlayer(pid);
-        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'' };
+        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'', jogo: JOGO_ATIVO };
         CHECKINS.push(novoCheckin);
         const ok = await postAction('addCheckin', {checkin: novoCheckin}, cred);
         if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
@@ -8565,7 +8591,7 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
   const cred = await credencialLogada();
   if(!cred) return { confirmados: 0, pulados: 0, falhas: escolhas.map(e=> e.texto) };
   let credReativar = null;
-  const naLista = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  const naLista = new Set(CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO).map(c=> c.jogadorId));
   let confirmados = 0, pulados = 0;
   const falhas = [];
   for(let i = 0; i < escolhas.length; i++){
@@ -8593,7 +8619,7 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
       estrelas = p.estrelas || 0;
       sexo = p.sexo || '';
     }
-    const checkin = { id: uid(), data, jogadorId, jogadorNome: nome, estrelas, sexo };
+    const checkin = { id: uid(), data, jogadorId, jogadorNome: nome, estrelas, sexo, jogo: JOGO_ATIVO };
     CHECKINS.push(checkin);
     naLista.add(jogadorId);
     if(await postAction('addCheckin', { checkin }, cred)) confirmados++;
@@ -8610,7 +8636,14 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
 function podeColarListaDoGrupo(){ return AUTH.logado && (AUTH.perfil === 'admin' || AUTH.perfil === 'organizador'); }
 function atualizarBlocoListaGrupo(){
   const bloco = document.getElementById('lista-grupo-bloco');
-  if(bloco) bloco.style.display = (SETTINGS.checkinDataAberta && !SETTINGS.checkinTravado && podeColarListaDoGrupo()) ? '' : 'none';
+  const data = SETTINGS.checkinDataAberta;
+  const jAtivo = (jogosDoDia(SETTINGS, CHECKINS, data).find(j=>j.numero===JOGO_ATIVO)) || { travado:false };
+  if(bloco) bloco.style.display = (data && !jAtivo.travado && podeColarListaDoGrupo()) ? '' : 'none';
+  const jogoEl = document.getElementById('lista-grupo-jogo');
+  if(jogoEl){
+    const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+    jogoEl.textContent = jogos.length > 1 ? ` → jogo das ${(jogos.find(j=>j.numero===JOGO_ATIVO)||jogos[0]).horario}` : '';
+  }
 }
 let LISTA_GRUPO_LINHAS = [];
 function valoresDaConferencia(){
@@ -8676,7 +8709,7 @@ document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()
   const nomes = lerListaDoGrupo(document.getElementById('lista-grupo-texto').value);
   if(!nomes.length){ caixa.innerHTML = '<p class="lista-grupo-dica">Nenhum nome encontrado no texto colado.</p>'; return; }
   const data = SETTINGS.checkinDataAberta;
-  const confirmados = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  const confirmados = new Set(CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO).map(c=> c.jogadorId));
   LISTA_GRUPO_LINHAS = montarConferencia(nomes, DATA.players, DATA.removidos || [], confirmados);
   renderConferenciaListaGrupo();
 });
@@ -8687,7 +8720,7 @@ document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()
 // como "saiu da lista"). Quem falhar continua na lista. Testado em tests/desconfirmar-todos.test.js.
 async function desconfirmarTodosDoDia(aoProgresso = ()=>{}){
   const data = SETTINGS.checkinDataAberta;
-  const doDia = CHECKINS.filter(c=> c.data === data);
+  const doDia = CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO);
   const cred = await credencialLogada();
   if(!cred) return { removidos: 0, falhas: doDia.map(c=> c.jogadorNome || '?') };
   let removidos = 0;
@@ -8705,12 +8738,13 @@ function atualizarBotaoDesconfirmarTodos(){
   const botao = document.getElementById('desconfirmar-todos-btn');
   if(!botao) return;
   const data = SETTINGS.checkinDataAberta;
-  botao.hidden = !(data && !SETTINGS.checkinTravado && podeColarListaDoGrupo() && CHECKINS.some(c=> c.data === data));
+  const jAtivo = (jogosDoDia(SETTINGS, CHECKINS, data).find(j=>j.numero===JOGO_ATIVO)) || { travado:false };
+  botao.hidden = !(data && !jAtivo.travado && podeColarListaDoGrupo() && CHECKINS.some(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO));
 }
 // </desconfirmar-todos>
 document.getElementById('desconfirmar-todos-btn').addEventListener('click', async ()=>{
   const data = SETTINGS.checkinDataAberta;
-  const doDia = CHECKINS.filter(c=> c.data === data);
+  const doDia = CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO);
   if(!doDia.length) return;
   const pagos = ((FINANCEIRO && FINANCEIRO.pagamentos) || []).filter(p=> p.data === data && !p.estornado).length;
   const avisoPagos = pagos ? `\n\nHá ${pagos} pagamento(s) marcado(s) neste dia: quem pagou com crédito recebe o crédito de volta; PIX ou dinheiro continua registrado no Financeiro como "saiu da lista".` : '';
@@ -8934,7 +8968,7 @@ function shuffleArray(arr){
 function comEstrelaDoCheckin(player){
   const data = SETTINGS.checkinDataAberta;
   if(!data) return player;
-  const checkin = CHECKINS.find(c=> c.data===data && c.jogadorId===player.id && c.estrelasAjustadas);
+  const checkin = CHECKINS.find(c=> c.data===data && c.jogadorId===player.id && (Number(c.jogo)||1)===JOGO_ATIVO && c.estrelasAjustadas);
   if(!checkin) return player;
   const ajustada = Number(checkin.estrelasAjustadas);
   if(!ajustada && ajustada!==0) return player;
