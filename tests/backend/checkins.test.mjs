@@ -19,7 +19,7 @@ await ta('addCheckin: o mesmo jogador pode entrar duas vezes (dias diferentes) e
   const d = deps();
   await addCheckin(d, { id: 'a', data: '2026-09-29', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: 4, sexo: 'F' });
   await addCheckin(d, { id: 'b', data: '2026-10-06', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: '4', sexo: 'F', estrelasAjustadas: '3.5' });
-  for (let i = 0; i < 20; i++) await addCheckin(d, { id: 'x' + i, data: '2026-10-06', jogadorId: 'p2' });
+  for (let i = 0; i < 20; i++) await addCheckin(d, { id: 'x' + i, data: '2026-10-06', jogadorId: 'p2-' + i });
   const t = await lista(d);
   assert.equal(t.length, 3 + 22);
   assert.equal(t.find((c) => c.id === 'b').estrelasAjustadas, '3.5');

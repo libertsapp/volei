@@ -56,9 +56,11 @@ await ta('4b: admin e chave mestra; a resposta traz o financeiro no formato do G
 await ta('4b: check-in pelo handler roda os ganchos (crédito aplicado ao entrar e devolvido ao sair) sob a trava, que fica solta', async () => {
   const dados = structuredClone(fixture);
   dados.fin_pagamentos = dados.fin_pagamentos.filter((p) => p.id !== 'pg2');
+  // Bruno confirmado nos dois jogos do dia (o novo recurso permite): c2 (fixture) é o jogo 1; n1 abaixo é o jogo 2
+  dados.config.push({ chave: 'checkinJogo2Data', valor: '2026-09-22' }, { chave: 'checkinJogo2Horario', valor: '21:00' }, { chave: 'checkinJogo2Vagas', valor: '16' });
   const repo = criarRepoMemoria(dados);
   const h = criarHandler({ repo, config: {}, verificarToken });
-  assert.deepEqual(await h.post({ action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M' } }), { status: 'ok' });
+  assert.deepEqual(await h.post({ action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M', jogo: 2 } }), { status: 'ok' });
   const p = (await h.get()).financeiro.pagamentos.filter((x) => x.tipo === 'credito' && !x.estornado);
   assert.deepEqual(p.map((x) => x.creditoId), ['cr1']);
   assert.deepEqual(await h.post({ action: 'removeCheckin', idToken: 'tok-c', id: 'n1' }), { status: 'ok' });

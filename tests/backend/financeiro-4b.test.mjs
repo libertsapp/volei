@@ -195,7 +195,7 @@ await ta('devolverCredito: estorna o pagamento de origem (quem/quando), é idemp
 // ============================== ganchos do check-in ==============================
 
 await ta('gancho de entrada: quem tem crédito de dia anterior já aparece pago (tipo credito, autor Crédito automático, log com o nome)', async () => {
-  const d = ambiente((x) => { x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2'); });
+  const d = ambiente((x) => { x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2'); x.checkins = x.checkins.filter((c) => c.id !== 'c2'); });
   assert.deepEqual(await addCheckin(d, { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M' }), { status: 'ok' });
   const f = await fin(d);
   const p = f.pagamentos.at(-1);
@@ -231,8 +231,12 @@ await ta('gancho de entrada: dia sem jogo, sem valor ou não configurado não ap
 });
 
 await ta('gancho de saída: o crédito usado no dia volta (pagamento por crédito estornado + log "saiu da lista") e o check-in é mesmo removido', async () => {
-  const d = ambiente((x) => { x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2'); });
-  await addCheckin(d, { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M' });
+  const d = ambiente((x) => {
+    x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2');
+    // Bruno confirmado nos dois jogos do dia (o novo recurso permite): c2 (fixture) é o jogo 1; n1 abaixo é o jogo 2
+    x.config.push({ chave: 'checkinJogo2Data', valor: '2026-09-22' }, { chave: 'checkinJogo2Horario', valor: '21:00' }, { chave: 'checkinJogo2Vagas', valor: '16' });
+  });
+  await addCheckin(d, { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M', jogo: 2 });
   assert.deepEqual(await removeCheckin(d, 'c2'), { status: 'ok' }); // o c2 do fixture (Bruno) também sai: as duas entradas somem
   assert.deepEqual(await removeCheckin(d, 'n1'), { status: 'ok' });
   const f = await fin(d);
@@ -267,7 +271,7 @@ await ta('gancho de saída: a espera sobe para dentro das vagas e paga com o cr�
 });
 
 await ta('ganchos nunca quebram o check-in: erro no gancho de entrada e no de saída é engolido (avisar recebe a mensagem)', async () => {
-  const d = ambiente((x) => { x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2'); });
+  const d = ambiente((x) => { x.fin_pagamentos = x.fin_pagamentos.filter((p) => p.id !== 'pg2'); x.checkins = x.checkins.filter((c) => c.id !== 'c2'); });
   d.repo.inserirFinPagamento = async () => { throw new Error('fin_pagamentos: banco fora do ar'); };
   assert.deepEqual(await addCheckin(d, { id: 'n1', data: '2026-09-22', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3, sexo: 'M' }), { status: 'ok' });
   assert.equal((await mapearCheckins((await d.repo.lerTudo()).checkins)).some((c) => c.id === 'n1'), true);
@@ -281,7 +285,7 @@ await ta('ganchos nunca quebram o check-in: erro no gancho de entrada e no de sa
   assert.deepEqual(d2.avisos, ['aposRemoverCheckin: lerTudo: caiu']);
   // sem deps.avisar e sem relogio: o gancho engole calado, o check-in continua ok
   const d3 = { repo: criarRepoMemoria(fixture) };
-  assert.deepEqual(await addCheckin(d3, { id: 'z', data: '2026-09-22', jogadorId: 'p1' }), { status: 'ok' });
+  assert.deepEqual(await addCheckin(d3, { id: 'z', data: '2026-09-22', jogadorId: 'p-novo' }), { status: 'ok' });
 });
 
 await ta('gancho: check-in sem jogador (jogadorId vazio) nunca recebe crédito órfão (I3 da 4a continua valendo)', async () => {
@@ -378,7 +382,7 @@ await ta('handler: erro engolido no gancho chega em avisar e o check-in continua
   repo.lerTudo = async () => { if (++n > 1) throw new Error('lerTudo: caiu no gancho'); return orig(); }; // 1ª leitura (addCheckin) passa
   const avisos = [];
   const h = criarHandler({ repo, config: {}, verificarToken: async () => ({ ok: true, email: 'c@exemplo.com', nome: 'C' }), avisar: (m) => avisos.push(m) });
-  const r = await h.post({ action: 'addCheckin', idToken: 'x', checkin: { id: 'nn', data: '2026-09-22', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: 3, sexo: 'F' } });
+  const r = await h.post({ action: 'addCheckin', idToken: 'x', checkin: { id: 'nn', data: '2026-09-22', jogadorId: 'p-novo', jogadorNome: 'Ana', estrelas: 3, sexo: 'F' } });
   assert.deepEqual(r, { status: 'ok' });
   assert.ok(avisos.some((m) => m.includes('aposAdicionarCheckin') && m.includes('caiu no gancho')), JSON.stringify(avisos));
 });
