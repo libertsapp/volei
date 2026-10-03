@@ -2617,7 +2617,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -7009,6 +7009,14 @@ function notaTotalDoTime(playerIds, data, checkins, getPlayerFn){
   }, 0);
 }
 function formatarNotaTotal(n){ return '★ ' + (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace('.', ','); }
+// Time(s) com a maior soma de estrelas numa rodada (mesma soma do Histórico). Empate: todos os empatados.
+function timesMaisFortes(round, checkins, getPlayerFn){
+  const comNota = (round.times || []).filter(t=> (t.playerIds || []).length > 0)
+    .map(t=> ({ time: t, total: notaTotalDoTime(t.playerIds, round.data, checkins, getPlayerFn) }));
+  if(comNota.length === 0) return [];
+  const maior = Math.max(...comNota.map(x=> x.total));
+  return comNota.filter(x=> x.total === maior);
+}
 
 function renderHistory(){
   // nota total de cada time: só para admin (ou chave mestra) — renderHistory roda de novo a cada login/logout
@@ -8703,6 +8711,18 @@ function montarResumoSemanal(){
     texto += `🏆 *${rotulo} ${formatDate(lastRound.data)}*\n${nomesPorTime.join('\n× ')}\n\n`;
   }
 
+  // time mais forte da última rodada = maior soma de estrelas. O resumo vai pro grupo do WhatsApp, então a soma só
+  // entra no texto se as estrelas estiverem visíveis ao público (senão vaza a nota de quem o admin escondeu).
+  if(lastRound){
+    const fortes = timesMaisFortes(lastRound, CHECKINS, getPlayer);
+    if(fortes.length){
+      const titulo = fortes.length > 1 ? 'Times mais fortes da semana (empate)' : 'Time mais forte da semana';
+      const soma = SETTINGS.estrelasVisiveis ? ` (${formatarNotaTotal(fortes[0].total)})` : '';
+      const jogadoresPorTime = fortes.map(x=> (x.time.playerIds || []).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; }).join(', '));
+      texto += `💪 *${titulo}* — ${fortes.map(x=> x.time.nome).join(' e ')}${soma}\n${jogadoresPorTime.join('\n× ')}\n\n`;
+    }
+  }
+
   const badges = computeBadges();
   function nomesDoSet(idsSet){
     return Array.from(idsSet).map(id=>{ const p=getPlayer(id); return p ? (p.apelido||p.nome) : null; }).filter(Boolean);
@@ -8714,8 +8734,10 @@ function montarResumoSemanal(){
   if(grudentoNomes.length===2) texto += `🧲 *Dupla mais grudenta*\n${grudentoNomes.join(' + ')}\n\n`;
 
   if(badges.paneleiro.size){
-    const paneleiroNomes = nomesDoSet(badges.paneleiro);
-    texto += `🍳 *Paneleiros da vez*\n${paneleiroNomes.join(', ')}\n\n`;
+    texto += `🍳 *Atuais Paneleiros do Volei*\n${nomesDoSet(badges.paneleiro).join(', ')}\n\n`;
+  }
+  if(badges.mochila.size){
+    texto += `🎒 *Carregadores de mochila*\n${nomesDoSet(badges.mochila).join(', ')}\n\n`;
   }
 
   const top3 = computeRanking(new Date().getFullYear().toString()).slice(0,3);
