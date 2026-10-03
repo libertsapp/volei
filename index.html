@@ -1634,6 +1634,75 @@
     .stat-num{font-size:28px;}
     .stat-cap{font-size:10px;letter-spacing:1px;}
   }
+  /* ===== RODADA DUPLA (dois jogos no mesmo dia) =====
+     Uma placa por jogo, lado a lado (empilhadas no celular), com o numeral do jogo em contorno neon ao fundo; entre elas
+     uma "costura" de luz com o medalhão ×2; e a faixa dourada da DOBRADINHA (quem foi campeão nos dois). O dourado é
+     fixo (não usa --ball-yellow) para ser ouro também no Meme, onde a cor de destaque é verde. Só esta parte é nova:
+     o quadro de um jogo só continua com as regras de cima. */
+  .sb-dupla{--ouro:#ffd700;}
+  body.light-mode .sb-dupla{--ouro:#b3790a;}
+  .sb-dupla-placas{position:relative;display:grid;grid-template-columns:repeat(var(--sb-n,2), minmax(0,1fr) auto);align-items:stretch;}
+  .sb-placa{
+    position:relative;overflow:hidden;min-width:0;padding:16px 18px 18px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(165deg, color-mix(in srgb, var(--chalk) 6%, transparent), transparent 65%);
+  }
+  .sb-placa-num{ /* o numeral do jogo é a marca do quadro: grande, vazado em neon, atrás do conteúdo */
+    position:absolute;right:-4px;bottom:-30px;pointer-events:none;user-select:none;
+    font-family:'Orbitron','Anton',sans-serif;font-weight:900;font-size:128px;line-height:1;letter-spacing:-4px;
+    color:transparent;-webkit-text-stroke:1.5px color-mix(in srgb, var(--accent) 55%, transparent);opacity:.5;
+  }
+  body.light-mode .sb-placa-num{opacity:.35;}
+  .sb-placa-tag{
+    position:relative;display:inline-block;margin:0 0 12px;padding:3px 12px;border-radius:999px;
+    font-family:'Work Sans',sans-serif;font-size:12px;font-weight:600;color:var(--accent);
+    border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .sb-team-placa{font-size:clamp(22px,5.4vw,32px);margin:0 0 10px;}
+  .sb-placa-time .sb-avatars{margin:0;}
+  .sb-placa-empate + .sb-placa-empate{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);}
+  .sb-placa-empate .sb-team-placa{font-size:clamp(18px,4.4vw,24px);}
+  .sb-placa-info{position:relative;margin:10px 0 2px;font-size:13px;color:var(--chalk-dim);}
+  .sb-placa-nomes{position:relative;margin:0;font-size:12px;color:var(--muted);overflow-wrap:anywhere;}
+  .sb-placa-aguardando{position:relative;margin:22px 0 10px;font-size:15px;color:var(--muted);}
+  .sb-costura{position:relative;width:46px;display:flex;align-items:center;justify-content:center;}
+  .sb-costura::before{
+    content:"";position:absolute;top:6%;bottom:6%;left:50%;width:2px;transform:translateX(-50%);border-radius:2px;
+    background:linear-gradient(180deg, transparent, var(--accent) 50%, transparent);filter:drop-shadow(0 0 6px var(--accent));
+  }
+  .sb-costura span{
+    position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;
+    font-family:'Orbitron','Anton',sans-serif;font-weight:900;font-size:14px;color:var(--court-navy);background:var(--accent);
+    box-shadow:0 0 0 4px var(--court-navy-2), 0 0 16px color-mix(in srgb, var(--accent) 65%, transparent);
+  }
+  .sb-costura-simples span{display:none;}
+  body.light-mode .sb-costura::before{filter:none;}
+  /* quem venceu os dois jogos: anel dourado duplo no avatar, nas duas placas */
+  .sb-avatar-wrap.sb-avatar-dobradinha{
+    border-color:var(--ouro);
+    box-shadow:0 0 0 2px var(--court-navy-2), 0 0 0 4px var(--ouro), 0 0 16px color-mix(in srgb, var(--ouro) 70%, transparent);
+    position:relative;z-index:1;
+  }
+  .sb-dobradinha{
+    position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:16px 0 0;padding:10px 16px;
+    border-radius:12px;color:var(--chalk);font-size:14px;border:1px solid color-mix(in srgb, var(--ouro) 60%, transparent);
+    background:linear-gradient(90deg, color-mix(in srgb, var(--ouro) 24%, transparent), color-mix(in srgb, var(--ouro) 5%, transparent));
+  }
+  .sb-dobradinha strong{font-family:'Orbitron','Anton',sans-serif;font-weight:900;letter-spacing:1px;color:var(--ouro);}
+  .sb-dobradinha-tacas{font-size:18px;line-height:1;}
+  .sb-dobradinha::after{ /* um único brilho passando quando o quadro aparece — o único movimento do quadro */
+    content:"";position:absolute;inset:0;transform:translateX(-110%);pointer-events:none;
+    background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+    animation:sb-brilho-ouro 1.6s ease-out .5s 1 forwards;
+  }
+  @keyframes sb-brilho-ouro{to{transform:translateX(110%);}}
+  @media (prefers-reduced-motion: reduce){.sb-dobradinha::after{animation:none;display:none;}}
+  @media (max-width:640px){
+    .sb-dupla-placas{grid-template-columns:minmax(0,1fr);}
+    .sb-costura{width:auto;height:44px;}
+    .sb-costura::before{top:50%;bottom:auto;left:6%;right:6%;width:auto;height:2px;transform:translateY(-50%);
+      background:linear-gradient(90deg, transparent, var(--accent) 50%, transparent);}
+    .sb-placa-num{font-size:104px;bottom:-24px;}
+  }
   /* Hall, Duplas, Panelas e Defuntos com cartão completo */
   /* align-items:start: abrir um cartão (o ">") NÃO estica os vizinhos da mesma linha (o padrão "stretch" fazia parecer que todos abriam) */
   .hall-winners{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;align-items:start;}
@@ -2617,7 +2686,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 14.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6165,6 +6234,69 @@ function wireAoVivoAcoes(){
   });
 }
 
+// <rodada-dupla-puro>
+/* Rodada dupla: dois (ou mais) jogos no MESMO dia. O quadro de campeões mostrava só a rodada mais recente, então num dia
+   de dois jogos o campeão de um deles sumia. Testado em tests/rodada-dupla.test.js. */
+// todos os jogos oficiais do dia mais recente, na ordem em que foram lançados (a ordem da lista = 1º jogo, 2º jogo...)
+function jogosDoDiaMaisRecente(rodadas, toTs){
+  if(!rodadas.length) return [];
+  const maisRecente = Math.max(...rodadas.map(r=> toTs(r.data)));
+  return rodadas.filter(r=> toTs(r.data) === maisRecente);
+}
+function campeoesDoJogo(round){ return (round.vencedores || []).map(i=> round.times[i]).filter(Boolean); }
+// "dobradinha": quem esteve num time campeão em TODOS os jogos do dia (empate num jogo: vale qualquer time campeão dele)
+function dobradinhaDoDia(jogos){
+  if(jogos.length < 2) return [];
+  const porJogo = jogos.map(r=> new Set(campeoesDoJogo(r).flatMap(t=> t.playerIds || [])));
+  if(porJogo.some(s=> s.size === 0)) return []; // algum jogo ainda sem placar: não dá pra saber
+  return [...porJogo[0]].filter(pid=> porJogo.every(s=> s.has(pid)));
+}
+// "Dias jogados" conta DATAS (num dia de dois jogos, contar rodadas daria 2)
+function contarDiasJogados(rodadas){ return new Set(rodadas.map(r=> r.data)).size; }
+
+// Coluna da esquerda do quadro num dia de rodada dupla: uma placa por jogo (numeral fantasma 01/02 ao fundo), costura de
+// luz com o medalhão ×N entre elas, e a faixa dourada da dobradinha quando alguém venceu todos os jogos.
+function quadroRodadaDuplaHtml(jogos, rotulo){
+  const dobradinha = new Set(dobradinhaDoDia(jogos));
+  const nomeCurto = (pid)=>{ const p = getPlayer(pid); return p ? (p.apelido || p.nome) : '?'; };
+  const avataresHtml = (team, idxTime)=> `<div class="sb-avatars ${classeCorDoTime(idxTime)}">${(team.playerIds || []).map(pid=>{
+    const p = getPlayer(pid);
+    return `<span class="sb-avatar-wrap${dobradinha.has(pid) ? ' sb-avatar-dobradinha' : ''}" data-open-profile="${escapeHtml(pid)}" title="${p ? escapeHtml(p.nome) : '?'}${dobradinha.has(pid) ? ' — venceu os dois jogos' : ''}">${avatarHtml(p, 'sm')}</span>`;
+  }).join('')}</div>`;
+  const placaHtml = (r, i)=>{
+    const campeoes = campeoesDoJogo(r);
+    const empate = campeoes.length > 1;
+    const corpo = campeoes.length === 0
+      ? '<p class="sb-placa-aguardando">Aguardando placar</p>'
+      : campeoes.map(t=>{
+          const idxTime = r.times.indexOf(t);
+          return `<div class="sb-placa-time${empate ? ' sb-placa-empate' : ''}">
+            <p class="sb-team sb-team-placa">${escapeHtml(t.nome)}</p>
+            ${avataresHtml(t, idxTime)}
+            <p class="sb-placa-info">${t.vitorias || 0} vitória(s) de partida${empate ? ' · empate' : ''}</p>
+            <p class="sb-placa-nomes">${(t.playerIds || []).map(pid=> escapeHtml(nomeCurto(pid))).join(', ')}</p>
+          </div>`;
+        }).join('');
+    return `<section class="sb-placa" aria-label="${i + 1}º jogo">
+      <span class="sb-placa-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
+      <p class="sb-placa-tag">${i + 1}º jogo</p>
+      ${corpo}
+    </section>`;
+  };
+  const placas = jogos.map((r, i)=> (i === 0 ? '' : `<div class="sb-costura${i > 1 ? ' sb-costura-simples' : ''}" aria-hidden="true"><span>×${jogos.length}</span></div>`) + placaHtml(r, i)).join('');
+  const nomesDobradinha = [...dobradinha].map(nomeCurto);
+  const quantosJogos = jogos.length === 2 ? 'os dois jogos' : `todos os ${jogos.length} jogos`;
+  const faixa = nomesDobradinha.length
+    ? `<div class="sb-dobradinha"><span class="sb-dobradinha-tacas" aria-hidden="true">🏆🏆</span><strong>Dobradinha</strong><span>${escapeHtml(nomesDobradinha.length > 1 ? nomesDobradinha.slice(0, -1).join(', ') + ' e ' + nomesDobradinha.slice(-1) : nomesDobradinha[0])} ${nomesDobradinha.length > 1 ? 'venceram' : 'venceu'} ${quantosJogos}</span></div>`
+    : '';
+  return `
+    <p class="sb-label">${escapeHtml(rotulo)}</p>
+    <p class="sb-date"><i class="ti ti-calendar-check" aria-hidden="true"></i>${formatDate(jogos[0].data)} · ${jogos.length} jogos</p>
+    <div class="sb-dupla-placas" style="--sb-n:${jogos.length}">${placas}</div>
+    ${faixa}`;
+}
+// </rodada-dupla-puro>
+
 /* ---------- DASHBOARD ---------- */
 // Colunas dos cartões da equipe campeã: 4 jogadores viram 2x2 (não 3+1), 5 ou 6 viram 3 colunas — assim
 // as linhas ficam completas e todos os cartões do quadro têm o mesmo tamanho.
@@ -6188,13 +6320,31 @@ function renderDashboard(){
   const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   const lastRound = sorted[0];
 
-  if(!lastRound || !Array.isArray(lastRound.vencedores) || lastRound.vencedores.length===0){
+  // números do ano (coluna da direita), iguais nos dois formatos do quadro; "Dias jogados" conta DATAS
+  function estatisticasDoAnoHtml(dataRef){
+    const badges = computeBadges();
+    const yearRounds = roundsOficiais().filter(r=> getYearOf(r.data) === getYearOf(dataRef));
+    return `<div class="sb-stats">
+          <div class="stat-card"><div class="stat-num">${contarDiasJogados(yearRounds)}</div><div class="stat-cap">Dias jogados em ${getYearOf(dataRef)}</div></div>
+          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
+          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🪦</div></div>
+        </div>`;
+  }
+
+  // dia de rodada dupla (2+ jogos na mesma data, ao menos um com campeão): uma placa por jogo (ver quadroRodadaDuplaHtml)
+  const jogosDoDia = jogosDoDiaMaisRecente(roundsOficiais(), toTimestamp);
+  if(jogosDoDia.length > 1 && jogosDoDia.some(r=> campeoesDoJogo(r).length)){
+    const diasDesdeDupla = Math.floor((Date.now() - toTimestamp(jogosDoDia[0].data)) / DIA_MS);
+    hero.innerHTML = `
+      <div class="scoreboard sb-dupla">
+        <div>${quadroRodadaDuplaHtml(jogosDoDia, diasDesdeDupla > 7 ? 'Últimos Campeões' : 'Campeões da semana')}</div>
+        ${estatisticasDoAnoHtml(jogosDoDia[0].data)}
+      </div>`;
+  } else if(!lastRound || !Array.isArray(lastRound.vencedores) || lastRound.vencedores.length===0){
     hero.innerHTML = `<div class="scoreboard"><div class="empty" style="grid-column:1/-1;"><i class="ti ti-ball-volleyball"></i>Nenhuma rodada com vencedor registrado ainda. Lance uma rodada para ver o campeão aqui.</div></div>`;
   } else {
     const timesCampeoes = lastRound.vencedores.map(idx=> lastRound.times[idx]);
     const empatado = timesCampeoes.length > 1; // até 2 times empatados viram campeões juntos
-    const yearRounds = roundsOficiais().filter(r=> getYearOf(r.data) === getYearOf(lastRound.data));
-    const badges = computeBadges();
     // depois de 7 dias, "da semana" deixa de fazer sentido — vira um rótulo mais genérico
     const diasDesde = Math.floor((Date.now() - toTimestamp(lastRound.data)) / DIA_MS);
     const rotuloBase = diasDesde > 7 ? 'Últimos Campeões' : 'Campeão da semana';
@@ -6228,11 +6378,7 @@ function renderDashboard(){
           <p class="sb-date"><i class="ti ti-calendar-check" aria-hidden="true"></i>${formatDate(lastRound.data)} · ${timesCampeoes[0].vitorias||0} vitória(s) de partida</p>
           ${corpoCampeoesHtml}
         </div>
-        <div class="sb-stats">
-          <div class="stat-card"><div class="stat-num">${yearRounds.length}</div><div class="stat-cap">Dias jogados em ${getYearOf(lastRound.data)}</div></div>
-          <div class="stat-card"><div class="stat-num">${DATA.players.length - badges.rip.size - badges.aposentado.size}</div><div class="stat-cap">Jogadores Ativos</div></div>
-          <div class="stat-card"><div class="stat-num">${badges.rip.size + badges.aposentado.size}</div><div class="stat-cap">Desaparecidos 👻🪦</div></div>
-        </div>
+        ${estatisticasDoAnoHtml(lastRound.data)}
       </div>`;
   }
 
@@ -7009,6 +7155,14 @@ function notaTotalDoTime(playerIds, data, checkins, getPlayerFn){
   }, 0);
 }
 function formatarNotaTotal(n){ return '★ ' + (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace('.', ','); }
+// Time(s) com a maior soma de estrelas numa rodada (mesma soma do Histórico). Empate: todos os empatados.
+function timesMaisFortes(round, checkins, getPlayerFn){
+  const comNota = (round.times || []).filter(t=> (t.playerIds || []).length > 0)
+    .map(t=> ({ time: t, total: notaTotalDoTime(t.playerIds, round.data, checkins, getPlayerFn) }));
+  if(comNota.length === 0) return [];
+  const maior = Math.max(...comNota.map(x=> x.total));
+  return comNota.filter(x=> x.total === maior);
+}
 
 function renderHistory(){
   // nota total de cada time: só para admin (ou chave mestra) — renderHistory roda de novo a cada login/logout
@@ -8692,15 +8846,34 @@ function wireBotoesCompartilhar(idPrefix, getTexto){
 function montarResumoSemanal(){
   let texto = `🏐 *Resumo da semana* — Volei de Terça\n\n`;
 
-  const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
-  const lastRound = sorted[0];
-  if(lastRound && Array.isArray(lastRound.vencedores) && lastRound.vencedores.length){
-    const timesCampeoes = lastRound.vencedores.map(idx=> lastRound.times[idx]);
-    const rotulo = timesCampeoes.length > 1 ? 'Campeões (empate) de' : 'Campeão de';
-    const nomesPorTime = timesCampeoes.map(team=>
-      (team.playerIds||[]).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; }).join(', ')
-    );
-    texto += `🏆 *${rotulo} ${formatDate(lastRound.data)}*\n${nomesPorTime.join('\n× ')}\n\n`;
+  // o "dia" do resumo = todos os jogos da data mais recente (num dia de rodada dupla, o campeão de cada jogo)
+  const jogosDoDia = jogosDoDiaMaisRecente(roundsOficiais(), toTimestamp);
+  const variosJogos = jogosDoDia.length > 1;
+  const nomeCurto = (pid)=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; };
+  jogosDoDia.forEach((r, i)=>{
+    const timesCampeoes = campeoesDoJogo(r);
+    if(!timesCampeoes.length) return;
+    const rotulo = (timesCampeoes.length > 1 ? 'Campeões (empate)' : 'Campeão') + (variosJogos ? ` do ${i+1}º jogo` : '') + ' de';
+    const nomesPorTime = timesCampeoes.map(team=> (team.playerIds||[]).map(nomeCurto).join(', '));
+    texto += `🏆 *${rotulo} ${formatDate(r.data)}*\n${nomesPorTime.join('\n× ')}\n\n`;
+  });
+  const dobradinha = dobradinhaDoDia(jogosDoDia).map(nomeCurto);
+  if(dobradinha.length){
+    const quem = dobradinha.length > 1 ? dobradinha.slice(0, -1).join(', ') + ' e ' + dobradinha.slice(-1) : dobradinha[0];
+    texto += `🏆🏆 *Dobradinha:* ${quem} ${dobradinha.length > 1 ? 'venceram' : 'venceu'} ${jogosDoDia.length === 2 ? 'os dois jogos' : 'todos os ' + jogosDoDia.length + ' jogos'}\n\n`;
+  }
+
+  // time mais forte do dia = maior soma de estrelas entre os times de TODOS os jogos do dia. O resumo vai pro grupo do
+  // WhatsApp, então a soma só entra no texto se as estrelas estiverem visíveis ao público (senão vaza a nota escondida).
+  if(jogosDoDia.length){
+    const rodadaDoDia = { data: jogosDoDia[0].data, times: jogosDoDia.flatMap((r, i)=> r.times.map(t=> variosJogos ? { ...t, nome: `${t.nome} (${i+1}º jogo)` } : t)) };
+    const fortes = timesMaisFortes(rodadaDoDia, CHECKINS, getPlayer);
+    if(fortes.length){
+      const titulo = fortes.length > 1 ? 'Times mais fortes da semana (empate)' : 'Time mais forte da semana';
+      const soma = SETTINGS.estrelasVisiveis ? ` (${formatarNotaTotal(fortes[0].total)})` : '';
+      const jogadoresPorTime = fortes.map(x=> (x.time.playerIds || []).map(pid=>{ const p=getPlayer(pid); return p ? (p.apelido||p.nome) : '?'; }).join(', '));
+      texto += `💪 *${titulo}* — ${fortes.map(x=> x.time.nome).join(' e ')}${soma}\n${jogadoresPorTime.join('\n× ')}\n\n`;
+    }
   }
 
   const badges = computeBadges();
@@ -8714,8 +8887,10 @@ function montarResumoSemanal(){
   if(grudentoNomes.length===2) texto += `🧲 *Dupla mais grudenta*\n${grudentoNomes.join(' + ')}\n\n`;
 
   if(badges.paneleiro.size){
-    const paneleiroNomes = nomesDoSet(badges.paneleiro);
-    texto += `🍳 *Paneleiros da vez*\n${paneleiroNomes.join(', ')}\n\n`;
+    texto += `🍳 *Atuais Paneleiros do Volei*\n${nomesDoSet(badges.paneleiro).join(', ')}\n\n`;
+  }
+  if(badges.mochila.size){
+    texto += `🎒 *Carregadores de mochila*\n${nomesDoSet(badges.mochila).join(', ')}\n\n`;
   }
 
   const top3 = computeRanking(new Date().getFullYear().toString()).slice(0,3);
