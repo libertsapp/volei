@@ -7680,11 +7680,11 @@ function abrirModalRemoverJogo(jogo){
     const payload = { data, destino };
     if(jogo === 1) payload.manter = 2;
     if(!(await finPost('removerJogo2', payload))) return false;
-    if(jogo === 1){ SETTINGS.checkinHorario = outro.horario; SETTINGS.checkinVagas = outro.vagas; SETTINGS.checkinTravado = outro.travado; }
-    SETTINGS.checkinJogo2 = null;
-    JOGO_ATIVO = 1;
-    renderCheckinStatus();
-    renderCheckinList();
+    // o servidor pode ter movido/relabelado/desconfirmado check-ins de formas diferentes conforme destino/manter —
+    // em vez de tentar replicar isso aqui (e arriscar ficar dessincronizado, como já aconteceu: uma aba fantasma
+    // do jogo removido reaparecia, com "Esse jogo não existe mais" ao tentar confirmar), recarrega os dados de
+    // verdade do servidor depois que a remoção é confirmada
+    await loadData();
     mostrarToast('Jogo das ' + alvo.horario + ' removido. O dia voltou a ter 1 jogo.', 'sucesso');
     return true;
   }, 'Remover jogo');
@@ -7895,7 +7895,11 @@ function renderCheckinOrdenados(){
       if(livre > 0) html += `<div class="dica-vaga">💡 O jogo das ${outro.horario} ainda tem ${livre} vaga(s).</div>`;
     }
   }
-  const sinalizados = finSinalizados(view, data, dentro);
+  // "sinalizados" usa quem está confirmado NA CHAVE (no único, a união dos 2 jogos — view.pagamentos também é da
+  // chave inteira), não só o `dentro` da aba ativa: senão, no modo único, quem pagou e só está confirmado no OUTRO
+  // jogo aparecia aqui como "saiu da lista" por engano, com o botão Estornar ao lado do nome
+  const confirmadosNaChave = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
+  const sinalizados = finSinalizados(view, data, confirmadosNaChave);
   if(sinalizados.length){
     html += '<div class="fin-alerta"><strong>⚠️ Pagaram e não estão mais entre os confirmados</strong> <span style="color:var(--muted);">(o valor continua no caixa)</span>';
     sinalizados.forEach(p=>{
@@ -7933,8 +7937,15 @@ document.getElementById('checkin-ordenados').addEventListener('click', async (e)
     if(!cred) return;
     const paraJogo = Number(mover.dataset.moverDe) === 1 ? 2 : 1;
     if(await postAction('moverCheckin', { id: mover.dataset.moverCheckin, paraJogo }, cred)){
-      const c = CHECKINS.find(x => x.id === mover.dataset.moverCheckin);
-      if(c) c.jogo = paraJogo;
+      // o servidor põe a pessoa no FIM da fila do destino (mesma regra do "Vou jogar"); localmente isso é
+      // mover o item pro fim do array também — só trocar o .jogo deixava a posição antiga, podendo mostrar a
+      // pessoa como confirmada aqui quando o servidor já tem ela na reserva (até a próxima recarga)
+      const idx = CHECKINS.findIndex(x => x.id === mover.dataset.moverCheckin);
+      if(idx !== -1){
+        const [c] = CHECKINS.splice(idx, 1);
+        c.jogo = paraJogo;
+        CHECKINS.push(c);
+      }
       mostrarToast('Movido para o jogo das ' + horario + '.', 'sucesso');
       renderCheckinList();
     }
