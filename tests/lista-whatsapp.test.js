@@ -77,6 +77,7 @@ function ambiente({ falhar = [] } = {}) {
     const GUESTS = [];
     const DATA = { players: ${JSON.stringify(jogadores)}, removidos: ${JSON.stringify(removidos)} };
     const SETTINGS = { checkinDataAberta: '2026-10-06' };
+    const JOGO_ATIVO = 1;
     let n = 0; const uid = () => 'id' + (++n);
     const getPlayer = (id) => DATA.players.find((p) => p.id === id) || GUESTS.find((g) => g.id === id);
     const credencialLogada = async () => ({ sessao: 'S1', idToken: '', senha: '' });
@@ -138,6 +139,9 @@ function ambiente({ falhar = [] } = {}) {
       const AUTH = { logado: ctx.logado, perfil: ctx.perfil };
       const SETTINGS = { checkinDataAberta: ctx.aberto ? '2026-10-06' : '', checkinTravado: ctx.travado };
       const DATA = { players: ${JSON.stringify(jogadores)}, removidos: ${JSON.stringify(removidos)} };
+      let CHECKINS = [];
+      const JOGO_ATIVO = 1;
+      const jogosDoDia = () => [{ numero: 1, horario: '20:00', vagas: 16, travado: ctx.travado }];
       const escapeHtml = (x) => String(x);
       const sortByName = (l) => l.slice().sort((a, b) => (a.apelido || a.nome).localeCompare(b.apelido || b.nome));
       ${bloco}

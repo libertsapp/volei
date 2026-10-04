@@ -22,8 +22,9 @@ function ambiente(respostas) {
   const setTimeout = (fn, ms) => { esperas.push(ms); fn(); };
   const F = new Function('fetch', 'localStorage', 'setTimeout', `
     const SHEET_API_URL = 'x'; const console = { error(){} };
-    let DATA, SETTINGS, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO;
+    let DATA, SETTINGS = {}, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO, JOGO_ATIVO;
     const finNormalizar = f => f || {}; const reconstituirConvidadosDosCheckins = () => {};
+    const jogosDoDia = () => [{ numero: 1 }];
     ${bloco}
     return { buscarDadosComNovasTentativas, salvarCopiaDosDados, lerCopiaDosDados, aplicarDados, dados: () => ({ DATA, CHECKINS }), chaveCopia: CHAVE_COPIA_DADOS };`);
   return { ...F(fetch, localStorage, setTimeout), chamadas: () => chamadas, esperas, guardado };

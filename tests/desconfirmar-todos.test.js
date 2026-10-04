@@ -21,6 +21,8 @@ function ambiente({ falhar = [], perfil = 'organizador', logado = true, aberto =
     const AUTH = { logado: ctx.logado, perfil: ctx.perfil };
     const SETTINGS = { checkinDataAberta: ctx.aberto ? '2026-10-06' : '', checkinTravado: ctx.travado };
     let CHECKINS = ctx.checkins;
+    const JOGO_ATIVO = 1;
+    const jogosDoDia = () => [{ numero: 1, horario: '20:00', vagas: 16, travado: ctx.travado }];
     const credencialLogada = async () => ({ sessao: 'S1', idToken: '', senha: '' });
     const postAction = async (acao, payload) => { posts.push([acao, payload.id]); return !falhar.includes(payload.id); };
     ${podeColar}
