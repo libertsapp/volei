@@ -203,6 +203,35 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       }
       return movidos;
     },
+    // generaliza o mesmo algoritmo de moverJogo2ParaJogo1 pra qualquer par (de, para) — usada pra "trocar os papéis"
+    // (remover o jogo 1 mantendo o 2): duas chamadas, (1,2) e depois (2,1), produzem a fila do jogo mantido primeiro
+    // e a do jogo removido no fim, tudo relabelado pra jogo 1 — sem precisar de uma 3ª função separada.
+    async moverFilaParaJogo(data, deJogo, paraJogo) {
+      const doPara = new Set(tabelas.checkins.filter((c) => c.data === data && c.jogo === paraJogo).map((c) => c.jogador_id));
+      const doDe = tabelas.checkins.filter((c) => c.data === data && c.jogo === deJogo).sort(porOrdemLocal);
+      let proximaOrdem = tabelas.checkins.reduce((m, x) => (x.data === data && x.jogo === paraJogo ? Math.max(m, x.ordem ?? 0) : m), 0);
+      let movidos = 0;
+      for (const c of doDe) {
+        if (c.jogador_id != null && doPara.has(c.jogador_id)) {
+          tabelas.checkins = tabelas.checkins.filter((x) => x !== c);
+          continue;
+        }
+        proximaOrdem += 1;
+        c.jogo = paraJogo;
+        c.ordem = proximaOrdem;
+        movidos += 1;
+      }
+      return movidos;
+    },
+    // quando o dia deixa de ser "separado" (por_jogo volta a false): todo pagamento/crédito que ainda estava
+    // marcado com jogo 1 ou 2 precisa voltar pra chave null (o dia inteiro), senão fica invisível pra sempre —
+    // a leitura do financeiro, a partir daqui, só olha a chave null. A linha do jogo 2 em fin_jogos também some
+    // (não faz sentido guardar configuração de um jogo que não existe mais).
+    async reunificarChaveFinanceira(data) {
+      tabelas.fin_pagamentos.forEach((p) => { if (p.data === data) p.jogo = null; });
+      tabelas.fin_creditos.forEach((c) => { if (c.data_origem === data) c.jogo_origem = null; });
+      tabelas.fin_jogos = tabelas.fin_jogos.filter((j) => !(j.data === data && j.jogo === 2));
+    },
 
     // ---- trava de gravação (etapa 4b). Mesma regra da função pegar_trava do Postgres: só toma se não existe, se o aluguel
     // expirou (expira_em < agora) ou se o dono é o mesmo; devolve true se conseguiu ----

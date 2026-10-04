@@ -87,8 +87,28 @@ await ta('crédito de um jogo de hoje nunca paga o outro jogo (nem o dia) de hoj
   await salvarFinDia(d, { data: DATA, jogo: 2, valorPessoa: 20, valorQuadra: 150, valorBrinde: 0, pix: '' }, ORG);
   await marcarPagamento(d, DATA, 2, 'p2', 'J2', ORG);
   await marcarDiaSemJogo(d, DATA, 2, 'credito', ORG); // p2 ganha crédito de hoje
-  const n = await aplicarCreditos(d, DATA, 1, ORG); // tentar aplicar no jogo 1 de HOJE
+  // p1 (que ESTÁ no jogo 1 de hoje) não pode ser pago com o crédito de p2; além disso o crédito é de p2, não de p1 —
+  // mas o teste real é: aplicarCreditos no jogo 1 de hoje não pode usar NENHUM crédito nascido hoje, nem o de quem
+  // joga nos dois. Repetimos com p1 tendo seu próprio crédito de hoje (nascido no jogo 1) e tentando aplicar nele mesmo:
+  await marcarPagamento(d, DATA, 1, 'p1', 'J1', ORG);
+  await marcarDiaSemJogo(d, DATA, 1, 'credito', ORG); // p1 ganha crédito do jogo 1 de HOJE
+  const n = await aplicarCreditos(d, DATA, 1, ORG); // tentar aplicar no jogo 1 de HOJE de novo (mesmo dia)
   assert.equal(n, 0);
+});
+
+await ta('salvarFinDia: trocar para "separado" com crédito de dia anterior aplica o crédito NA CHAVE certa, não em jogo:null', async () => {
+  const d = ambiente((dados) => {
+    dados.fin_creditos.push({
+      id: 'cr1', jogador_id: 'p1', jogador_nome: 'J1', valor: 15, origem_pagamento_id: 'pgOld', data_origem: '2026-09-29',
+      criado_por: 'Adm', criado_em: '2026-09-29T20:00:00.000Z', status: 'ativo', encerrado_por: null, encerrado_em: null, jogo_origem: null
+    });
+  });
+  // dia configurado DIRETO como separado (o caso real: a troca único->separado passa por aqui com crédito pendente)
+  await salvarFinDia(d, { data: DATA, valorPessoa: 15, valorQuadra: 300, valorBrinde: 0, pix: '', porJogo: true }, ORG);
+  const f = await fin(d);
+  const pg = f.pagamentos.find((p) => p.jogadorId === 'p1');
+  assert.ok(pg, 'p1 (que está confirmado no jogo 1) deveria ter sido pago com o crédito');
+  assert.equal(pg.jogo, 1, 'o pagamento deve nascer na chave do jogo 1 (p1 só está confirmado lá), nunca em jogo:null depois que o dia virou separado');
 });
 
 await ta('reabrirDia: separado, só o jogo 2; jogo 1 não é tocado', async () => {

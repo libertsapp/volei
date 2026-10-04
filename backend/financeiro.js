@@ -186,7 +186,10 @@ export async function salvarFinDia(deps, d, auth) {
     await repo.gravarFinDia(linha);
   }
   await log(deps, auth, 'salvarFinDia', { data, jogo: chave === 2 ? 2 : undefined, antes, depois: { valorPessoa: vp, pix, valorQuadra: vq, temBrinde, valorBrinde: vb, icone: ic } });
-  if (status !== 'semjogo') await aplicarCreditos(deps, data, chave === 2 ? 2 : null, auth);
+  // aplica em TODAS as chaves do dia (não só a que acabou de ser salva): salvar o jogo 1 pode ser justamente o
+  // momento em que o dia vira "separado" (porJogo:true), e um crédito pendente tem que cair na chave certa dali pra
+  // frente, nunca em jogo:null misturado com pagamentos por jogo já existentes.
+  if (status !== 'semjogo') await aplicarCreditosEmTodasAsChaves(deps, data, auth);
   return ok(deps);
 }
 

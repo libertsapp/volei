@@ -56,4 +56,11 @@ await ta('moverCheckin: move pro outro jogo; recusa se já está lá; recusa des
   assert.deepEqual(await moverCheckin(d, { id: 'nao-existe', paraJogo: 1 }, ORG), { error: 'Check-in não encontrado.' });
 });
 
+await ta('moverCheckin: recusa se o jogo de destino não existe (sem checkinJogo2 configurado)', async () => {
+  const d = ambiente({ config: [{ chave: 'checkinDataAberta', valor: '2026-10-06' }, { chave: 'checkinVagas', valor: '16' }],
+    checkins: [{ id: 'c1', data: '2026-10-06', jogador_id: 'p1', jogador_nome: 'Ana', estrelas: 0, sexo: '', estrelas_ajustadas: null, jogo: 1, ordem: 1 }] });
+  assert.deepEqual(await moverCheckin(d, { id: 'c1', paraJogo: 2 }, ORG), { error: 'Esse jogo não existe mais. Recarregue a página.' });
+  assert.equal((await lista(d))[0].jogo, 1); // continua no jogo 1 — nada foi movido
+});
+
 fim();

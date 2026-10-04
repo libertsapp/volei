@@ -19,7 +19,7 @@ function notaAjustada(v) {
 }
 
 // jogos que existem na data (1 sempre; 2 só se checkinJogo2 bate com a data) — mesma regra do front
-function jogoExiste(cfg, data, jogo) {
+export function jogoExiste(cfg, data, jogo) {
   if (jogo === 1) return true;
   if (jogo === 2) return !!(cfg.checkinJogo2 && texto(cfg.checkinJogo2.data) === data);
   return false;
@@ -88,11 +88,13 @@ export async function salvarEstrelasAjustadas({ repo }, lista) {
 // destino, moveu é false e NADA é logado (idempotente, como addCheckin tocado duas vezes).
 export async function moverCheckin(deps, { id, paraJogo } = {}, auth) {
   const { repo } = deps;
-  const alvo = (await repo.lerTudo()).checkins.find((c) => c.id === texto(id));
+  const tudo = await repo.lerTudo();
+  const alvo = tudo.checkins.find((c) => c.id === texto(id));
   if (!alvo) return { error: 'Check-in não encontrado.' };
   const destino = Number(paraJogo);
   if (destino !== 1 && destino !== 2) return { error: 'Jogo inválido.' };
   const data = texto(alvo.data), jogadorId = texto(alvo.jogador_id);
+  if (!jogoExiste(mapearConfig(tudo.config), data, destino)) return { error: 'Esse jogo não existe mais. Recarregue a página.' };
   // ordem importa: move de verdade PRIMEIRO, só então chama os ganchos — depois do UPDATE a chave de origem já
   // não tem mais a pessoa, então aposRemoverCheckin vê o estado certo (ver nota no plano sobre a 1ª tentativa, que
   // chamava o gancho antes e ficava com a leitura velha)

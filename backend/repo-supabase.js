@@ -197,6 +197,20 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
       if (error) throw new Error('mover_jogo2_para_jogo1: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-9.sql no SQL Editor do Supabase)');
       return Number(n);
     },
+    // generaliza o mesmo algoritmo pra qualquer par (de, para) — ver repo-memoria.js para o porquê (troca de papéis)
+    async moverFilaParaJogo(data, deJogo, paraJogo) {
+      const { data: n, error } = await cliente.rpc('mover_fila_para_jogo', { p_data: data, p_de: deJogo, p_para: paraJogo });
+      if (error) throw new Error('mover_fila_para_jogo: ' + error.message + ' (rode sql/schema-terca-supabase-ajuste-9.sql no SQL Editor do Supabase)');
+      return Number(n);
+    },
+    async reunificarChaveFinanceira(data) {
+      const { error: e1 } = await cliente.from('fin_pagamentos').update({ jogo: null }).eq('data', data);
+      if (e1) throw new Error('fin_pagamentos: ' + e1.message);
+      const { error: e2 } = await cliente.from('fin_creditos').update({ jogo_origem: null }).eq('data_origem', data);
+      if (e2) throw new Error('fin_creditos: ' + e2.message);
+      const { error: e3 } = await cliente.from('fin_jogos').delete().eq('data', data).eq('jogo', 2);
+      if (e3) throw new Error('fin_jogos: ' + e3.message);
+    },
     // ---- trava de gravação (etapa 4b; funções do sql/schema-terca-supabase-ajuste-5.sql). Se o SQL ainda não foi rodado, o erro
     // cita pegar_trava e a gravação NÃO segue sem trava ----
     async pegarTrava(nome, dono, ttlSeg) {

@@ -89,9 +89,33 @@ begin
 end;
 $$;
 
+create or replace function mover_fila_para_jogo(p_data date, p_de smallint, p_para smallint) returns int
+language plpgsql set search_path = meme as $$
+declare
+  v_movidos int := 0;
+  v_proxima_ordem bigint;
+  v_linha record;
+begin
+  delete from checkins cd
+  where cd.data = p_data and cd.jogo = p_de and cd.jogador_id is not null
+    and exists (select 1 from checkins cp where cp.data = p_data and cp.jogo = p_para and cp.jogador_id = cd.jogador_id);
+
+  select coalesce(max(ordem), 0) into v_proxima_ordem from checkins where data = p_data and jogo = p_para;
+  for v_linha in select id from checkins where data = p_data and jogo = p_de order by ordem loop
+    v_proxima_ordem := v_proxima_ordem + 1;
+    update checkins set jogo = p_para, ordem = v_proxima_ordem where id = v_linha.id;
+    v_movidos := v_movidos + 1;
+  end loop;
+  return v_movidos;
+end;
+$$;
+
 alter function mover_checkin_de_jogo(text, smallint) set search_path = meme;
 alter function mover_jogo2_para_jogo1(date) set search_path = meme;
+alter function mover_fila_para_jogo(date, smallint, smallint) set search_path = meme;
 grant execute on function mover_checkin_de_jogo(text, smallint) to service_role;
 grant execute on function mover_jogo2_para_jogo1(date) to service_role;
+grant execute on function mover_fila_para_jogo(date, smallint, smallint) to service_role;
 revoke execute on function mover_checkin_de_jogo(text, smallint) from public, anon, authenticated;
 revoke execute on function mover_jogo2_para_jogo1(date) from public, anon, authenticated;
+revoke execute on function mover_fila_para_jogo(date, smallint, smallint) from public, anon, authenticated;

@@ -2,6 +2,8 @@
 // `config` (checkinJogo2Data/Horario/Vagas/Travado); "existe" quando checkinJogo2Data bate com checkinDataAberta.
 // Spec: docs/superpowers/specs/2026-10-03-dois-jogos-no-mesmo-dia-design.md
 import { texto, mapearConfig } from './mapeadores.js';
+import { removeCheckin } from './checkins.js';
+import { aplicarCreditosDoDia } from './financeiro.js';
 
 function dataValida(s) {
   const v = String(s || '');
@@ -31,9 +33,10 @@ export async function salvarJogo2(deps, jogo2, auth) {
   return { status: 'ok' };
 }
 
-// destino: 'mover' (leva a lista do jogo 2 pro fim da fila do 1) ou 'desconfirmar' (apaga os check-ins do jogo 2).
+// destino: 'mover' (leva a lista do jogo removido pro fim da fila do jogo mantido) ou 'desconfirmar' (desmarca
+// presença de quem está no jogo removido, com os mesmos ganchos do financeiro do "Vou jogar"/"Desconfirmar todos").
 // manter: 2 — "trocar os papéis": usado quando quem está sendo removido é o jogo 1 (o app sempre chama esta mesma
-// ação; com manter:2, depois de mover a lista, a configuração que SOBREVIVE no lugar do jogo 1 é a do jogo 2).
+// ação; com manter:2, a configuração e a fila que SOBREVIVEM no lugar do jogo 1 são as do jogo 2).
 export async function removerJogo2(deps, { data, destino, manter } = {}, auth) {
   const { repo } = deps;
   if (!dataValida(data)) return { error: 'Data inválida.' };
@@ -43,14 +46,28 @@ export async function removerJogo2(deps, { data, destino, manter } = {}, auth) {
   const dia = (t.fin_dias || []).find((d) => texto(d.data) === texto(data));
   const porJogo = !!(dia && dia.por_jogo === true);
   const jogo2Fin = (t.fin_jogos || []).find((j) => texto(j.data) === texto(data) && Number(j.jogo) === 2) || null;
-  if (porJogo && t.fin_pagamentos.some((p) => texto(p.data) === texto(data) && Number(p.jogo) === 2 && p.estornado !== true)) {
-    return { error: 'O jogo das ' + cfg.checkinJogo2.horario + ' tem pagamento(s) só dele. Cancele-os (ou marque como sem jogo) antes de remover.' };
+  // o jogo que está SENDO REMOVIDO, de verdade — com manter:2 é o jogo 1, não o 2 (bug encontrado na revisão final:
+  // antes disso, a checagem de pagamento e o "desconfirmar" abaixo olhavam sempre pro jogo 2, mesmo quando quem
+  // estava saindo era o 1 — bloqueava (ou desconfirmava) o jogo errado)
+  const jogoRemovido = manter === 2 ? 1 : 2;
+  const horarioRemovido = jogoRemovido === 2 ? cfg.checkinJogo2.horario : cfg.checkinHorario;
+  if (porJogo && t.fin_pagamentos.some((p) => texto(p.data) === texto(data) && Number(p.jogo) === jogoRemovido && p.estornado !== true)) {
+    return { error: 'O jogo das ' + horarioRemovido + ' tem pagamento(s) só dele. Cancele-os (ou marque como sem jogo) antes de remover.' };
   }
   if (destino === 'mover') {
-    await repo.moverJogo2ParaJogo1(data);
+    if (manter === 2) {
+      // "trocar os papéis": a fila do jogo mantido (2) vem primeiro, a do jogo removido (1) entra no fim —
+      // duas chamadas do mesmo primitivo genérico fazem o trabalho (ver repo-memoria.js/mover_fila_para_jogo)
+      await repo.moverFilaParaJogo(data, 1, 2);
+      await repo.moverFilaParaJogo(data, 2, 1);
+    } else {
+      await repo.moverJogo2ParaJogo1(data);
+    }
   } else {
-    for (const c of t.checkins.filter((c) => c.data === texto(data) && (Number(c.jogo) || 1) === 2)) {
-      await repo.removerCheckin(texto(c.id));
+    // "desconfirmar": passa pelo removeCheckin de verdade (não pelo repo direto) — é ele quem aciona o gancho
+    // financeiro (devolve crédito de quem tinha pago por crédito, etc.), igual ao "Desconfirmar todos" do check-in
+    for (const c of t.checkins.filter((c) => c.data === texto(data) && (Number(c.jogo) || 1) === jogoRemovido)) {
+      await removeCheckin(deps, texto(c.id));
     }
   }
   if (manter === 2) {
@@ -71,6 +88,13 @@ export async function removerJogo2(deps, { data, destino, manter } = {}, auth) {
     { chave: 'checkinJogo2Data', valor: '' }, { chave: 'checkinJogo2Horario', valor: '' },
     { chave: 'checkinJogo2Vagas', valor: '' }, { chave: 'checkinJogo2Travado', valor: 'FALSE' }
   ]);
-  if (porJogo) await repo.gravarFinDia({ data, por_jogo: false });
+  if (porJogo) {
+    // o dia volta a ser único (chave null): todo pagamento/crédito que ainda estava marcado com jogo 1/2 tem que
+    // voltar pra chave null, senão fica invisível pra sempre (a leitura, daqui pra frente, só olha a chave null) —
+    // e a configuração solta do jogo 2 em fin_jogos não faz mais sentido existir
+    await repo.gravarFinDia({ data, por_jogo: false });
+    await repo.reunificarChaveFinanceira(data);
+    await aplicarCreditosDoDia(deps, data, auth); // crédito que ficou disponível com a reunificação já se aplica
+  }
   return { status: 'ok' };
 }
