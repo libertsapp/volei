@@ -989,6 +989,29 @@
   .checkin-admin-ajustes-body{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;padding:4px 14px 14px;}
   .checkin-admin-ajustes-body input{width:100%;}
   .checkin-admin-ajustes-body .btn{grid-column:1/-1;min-height:44px;}
+  /* ===== DOIS JOGOS NO MESMO DIA ===== */
+  .jogos-abas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;}
+  .jogo-aba{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;
+    border:1px solid var(--line);border-radius:12px;background:var(--court-navy-2);color:var(--chalk-dim);cursor:pointer;
+    text-align:left;font-family:'Work Sans',sans-serif;}
+  .jogo-aba-rot{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+  .jogo-aba-hora{font-family:'Space Mono',monospace;font-weight:700;font-size:20px;line-height:1.15;color:var(--chalk);}
+  .jogo-aba-sub{font-size:11px;color:var(--muted);}
+  .jogo-aba.ativa{border-color:var(--accent);box-shadow:var(--glass-brilho);background:color-mix(in srgb, var(--accent) 8%, var(--court-navy-2));}
+  .jogo-aba.ativa .jogo-aba-hora{color:var(--accent);}
+  .jogo-aba-eu{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#3fbf6f;}
+  .jogo-cfg{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;}
+  .jogo-cfg + .jogo-cfg{padding-top:10px;border-top:1px dashed var(--line);margin-top:10px;}
+  .jogo-cfg-tit{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;}
+  .jogo-cfg .btn{min-height:40px;padding:6px 12px;}
+  .fin-modo{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;}
+  .tag-outro{margin-left:6px;font-size:10px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius:999px;padding:0 6px;white-space:nowrap;vertical-align:middle;}
+  @media (max-width:640px){
+    .jogos-abas{grid-template-columns:1fr;}
+    .jogo-cfg{grid-template-columns:1fr 1fr;}
+    .jogo-cfg button[data-jogo-remover]{grid-column:1/-1;}
+  }
 
   /* ===== FINANCEIRO no Check-in ===== */
   .fin-dia-card{border-color:var(--glass-borda);background:color-mix(in srgb, var(--ball-yellow) 5%, transparent);}
@@ -1004,6 +1027,9 @@
   .fin-semjogo-linha .btn{padding:6px 14px;font-size:12px;}
   .fin-semjogo{border-color:color-mix(in srgb, var(--accent) 45%, transparent);}
   .fin-credito-tag{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .btn-mover{margin-left:8px;font-size:11px;font-weight:700;color:var(--chalk);background:transparent;border:1px solid var(--line);border-radius:999px;padding:1px 9px;cursor:pointer;vertical-align:middle;}
+  .btn-mover:hover{border-color:var(--accent);color:var(--accent);}
+  .dica-vaga{margin:4px 0 10px;font-size:12px;color:var(--ball-yellow);}
   .fin-opcao{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px;line-height:1.45;}
   .fin-opcao input{margin-top:3px;flex:none;}
   .fin-opcao small{color:var(--muted);}
@@ -1894,6 +1920,7 @@
       <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Ver a lista é livre pra todo mundo — pra confirmar presença é só entrar com sua conta Google, sem senha. Só funciona quando o admin/organizador abre o check-in pra uma data.</p>
 
       <div id="checkin-status"></div>
+      <div id="checkin-jogos-abas"></div>
 
       <div class="checkin-admin-controls" id="checkin-admin-controls" style="display:none;">
         <div class="checkin-admin-row">
@@ -1905,25 +1932,21 @@
             <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
             <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
             <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+            <button class="btn secondary cheio" id="add-jogo2-btn" style="display:none;">➕ Adicionar 2º jogo neste dia</button>
           </div>
         </div>
         <details class="checkin-admin-ajustes">
           <summary><span class="linha-titulo">⚙️ Ajustes do check-in</span></summary>
           <div class="checkin-admin-ajustes-body">
-            <div class="checkin-admin-field">
-              <label for="checkin-admin-vagas">Vagas</label>
-              <input type="number" id="checkin-admin-vagas" min="1">
-            </div>
-            <div class="checkin-admin-field">
-              <label for="checkin-admin-horario">Horário</label>
-              <input type="time" id="checkin-admin-horario">
-            </div>
+            <div id="jogos-ajustes-corpo"></div>
             <button class="btn secondary" id="checkin-msg-config-btn" title="Editar mensagem de compartilhar">⚙️ Mensagem</button>
           </div>
         </details>
         <details class="fin-dia-card" id="fin-dia-card">
-          <summary><span class="linha-titulo">💰 Financeiro do dia</span><span class="fin-chip" id="fin-dia-chip"></span></summary>
+          <summary><span class="linha-titulo" id="fin-dia-titulo">💰 Financeiro do dia</span><span class="fin-chip" id="fin-dia-chip"></span></summary>
           <div class="fin-dia-grid">
+            <div id="fin-modo-sel" class="fin-modo" style="display:none;"></div>
+            <p class="fin-dica" id="fin-dia-escopo" style="display:none;"></p>
             <p class="fin-dica" id="fin-dia-dica" style="display:none;">Valores sugeridos a partir do dia anterior — toque em Salvar para confirmar.</p>
             <label class="fin-campo">Valor por pessoa (R$)
               <input type="number" id="fin-valor-pessoa" min="0" step="0.01" inputmode="decimal" placeholder="13,60">
@@ -1974,7 +1997,7 @@
       <!-- lista colada do grupo do WhatsApp: confirma vários de uma vez (só organizador/admin, check-in aberto e destravado).
            <details>, nunca <section>: o CSS esconde todo <section> fora da aba ativa -->
       <details class="lista-grupo" id="lista-grupo-bloco" style="display:none;">
-        <summary><span class="linha-titulo">📋 Colar lista do WhatsApp</span></summary>
+        <summary><span class="linha-titulo">📋 Colar lista do WhatsApp</span><span id="lista-grupo-jogo"></span></summary>
         <div class="lista-grupo-corpo">
           <p class="lista-grupo-dica">Cole a lista de confirmados do grupo. Quem for reconhecido já vem marcado: confira cada linha e toque em Confirmar. Nada é salvo antes disso.</p>
           <textarea id="lista-grupo-texto" rows="6" placeholder="1-Biel&#10;2-Michel&#10;3-Cássia"></textarea>
@@ -2302,6 +2325,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>03/10/2026 — v15.0: Dois jogos no mesmo dia</summary>
+          <div>
+            <p style="line-height:1.6;"><strong>Dois jogos no mesmo dia.</strong> O organizador pode abrir um <strong>2º jogo</strong> no mesmo dia (horário e vagas próprios) — o check-in ganha <strong>abas</strong>, uma por jogo, e tudo abaixo delas (lista, convidado, lista colada, travar, sorteio, compartilhar) vale para o jogo da aba. O <strong>Financeiro do dia</strong> pode ser <strong>um só para os dois jogos</strong> (padrão: quem joga os dois paga uma vez) ou <strong>separado por jogo</strong> (cada um com seu valor, PIX e "sem jogo"). O botão <strong>⇄</strong> em cada confirmado move a pessoa pra fila do outro jogo. Com 1 jogo só (o padrão), nada mudou na tela.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>20/09/2026 — v12.7: Chama da Sequência em laranja neon</summary>
           <div>
             <p style="line-height:1.6;">No cartão do jogador, o ícone de chama da coluna <strong>Sequência 🔥</strong> agora é <strong>laranja neon</strong>, com um leve brilho (no modo claro, um laranja mais escuro para continuar legível).</p>
@@ -2726,7 +2756,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 14.8 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2741,7 +2771,8 @@
 <script>
 let DATA = { players: [], removidos: [], rounds: [], aoVivo: { rounds: [], log: [] } };
 const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
-let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO };
+let SETTINGS = { estrelasVisiveis: true, checkinDataAberta: '', checkinTravado: false, checkinVagas: 16, checkinHorario: '20:00', checkinMensagemTemplate: CHECKIN_MENSAGEM_PADRAO, checkinJogo2: null };
+let JOGO_ATIVO = 1; // 1 ou 2 — a aba do check-in; reaproveitado como "chave do financeiro" quando o dia é separado
 // Controle Financeiro: espelho do que o backend devolve em "financeiro" (formato no plano). Nunca é editado à mão:
 // cada ação devolve o estado completo e ele é substituído inteiro em finPost().
 let FINANCEIRO = finNormalizar(null);
@@ -2793,7 +2824,10 @@ const PERMISSOES_UI = {
   aplicarCreditosDoDia:['organizador','admin'],
   devolverCredito:     ['admin'],                   // devolver o DINHEIRO de um crédito é do admin
   addLancamento:       ['organizador','admin'],
-  estornarLancamento:  ['admin']
+  estornarLancamento:  ['admin'],
+  moverCheckin:       ['organizador','admin'],
+  salvarJogo2:        ['organizador','admin'],
+  removerJogo2:       ['organizador','admin']
 };
 
 // <financeiro-puro>
@@ -2802,7 +2836,7 @@ const PERMISSOES_UI = {
    (ex.: 16 x 13,60 em decimal pode dar 217.60000000000002). O formato de "fin" está no plano/spec. */
 function finNormalizar(f){
   const x = f || {};
-  return { dias: x.dias || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [] };
+  return { dias: x.dias || [], jogos: x.jogos || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [] };
 }
 // dia marcado como "sem jogo" (chuva, poucos jogadores): a quadra e o brinde não foram pagos, então a saída não conta
 function finSemJogo(d){ return !!d && d.status === 'semjogo'; }
@@ -3039,6 +3073,172 @@ function finResumoFechamento(fin, data){
   ].join('\n');
 }
 // </financeiro-puro>
+// <dois-jogos-puro>
+/* Dois jogos no mesmo dia (2026-10-03). PURO: não lê DATA, DOM nem rede. Reaproveita <financeiro-puro> SEM mudá-lo:
+   "chave de cobrança" é null (o dia inteiro, modo único — o padrão) ou 1/2 (um jogo, modo separado). Para qualquer
+   chave, finViewDaChave() monta um "fin" do mesmo formato que <financeiro-puro> já entende, e as funções de lá
+   (finPagamentoDe, finPendentes, finMarcas...) são chamadas sem alteração nenhuma. Testado em tests/dois-jogos.test.js. */
+
+// jogos que existem na data: 1 sempre; 2 só se checkinJogo2 bate com a data, OU (órfão: app antigo/corrida) se
+// já existe check-in com jogo=2 nessa data mesmo sem config — nesse caso ninguém some da tela
+function jogosDoDia(settings, checkins, data) {
+  const jogos = [{ numero: 1, horario: settings.checkinHorario || '20:00', vagas: settings.checkinVagas || 16, travado: !!settings.checkinTravado }];
+  const j2cfg = settings.checkinJogo2 && settings.checkinJogo2.data === data ? settings.checkinJogo2 : null;
+  const orfao = !j2cfg && checkins.some((c) => c.data === data && (Number(c.jogo) || 1) === 2);
+  if (j2cfg) jogos.push({ numero: 2, horario: j2cfg.horario || '21:00', vagas: j2cfg.vagas || 16, travado: !!j2cfg.travado });
+  else if (orfao) jogos.push({ numero: 2, horario: jogos[0].horario, vagas: jogos[0].vagas, travado: false });
+  return jogos.slice().sort((a, b) => a.horario.localeCompare(b.horario));
+}
+function checkinsDoJogo(checkins, data, jogo) {
+  return checkins.filter((c) => c.data === data && (Number(c.jogo) || 1) === jogo);
+}
+function dentroEReservaDoJogo(checkins, data, jogo, vagas) {
+  const lista = checkinsDoJogo(checkins, data, jogo);
+  return { dentro: lista.slice(0, vagas), reserva: lista.slice(vagas) };
+}
+function estaNoJogo(checkins, data, jogo, jogadorId) {
+  return checkins.some((c) => c.data === data && (Number(c.jogo) || 1) === jogo && c.jogadorId === jogadorId);
+}
+function vagasLivresDoJogo(checkins, data, jogo, vagas) {
+  return Math.max(0, vagas - checkinsDoJogo(checkins, data, jogo).length);
+}
+// confirmados "pela chave": null = união de quem está confirmado, dentro das vagas, em QUALQUER jogo do dia (sem
+// repetir pessoa, na ordem em que os jogos aparecem); 1/2 = só os confirmados daquele jogo, dentro das vagas dele
+function confirmadosPelaChave(settings, checkins, data, chave) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  if (chave !== null) {
+    const j = jogos.find((x) => x.numero === chave);
+    return j ? dentroEReservaDoJogo(checkins, data, chave, j.vagas).dentro : [];
+  }
+  const vistos = new Set();
+  const out = [];
+  jogos.forEach((j) => {
+    dentroEReservaDoJogo(checkins, data, j.numero, j.vagas).dentro.forEach((c) => {
+      if (vistos.has(c.jogadorId)) return;
+      vistos.add(c.jogadorId);
+      out.push(c);
+    });
+  });
+  return out;
+}
+// a chave que vale AGORA pra essa data: null se o dia não é "separado por jogo" (mesmo com 2 jogos — um financeiro
+// só, pelo dia); o número do jogo ativo (a aba) quando é separado
+function chaveAtiva(fin, data, jogoAtivo) {
+  const dia = (fin.dias || []).find((d) => d.data === data);
+  return dia && dia.porJogo ? jogoAtivo : null;
+}
+// configuração (mesmo formato de um item de fin.dias) de uma chave: 2 vem de fin.jogos; null/1 vem de fin.dias
+function cfgFinDaChave(fin, data, chave) {
+  if (chave === 2) return (fin.jogos || []).find((j) => j.data === data && j.jogo === 2) || null;
+  return (fin.dias || []).find((d) => d.data === data) || null;
+}
+// "visão" no formato que <financeiro-puro> entende, só com o que pertence a essa chave — assim finPagamentoDe,
+// finPendentes, finMarcas etc. funcionam SEM MUDAR NADA nelas, só recebendo isto no lugar de FINANCEIRO
+function finViewDaChave(fin, data, chave) {
+  const cfg = cfgFinDaChave(fin, data, chave);
+  return {
+    dias: cfg ? [cfg] : [],
+    pagamentos: (fin.pagamentos || []).filter((p) => p.data === data && (chave === null ? p.jogo == null : p.jogo === chave)),
+    lancamentos: [],
+    creditos: (fin.creditos || []).filter((c) => c.dataOrigem === data && (chave === null ? c.jogoOrigem == null : c.jogoOrigem === chave))
+  };
+}
+// a configuração "do dia inteiro" pra quem só quer o CAIXA (soma as 2 quadras/brindes dos jogos que não estão sem
+// jogo; "sem jogo" global só quando os 2 estão sem jogo). Usada só pelo caixa — nunca pra cobrar ninguém.
+function finDiaMesclado(fin, data) {
+  const base = finDia(fin, data);
+  const jogo2 = (fin.jogos || []).find((j) => j.data === data && j.jogo === 2);
+  if (!jogo2) return base;
+  const normal1 = base && base.status !== 'semjogo';
+  const normal2 = jogo2.status !== 'semjogo';
+  const quadra = (normal1 ? (base.valorQuadra || 0) : 0) + (normal2 ? (jogo2.valorQuadra || 0) : 0);
+  const brinde = (normal1 && base.temBrinde ? (base.valorBrinde || 0) : 0) + (normal2 && jogo2.temBrinde ? (jogo2.valorBrinde || 0) : 0);
+  return { data, valorPessoa: base ? base.valorPessoa : 0, pix: base ? base.pix : '', valorQuadra: quadra,
+    temBrinde: true, valorBrinde: brinde, icone: base ? base.icone : '✅', status: (!normal1 && !normal2) ? 'semjogo' : '' };
+}
+// um "fin" com os dias de 2 jogos trocados pela versão mesclada — passar isto (no lugar de FINANCEIRO) pra
+// finCaixa/finDatas/finResultadoDia/finSaidaDia/finCaixaAte/finResumoFechamento continuarem corretos sem mudar nelas
+function finVisaoCaixa(fin) {
+  const datas = new Set((fin.jogos || []).map((j) => j.data));
+  if (!datas.size) return fin;
+  const dias = (fin.dias || []).map((d) => (datas.has(d.data) ? finDiaMesclado(fin, d.data) : d));
+  datas.forEach((data) => { if (!dias.some((d) => d.data === data)) dias.push(finDiaMesclado(fin, data)); });
+  return Object.assign({}, fin, { dias });
+}
+// linhas de valor/PIX + as listas numeradas (confirmados/reserva) de 1 ou 2 jogos, prontas pra colar depois do texto
+// de abertura (que continua vindo de preencherMensagemCheckin, no app — ver <lista-whatsapp-puro>/montarTextoCheckinsWhatsApp)
+function corpoWhatsAppDoDia(settings, checkins, fin, data) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  const porJogo = !!((fin.dias || []).find((d) => d.data === data) || {}).porJogo;
+  let t = '';
+  if (!porJogo) t += finCabecalhoWhatsApp(finViewDaChave(fin, data, null), data);
+  jogos.forEach((j) => {
+    const chave = porJogo ? j.numero : null;
+    const view = finViewDaChave(fin, data, chave);
+    if (jogos.length > 1) t += '🏐 *JOGO DAS ' + j.horario + '* (' + j.vagas + ' vagas)\n';
+    if (porJogo) t += finCabecalhoWhatsApp(view, data);
+    const { dentro, reserva } = dentroEReservaDoJogo(checkins, data, j.numero, j.vagas);
+    dentro.forEach((c, i) => {
+      const marcas = finMarcas(view, data, c.jogadorId);
+      const credito = finRotuloCredito(view, data, c.jogadorId) ? ' (Crédito)' : '';
+      t += (i + 1) + '- ' + (c.jogadorNome || 'Convidado') + (marcas ? ' ' + marcas : '') + credito + '\n';
+    });
+    if (reserva.length) {
+      t += '\nEspera:\n\n';
+      reserva.forEach((c, i) => { t += (i + 1) + '- ' + (c.jogadorNome || 'Convidado') + '\n'; });
+    }
+    t += '\n';
+  });
+  return t;
+}
+// Fechamento (texto pra colar no grupo): único reaproveita finResumoFechamento de <financeiro-puro> sem mudar nada
+// (a visão mesclada já resolve a quadra/brinde somados); separado monta um bloco por jogo.
+function fechamentoDoDia(settings, checkins, fin, data) {
+  const dia = (fin.dias || []).find((d) => d.data === data);
+  if (!dia || !dia.porJogo) return finResumoFechamento(finVisaoCaixa(fin), data);
+  const jogos = jogosDoDia(settings, checkins, data);
+  const money = (c) => finFormatar(c);
+  const linhas = ['🏐 FECHAMENTO VÔLEI', '📅 ' + finDataCurtaComDia(data) + ' · ' + jogos.length + ' jogos', ''];
+  let recebidoTotal = 0, despesasTotal = 0;
+  jogos.forEach((j) => {
+    const view = finViewDaChave(fin, data, j.numero);
+    const cfg = cfgFinDaChave(fin, data, j.numero);
+    const pagos = finPagamentosRecentesPrimeiro(finPagamentosValidos(view, data)).reverse();
+    linhas.push('⏰ JOGO DAS ' + j.horario + (finSemJogo(cfg) ? ' — 🌧️ SEM JOGO' : ''));
+    linhas.push('📋 Lista: ' + (pagos.length ? pagos.map((p) => p.jogadorNome || 'Convidado').join(', ') + '.' : '—'));
+    if (finSemJogo(cfg)) {
+      const dinheiro = pagos.filter((p) => finTipoPagamento(p) === 'dinheiro');
+      if (dinheiro.length) linhas.push('💳 ' + dinheiro.length + ' pagamento(s) guardado(s) como crédito.');
+    } else if (cfg) {
+      const dinheiro = pagos.filter((p) => finTipoPagamento(p) === 'dinheiro');
+      const recebido = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
+      const despesa = finCentavos(cfg.valorQuadra) + (cfg.temBrinde ? finCentavos(cfg.valorBrinde) : 0);
+      linhas.push('💰 Recebido: ' + money(recebido), '💸 Quadra' + (cfg.temBrinde ? '+brinde' : '') + ': ' + money(despesa));
+      recebidoTotal += recebido; despesasTotal += despesa;
+    }
+    linhas.push('');
+  });
+  const anterior = finCaixaAte(finVisaoCaixa(fin), data, false);
+  linhas.push('📊 Resumo do dia (os ' + jogos.length + ' jogos):',
+    '* Saldo anterior: ' + money(anterior), '* Total recebido: ' + money(recebidoTotal), '* Total de despesas: ' + money(despesasTotal), '',
+    '✅ Saldo atual em caixa: ' + money(anterior + recebidoTotal - despesasTotal), '',
+    'Obrigado (a), time! Que venham os próximos jogos! 🏐🙏🏻');
+  return linhas.join('\n');
+}
+// HTML das abas (uma por jogo); vazio quando há só 1 jogo (nada aparece na tela, como hoje)
+function jogosAbasHtml(settings, checkins, data, jogoAtivo, auth) {
+  const jogos = jogosDoDia(settings, checkins, data);
+  if (jogos.length < 2) return '';
+  return '<div class="jogos-abas" role="tablist" aria-label="Jogos do dia">' + jogos.map((j) => {
+    const { dentro, reserva } = dentroEReservaDoJogo(checkins, data, j.numero, j.vagas);
+    const eu = auth && auth.logado && estaNoJogo(checkins, data, j.numero, auth.jogadorId);
+    return '<button type="button" class="jogo-aba ' + (j.numero === jogoAtivo ? 'ativa' : '') + '" role="tab" aria-selected="' + (j.numero === jogoAtivo) + '" data-jogo-aba="' + j.numero + '">'
+      + '<span class="jogo-aba-rot">' + j.numero + 'º jogo</span><span class="jogo-aba-hora">' + j.horario + '</span>'
+      + '<span class="jogo-aba-sub">' + dentro.length + '/' + j.vagas + (reserva.length ? ' · ' + reserva.length + ' na reserva' : '') + (j.travado ? ' · 🔒' : '') + '</span>'
+      + (eu ? '<span class="jogo-aba-eu">você ✅</span>' : '') + '</button>';
+  }).join('') + '</div>';
+}
+// </dois-jogos-puro>
 
 /* ==========================================================
    CONFIGURAÇÃO DA PLANILHA GOOGLE (via Google Apps Script)
@@ -3129,6 +3329,7 @@ function aplicarDados(json){
   CHECKINS = json.checkins || [];
   FINANCEIRO = finNormalizar(json.financeiro);
   reconstituirConvidadosDosCheckins();
+  JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
 // cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
 // não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
@@ -7384,11 +7585,120 @@ function exigirLoginParaCheckin(){
   return false;
 }
 
+// linha de horário+vagas de UM jogo dentro de "⚙️ Ajustes do check-in"; com 2 jogos, cada um ganha o botão 🗑
+function jogoAjusteHtml(j, total){
+  return `<div class="jogo-cfg ${total > 1 ? 'novo' : ''}">
+    ${total > 1 ? `<div class="jogo-cfg-tit">${j.numero}º jogo</div>` : ''}
+    <div class="checkin-admin-field"><label for="jogo-horario-${j.numero}">Horário</label><input type="time" id="jogo-horario-${j.numero}" data-jogo-ajuste="horario" data-jogo="${j.numero}" value="${j.horario}"></div>
+    <div class="checkin-admin-field"><label for="jogo-vagas-${j.numero}">Vagas</label><input type="number" id="jogo-vagas-${j.numero}" data-jogo-ajuste="vagas" data-jogo="${j.numero}" min="1" value="${j.vagas}"></div>
+    ${total > 1 ? `<button type="button" class="btn danger" data-jogo-remover="${j.numero}" title="Remover este jogo" aria-label="Remover o jogo das ${j.horario}">🗑</button>` : '<span></span>'}
+  </div>`;
+}
+function renderJogosAjustes(){
+  const cont = document.getElementById('jogos-ajustes-corpo');
+  if(!cont) return;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta);
+  cont.innerHTML = jogos.map(j => jogoAjusteHtml(j, jogos.length)).join('');
+}
+function renderJogosAbas(){
+  const cont = document.getElementById('checkin-jogos-abas');
+  if(!cont) return;
+  cont.innerHTML = jogosAbasHtml(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta, JOGO_ATIVO, AUTH);
+}
+document.getElementById('checkin-jogos-abas').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-jogo-aba]');
+  if(!b) return;
+  JOGO_ATIVO = Number(b.dataset.jogoAba);
+  renderCheckinStatus();
+  renderCheckinList();
+});
+document.getElementById('jogos-ajustes-corpo').addEventListener('change', async (e)=>{
+  const campo = e.target.dataset.jogoAjuste;
+  if(!campo) return;
+  const jogo = Number(e.target.dataset.jogo);
+  const cred = await requireAuth(jogo === 2 ? 'salvarJogo2' : 'saveCheckinSettings');
+  if(!cred){ renderJogosAjustes(); return; }
+  if(jogo === 1){
+    const anterior = { h: SETTINGS.checkinHorario, v: SETTINGS.checkinVagas };
+    if(campo === 'horario') SETTINGS.checkinHorario = e.target.value || anterior.h;
+    else SETTINGS.checkinVagas = parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : anterior.v;
+    const ok = await postAction('saveCheckinSettings', { settings: SETTINGS }, cred);
+    if(!ok){ SETTINGS.checkinHorario = anterior.h; SETTINGS.checkinVagas = anterior.v; }
+  } else {
+    const j2 = Object.assign({}, SETTINGS.checkinJogo2);
+    if(campo === 'horario') j2.horario = e.target.value || j2.horario;
+    else j2.vagas = parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : j2.vagas;
+    const ok = await postAction('salvarJogo2', { jogo2: { data: SETTINGS.checkinDataAberta, horario: j2.horario, vagas: j2.vagas, travado: j2.travado } }, cred);
+    if(ok) SETTINGS.checkinJogo2 = j2;
+  }
+  renderCheckinStatus();
+  renderCheckinList();
+});
+document.getElementById('jogos-ajustes-corpo').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-jogo-remover]');
+  if(b) abrirModalRemoverJogo(Number(b.dataset.jogoRemover));
+});
+
+// modal "➕ Adicionar 2º jogo" (sugere +2h do 1º jogo, até 23h, e as mesmas vagas)
+function abrirModalAdicionarJogo2(){
+  const [h, m] = (SETTINGS.checkinHorario || '20:00').split(':').map(Number);
+  const sugestao = String(Math.min(23, (h || 0) + 2)).padStart(2, '0') + ':' + String(m || 0).padStart(2, '0');
+  finAbrirModal('➕ 2º jogo em ' + formatDate(SETTINGS.checkinDataAberta), `
+    <label class="fin-campo">Horário<input type="time" id="j2-horario" value="${sugestao}"></label>
+    <label class="fin-campo">Vagas<input type="number" id="j2-vagas" min="1" value="${SETTINGS.checkinVagas || 16}"></label>`,
+    async (ov)=>{
+      const horario = ov.querySelector('#j2-horario').value;
+      const vagas = parseInt(ov.querySelector('#j2-vagas').value, 10) || (SETTINGS.checkinVagas || 16);
+      if(!horario){ alert('Escolha o horário.'); return false; }
+      if(!(await finPost('salvarJogo2', { jogo2: { data: SETTINGS.checkinDataAberta, horario, vagas, travado: false } }))) return false;
+      SETTINGS.checkinJogo2 = { data: SETTINGS.checkinDataAberta, horario, vagas, travado: false };
+      JOGO_ATIVO = 2;
+      renderCheckinStatus();
+      renderCheckinList();
+      mostrarToast('2º jogo criado às ' + horario + '. A aba dele já está aberta.', 'sucesso');
+      return true;
+    }, 'Adicionar jogo');
+}
+document.getElementById('add-jogo2-btn').addEventListener('click', abrirModalAdicionarJogo2);
+
+// modal de remover um jogo: se tem gente na lista, pergunta mover (fim da fila do outro) ou desconfirmar;
+// remover o jogo 1 reaproveita a MESMA ação com manter:2 ("trocar os papéis" — o servidor explica em backend/jogos2.js)
+function abrirModalRemoverJogo(jogo){
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const alvo = jogos.find(j => j.numero === jogo);
+  const outro = jogos.find(j => j.numero !== jogo);
+  if(!alvo || !outro) return;
+  const n = checkinsDoJogo(CHECKINS, data, jogo).length;
+  const corpo = n
+    ? `<p>O jogo das <strong>${alvo.horario}</strong> tem ${n} nome(s) na lista. O que fazer com eles?</p>
+       <label class="fin-opcao" style="margin-bottom:8px;"><input type="radio" name="j2-dest" value="mover" checked><span><strong>Mover para o jogo das ${outro.horario}</strong><br><small>Entram no fim da fila, na mesma ordem em que estavam.</small></span></label>
+       <label class="fin-opcao"><input type="radio" name="j2-dest" value="desconfirmar"><span><strong>Desconfirmar todos</strong></span></label>`
+    : `<p>Remover o jogo das <strong>${alvo.horario}</strong>? Ele não tem ninguém na lista.</p>`;
+  finAbrirModal('Remover o jogo das ' + alvo.horario + '?', corpo, async (ov)=>{
+    const destino = n ? ov.querySelector('input[name="j2-dest"]:checked').value : 'mover';
+    const payload = { data, destino };
+    if(jogo === 1) payload.manter = 2;
+    if(!(await finPost('removerJogo2', payload))) return false;
+    // o servidor pode ter movido/relabelado/desconfirmado check-ins de formas diferentes conforme destino/manter —
+    // em vez de tentar replicar isso aqui (e arriscar ficar dessincronizado, como já aconteceu: uma aba fantasma
+    // do jogo removido reaparecia, com "Esse jogo não existe mais" ao tentar confirmar), recarrega os dados de
+    // verdade do servidor depois que a remoção é confirmada
+    await loadData();
+    mostrarToast('Jogo das ' + alvo.horario + ' removido. O dia voltou a ter 1 jogo.', 'sucesso');
+    return true;
+  }, 'Remover jogo');
+}
+
 function renderCheckinStatus(){
   const statusEl = document.getElementById('checkin-status');
   const data = SETTINGS.checkinDataAberta;
   const travado = SETTINGS.checkinTravado;
   const vagas = SETTINGS.checkinVagas || 16;
+  renderJogosAbas();
+  renderJogosAjustes();
+  const addJogo2Btn = document.getElementById('add-jogo2-btn');
+  if(addJogo2Btn) addJogo2Btn.style.display = (data && jogosDoDia(SETTINGS, CHECKINS, data).length === 1) ? 'inline-block' : 'none';
   statusEl.innerHTML = data
     ? `<div class="checkin-open-badge">✅ Check-in aberto para <strong>${formatDate(data)}</strong> às <strong>${SETTINGS.checkinHorario || '20:00'}</strong> — ${vagas} vaga(s)${travado ? ' — <strong>lista travada</strong>, sem novas confirmações' : ' — pode confirmar presença!'}</div>`
     : `<div class="checkin-closed-badge">🔒 Check-in fechado no momento. Aguarde o admin abrir pra próxima rodada.</div>`;
@@ -7397,12 +7707,12 @@ function renderCheckinStatus(){
   if(adminDateInput && !adminDateInput.value){
     adminDateInput.value = data || new Date().toISOString().slice(0,10);
   }
-  const adminVagasInput = document.getElementById('checkin-admin-vagas');
-  if(adminVagasInput && document.activeElement !== adminVagasInput) adminVagasInput.value = vagas;
-  const adminHorarioInput = document.getElementById('checkin-admin-horario');
-  if(adminHorarioInput && document.activeElement !== adminHorarioInput) adminHorarioInput.value = SETTINGS.checkinHorario || '20:00';
   const lockBtn = document.getElementById('toggle-checkin-lock-btn');
-  if(lockBtn) lockBtn.textContent = travado ? '🔓 Destravar lista' : '🔒 Travar lista';
+  if(lockBtn){
+    const jogos2 = jogosDoDia(SETTINGS, CHECKINS, data);
+    const jAtivo2 = jogos2.find(j => j.numero === JOGO_ATIVO) || jogos2[0];
+    lockBtn.textContent = (jAtivo2 && jAtivo2.travado ? '🔓 Destravar' : '🔒 Travar') + (jogos2.length > 1 ? ` ${jAtivo2.horario}` : ' lista');
+  }
   // só aparece o botão que faz sentido no estado atual: fechado → só "Abrir"; aberto → "Travar" e "Fechar",
   // e "Abrir" só volta (como "Trocar para dd/mm") quando a data escolhida é diferente da que está aberta
   const openBtn = document.getElementById('open-checkin-btn');
@@ -7422,8 +7732,11 @@ function renderCheckinStatus(){
   const useBtn = document.getElementById('use-checkins-sorteio-btn');
   const shareArea = document.getElementById('share-checkins-whatsapp-area');
   const loginAviso = document.getElementById('checkin-login-aviso');
+  // trava do jogo ATIVO (aba) — jogo 1 vai por SETTINGS.checkinTravado, jogo 2 por checkinJogo2.travado
+  const jogosAtivos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const travadoAtivo = (jogosAtivos.find(j => j.numero === JOGO_ATIVO) || jogosAtivos[0]).travado;
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
-  if(guestRow) guestRow.style.display = (data && !travado && AUTH.logado) ? 'flex' : 'none';
+  if(guestRow) guestRow.style.display = (data && !travadoAtivo && AUTH.logado) ? 'flex' : 'none';
   atualizarBlocoListaGrupo(); // "Colar lista do WhatsApp": mesma regra do convidado, mas só organizador/admin
   atualizarBotaoDesconfirmarTodos();
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
@@ -7437,43 +7750,31 @@ function renderCheckinStatus(){
       delete shareArea.dataset.wired;
     }
   }
-  if(loginAviso) loginAviso.style.display = (data && !travado && !AUTH.logado) ? 'block' : 'none';
+  if(loginAviso) loginAviso.style.display = (data && !travadoAtivo && !AUTH.logado) ? 'block' : 'none';
 }
 
 // trocar a data no seletor já atualiza os botões (aparece/some o "Trocar para dd/mm")
 ['input','change'].forEach(ev => document.getElementById('checkin-admin-date').addEventListener(ev, renderCheckinStatus));
 
 document.getElementById('toggle-checkin-lock-btn').addEventListener('click', async ()=>{
-  const cred = await requireAuth('saveCheckinSettings');
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const cred = await requireAuth(JOGO_ATIVO === 2 ? 'salvarJogo2' : 'saveCheckinSettings');
   if(!cred) return;
-  const anterior = SETTINGS.checkinTravado;
-  SETTINGS.checkinTravado = !anterior;
+  const novoTravado = !jAtivo.travado;
+  let ok;
+  if(JOGO_ATIVO === 2){
+    ok = await postAction('salvarJogo2', { jogo2: { data, horario: SETTINGS.checkinJogo2.horario, vagas: SETTINGS.checkinJogo2.vagas, travado: novoTravado } }, cred);
+    if(ok) SETTINGS.checkinJogo2 = Object.assign({}, SETTINGS.checkinJogo2, { travado: novoTravado });
+  } else {
+    const anterior = SETTINGS.checkinTravado;
+    SETTINGS.checkinTravado = novoTravado;
+    ok = await postAction('saveCheckinSettings', { settings: SETTINGS }, cred);
+    if(!ok) SETTINGS.checkinTravado = anterior;
+  }
   renderCheckinStatus();
   renderCheckinList();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinTravado = anterior; renderCheckinStatus(); renderCheckinList(); }
-});
-
-document.getElementById('checkin-admin-vagas').addEventListener('change', async (e)=>{
-  const cred = await requireAuth('saveCheckinSettings');
-  if(!cred){ e.target.value = SETTINGS.checkinVagas || 16; return; }
-  const anterior = SETTINGS.checkinVagas;
-  const nova = parseInt(e.target.value, 10);
-  SETTINGS.checkinVagas = (nova > 0) ? nova : 16;
-  renderCheckinStatus();
-  renderCheckinList();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinVagas = anterior; renderCheckinStatus(); renderCheckinList(); }
-});
-
-document.getElementById('checkin-admin-horario').addEventListener('change', async (e)=>{
-  const cred = await requireAuth('saveCheckinSettings');
-  if(!cred){ e.target.value = SETTINGS.checkinHorario || '20:00'; return; }
-  const anterior = SETTINGS.checkinHorario;
-  SETTINGS.checkinHorario = e.target.value || '20:00';
-  renderCheckinStatus();
-  const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
-  if(!ok){ SETTINGS.checkinHorario = anterior; renderCheckinStatus(); }
 });
 
 document.getElementById('open-checkin-btn').addEventListener('click', async ()=>{
@@ -7501,8 +7802,11 @@ document.getElementById('close-checkin-btn').addEventListener('click', async ()=
 });
 
 document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
-  if(!SETTINGS.checkinDataAberta){ alert('O check-in está fechado no momento.'); return; }
-  if(SETTINGS.checkinTravado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
+  const data = SETTINGS.checkinDataAberta;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  if(!data){ alert('O check-in está fechado no momento.'); return; }
+  if(jAtivo.travado){ alert('O check-in está travado pelo admin no momento — não é possível incluir novos nomes.'); return; }
   if(!exigirLoginParaCheckin()) return;
   const cred = await credencialLogada();
   if(!cred) return;
@@ -7523,7 +7827,7 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
 
   // já marca presença automaticamente pro convidado recém-adicionado, na data aberta
-  const novoCheckin = { id: uid(), data: SETTINGS.checkinDataAberta, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo };
+  const novoCheckin = { id: uid(), data, jogadorId: novoConvidado.id, jogadorNome: name, estrelas: novoConvidado.estrelas, sexo: novoConvidado.sexo, jogo: JOGO_ATIVO };
   CHECKINS.push(novoCheckin);
   await postAction('addCheckin', {checkin: novoCheckin}, cred);
 
@@ -7531,15 +7835,16 @@ document.getElementById('add-checkin-guest-btn').addEventListener('click', async
 });
 document.getElementById('checkin-search').addEventListener('input', renderCheckinList);
 
-// ordem de chegada = ordem natural do array (linhas da aba Checkins, na ordem que
-// foram gravadas); os N primeiros (N = vagas) estão dentro, o resto é reserva
+// Dois jogos no mesmo dia: estas duas funções passam a devolver a fila do JOGO_ATIVO (a aba). Como quase toda a
+// tela (busca, convidado, lista colada, Desconfirmar todos não — ver abaixo, importar no Sorteio, ajustar estrelas)
+// já chamava uma delas, a aba passa a valer em todo canto sem precisar reescrever cada chamada.
 function checkinsOrdenados(data){
-  return CHECKINS.filter(c=>c.data===data);
+  return checkinsDoJogo(CHECKINS, data, JOGO_ATIVO);
 }
 function checkinsDentroEReserva(data){
-  const ordenados = checkinsOrdenados(data);
-  const vagas = SETTINGS.checkinVagas || 16;
-  return { dentro: ordenados.slice(0, vagas), reserva: ordenados.slice(vagas) };
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const j = jogos.find(x => x.numero === JOGO_ATIVO) || jogos[0];
+  return dentroEReservaDoJogo(CHECKINS, data, JOGO_ATIVO, j.vagas);
 }
 
 function renderCheckinOrdenados(){
@@ -7548,34 +7853,53 @@ function renderCheckinOrdenados(){
   const data = SETTINGS.checkinDataAberta;
   const el = document.getElementById('checkin-ordenados');
   if(!data){ el.innerHTML = ''; return; }
-  const { dentro, reserva } = checkinsDentroEReserva(data);
-  const dia = finDia(FINANCEIRO, data);
-  const cobrando = !!dia && !finSemJogo(dia) && finCentavos(dia.valorPessoa) > 0; // dia sem jogo não cobra
-  const podeMarcar = cobrando && temPermissao('marcarPagamento'); // só admin/organizador tocam; os demais só veem os ícones
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const outro = jogos.find(j => j.numero !== JOGO_ATIVO);
+  const { dentro, reserva } = dentroEReservaDoJogo(CHECKINS, data, JOGO_ATIVO, jAtivo.vagas);
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const dia = cfgFinDaChave(FINANCEIRO, data, chave);
+  const cobrando = !!dia && !finSemJogo(dia) && finCentavos(dia.valorPessoa) > 0;
+  const podeMarcar = cobrando && temPermissao('marcarPagamento');
+  const podeMover = jogos.length > 1 && temPermissao('moverCheckin');
+  const botaoMoverHtml = (c, horarioOutro) => podeMover && outro && !estaNoJogo(CHECKINS, data, outro.numero, c.jogadorId)
+    ? `<button type="button" class="btn-mover" data-mover-checkin="${c.id}" data-mover-de="${JOGO_ATIVO}" data-mover-nome="${escapeHtml(c.jogadorNome || 'Convidado')}" data-mover-horario="${horarioOutro}" title="Mover ${escapeHtml(c.jogadorNome || 'Convidado')} para o jogo das ${horarioOutro}">⇄ ${horarioOutro}</button>` : '';
+  const tagOutroHtml = (c) => (outro && estaNoJogo(CHECKINS, data, outro.numero, c.jogadorId))
+    ? `<span class="tag-outro" title="Também está no jogo das ${outro.horario}">+${outro.horario}</span>` : '';
   let html = '';
   if(dentro.length){
-    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">✅ Confirmados</strong><ol class="fin-lista">';
+    html += `<div style="margin:8px 0;"><strong style="font-size:13px;">✅ Confirmados${jogos.length > 1 ? ` — ${jAtivo.horario}` : ''}</strong><ol class="fin-lista">`;
     dentro.forEach(c=>{
       const nome = c.jogadorNome || 'Convidado';
-      const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
-      const porCredito = !!finRotuloCredito(FINANCEIRO, data, c.jogadorId);   // pago com crédito de um dia sem jogo
-      const creditoDisp = (!marcas && cobrando) ? finCreditoDe(FINANCEIRO, c.jogadorId) : 0; // tem crédito mas ainda não foi aplicado
+      const marcas = finMarcas(view, data, c.jogadorId);
+      const porCredito = !!finRotuloCredito(view, data, c.jogadorId);
+      const creditoDisp = (!marcas && cobrando) ? finCreditoDe(FINANCEIRO, c.jogadorId) : 0;
       const dica = marcas ? (porCredito ? 'desmarcar o pagamento por crédito (o crédito volta ao saldo)' : 'desmarcar o pagamento') : 'marcar o pagamento';
       const atrib = podeMarcar ? ` class="fin-toque" role="button" tabindex="0" data-fin-jogador="${escapeHtml(c.jogadorId)}" data-fin-nome="${escapeHtml(nome)}" title="Toque para ${dica}"` : '';
       html += `<li${atrib}>${escapeHtml(nome)}${marcas ? `<span class="fin-marca" title="Pago">${marcas}</span>` : ''}`
         + (porCredito ? '<span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo">(Crédito)</span>' : '')
         + (creditoDisp ? `<span class="fin-credito-tag" title="Tem crédito de um dia sem jogo que ainda não cobre este dia">🎟️ crédito ${finFormatar(creditoDisp)}</span>` : '')
-        + '</li>';
+        + tagOutroHtml(c) + botaoMoverHtml(c, outro ? outro.horario : '') + '</li>';
     });
     html += '</ol></div>';
   }
   if(reserva.length){
-    html += '<div style="margin:8px 0;"><strong style="font-size:13px;">⏳ Reserva</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">';
-    reserva.forEach(c=>{ html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}</li>`; });
+    html += `<div style="margin:8px 0;"><strong style="font-size:13px;">⏳ Reserva</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">`;
+    reserva.forEach(c=>{
+      html += `<li>${escapeHtml(c.jogadorNome || 'Convidado')}${tagOutroHtml(c)}${botaoMoverHtml(c, outro ? outro.horario : '')}</li>`;
+    });
     html += '</ol></div>';
+    if(outro && !outro.travado){
+      const livre = vagasLivresDoJogo(CHECKINS, data, outro.numero, outro.vagas);
+      if(livre > 0) html += `<div class="dica-vaga">💡 O jogo das ${outro.horario} ainda tem ${livre} vaga(s).</div>`;
+    }
   }
-  // pagou e não está mais entre os confirmados: continua contando no caixa; só o admin vê o botão de estornar
-  const sinalizados = finSinalizados(FINANCEIRO, data, dentro);
+  // "sinalizados" usa quem está confirmado NA CHAVE (no único, a união dos 2 jogos — view.pagamentos também é da
+  // chave inteira), não só o `dentro` da aba ativa: senão, no modo único, quem pagou e só está confirmado no OUTRO
+  // jogo aparecia aqui como "saiu da lista" por engano, com o botão Estornar ao lado do nome
+  const confirmadosNaChave = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
+  const sinalizados = finSinalizados(view, data, confirmadosNaChave);
   if(sinalizados.length){
     html += '<div class="fin-alerta"><strong>⚠️ Pagaram e não estão mais entre os confirmados</strong> <span style="color:var(--muted);">(o valor continua no caixa)</span>';
     sinalizados.forEach(p=>{
@@ -7592,17 +7916,41 @@ function renderCheckinOrdenados(){
 async function alternarPagamentoCheckin(jogadorId, nome){
   const data = SETTINGS.checkinDataAberta;
   if(!data) return;
-  const pago = finPagamentoDe(FINANCEIRO, data, jogadorId);
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const pago = finPagamentoDe(view, data, jogadorId);
   if(pago){
     const porCredito = finTipoPagamento(pago) === 'credito';
     if(!confirm(porCredito ? 'Desmarcar o pagamento por CRÉDITO de ' + nome + '? O crédito volta ao saldo dela(e).' : 'Desmarcar o pagamento de ' + nome + '?')) return;
     await finPost('estornarPagamento', { id: pago.id });
   } else {
-    await finPost('marcarPagamento', { data, jogadorId, jogadorNome: nome });
+    await finPost('marcarPagamento', { data, jogo: chave, jogadorId, jogadorNome: nome });
   }
 }
 
 document.getElementById('checkin-ordenados').addEventListener('click', async (e)=>{
+  const mover = e.target.closest('[data-mover-checkin]');
+  if(mover){
+    const nome = mover.dataset.moverNome, horario = mover.dataset.moverHorario;
+    if(!confirm(`Mover ${nome} para o jogo das ${horario}?`)) return;
+    const cred = await requireAuth('moverCheckin');
+    if(!cred) return;
+    const paraJogo = Number(mover.dataset.moverDe) === 1 ? 2 : 1;
+    if(await postAction('moverCheckin', { id: mover.dataset.moverCheckin, paraJogo }, cred)){
+      // o servidor põe a pessoa no FIM da fila do destino (mesma regra do "Vou jogar"); localmente isso é
+      // mover o item pro fim do array também — só trocar o .jogo deixava a posição antiga, podendo mostrar a
+      // pessoa como confirmada aqui quando o servidor já tem ela na reserva (até a próxima recarga)
+      const idx = CHECKINS.findIndex(x => x.id === mover.dataset.moverCheckin);
+      if(idx !== -1){
+        const [c] = CHECKINS.splice(idx, 1);
+        c.jogo = paraJogo;
+        CHECKINS.push(c);
+      }
+      mostrarToast('Movido para o jogo das ' + horario + '.', 'sucesso');
+      renderCheckinList();
+    }
+    return;
+  }
   const est = e.target.closest('[data-fin-estornar]');
   if(est){
     const valor = finFormatar(Number(est.dataset.finValor));
@@ -7621,6 +7969,25 @@ document.getElementById('checkin-ordenados').addEventListener('keydown', async (
   await alternarPagamentoCheckin(li.dataset.finJogador, li.dataset.finNome);
 });
 
+// chave 2: o 2º jogo herda os valores do 1º (separado, ainda não salvo); null/1: comportamento de sempre
+// (herda do dia anterior mais recente)
+function cfgOuHerdadaDaChave(chave){
+  const data = SETTINGS.checkinDataAberta;
+  if(chave === 2){
+    const exato = cfgFinDaChave(FINANCEIRO, data, 2);
+    if(exato) return { dia: exato, herdado: false };
+    const j1 = cfgFinDaChave(FINANCEIRO, data, 1);
+    return { dia: j1, herdado: !!j1 };
+  }
+  return finDiaOuHerdado(FINANCEIRO, data);
+}
+// a chave que o cartão/resumo/pagamentos usam AGORA: null com 1 jogo ou no modo único; o número da aba no separado
+function chaveFinanceiroAtiva(){
+  const data = SETTINGS.checkinDataAberta;
+  if(jogosDoDia(SETTINGS, CHECKINS, data).length < 2) return null;
+  const diaAtual = finDia(FINANCEIRO, data);
+  return (diaAtual && diaAtual.porJogo) ? JOGO_ATIVO : null;
+}
 /* Cartão "Financeiro do dia" (só admin/organizador): valores da data aberta. Sem registro salvo, mostra os do dia
    anterior mais recente como sugestão — só valem depois de tocar em Salvar. */
 function renderFinDiaCard(){
@@ -7629,7 +7996,12 @@ function renderFinDiaCard(){
   const data = SETTINGS.checkinDataAberta;
   card.style.display = data ? '' : 'none';
   if(!data) return;
-  const { dia, herdado } = finDiaOuHerdado(FINANCEIRO, data);
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const dois = jogos.length > 1;
+  const chave = chaveFinanceiroAtiva();
+  const porJogo = chave !== null || (dois && !!(finDia(FINANCEIRO, data) || {}).porJogo);
+  const { dia, herdado } = cfgOuHerdadaDaChave(chave);
+  const jHoje = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
   const foco = document.activeElement; // não sobrescreve o campo que a pessoa está digitando
   const preencher = (id, v)=>{ const el = document.getElementById(id); if(el && el !== foco) el.value = v; };
   preencher('fin-valor-pessoa', dia && dia.valorPessoa ? dia.valorPessoa : '');
@@ -7648,9 +8020,37 @@ function renderFinDiaCard(){
   const linha = document.getElementById('fin-semjogo-linha');
   linha.style.display = (dia && !herdado) ? '' : 'none';
   const btn = document.getElementById('fin-semjogo-btn');
-  btn.textContent = semJogo ? '☀️ Reabrir dia' : '🌧️ Dia sem jogo';
+  btn.textContent = semJogo ? ('☀️ Reabrir ' + (chave ? 'jogo' : 'dia')) : ('🌧️ ' + (chave ? `Jogo das ${jHoje.horario} sem jogo` : 'Dia sem jogo'));
   btn.dataset.acao = semJogo ? 'reabrir' : 'marcar';
+  const titulo = document.getElementById('fin-dia-titulo');
+  if(titulo) titulo.textContent = chave ? `💰 Financeiro do dia · ${jHoje.horario}` : '💰 Financeiro do dia';
+  const modoSel = document.getElementById('fin-modo-sel');
+  if(modoSel){
+    modoSel.style.display = dois ? '' : 'none';
+    if(dois){
+      const nPag = (FINANCEIRO.pagamentos || []).filter(p => p.data === data && !p.estornado).length;
+      modoSel.innerHTML = `<div class="fin-campo">Como cobrar os 2 jogos?</div>
+        <label class="fin-opcao"><input type="radio" name="fin-modo" value="unico" ${!porJogo?'checked':''} ${nPag ? 'disabled' : ''}><span><strong>Um financeiro para o dia</strong> (padrão)<br><small>Um valor, PIX e quadra para os dois jogos. Quem joga os dois paga <strong>uma vez</strong>.</small></span></label>
+        <label class="fin-opcao"><input type="radio" name="fin-modo" value="separado" ${porJogo?'checked':''} ${nPag ? 'disabled' : ''}><span><strong>Separado por jogo</strong><br><small>Cada jogo com valor, PIX, quadra, brinde e "sem jogo" próprios.</small></span></label>
+        ${nPag ? `<p class="fin-dica" style="display:block;">🔒 Já há ${nPag} pagamento(s) neste dia. Para trocar, use "Cancelar todos" antes (nada é apagado, vira estorno).</p>` : ''}`;
+    }
+  }
+  const escopo = document.getElementById('fin-dia-escopo');
+  if(escopo){
+    escopo.style.display = dois ? 'block' : 'none';
+    if(dois) escopo.textContent = chave ? `Valores do jogo das ${jHoje.horario}.` : 'Valores do dia (valem para os 2 jogos).';
+  }
 }
+document.getElementById('fin-modo-sel').addEventListener('change', async (e)=>{
+  if(e.target.name !== 'fin-modo') return;
+  const novoPorJogo = e.target.value === 'separado';
+  const data = SETTINGS.checkinDataAberta;
+  const atual = cfgFinDaChave(FINANCEIRO, data, 1) || finDiaOuHerdado(FINANCEIRO, data).dia || { valorPessoa:'', pix:'', valorQuadra:'', valorBrinde:'', icone:'✅' };
+  const ok = await finPost('salvarFinDia', { dia: { data, valorPessoa: atual.valorPessoa, pix: atual.pix, valorQuadra: atual.valorQuadra,
+    valorBrinde: atual.valorBrinde, temBrinde: finCentavos(atual.valorBrinde) > 0, icone: atual.icone, porJogo: novoPorJogo } });
+  if(ok) mostrarToast(novoPorJogo ? 'Separado: cada aba tem o seu financeiro.' : 'Um financeiro para o dia.', 'sucesso');
+  renderFinDiaCard();
+});
 document.getElementById('fin-semjogo-btn').addEventListener('click', (e)=>{
   const data = SETTINGS.checkinDataAberta;
   if(!data) return;
@@ -7661,28 +8061,36 @@ document.getElementById('fin-semjogo-btn').addEventListener('click', (e)=>{
 function abrirDiaSemJogo(){
   const data = SETTINGS.checkinDataAberta;
   if(!data) return;
-  const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const dinheiro = finPagamentosValidos(view, data).filter(p => finTipoPagamento(p) === 'dinheiro');
   const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
-  const corpo = `<p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5;">Use quando <strong>não houve jogo</strong> (chuva, poucos jogadores). A <strong>quadra e o brinde deixam de contar</strong> neste dia.</p>`
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jHoje = (jogos.find(j => j.numero === JOGO_ATIVO) || {}).horario;
+  const titulo = chave ? `Jogo das ${jHoje} sem jogo 🌧️` : 'Dia sem jogo 🌧️';
+  const outro = chave ? (jogos.find(j => j.numero !== chave) || {}).horario : '';
+  const corpo = `<p style="margin:0;font-size:13px;color:var(--muted);line-height:1.5;">Use quando <strong>não houve jogo</strong> (chuva, poucos jogadores). A <strong>quadra${chave ? '' : ' e o brinde'}</strong> deix${chave ? 'a' : 'am'} de contar ${chave ? 'neste jogo' : 'neste dia'}.${chave ? ` O jogo das ${outro} continua normal.` : ''}</p>`
     + (dinheiro.length
       ? `<div class="fin-campo">O que fazer com os ${dinheiro.length} pagamento(s) já recebido(s) (${finFormatar(total)})?</div>
          <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="credito" checked><span><strong>Guardar como crédito</strong> (recomendado)<br><small>Cada pessoa aparece já paga, com "(Crédito)", no próximo check-in em que confirmar presença.</small></span></label>
          <label class="fin-opcao"><input type="radio" name="fin-sj-destino" value="devolver"><span><strong>Devolver</strong> (estornar todos)<br><small>O valor sai do caixa.${ehAdminAgora() ? '' : ' Como organizador, quem já saiu da lista não é estornado (só o admin).'}</small></span></label>`
-      : `<p style="margin:0;font-size:13px;color:var(--muted);">Ninguém pagou neste dia, então não há nada a guardar ou devolver.</p>`);
-  finAbrirModal('Dia sem jogo 🌧️ — ' + formatDate(data), corpo, async (ov)=>{
+      : `<p style="margin:0;font-size:13px;color:var(--muted);">Ninguém pagou neste dia, então não há nada a guardar ou devolver.</p>`)
+    + (!chave && jogos.length > 1 ? `<p style="color:var(--ball-yellow);font-size:12px;margin:10px 0 0;">Se só UM dos jogos não vai acontecer, use "Separado por jogo" antes de marcar — assim você marca só o jogo certo.</p>` : '');
+  finAbrirModal(titulo, corpo, async (ov)=>{
     const sel = ov.querySelector('input[name="fin-sj-destino"]:checked');
     const destino = sel ? sel.value : 'credito';
-    if(!(await finPost('marcarDiaSemJogo', { data, destino }))) return false;
+    if(!(await finPost('marcarDiaSemJogo', { data, jogo: chave, destino }))) return false;
     const r = ULTIMA_RESPOSTA_POST || {};
     mostrarToast(destino === 'devolver'
       ? (r.estornados || 0) + ' pagamento(s) devolvido(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin devolve).' : '')
-      : (r.creditos ? r.creditos + ' pagamento(s) guardado(s) como crédito.' : 'Dia marcado como sem jogo.'), 'sucesso');
+      : (r.creditos ? r.creditos + ' pagamento(s) guardado(s) como crédito.' : 'Marcado como sem jogo.'), 'sucesso');
     return true;
   }, 'Marcar sem jogo');
 }
 async function reabrirDiaFinanceiro(data){
-  if(!confirm('Reabrir este dia?\n\nA quadra e o brinde voltam a contar, e os créditos deste dia (que ainda não foram usados) voltam a ser pagamentos comuns.')) return;
-  if(await finPost('reabrirDia', { data })) mostrarToast('Dia reaberto.', 'sucesso');
+  const chave = chaveFinanceiroAtiva();
+  if(!confirm(`Reabrir ${chave ? 'este jogo' : 'este dia'}?\n\nA quadra${chave ? '' : ' e o brinde'} volta${chave ? '' : 'm'} a contar, e os créditos ${chave ? 'dele' : 'deste dia'} (que ainda não foram usados) voltam a ser pagamentos comuns.`)) return;
+  if(await finPost('reabrirDia', { data, jogo: chave })) mostrarToast((chave ? 'Jogo' : 'Dia') + ' reaberto.', 'sucesso');
 }
 // ícone escolhido no cartão e ainda NÃO salvo (null = vale o do dia); só grava quando toca em Salvar, como os outros campos
 let FIN_ICONE_ESCOLHIDO = null;
@@ -7703,20 +8111,21 @@ document.getElementById('fin-icone-sel').addEventListener('click', (e)=>{
 document.getElementById('fin-salvar-dia-btn').addEventListener('click', async ()=>{
   const data = SETTINGS.checkinDataAberta;
   if(!data) return;
+  const chave = chaveFinanceiroAtiva();
   const valorBrinde = document.getElementById('fin-valor-brinde').value;
   const dia = {
-    data,
+    data, jogo: chave === 2 ? 2 : undefined, porJogo: chave === null ? undefined : (chave === 1 ? true : undefined),
     valorPessoa: document.getElementById('fin-valor-pessoa').value,
     pix: document.getElementById('fin-pix').value.trim(),
     valorQuadra: document.getElementById('fin-valor-quadra').value,
-    valorBrinde,
-    temBrinde: finCentavos(valorBrinde) > 0,   // brinde = valor maior que zero (o servidor decide do mesmo jeito)
-    icone: finIconeDoCartao(finDiaOuHerdado(FINANCEIRO, data).dia)
+    valorBrinde, temBrinde: finCentavos(valorBrinde) > 0,   // brinde = valor maior que zero (o servidor decide do mesmo jeito)
+    icone: finIconeDoCartao(cfgOuHerdadaDaChave(chave).dia)
   };
   if(await finPost('salvarFinDia', { dia })){
     FIN_ICONE_ESCOLHIDO = null;
     renderFinDiaCard(); // volta a refletir o que ficou salvo
-    mostrarToast('Financeiro do dia salvo.', 'sucesso');
+    const jHoje = (jogosDoDia(SETTINGS, CHECKINS, data).find(j => j.numero === JOGO_ATIVO) || {}).horario;
+    mostrarToast(chave ? `Financeiro do jogo das ${jHoje} salvo.` : 'Financeiro do dia salvo.', 'sucesso');
   }
 });
 
@@ -7725,29 +8134,33 @@ function renderFinResumoCheckin(){
   const el = document.getElementById('fin-resumo-checkin');
   if(!el) return;
   const data = SETTINGS.checkinDataAberta;
-  const dia = data ? finDia(FINANCEIRO, data) : null;
-  // dia SEM JOGO: em vez do resumo de cobrança, uma faixa explicando o que aconteceu (visível a todos)
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const dia = data ? cfgFinDaChave(FINANCEIRO, data, chave) : null;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
   if(dia && finSemJogo(dia)){
-    const dinheiro = finPagamentosValidos(FINANCEIRO, data).filter(p => finTipoPagamento(p) === 'dinheiro');
+    const dinheiro = finPagamentosValidos(view, data).filter(p => finTipoPagamento(p) === 'dinheiro');
     const total = dinheiro.reduce((s, p) => s + finCentavos(p.valor), 0);
     el.innerHTML = `<div class="fin-resumo fin-semjogo">
-      <div class="fin-resumo-linha"><span>🌧️ <strong>Dia sem jogo</strong></span></div>
-      <div class="fin-resumo-sub">A quadra e o brinde não contam neste dia.${dinheiro.length ? ' ' + dinheiro.length + ' pagamento(s) já recebido(s) (' + finFormatar(total) + ') ficaram como crédito para o próximo check-in.' : ''}</div>
+      <div class="fin-resumo-linha"><span>🌧️ <strong>${chave ? `Jogo das ${jAtivo.horario} sem jogo` : 'Dia sem jogo'}</strong></span></div>
+      <div class="fin-resumo-sub">A quadra${chave ? '' : ' e o brinde'} ${chave ? 'não conta' : 'não contam'} neste ${chave ? 'jogo' : 'dia'}.${dinheiro.length ? ' ' + dinheiro.length + ' pagamento(s) já recebido(s) (' + finFormatar(total) + ') ficaram como crédito para o próximo check-in.' : ''}</div>
     </div>`;
     return;
   }
   if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ el.innerHTML = ''; return; }
-  const { dentro } = checkinsDentroEReserva(data);
-  const arrecadado = finArrecadadoDia(FINANCEIRO, data);
-  const previsto = finPrevistoDia(FINANCEIRO, data, dentro.length);
+  const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
+  const arrecadado = finArrecadadoDia(view, data);
+  const previsto = finPrevistoDia(view, data, dentro.length);
   const pct = previsto > 0 ? Math.min(100, Math.round(arrecadado / previsto * 100)) : 0;
-  const pendentes = finPendentes(FINANCEIRO, data, dentro).length;          // confirmados que ainda não pagaram
-  const validos = finPagamentosValidos(FINANCEIRO, data).length;            // pagamentos que o "Cancelar todos" estornaria
+  const pendentes = finPendentes(view, data, dentro).length;
+  const validos = finPagamentosValidos(view, data).length;
+  const escopoMsg = jogos.length > 1 ? ` <span style="color:var(--muted);font-size:11px;">· ${chave ? `jogo das ${jAtivo.horario}` : 'os 2 jogos'}</span>` : '';
   el.innerHTML = `<div class="fin-resumo">
-    <div class="fin-resumo-linha"><span>💰 <strong>${finFormatar(finCentavos(dia.valorPessoa))}</strong> por pessoa</span>
+    <div class="fin-resumo-linha"><span>💰 <strong>${finFormatar(finCentavos(dia.valorPessoa))}</strong> por pessoa${escopoMsg}</span>
       ${dia.pix ? `<button type="button" class="fin-pix" data-fin-copiar-pix="${escapeHtml(dia.pix)}" title="Copiar a chave PIX">📌 PIX ${escapeHtml(dia.pix)} <i class="ti ti-copy"></i></button>` : ''}</div>
     <div class="fin-barra"><div class="fin-barra-fill" style="width:${pct}%"></div></div>
-    <div class="fin-resumo-sub fin-resumo-linha"><span>Arrecadado <strong>${finFormatar(arrecadado)}</strong> de ${finFormatar(previsto)}</span><span>Saída do dia ${finFormatar(finSaidaDia(FINANCEIRO, data))}</span></div>
+    <div class="fin-resumo-sub fin-resumo-linha"><span>Arrecadado <strong>${finFormatar(arrecadado)}</strong> de ${finFormatar(previsto)}</span><span>Saída ${chave ? 'do jogo' : 'do dia'} ${finFormatar(finCentavos(dia.valorQuadra) + (dia.temBrinde ? finCentavos(dia.valorBrinde) : 0))}</span></div>
     ${temPermissao('marcarTodosPagamentos') ? `<div class="fin-massa">
       <button type="button" class="btn secondary" data-fin-massa="marcar" ${pendentes ? '' : 'disabled'} title="Marca como pago quem está confirmado e ainda não pagou">Confirmar todos (${pendentes})</button>
       <button type="button" class="btn danger" data-fin-massa="cancelar" ${validos ? '' : 'disabled'} title="Estorna todos os pagamentos deste dia">Cancelar todos (${validos})</button>
@@ -7765,24 +8178,26 @@ document.getElementById('fin-resumo-checkin').addEventListener('click', (e)=>{
 // o servidor faz tudo numa ação só e devolve quantos foram estornados e quantos ficaram (organizador não estorna quem saiu da lista).
 async function pagamentosEmMassa(tipo){
   const data = SETTINGS.checkinDataAberta;
-  const dia = data ? finDia(FINANCEIRO, data) : null;
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const dia = data ? cfgFinDaChave(FINANCEIRO, data, chave) : null;
   if(!dia || !(finCentavos(dia.valorPessoa) > 0)){ alert('Cadastre o valor por pessoa do dia antes de marcar pagamentos.'); return; }
-  const { dentro } = checkinsDentroEReserva(data);
+  const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
   if(tipo === 'marcar'){
-    const n = finPendentes(FINANCEIRO, data, dentro).length;
+    const n = finPendentes(view, data, dentro).length;
     if(!n) return;
     const valor = finCentavos(dia.valorPessoa);
     if(!confirm('Marcar como PAGO os ' + n + ' confirmado(s) que ainda não pagaram?\n\n' + n + ' × ' + finFormatar(valor) + ' = ' + finFormatar(n * valor))) return;
-    if(await finPost('marcarTodosPagamentos', { data })) mostrarToast(n + ' pagamento(s) marcado(s).', 'sucesso');
+    if(await finPost('marcarTodosPagamentos', { data, jogo: chave })) mostrarToast(n + ' pagamento(s) marcado(s).', 'sucesso');
     return;
   }
-  const validos = finPagamentosValidos(FINANCEIRO, data);
+  const validos = finPagamentosValidos(view, data);
   if(!validos.length) return;
   const total = validos.reduce((s, p) => s + finCentavos(p.valor), 0);
-  let msg = 'CANCELAR TODOS os ' + validos.length + ' pagamentos deste dia (' + finFormatar(total) + ')?\n\nEles são estornados automaticamente e o valor sai do caixa. Nada é apagado: fica registrado na auditoria.';
+  let msg = 'CANCELAR TODOS os ' + validos.length + ' pagamentos' + (chave ? ' deste jogo' : ' deste dia') + ' (' + finFormatar(total) + ')?\n\nEles são estornados automaticamente e o valor sai do caixa. Nada é apagado: fica registrado na auditoria.';
   if(!ehAdminAgora()) msg += '\n\nComo organizador, os pagamentos de quem já saiu da lista NÃO são estornados (só o admin faz isso).';
   if(!confirm(msg)) return;
-  if(await finPost('estornarTodosPagamentos', { data })){
+  if(await finPost('estornarTodosPagamentos', { data, jogo: chave })){
     const r = ULTIMA_RESPOSTA_POST || {};
     mostrarToast((r.estornados || 0) + ' pagamento(s) estornado(s).' + (r.ignorados ? ' ' + r.ignorados + ' de quem saiu da lista ficou (só o admin estorna).' : ''), 'sucesso');
   }
@@ -7825,61 +8240,71 @@ function finDetalheLegivel(acao, detalhe){
   return '';
 }
 
-function finDiaHtml(data, pode, admin){
+function finBlocoChave(data, chave, pode, admin, rotulo){
   const fin = FINANCEIRO;
-  const dia = finDia(fin, data);
-  const { dentro } = checkinsDentroEReserva(data);
-  const validos = finPagamentosValidos(fin, data).length;
-  const resultado = finResultadoDia(fin, data) + finAvulsosDia(fin, data);
-  const sinal = new Set(finSinalizados(fin, data, dentro).map(p => p.id));
-  const pagamentos = finPagamentosRecentesPrimeiro((fin.pagamentos || []).filter(p => p.data === data)); // o último pagamento aparece primeiro
-  const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
-  const pendentes = dia && finCentavos(dia.valorPessoa) > 0 ? finPendentes(fin, data, dentro) : [];
-
-  const semJogo = finSemJogo(dia);
-  let h = `<details class="fin-dia ${semJogo ? 'fin-dia-semjogo' : ''}"><summary><span class="fin-dia-data">${formatDate(data)}</span>
-    ${semJogo ? '<span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}
-    <span class="fin-dia-n">${validos} pagamento${validos === 1 ? '' : 's'}</span>
-    ${dia ? `<button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>` : ''}
-    <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
-
-  if(semJogo){
-    // dia sem jogo: a saída (quadra/brinde) NÃO conta; o dinheiro já recolhido virou crédito (ou foi devolvido)
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Dia sem jogo 🌧️</div>
-      <div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(dia.valorQuadra))})${dia.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(dia.valorBrinde)) + ')' : ''} não contam neste dia. O dinheiro já recebido ficou como crédito para os próximos check-ins (ou foi devolvido).</span></div>
-      ${pode ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}">☀️ Reabrir dia</button>
-        <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button></div>` : ''}</div>`;
-  } else if(dia){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Saídas do dia</div>
-      <div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorQuadra))}</span></div>
-      ${dia.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(dia.valorBrinde))}</span></div>` : ''}
-      <div class="fin-linha"><span class="fin-linha-meta">${finFormatar(finCentavos(dia.valorPessoa))} por pessoa${dia.pix ? ' · PIX ' + escapeHtml(dia.pix) : ''}</span></div>
-      ${pode ? `<button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}">✏️ Editar dia</button>` : ''}</div>`;
+  const view = finViewDaChave(fin, data, chave);
+  const cfg = cfgFinDaChave(fin, data, chave);
+  const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, data, chave);
+  const sinal = new Set(finSinalizados(view, data, dentro).map(p => p.id));
+  const pagamentos = finPagamentosRecentesPrimeiro(view.pagamentos || []);
+  const pendentes = cfg && finCentavos(cfg.valorPessoa) > 0 ? finPendentes(view, data, dentro) : [];
+  const semJogo = finSemJogo(cfg);
+  let h = '<div class="fin-bloco">';
+  if(rotulo) h += `<div class="fin-bloco-titulo">${rotulo}${semJogo ? ' <span class="fin-selo fin-selo-info">🌧️ sem jogo</span>' : ''}</div>`;
+  if(semJogo && cfg){
+    h += `<div class="fin-linha"><span class="fin-linha-meta">A quadra (${finFormatar(finCentavos(cfg.valorQuadra))})${cfg.temBrinde ? ' e o brinde (' + finFormatar(finCentavos(cfg.valorBrinde)) + ')' : ''} não contam. O dinheiro já recebido ficou como crédito (ou foi devolvido).</span></div>`;
+    if(pode) h += `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-reabrir-dia="${data}" data-fin-reabrir-jogo="${chave ?? ''}">☀️ Reabrir</button>
+      <button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}" data-fin-editar-jogo="${chave ?? ''}">✏️ Editar</button></div>`;
+  } else if(cfg){
+    h += `<div class="fin-linha"><span class="fin-linha-nome">Quadra</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(cfg.valorQuadra))}</span></div>
+      ${cfg.temBrinde ? `<div class="fin-linha"><span class="fin-linha-nome">Brinde 🍫</span><span class="fin-linha-valor fin-neg">−${finFormatar(finCentavos(cfg.valorBrinde))}</span></div>` : ''}
+      <div class="fin-linha"><span class="fin-linha-meta">${finFormatar(finCentavos(cfg.valorPessoa))} por pessoa${cfg.pix ? ' · PIX ' + escapeHtml(cfg.pix) : ''}</span></div>
+      ${pode ? `<button type="button" class="btn secondary" style="padding:4px 12px;font-size:12px;" data-fin-editar-dia="${data}" data-fin-editar-jogo="${chave ?? ''}">✏️ Editar</button>` : ''}`;
   }
+  h += '</div>';
   if(pagamentos.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>`;
+    h += '<div class="fin-bloco"><div class="fin-bloco-titulo">Pagamentos</div>';
     pagamentos.forEach(p=>{
-      const marcas = !p.estornado ? finMarcas(fin, data, p.jogadorId) : '';
+      const marcas = !p.estornado ? finMarcas(view, data, p.jogadorId) : '';
       const porCredito = finTipoPagamento(p) === 'credito';
-      // dinheiro de um dia sem jogo que virou crédito: mostra o estado do crédito
       const cred = !porCredito ? (fin.creditos || []).find(c => c.origemPagamentoId === p.id && c.status !== 'cancelado') : null;
       let selo = '';
       if(cred && cred.status === 'devolvido') selo = '<span class="fin-selo fin-selo-info">crédito devolvido</span>';
-      else if(cred) selo = finSaldoCredito(fin, cred) > 0
-        ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>'
-        : '<span class="fin-selo fin-selo-info">crédito usado</span>';
+      else if(cred) selo = finSaldoCredito(fin, cred) > 0 ? '<span class="fin-selo fin-selo-info">crédito ' + finFormatar(finSaldoCredito(fin, cred)) + '</span>' : '<span class="fin-selo fin-selo-info">crédito usado</span>';
       h += `<div class="fin-linha ${p.estornado ? 'fin-estornado' : ''}">
         <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Convidado')} ${marcas}${porCredito ? ' <span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo: não é dinheiro novo (já estava no caixa)">(Crédito)</span>' : ''}</span>
-        ${selo}
-        ${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
+        ${selo}${sinal.has(p.id) ? '<span class="fin-selo">fora da lista</span>' : ''}
         ${admin && sinal.has(p.id) ? `<button type="button" class="btn secondary" data-fin-estornar="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || 'Convidado')}" data-fin-valor="${finCentavos(p.valor)}">Estornar</button>` : ''}
         ${porCredito ? `<span class="fin-linha-valor" style="color:var(--muted);">🎟️ ${finFormatar(finCentavos(p.valor))}</span>` : `<span class="fin-linha-valor fin-pos">+${finFormatar(finCentavos(p.valor))}</span>`}
         <span class="fin-linha-meta">${p.estornado ? `estornado por ${escapeHtml(p.estornadoPor)} em ${finQuando(p.estornadoEm)} · ` : ''}marcado por ${escapeHtml(p.marcadoPor)} em ${finQuando(p.marcadoEm)}</span></div>`;
     });
     h += '</div>';
   }
+  if(pendentes.length){
+    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Ainda não pagaram (${pendentes.length})</div><div class="fin-pendentes">${pendentes.map(c=>`<span>${escapeHtml(c.jogadorNome || 'Convidado')}</span>`).join('')}</div></div>`;
+  }
+  return h;
+}
+
+function finDiaHtml(data, pode, admin){
+  const fin = FINANCEIRO;
+  const diaRow = finDia(fin, data);
+  const porJogo = !!(diaRow && diaRow.porJogo);
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const dois = porJogo && jogos.length > 1;
+  const visaoCaixa = finVisaoCaixa(fin);
+  const validosTotal = (fin.pagamentos || []).filter(p => p.data === data && !p.estornado).length;
+  const resultado = finResultadoDia(visaoCaixa, data) + finAvulsosDia(visaoCaixa, data);
+  let h = `<details class="fin-dia"><summary><span class="fin-dia-data">${formatDate(data)}</span>
+    ${dois ? '<span class="fin-selo fin-selo-info">2 jogos</span>' : ''}
+    <span class="fin-dia-n">${validosTotal} pagamento${validosTotal === 1 ? '' : 's'}</span>
+    <button type="button" class="fin-copiar" data-fin-copiar-resumo="${data}" title="Copiar o resumo do dia para enviar no grupo" aria-label="Copiar o resumo do dia ${formatDate(data)}"><i class="ti ti-copy"></i></button>
+    <span class="fin-dia-res ${finClasseValor(resultado)}">${finFormatar(resultado)}</span></summary><div class="fin-dia-corpo">`;
+  if(dois) jogos.forEach(j => { h += finBlocoChave(data, j.numero, pode, admin, `⏰ Jogo das ${j.horario}`); });
+  else h += finBlocoChave(data, null, pode, admin, null);
+  const avulsos = (fin.lancamentos || []).filter(l => l.data === data);
   if(avulsos.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Lançamentos avulsos</div>`;
+    h += '<div class="fin-bloco"><div class="fin-bloco-titulo">Lançamentos avulsos</div>';
     avulsos.forEach(l=>{
       const cls = l.tipo === 'entrada' ? 'fin-pos' : 'fin-neg';
       h += `<div class="fin-linha ${l.estornado ? 'fin-estornado' : ''}">
@@ -7889,9 +8314,6 @@ function finDiaHtml(data, pode, admin){
         <span class="fin-linha-meta">${l.estornado ? `estornado por ${escapeHtml(l.estornadoPor)} em ${finQuando(l.estornadoEm)} · ` : ''}lançado por ${escapeHtml(l.criadoPor)} em ${finQuando(l.criadoEm)}</span></div>`;
     });
     h += '</div>';
-  }
-  if(pendentes.length){
-    h += `<div class="fin-bloco"><div class="fin-bloco-titulo">Ainda não pagaram (${pendentes.length})</div><div class="fin-pendentes">${pendentes.map(c=>`<span>${escapeHtml(c.jogadorNome || 'Convidado')}</span>`).join('')}</div></div>`;
   }
   return h + '</div></details>';
 }
@@ -7907,15 +8329,33 @@ function renderFinanceiro(){
     ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
     return;
   }
-  const fin = FINANCEIRO;
+  const visaoCaixa = finVisaoCaixa(FINANCEIRO);
   const pode = temPermissao('addLancamento');
   const admin = ehAdminAgora();
-  const caixa = finCaixa(fin);
+  const caixa = finCaixa(visaoCaixa);
   const hoje = new Date();
-  const mes = finResumoMes(fin, hoje.getFullYear(), hoje.getMonth() + 1);
-  // saldo previsto: só faz sentido com check-in aberto e valor do dia cadastrado
+  const mes = finResumoMes(visaoCaixa, hoje.getFullYear(), hoje.getMonth() + 1);
   const dataAberta = SETTINGS.checkinDataAberta;
-  const prev = dataAberta ? finSaldoPrevisto(fin, dataAberta, checkinsDentroEReserva(dataAberta).dentro) : null;
+  let prev = null;
+  if(dataAberta){
+    const diaAberto = finDia(FINANCEIRO, dataAberta);
+    const jogosHoje = jogosDoDia(SETTINGS, CHECKINS, dataAberta);
+    if(diaAberto && diaAberto.porJogo){
+      let pendentes = 0, aReceber = 0;
+      jogosHoje.forEach(j => {
+        const view = finViewDaChave(FINANCEIRO, dataAberta, j.numero);
+        const dentro = dentroEReservaDoJogo(CHECKINS, dataAberta, j.numero, j.vagas).dentro;
+        const p = finSaldoPrevisto(view, dataAberta, dentro);
+        if(p){ pendentes += p.pendentes; aReceber += p.aReceber; }
+      });
+      prev = { caixa, pendentes, aReceber, previsto: caixa + aReceber };
+    } else {
+      const view = finViewDaChave(FINANCEIRO, dataAberta, null);
+      const dentro = confirmadosPelaChave(SETTINGS, CHECKINS, dataAberta, null);
+      const p = finSaldoPrevisto(view, dataAberta, dentro);
+      prev = p ? { caixa, pendentes: p.pendentes, aReceber: p.aReceber, previsto: caixa + p.aReceber } : null;
+    }
+  }
   let previstoHtml = '';
   if(prev){
     const n = prev.pendentes;
@@ -7926,15 +8366,15 @@ function renderFinanceiro(){
         ? `quando os <strong>${n} pendente${n === 1 ? '' : 's'}</strong> do check-in de ${formatDate(dataAberta)} pagarem (<span class="fin-pos">+${finFormatar(prev.aReceber)}</span> a receber)`
         : `todos do check-in de ${formatDate(dataAberta)} já pagaram — nada a receber`}</div>
     </div>`;
-  } else if(dataAberta && finSemJogo(finDia(fin, dataAberta))){
+  } else if(dataAberta && finSemJogo(finDia(FINANCEIRO, dataAberta))){
     previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: o check-in de ${formatDate(dataAberta)} está marcado como <strong>sem jogo</strong>, então não há o que cobrar.</div>`;
   } else if(dataAberta){
     previstoHtml = `<div class="fin-previsto fin-previsto-vazio">Saldo previsto: cadastre o valor por pessoa do check-in de ${formatDate(dataAberta)} para ver a previsão.</div>`;
   }
   // o dinheiro dos créditos está no caixa, mas é dos jogadores: o "saldo livre" é o que sobra de verdade pro grupo
-  const totalCred = finTotalCreditos(fin);
+  const totalCred = finTotalCreditos(visaoCaixa);
   const creditosHtml = totalCred > 0
-    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(fin))}</strong></span></div>` : '';
+    ? `<div class="fin-creditos"><span>🎟️ Créditos de jogadores: <strong>${finFormatar(totalCred)}</strong></span><span>Saldo livre (caixa − créditos): <strong>${finFormatar(finSaldoLivre(visaoCaixa))}</strong></span></div>` : '';
   topo.innerHTML = `<div class="fin-saldo">
     <div class="fin-saldo-rotulo">Saldo do caixa</div>
     <div class="fin-saldo-valor ${caixa < 0 ? 'neg' : ''}">${finFormatar(caixa)}</div>
@@ -7943,10 +8383,10 @@ function renderFinanceiro(){
     ${previstoHtml}
   </div>`;
   // créditos disponíveis por pessoa; só o admin devolve o dinheiro (e só de crédito ainda não usado)
-  const creds = finCreditosDisponiveis(fin);
+  const creds = finCreditosDisponiveis(visaoCaixa);
   document.getElementById('fin-creditos-sec').style.display = creds.length ? '' : 'none';
   document.getElementById('fin-creditos-lista').innerHTML = creds.map(c => {
-    const saldo = finSaldoCredito(fin, c);
+    const saldo = finSaldoCredito(visaoCaixa, c);
     const inteiro = saldo === finCentavos(c.valor);
     return `<div class="fin-linha"><span class="fin-linha-nome">${escapeHtml(c.jogadorNome || 'Convidado')}</span>
       <span class="fin-linha-meta" style="flex-basis:auto;">de ${formatDate(c.dataOrigem)}${inteiro ? '' : ' · já usado em parte'}</span>
@@ -7955,12 +8395,12 @@ function renderFinanceiro(){
   }).join('');
   document.getElementById('fin-acoes').innerHTML = pode
     ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button>' : '';
-  const datas = finDatas(fin);
+  const datas = finDatas(visaoCaixa);
   document.getElementById('fin-extrato').innerHTML = datas.length
     ? datas.map(d => finDiaHtml(d, pode, admin)).join('')
     : '<div class="empty"><i class="ti ti-coin"></i>Nenhum movimento ainda. Configure o "Financeiro do dia" no Check-in ou faça um lançamento.</div>';
-  document.getElementById('fin-auditoria-lista').innerHTML = (fin.log || []).length
-    ? fin.log.map(l => `<div class="fin-log-item"><span class="fin-log-quando">${finQuando(l.timestamp)}</span><strong>${escapeHtml(l.nome)}</strong> ${FIN_ACOES_ROTULO[l.acao] || escapeHtml(l.acao)}: ${finDetalheLegivel(l.acao, l.detalhe)}</div>`).join('')
+  document.getElementById('fin-auditoria-lista').innerHTML = (FINANCEIRO.log || []).length
+    ? FINANCEIRO.log.map(l => `<div class="fin-log-item"><span class="fin-log-quando">${finQuando(l.timestamp)}</span><strong>${escapeHtml(l.nome)}</strong> ${FIN_ACOES_ROTULO[l.acao] || escapeHtml(l.acao)}: ${finDetalheLegivel(l.acao, l.detalhe)}</div>`).join('')
     : '<div class="empty" style="padding:20px;">Sem ações registradas ainda.</div>';
 }
 
@@ -7981,9 +8421,14 @@ function finCampoNum(id, rotulo, valor, ph){
   return `<label class="fin-campo">${rotulo}<input type="number" id="${id}" min="0" step="0.01" inputmode="decimal" value="${valor === '' || valor == null ? '' : valor}" placeholder="${ph || ''}"></label>`;
 }
 
-function finAbrirEditarDia(data){
-  const d = finDia(FINANCEIRO, data) || { valorPessoa: '', pix: '', valorQuadra: '', valorBrinde: '', icone: '✅' };
-  finAbrirModal('Editar ' + formatDate(data), `
+function chaveDeAtributo(s){ return (s === '' || s === undefined) ? null : Number(s); }
+
+function finAbrirEditarDia(data, jogoStr){
+  const chave = chaveDeAtributo(jogoStr);
+  const d = cfgFinDaChave(FINANCEIRO, data, chave) || { valorPessoa: '', pix: '', valorQuadra: '', valorBrinde: '', icone: '✅' };
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const titulo = chave ? `Editar jogo das ${(jogos.find(j=>j.numero===chave)||{}).horario} — ${formatDate(data)}` : 'Editar ' + formatDate(data);
+  finAbrirModal(titulo, `
     ${finCampoNum('fin-m-vp', 'Valor por pessoa (R$)', d.valorPessoa)}
     <label class="fin-campo">PIX<input type="text" id="fin-m-pix" maxlength="80" value="${escapeHtml(d.pix || '')}"></label>
     ${finCampoNum('fin-m-vq', 'Quadra (R$)', d.valorQuadra)}
@@ -7994,10 +8439,15 @@ function finAbrirEditarDia(data){
     async (ov)=> {
       const valorBrinde = ov.querySelector('#fin-m-vb').value;
       return finPost('salvarFinDia', { dia: {
-        data, valorPessoa: ov.querySelector('#fin-m-vp').value, pix: ov.querySelector('#fin-m-pix').value.trim(),
+        data, jogo: chave === 2 ? 2 : undefined, valorPessoa: ov.querySelector('#fin-m-vp').value, pix: ov.querySelector('#fin-m-pix').value.trim(),
         valorQuadra: ov.querySelector('#fin-m-vq').value, valorBrinde, temBrinde: finCentavos(valorBrinde) > 0,
         icone: ov.querySelector('#fin-m-icone').value } });
     });
+}
+async function reabrirDiaFinanceiroDoExtrato(data, jogoStr){
+  const chave = chaveDeAtributo(jogoStr);
+  if(!confirm(`Reabrir ${chave ? 'este jogo' : 'este dia'}?\n\nA quadra${chave ? '' : ' e o brinde'} volta${chave ? '' : 'm'} a contar, e os créditos (que ainda não foram usados) voltam a ser pagamentos comuns.`)) return;
+  if(await finPost('reabrirDia', { data, jogo: chave })) mostrarToast((chave ? 'Jogo' : 'Dia') + ' reaberto.', 'sucesso');
 }
 function finAbrirLancar(){
   const hoje = new Date().toISOString().slice(0, 10);
@@ -8030,11 +8480,11 @@ document.getElementById('view-financeiro').addEventListener('click', async (e)=>
   const cp = e.target.closest('[data-fin-copiar-resumo]');
   if(cp){
     e.preventDefault(); e.stopPropagation();
-    copiarTexto(finResumoFechamento(FINANCEIRO, cp.dataset.finCopiarResumo), cp);
+    copiarTexto(fechamentoDoDia(SETTINGS, CHECKINS, FINANCEIRO, cp.dataset.finCopiarResumo), cp);
     return;
   }
   const reab = e.target.closest('[data-fin-reabrir-dia]');
-  if(reab) return reabrirDiaFinanceiro(reab.dataset.finReabrirDia);
+  if(reab) return reabrirDiaFinanceiroDoExtrato(reab.dataset.finReabrirDia, reab.dataset.finReabrirJogo);
   const dev = e.target.closest('[data-fin-devolver-credito]');
   if(dev){
     if(!confirm('Devolver o crédito de ' + dev.dataset.finNome + ' (' + finFormatar(Number(dev.dataset.finValor)) + ')?\n\nO dinheiro é devolvido: o pagamento de origem é estornado e o valor sai do caixa.')) return;
@@ -8043,7 +8493,7 @@ document.getElementById('view-financeiro').addEventListener('click', async (e)=>
   if(e.target.closest('#fin-lancar-btn')) return finAbrirLancar();
   if(e.target.closest('#fin-ajustar-btn')) return finAbrirAjustarCaixa();
   const ed = e.target.closest('[data-fin-editar-dia]');
-  if(ed) return finAbrirEditarDia(ed.dataset.finEditarDia);
+  if(ed) return finAbrirEditarDia(ed.dataset.finEditarDia, ed.dataset.finEditarJogo);
   const est = e.target.closest('[data-fin-estornar]');
   if(est){
     if(!confirm('Estornar o pagamento de ' + est.dataset.finNome + ' (' + finFormatar(Number(est.dataset.finValor)) + ')? O valor sai do caixa.')) return;
@@ -8075,13 +8525,16 @@ function renderCheckinList(){
 
   atualizarBotaoDesconfirmarTodos(); // aparece/some conforme a lista ganha ou perde gente
   const term = document.getElementById('checkin-search').value;
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const outro = jogos.find(j => j.numero !== JOGO_ATIVO);
   const { dentro, reserva } = checkinsDentroEReserva(data);
   const confirmadosHoje = new Set(dentro.concat(reserva).map(c=>c.jogadorId));
   const dentroIds = new Set(dentro.map(c=>c.jogadorId));
-  const vagas = SETTINGS.checkinVagas || 16;
+  const vagas = jAtivo.vagas;
   document.getElementById('checkin-counter-num').textContent = confirmadosHoje.size;
   document.getElementById('checkin-counter-label').textContent =
-    `de ${vagas} vaga(s)${reserva.length ? ` (${reserva.length} na reserva)` : ''}`;
+    `de ${vagas} vaga(s)${reserva.length ? ` (${reserva.length} na reserva)` : ''}${jogos.length > 1 ? ` · ${jAtivo.horario}` : ''}`;
   renderCheckinOrdenados();
 
   const pool = sortByName(DATA.players.concat(GUESTS)).filter(p=> normalizeStr(p.nome).includes(normalizeStr(term)) || normalizeStr(p.apelido||'').includes(normalizeStr(term)));
@@ -8090,11 +8543,12 @@ function renderCheckinList(){
     return;
   }
   const mostrarEstrelas = starsVisibleNow();
-  const travado = SETTINGS.checkinTravado;
+  const travado = jAtivo.travado;
   const podeMarcar = AUTH.logado && !travado;
   list.innerHTML = pool.map(p=>{
     const confirmado = confirmadosHoje.has(p.id);
     const naReserva = confirmado && !dentroIds.has(p.id);
+    const tambem = outro && estaNoJogo(CHECKINS, data, outro.numero, p.id);
     let rotulo = 'Vou jogar';
     if(confirmado) rotulo = naReserva ? '⏳ Reserva' : '✅ Confirmado';
     else if(travado) rotulo = '🔒 Travado';
@@ -8104,11 +8558,12 @@ function renderCheckinList(){
       </button>`;
     // o <label> continua em volta: tocar em qualquer ponto da linha aciona o botão, como antes.
     // O nome NÃO abre o perfil aqui (tocar na linha é pra marcar presença).
+    const tagExtra = (p.isGuest ? '<span class="badge-guest">convidado</span>' : '') + (tambem ? `<span class="tag-outro" title="Também está no jogo das ${outro.horario}">também às ${outro.horario}</span>` : '');
     return `<label class="jc-linha" data-checkin-toggle="${p.id}">${jogadorCardHtml(
       montarDadosReduzido(p, mostrarEstrelas, {
         nomeHtml: highlightMatch(p.nome, term),
         apelidoHtml: p.apelido ? highlightMatch(p.apelido, term) : '',
-        tagsExtraHtml: p.isGuest ? '<span class="badge-guest">convidado</span>' : '',
+        tagsExtraHtml: tagExtra,
         acoesHtml: botao
       }),
       { variante: 'reduzido', nomeAbrePerfil: false }
@@ -8119,7 +8574,7 @@ function renderCheckinList(){
     btn.addEventListener('click', async (e)=>{
       e.preventDefault();
       const pid = btn.dataset.checkinBtn;
-      const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid);
+      const jaConfirmado = CHECKINS.find(c=> c.data===data && c.jogadorId===pid && (Number(c.jogo)||1)===JOGO_ATIVO);
       if(!jaConfirmado && !exigirLoginParaCheckin()) return;
       const cred = await credencialLogada();
       if(!cred) return;
@@ -8129,7 +8584,7 @@ function renderCheckinList(){
         if(ok) CHECKINS = CHECKINS.filter(c=>c.id!==jaConfirmado.id);
       } else {
         const player = getPlayer(pid);
-        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'' };
+        const novoCheckin = { id: uid(), data, jogadorId: pid, jogadorNome: player ? (player.apelido||player.nome) : '', estrelas: player?player.estrelas:0, sexo: player?player.sexo:'', jogo: JOGO_ATIVO };
         CHECKINS.push(novoCheckin);
         const ok = await postAction('addCheckin', {checkin: novoCheckin}, cred);
         if(!ok) CHECKINS = CHECKINS.filter(c=>c.id!==novoCheckin.id); // desfaz se não salvou
@@ -8212,7 +8667,7 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
   const cred = await credencialLogada();
   if(!cred) return { confirmados: 0, pulados: 0, falhas: escolhas.map(e=> e.texto) };
   let credReativar = null;
-  const naLista = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  const naLista = new Set(CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO).map(c=> c.jogadorId));
   let confirmados = 0, pulados = 0;
   const falhas = [];
   for(let i = 0; i < escolhas.length; i++){
@@ -8240,7 +8695,7 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
       estrelas = p.estrelas || 0;
       sexo = p.sexo || '';
     }
-    const checkin = { id: uid(), data, jogadorId, jogadorNome: nome, estrelas, sexo };
+    const checkin = { id: uid(), data, jogadorId, jogadorNome: nome, estrelas, sexo, jogo: JOGO_ATIVO };
     CHECKINS.push(checkin);
     naLista.add(jogadorId);
     if(await postAction('addCheckin', { checkin }, cred)) confirmados++;
@@ -8257,7 +8712,14 @@ async function confirmarListaDoGrupo(escolhas, aoProgresso = ()=>{}){
 function podeColarListaDoGrupo(){ return AUTH.logado && (AUTH.perfil === 'admin' || AUTH.perfil === 'organizador'); }
 function atualizarBlocoListaGrupo(){
   const bloco = document.getElementById('lista-grupo-bloco');
-  if(bloco) bloco.style.display = (SETTINGS.checkinDataAberta && !SETTINGS.checkinTravado && podeColarListaDoGrupo()) ? '' : 'none';
+  const data = SETTINGS.checkinDataAberta;
+  const jAtivo = (jogosDoDia(SETTINGS, CHECKINS, data).find(j=>j.numero===JOGO_ATIVO)) || { travado:false };
+  if(bloco) bloco.style.display = (data && !jAtivo.travado && podeColarListaDoGrupo()) ? '' : 'none';
+  const jogoEl = document.getElementById('lista-grupo-jogo');
+  if(jogoEl){
+    const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+    jogoEl.textContent = jogos.length > 1 ? ` → jogo das ${(jogos.find(j=>j.numero===JOGO_ATIVO)||jogos[0]).horario}` : '';
+  }
 }
 let LISTA_GRUPO_LINHAS = [];
 function valoresDaConferencia(){
@@ -8323,7 +8785,7 @@ document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()
   const nomes = lerListaDoGrupo(document.getElementById('lista-grupo-texto').value);
   if(!nomes.length){ caixa.innerHTML = '<p class="lista-grupo-dica">Nenhum nome encontrado no texto colado.</p>'; return; }
   const data = SETTINGS.checkinDataAberta;
-  const confirmados = new Set(CHECKINS.filter(c=> c.data === data).map(c=> c.jogadorId));
+  const confirmados = new Set(CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO).map(c=> c.jogadorId));
   LISTA_GRUPO_LINHAS = montarConferencia(nomes, DATA.players, DATA.removidos || [], confirmados);
   renderConferenciaListaGrupo();
 });
@@ -8334,7 +8796,7 @@ document.getElementById('lista-grupo-conferir-btn').addEventListener('click', ()
 // como "saiu da lista"). Quem falhar continua na lista. Testado em tests/desconfirmar-todos.test.js.
 async function desconfirmarTodosDoDia(aoProgresso = ()=>{}){
   const data = SETTINGS.checkinDataAberta;
-  const doDia = CHECKINS.filter(c=> c.data === data);
+  const doDia = CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO);
   const cred = await credencialLogada();
   if(!cred) return { removidos: 0, falhas: doDia.map(c=> c.jogadorNome || '?') };
   let removidos = 0;
@@ -8352,12 +8814,13 @@ function atualizarBotaoDesconfirmarTodos(){
   const botao = document.getElementById('desconfirmar-todos-btn');
   if(!botao) return;
   const data = SETTINGS.checkinDataAberta;
-  botao.hidden = !(data && !SETTINGS.checkinTravado && podeColarListaDoGrupo() && CHECKINS.some(c=> c.data === data));
+  const jAtivo = (jogosDoDia(SETTINGS, CHECKINS, data).find(j=>j.numero===JOGO_ATIVO)) || { travado:false };
+  botao.hidden = !(data && !jAtivo.travado && podeColarListaDoGrupo() && CHECKINS.some(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO));
 }
 // </desconfirmar-todos>
 document.getElementById('desconfirmar-todos-btn').addEventListener('click', async ()=>{
   const data = SETTINGS.checkinDataAberta;
-  const doDia = CHECKINS.filter(c=> c.data === data);
+  const doDia = CHECKINS.filter(c=> c.data === data && (Number(c.jogo)||1) === JOGO_ATIVO);
   if(!doDia.length) return;
   const pagos = ((FINANCEIRO && FINANCEIRO.pagamentos) || []).filter(p=> p.data === data && !p.estornado).length;
   const avisoPagos = pagos ? `\n\nHá ${pagos} pagamento(s) marcado(s) neste dia: quem pagou com crédito recebe o crédito de volta; PIX ou dinheiro continua registrado no Financeiro como "saiu da lista".` : '';
@@ -8422,9 +8885,12 @@ function dataCurta(iso){
 }
 
 // troca {diaSemana} {data} {horario} {vagas} pelos valores de verdade da data aberta
+// troca {diaSemana} {data} {horario} {vagas} pelos valores de verdade; com 2 jogos, {horario} vira "19:00 e 21:00"
+// e {vagas} vira "16 + 12"
 function preencherMensagemCheckin(template, data){
-  const vagas = SETTINGS.checkinVagas || 16;
-  const horario = SETTINGS.checkinHorario || '20:00';
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const horario = jogos.map(j => j.horario).join(' e ');
+  const vagas = jogos.map(j => j.vagas).join(' + ');
   return String(template || CHECKIN_MENSAGEM_PADRAO)
     .replace(/\{diaSemana\}/g, nomeDiaSemana(data))
     .replace(/\{data\}/g, dataCurta(data))
@@ -8434,23 +8900,9 @@ function preencherMensagemCheckin(template, data){
 
 function montarTextoCheckinsWhatsApp(){
   const data = SETTINGS.checkinDataAberta;
-  const { dentro, reserva } = checkinsDentroEReserva(data);
-  if(dentro.length===0 && reserva.length===0){
-    alert('Ninguém confirmou presença para essa data ainda.');
-    return '';
-  }
-  // valor e PIX do dia entram logo depois do texto de abertura (só se o dia já tem valor cadastrado)
-  let texto = preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + finCabecalhoWhatsApp(FINANCEIRO, data);
-  dentro.forEach((c,i)=>{
-    const marcas = finMarcas(FINANCEIRO, data, c.jogadorId);
-    const credito = finRotuloCredito(FINANCEIRO, data, c.jogadorId) ? ' (Crédito)' : '';   // pago com crédito de um dia sem jogo
-    texto += `${i+1}- ${c.jogadorNome || 'Convidado'}${marcas ? ' ' + marcas : ''}${credito}\n`;
-  });
-  if(reserva.length){
-    texto += `\nEspera:\n\n`;
-    reserva.forEach((c,i)=>{ texto += `${i+1}- ${c.jogadorNome || 'Convidado'}\n`; });
-  }
-  return texto;
+  const temAlguem = jogosDoDia(SETTINGS, CHECKINS, data).some(j => checkinsDoJogo(CHECKINS, data, j.numero).length > 0);
+  if(!temAlguem){ alert('Ninguém confirmou presença para essa data ainda.'); return ''; }
+  return (preencherMensagemCheckin(SETTINGS.checkinMensagemTemplate, data) + '\n\n' + corpoWhatsAppDoDia(SETTINGS, CHECKINS, FINANCEIRO, data)).trim();
 }
 
 /* ---------- engrenagem: editar o texto de abertura da mensagem de compartilhar ---------- */
@@ -8581,7 +9033,7 @@ function shuffleArray(arr){
 function comEstrelaDoCheckin(player){
   const data = SETTINGS.checkinDataAberta;
   if(!data) return player;
-  const checkin = CHECKINS.find(c=> c.data===data && c.jogadorId===player.id && c.estrelasAjustadas);
+  const checkin = CHECKINS.find(c=> c.data===data && c.jogadorId===player.id && (Number(c.jogo)||1)===JOGO_ATIVO && c.estrelasAjustadas);
   if(!checkin) return player;
   const ajustada = Number(checkin.estrelasAjustadas);
   if(!ajustada && ajustada!==0) return player;
