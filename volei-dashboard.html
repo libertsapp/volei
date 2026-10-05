@@ -70,6 +70,41 @@
   body.light-mode .player-row, body.light-mode .duo-row, body.light-mode .profile-card,
   body.light-mode .roleta-wrap{ box-shadow:0 2px 10px rgba(22,33,63,0.08); }
   body.light-mode .badge-gender.F{color:#c2255c;} /* rosa mais escuro pra ler bem em fundo claro */
+
+  /* ---------- PALETAS DE COR (identidade visual, independente de claro/escuro) ----------
+     Só troca o destaque de interação (--accent) e o roxo decorativo (--neon-purple) —
+     --ball-yellow (dourado = conquista) e --ball-blue (azul = gênero masculino) têm
+     significado fixo no app e não mudam com a paleta, senão o símbolo perde o sentido. */
+  body[data-paleta="esmeralda"]{
+    --accent:#00e676; --neon-purple:#14b8a6;
+    --glass-borda:rgba(0,230,118,0.2); --glass-brilho:0 0 15px rgba(0,230,118,0.25), inset 0 0 12px rgba(0,230,118,0.06);
+    --court-navy:#0f1f1a; --court-navy-2:#16281f; --court-navy-3:#1e3327;
+  }
+  body.light-mode[data-paleta="esmeralda"]{
+    --accent:#047857; --neon-purple:#0d9488;
+    --glass-borda:rgba(4,120,87,0.28); --glass-brilho:0 2px 10px rgba(4,120,87,0.16);
+    --court-navy:#f2f6ee; --court-navy-2:#ffffff; --court-navy-3:#e6ede0;
+  }
+  body[data-paleta="vinho"]{
+    --accent:#ff2e88; --neon-purple:#c026d3;
+    --glass-borda:rgba(255,46,136,0.2); --glass-brilho:0 0 15px rgba(255,46,136,0.25), inset 0 0 12px rgba(255,46,136,0.06);
+    --court-navy:#1f0f1c; --court-navy-2:#2a1623; --court-navy-3:#35202d;
+  }
+  body.light-mode[data-paleta="vinho"]{
+    --accent:#9d174d; --neon-purple:#a21caf;
+    --glass-borda:rgba(157,23,77,0.28); --glass-brilho:0 2px 10px rgba(157,23,77,0.16);
+    --court-navy:#f9f1f5; --court-navy-2:#ffffff; --court-navy-3:#f0e2ea;
+  }
+  body[data-paleta="safira"]{
+    --accent:#3b82f6; --neon-purple:#6366f1;
+    --glass-borda:rgba(59,130,246,0.2); --glass-brilho:0 0 15px rgba(59,130,246,0.25), inset 0 0 12px rgba(59,130,246,0.06);
+    --court-navy:#0a1430; --court-navy-2:#11204a; --court-navy-3:#182d5e;
+  }
+  body.light-mode[data-paleta="safira"]{
+    --accent:#1d4ed8; --neon-purple:#4338ca;
+    --glass-borda:rgba(29,78,216,0.28); --glass-brilho:0 2px 10px rgba(29,78,216,0.16);
+    --court-navy:#eef3fb; --court-navy-2:#ffffff; --court-navy-3:#e2ebf9;
+  }
   *{box-sizing:border-box;}
   body{
     margin:0;
@@ -82,10 +117,11 @@
      (esse trava a rolagem e é ignorado no iOS) */
   body::before{
     content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    /* color-mix em vez de rgba fixo: o brilho acompanha a paleta escolhida (--accent/--neon-purple) */
     background:
-      radial-gradient(circle at 10% 15%, rgba(0,243,255,0.08) 0%, transparent 40%),
+      radial-gradient(circle at 10% 15%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 40%),
       radial-gradient(circle at 90% 70%, rgba(255,215,0,0.06) 0%, transparent 45%),
-      radial-gradient(circle at 50% 50%, rgba(157,78,221,0.05) 0%, transparent 60%);
+      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--neon-purple) 5%, transparent) 0%, transparent 60%);
   }
   body.light-mode::before{display:none;}
   .wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
@@ -637,6 +673,15 @@
     margin-left:4px;vertical-align:middle;flex-shrink:0;
   }
   .info-icon:hover{border-color:var(--ball-yellow);color:var(--ball-yellow);}
+  .paleta-popup{
+    position:fixed;z-index:400;display:flex;gap:10px;padding:10px;
+    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:14px;
+    box-shadow:0 10px 26px rgba(0,0,0,0.5);
+  }
+  .paleta-swatch{
+    width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+  }
+  .paleta-swatch.ativo{border-color:var(--chalk);box-shadow:0 0 0 2px var(--court-navy-2), 0 0 0 4px var(--chalk);}
   .badge-tooltip-popup{
     position:fixed;background:var(--court-navy-3);color:var(--chalk);
     border:1px solid var(--ball-yellow);border-radius:8px;padding:7px 11px;
@@ -1811,6 +1856,7 @@
       <button type="button" id="theme-toggle-btn" class="admin-status admin-status-icone" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)" aria-label="Alternar modo claro/escuro">☀️</button>
       <button type="button" id="som-toggle-btn" class="admin-status admin-status-icone" aria-pressed="true" title="Ligar/desligar os sons do app" aria-label="Ligar/desligar os sons do app">🔊</button>
       <button type="button" id="admin-status-btn" class="admin-status admin-status-icone" title="Visitante" aria-label="Visitante">🔒</button>
+      <button type="button" id="paleta-btn" class="admin-status admin-status-icone" title="Escolher cor do app" aria-label="Escolher cor do app">🎨</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -2766,7 +2812,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -10035,6 +10081,52 @@ document.getElementById('theme-toggle-btn').addEventListener('click', ()=>{
   aplicarTema();
 });
 aplicarTema();
+
+/* ---------- PALETA DE COR (identidade visual, independente de claro/escuro) ---------- */
+const PALETAS = [
+  { id: 'neon',      nome: 'Neon (padrão)', cor: '#00f3ff' },
+  { id: 'esmeralda', nome: 'Esmeralda',     cor: '#00e676' },
+  { id: 'vinho',     nome: 'Vinho',         cor: '#ff2e88' },
+  { id: 'safira',    nome: 'Safira',        cor: '#3b82f6' },
+];
+function aplicarPaleta(){
+  const paleta = localStorage.getItem('volei-paleta') || 'neon';
+  if(paleta === 'neon') delete document.body.dataset.paleta; // paleta padrão já é o :root, não precisa de atributo
+  else document.body.dataset.paleta = paleta;
+}
+function fecharPopupPaleta(){
+  const popup = document.getElementById('paleta-popup');
+  if(popup) popup.remove();
+  document.removeEventListener('click', fecharPopupPaletaFora, true);
+}
+function fecharPopupPaletaFora(e){
+  const popup = document.getElementById('paleta-popup');
+  if(popup && !popup.contains(e.target) && e.target.id !== 'paleta-btn') fecharPopupPaleta();
+}
+document.getElementById('paleta-btn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  if(document.getElementById('paleta-popup')){ fecharPopupPaleta(); return; }
+  const atual = localStorage.getItem('volei-paleta') || 'neon';
+  const popup = document.createElement('div');
+  popup.id = 'paleta-popup';
+  popup.className = 'paleta-popup';
+  popup.innerHTML = PALETAS.map(p =>
+    `<button type="button" class="paleta-swatch${p.id === atual ? ' ativo' : ''}" data-paleta-id="${p.id}" style="background:${p.cor};" title="${p.nome}" aria-label="${p.nome}"></button>`
+  ).join('');
+  document.body.appendChild(popup);
+  const btnRect = document.getElementById('paleta-btn').getBoundingClientRect();
+  popup.style.top = (btnRect.bottom + 6) + 'px';
+  popup.style.right = (window.innerWidth - btnRect.right) + 'px';
+  popup.addEventListener('click', (ev)=>{
+    const id = ev.target.dataset && ev.target.dataset.paletaId;
+    if(!id) return;
+    localStorage.setItem('volei-paleta', id);
+    aplicarPaleta();
+    fecharPopupPaleta();
+  });
+  setTimeout(()=> document.addEventListener('click', fecharPopupPaletaFora, true), 0);
+});
+aplicarPaleta();
 
 /* ---------- PWA (instalável na tela inicial) ---------- */
 function configurarPWA(){
