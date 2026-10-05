@@ -17,6 +17,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // sempre busca da rede — nunca responde com algo guardado localmente
-  event.respondWith(fetch(event.request));
+  // sempre busca da rede — nunca responde com algo guardado localmente.
+  // cache:'no-store' é essencial aqui: sem isso, fetch() simples ainda respeita o
+  // Cache-Control do host (GitHub Pages manda max-age=600), e um app instalado que
+  // "acorda" do segundo plano (sem fazer uma navegação nova de verdade) podia ficar
+  // preso numa versão antiga da página mesmo com o SW dizendo que não guarda nada.
+  event.respondWith(fetch(event.request, { cache: 'no-store' }));
 });
