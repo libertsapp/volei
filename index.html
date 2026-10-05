@@ -899,7 +899,6 @@
   .select-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;}
   .select-row:hover{background:var(--court-navy-3);}
   .select-row .flex1{flex:1;}
-  .guest-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px;background:var(--court-navy-2);border:1px dashed var(--line);border-radius:10px;}
   .draft-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px;}
   .draft-team{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:160px;}
   .draft-team.dragover{border-color:var(--ball-yellow);background:var(--court-navy-3);}
@@ -1920,7 +1919,6 @@
       <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">Ver a lista é livre pra todo mundo — pra confirmar presença é só entrar com sua conta Google, sem senha. Só funciona quando o admin/organizador abre o check-in pra uma data.</p>
 
       <div id="checkin-status"></div>
-      <div id="checkin-jogos-abas"></div>
 
       <div class="checkin-admin-controls" id="checkin-admin-controls" style="display:none;">
         <div class="checkin-admin-row">
@@ -1976,23 +1974,27 @@
 
       <div id="checkin-login-aviso" style="display:none;color:var(--muted);font-size:13px;margin:0 0 12px;">🔒 Entre com sua conta Google pra confirmar presença (ver a lista continua livre).</div>
 
-      <div class="guest-row" id="checkin-guest-row">
-        <strong style="font-size:13px;">Adicionar convidado (não é salvo permanentemente):</strong>
-        <input id="checkin-guest-name" placeholder="Nome do convidado" style="width:160px;">
-        <select id="checkin-guest-gender">
-          <option value="">Sexo</option>
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
-        </select>
-        <div class="stars-picker" id="checkin-guest-stars" data-value="0">
-          <button type="button" data-star="1">★</button>
-          <button type="button" data-star="2">★</button>
-          <button type="button" data-star="3">★</button>
-          <button type="button" data-star="4">★</button>
-          <button type="button" data-star="5">★</button>
+      <details class="sorteio-convidado" id="checkin-guest-row">
+        <summary><span class="linha-titulo">➕ Adicionar convidado</span><span class="sorteio-convidado-dica">não é salvo permanentemente</span></summary>
+        <div class="sorteio-convidado-corpo">
+          <input id="checkin-guest-name" class="campo-cheio" placeholder="Nome do convidado">
+          <select id="checkin-guest-gender">
+            <option value="">Sexo</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+          <div class="stars-picker" id="checkin-guest-stars" data-value="0">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+          <button class="btn" id="add-checkin-guest-btn">Adicionar convidado</button>
         </div>
-        <button class="btn secondary" id="add-checkin-guest-btn">Adicionar convidado</button>
-      </div>
+      </details>
+
+      <div id="checkin-jogos-abas"></div>
 
       <!-- lista colada do grupo do WhatsApp: confirma vários de uma vez (só organizador/admin, check-in aberto e destravado).
            <details>, nunca <section>: o CSS esconde todo <section> fora da aba ativa -->
@@ -2756,7 +2758,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -7736,7 +7738,7 @@ function renderCheckinStatus(){
   const jogosAtivos = jogosDoDia(SETTINGS, CHECKINS, data);
   const travadoAtivo = (jogosAtivos.find(j => j.numero === JOGO_ATIVO) || jogosAtivos[0]).travado;
   if(searchBox) searchBox.style.display = data ? 'block' : 'none';
-  if(guestRow) guestRow.style.display = (data && !travadoAtivo && AUTH.logado) ? 'flex' : 'none';
+  if(guestRow) guestRow.style.display = (data && !travadoAtivo && AUTH.logado) ? '' : 'none';
   atualizarBlocoListaGrupo(); // "Colar lista do WhatsApp": mesma regra do convidado, mas só organizador/admin
   atualizarBotaoDesconfirmarTodos();
   if(useBtn) useBtn.style.display = data ? 'inline-block' : 'none';
