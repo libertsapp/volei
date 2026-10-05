@@ -1807,6 +1807,7 @@
           <span class="auth-chip-perfil" id="auth-user-perfil"></span>
         </span>
       </button>
+      <button type="button" id="pwa-install-btn" class="admin-status admin-status-icone" title="Instalar o app no celular" aria-label="Instalar app" style="display:none;">📲</button>
       <button type="button" id="theme-toggle-btn" class="admin-status admin-status-icone" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)" aria-label="Alternar modo claro/escuro">☀️</button>
       <button type="button" id="som-toggle-btn" class="admin-status admin-status-icone" aria-pressed="true" title="Ligar/desligar os sons do app" aria-label="Ligar/desligar os sons do app">🔊</button>
       <button type="button" id="admin-status-btn" class="admin-status admin-status-icone" title="Visitante" aria-label="Visitante">🔒</button>
@@ -2327,6 +2328,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>05/10/2026 — v15.1: Convidado recolhido e abas de jogo reposicionadas</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Check-in</strong>, o bloco <strong>➕ Adicionar convidado</strong> agora fica recolhido por padrão (toque pra abrir), no mesmo formato já usado no Sorteio/Nova rodada. As <strong>abas de jogo</strong> (quando há 2) passam a ficar logo abaixo dele, em vez de logo abaixo do aviso de check-in aberto.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>03/10/2026 — v15.0: Dois jogos no mesmo dia</summary>
           <div>
             <p style="line-height:1.6;"><strong>Dois jogos no mesmo dia.</strong> O organizador pode abrir um <strong>2º jogo</strong> no mesmo dia (horário e vagas próprios) — o check-in ganha <strong>abas</strong>, uma por jogo, e tudo abaixo delas (lista, convidado, lista colada, travar, sorteio, compartilhar) vale para o jogo da aba. O <strong>Financeiro do dia</strong> pode ser <strong>um só para os dois jogos</strong> (padrão: quem joga os dois paga uma vez) ou <strong>separado por jogo</strong> (cada um com seu valor, PIX e "sem jogo"). O botão <strong>⇄</strong> em cada confirmado move a pessoa pra fila do outro jogo. Com 1 jogo só (o padrão), nada mudou na tela.</p>
@@ -2758,7 +2766,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -10058,6 +10066,64 @@ function configurarPWA(){
   }
 }
 configurarPWA();
+
+/* ---------- Botão "Instalar app" ----------
+   Chrome/Edge/Android disparam 'beforeinstallprompt' e permitem instalar via código.
+   iOS Safari nunca dispara esse evento (não existe API pra isso) — lá só dá pra
+   instalar manualmente (Compartilhar → Adicionar à Tela de Início), então o botão
+   abre um modal com o passo a passo em vez de chamar prompt(). Se o app já está
+   instalado (rodando em modo standalone), o botão nem aparece. */
+let pwaPromptEvento = null;
+function appJaInstalado(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function dispositivoEhIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function atualizarBotaoInstalar(){
+  const btn = document.getElementById('pwa-install-btn');
+  if(!btn) return;
+  const podeInstalar = !appJaInstalado() && (pwaPromptEvento || dispositivoEhIOS());
+  btn.style.display = podeInstalar ? '' : 'none';
+}
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault(); // segura o prompt automático do navegador pra disparar só no clique do botão
+  pwaPromptEvento = e;
+  atualizarBotaoInstalar();
+});
+window.addEventListener('appinstalled', ()=>{
+  pwaPromptEvento = null;
+  atualizarBotaoInstalar();
+});
+function abrirInstrucoesInstalarIOS(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">Instalar o app</p>
+      <p style="margin:0 0 10px;">No iPhone/iPad a instalação é manual, em 2 toques:</p>
+      <p style="margin:0 0 6px;">1. Toque no ícone de <strong>Compartilhar</strong> (o quadrado com a seta pra cima) na barra do Safari</p>
+      <p style="margin:0 0 12px;">2. Escolha <strong>"Adicionar à Tela de Início"</strong></p>
+      <div class="password-actions">
+        <button class="btn secondary" data-acao="fechar">Entendi</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || (e.target.dataset && e.target.dataset.acao === 'fechar')) overlay.remove();
+  });
+}
+document.getElementById('pwa-install-btn').addEventListener('click', async ()=>{
+  if(pwaPromptEvento){
+    pwaPromptEvento.prompt();
+    await pwaPromptEvento.userChoice;
+    pwaPromptEvento = null;
+    atualizarBotaoInstalar();
+  } else if(dispositivoEhIOS()){
+    abrirInstrucoesInstalarIOS();
+  }
+});
+atualizarBotaoInstalar();
 
 /* ---------- PLACAR (marcador ao vivo, funciona sem internet, salvo só neste aparelho) ---------- */
 let PLACAR_SCORE = [0, 0];
