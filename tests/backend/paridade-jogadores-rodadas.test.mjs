@@ -9,6 +9,7 @@ import { dbParaAbas } from './dbParaAbas.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarHandler } from '../../backend/handler.js';
 import { criarVerificadorGoogle } from '../../backend/auth.js';
+import { semCamposNovos } from './semCamposNovosDoisJogos.mjs';
 
 const require = createRequire(import.meta.url);
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -106,10 +107,10 @@ const passos = [
 for (const [i, [nome, corpo]] of passos.entries()) {
   await ta(`passo ${String(i + 1).padStart(2, '0')}: ${nome}`, async () => {
     const esperado = gs.post(corpo);
-    const obtido = json(await novo.post(corpo));
+    const obtido = semCamposNovos(json(await novo.post(corpo)));
     assert.deepEqual(obtido, esperado, 'resposta diferente');
     // "removidos" (jogadores arquivados) é campo novo: o .gs apaga a linha e não tem equivalente, então fica fora da comparação
-    const { removidos, ...getNovo } = json(await novo.get());
+    const { removidos, ...getNovo } = semCamposNovos(json(await novo.get()));
     assert.deepEqual(getNovo, gs.get(), 'o GET completo ficou diferente depois deste passo');
   });
 }

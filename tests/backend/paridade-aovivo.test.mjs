@@ -9,6 +9,7 @@ import { dbParaAbas } from './dbParaAbas.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarHandler } from '../../backend/handler.js';
 import { criarVerificadorGoogle } from '../../backend/auth.js';
+import { semCamposNovos } from './semCamposNovosDoisJogos.mjs';
 
 // Teste diferencial da etapa 5: o .gs REAL (planilha falsa) e o backend novo (repositório em memória) recebem os mesmos pedidos;
 // depois de CADA passo compara-se a resposta e o GET inteiro (incluindo aoVivo e settings.contadorAcessos). Cobre
@@ -69,7 +70,10 @@ function montar(estadoInicial) {
   let seq = 0;
   const repo = criarRepoMemoria(estadoInicial);
   const novo = criarHandler({
-    repo, config: { adminPassword: SENHA }, verificarToken: criarVerificadorGoogle({ clientId: CLIENTE, buscar }),
+    // agora() do verificador também precisa seguir o relógio controlado do teste — sem isso, a checagem de exp do
+    // token usa Date.now() de verdade, e o token (com exp fixo em T0+1h) "expira" sozinho assim que o dia real passa
+    // de 2026-09-30 (bug pré-existente, sem relação com dois jogos; só não aparecia porque esta suíte pula sem o .gs)
+    repo, config: { adminPassword: SENHA }, verificarToken: criarVerificadorGoogle({ clientId: CLIENTE, buscar, agora: () => relogio.t }),
     relogio: () => new Date(relogio.t), gerarId: () => 'uuid-' + (++seq)
   });
   const avancar = (i) => { relogio.t = T0 + i * 1000 + 123; gs.rodar('__relogio.t = ' + relogio.t); };
@@ -89,14 +93,14 @@ async function rodar(titulo, env, passos) {
         const corpo = typeof corpo0 === 'function' ? corpo0(env, S) : corpo0;
         const esperadoGs = env.gs.post(corpo);
         if (process.env.DBG) console.log('   >', JSON.stringify(esperadoGs));
-        const obtido = json(await env.novo.post(corpo));
+        const obtido = semCamposNovos(json(await env.novo.post(corpo)));
         assert.deepEqual(obtido, esperadoGs, 'resposta diferente');
         if (esperado === 'ok') assert.equal(esperadoGs.status, 'ok', 'era para dar ok: ' + JSON.stringify(esperadoGs.error));
         else if (esperado === 'lista') assert.ok(Array.isArray(esperadoGs.rounds), 'era para ser uma leitura do Ao Vivo');
         else if (esperado === 'contador') assert.equal(typeof esperadoGs.contadorAcessos, 'number');
         else if (esperado) assert.ok(String(esperadoGs.error).includes(esperado), 'erro esperado "' + esperado + '", veio ' + JSON.stringify(esperadoGs.error));
       }
-      assert.deepEqual((({ removidos, ...r }) => r)(json(await env.novo.get())), env.gs.get(), 'o GET (com o aoVivo e o contador) ficou diferente depois deste passo');
+      assert.deepEqual(semCamposNovos((({ removidos, ...r }) => r)(json(await env.novo.get()))), env.gs.get(), 'o GET (com o aoVivo e o contador) ficou diferente depois deste passo');
     });
   }
 }

@@ -71,7 +71,12 @@ const passos = [
   ['addCheckin: só o obrigatório (padrões)', { action: 'addCheckin', idToken: 'tok-c', checkin: { id: 'k1', data: '2026-09-29', jogadorId: 'p1' } }],
   ['addCheckin: completo, com nota ajustada', { action: 'addCheckin', idToken: 'tok-b', checkin: { id: 'k2', data: '2026-09-29', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 3.5, sexo: 'M', estrelasAjustadas: '4.5' } }],
   ['addCheckin: mesmo jogador de novo em outro dia', { action: 'addCheckin', idToken: 'tok-a', checkin: { id: 'k3', data: '2026-10-06', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: '4', sexo: 'F' } }],
-  ['addCheckin: mesmo jogador no mesmo dia (sem checagem)', { action: 'addCheckin', idToken: 'tok-a', checkin: { id: 'k4', data: '2026-10-06', jogadorId: 'p1', jogadorNome: 'Ana', estrelas: 4, sexo: 'F' } }],
+  // "sem checagem": no .gs real, qualquer jogadorId pode se confirmar várias vezes no mesmo dia, sem limite de vagas.
+  // Dois jogos no mesmo dia (2026-10-03) mudou isso DE PROPÓSITO no backend novo: a MESMA pessoa não pode entrar
+  // duas vezes no MESMO jogo (precisa pra UI do botão ⇄ fazer sentido — ver backend/checkins.js, addCheckin). Com
+  // um jogadorId diferente (em vez de repetir p1) este passo continua provando "sem limite de vagas por dia" nos
+  // dois lados, sem bater na regra nova que só o backend novo tem (divergência de propósito, não bug).
+  ['addCheckin: outro jogador no mesmo dia (sem limite de vagas)', { action: 'addCheckin', idToken: 'tok-a', checkin: { id: 'k4', data: '2026-10-06', jogadorId: 'convidado:k4x', jogadorNome: 'Convidado K4', estrelas: 4, sexo: 'F' } }],
   ['addCheckin: nota ajustada 0 vira vazia', { action: 'addCheckin', idToken: 'tok-a', checkin: { id: 'k5', data: '2026-10-06', jogadorId: 'p2', jogadorNome: 'Bruno', estrelas: 0, estrelasAjustadas: 0 } }],
   ['addCheckin: sem token', { action: 'addCheckin', checkin: { id: 'k6', data: '2026-10-06', jogadorId: 'p2' } }],
   ['addCheckin: só a chave mestra não vale', { action: 'addCheckin', senha: SENHA, checkin: { id: 'k6', data: '2026-10-06', jogadorId: 'p2' } }],

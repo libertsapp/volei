@@ -28,10 +28,15 @@ if (!fs.existsSync(caminhoGs)) {
   t('matriz: idêntica à do .gs real (ações e perfis)', () => {
     const amb = criarAmbiente({}, [caminhoGs]);
     const doGs = JSON.parse(amb.rodar('JSON.stringify(Object.assign({}, PERMISSOES, PERMISSOES_FIN_))'));
-    // restorePlayer só existe no backend novo (o .gs apaga a linha do jogador e não tem como restaurar)
-    const { restorePlayer, ...resto } = PERMISSOES;
+    // restorePlayer só existe no backend novo (o .gs apaga a linha do jogador e não tem como restaurar).
+    // moverCheckin/salvarJogo2/removerJogo2 (dois jogos no mesmo dia, 2026-10-03) também: a funcionalidade inteira
+    // só existe no backend novo (Supabase) — o .gs não tem addCheckin com campo "jogo" nem essas três ações.
+    const { restorePlayer, moverCheckin, salvarJogo2, removerJogo2, ...resto } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
+    assert.deepEqual(moverCheckin, ['organizador', 'admin']);
+    assert.deepEqual(salvarJogo2, ['organizador', 'admin']);
+    assert.deepEqual(removerJogo2, ['organizador', 'admin']);
   });
 }
 
