@@ -57,6 +57,19 @@ await ta('encerrarFinCredito: só encerra crédito ativo; inserirFinLancamento e
   assert.equal((await r.lerTudo()).fin_log.at(-1).id, 4); // o maior do fixture é 3
 });
 
+await ta('inserirFinPendencia: nasce pendente com ordem do banco; baixarFinPendencia só baixa uma vez (false na segunda); id repetido falha', async () => {
+  const r = repo();
+  await r.inserirFinPendencia({ id: 'pe1', jogador_id: 'p1', jogador_nome: 'Ana', valor: 30, observacao: 'x', data: '2026-10-06', criado_por: 'A', criado_em: 't' });
+  const p = (await r.lerTudo()).fin_pendencias.find((x) => x.id === 'pe1');
+  assert.deepEqual({ s: p.status, o: p.ordem }, { s: 'pendente', o: 1 });
+  assert.equal(await r.baixarFinPendencia('pe1', { por: 'B', em: 't2' }), true);
+  assert.equal(await r.baixarFinPendencia('pe1', { por: 'C', em: 't3' }), false);
+  assert.equal(await r.baixarFinPendencia('nao-existe', { por: 'C', em: 't3' }), false);
+  const p2 = (await r.lerTudo()).fin_pendencias.find((x) => x.id === 'pe1');
+  assert.deepEqual({ s: p2.status, por: p2.baixado_por }, { s: 'paga', por: 'B' }); // preserva quem baixou primeiro
+  await assert.rejects(() => r.inserirFinPendencia({ id: 'pe1' }), /fin_pendencias.*duplicate key/);
+});
+
 // ---- repo-supabase com um cliente falso que registra as chamadas (sem rede) ----
 function clienteFalso(resposta) {
   const chamadas = [];
@@ -67,6 +80,7 @@ function clienteFalso(resposta) {
       upsert(v, o) { passos.upsert = [v, o]; return q; },
       update(v) { passos.update = v; return q; },
       eq(c, v) { (passos.eq ||= []).push([c, v]); return q; },
+      neq(c, v) { (passos.eq ||= []).push([c, v]); return q; },
       select(c) { passos.select = c; return q; },
       then(res, rej) { chamadas.push(passos); return Promise.resolve(resposta).then(res, rej); }
     };
@@ -96,6 +110,9 @@ await ta('repo-supabase: estornos são UPDATE condicional (estornado = false) e 
   assert.equal(await criarRepoSupabase(c).estornarFinPagamento('pg1', { por: 'A', em: 't' }), true);
   assert.deepEqual(c.chamadas[0], { tabela: 'fin_pagamentos', update: { estornado: true, estornado_por: 'A', estornado_em: 't' }, eq: [['id', 'pg1'], ['estornado', false]], select: 'id' });
   assert.equal(await criarRepoSupabase(clienteFalso({ data: [], error: null })).estornarFinLancamento('l1', { por: 'A', em: 't' }), false);
+  const c3 = clienteFalso({ data: [{ id: 'pe1' }], error: null });
+  assert.equal(await criarRepoSupabase(c3).baixarFinPendencia('pe1', { por: 'A', em: 't' }), true);
+  assert.deepEqual(c3.chamadas[0], { tabela: 'fin_pendencias', update: { status: 'paga', baixado_por: 'A', baixado_em: 't' }, eq: [['id', 'pe1'], ['status', 'paga']], select: 'id' });
   const c2 = clienteFalso({ data: [{ id: 'cr1' }], error: null });
   assert.equal(await criarRepoSupabase(c2).encerrarFinCredito('cr1', 'devolvido', { por: 'A', em: 't' }), true);
   assert.deepEqual(c2.chamadas[0].eq, [['id', 'cr1'], ['status', 'ativo']]);

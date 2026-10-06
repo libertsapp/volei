@@ -3,10 +3,10 @@
 // gravar_rodada / remover_rodada (mesma regra: valida as chaves estrangeiras antes de mexer e substitui a rodada).
 export const TABELAS = [
   'jogadores', 'rodadas', 'times_rodada', 'time_jogadores', 'checkins', 'config', 'usuarios',
-  'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos', 'fin_log', 'fin_jogos', 'ao_vivo', 'ao_vivo_log'
+  'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos', 'fin_pendencias', 'fin_log', 'fin_jogos', 'ao_vivo', 'ao_vivo_log'
 ];
 
-const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos'];
+const COM_ORDEM = ['jogadores', 'rodadas', 'checkins', 'usuarios', 'fin_dias', 'fin_pagamentos', 'fin_creditos', 'fin_lancamentos', 'fin_pendencias'];
 
 const porOrdemLocal = (a, b) => { const x = a.ordem ?? Infinity, y = b.ordem ?? Infinity; return x === y ? 0 : (x < y ? -1 : 1); };
 
@@ -149,6 +149,18 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       return true;
     },
     async inserirFinLog(linha) { inserir('fin_log', linha); },
+    async inserirFinPendencia(linha) {
+      if (tabelas.fin_pendencias.some((p) => p.id === linha.id)) {
+        throw new Error('fin_pendencias: duplicate key value violates unique constraint "fin_pendencias_pkey"');
+      }
+      inserir('fin_pendencias', { status: 'pendente', ...linha });
+    },
+    async baixarFinPendencia(id, { por, em }) {
+      const i = tabelas.fin_pendencias.findIndex((p) => p.id === id && p.status !== 'paga');
+      if (i === -1) return false;
+      tabelas.fin_pendencias[i] = { ...tabelas.fin_pendencias[i], status: 'paga', baixado_por: por, baixado_em: em };
+      return true;
+    },
     // muda só o status de um dia existente ('normal' | 'semjogo'); false se o dia não existe
     async definirStatusFinDia(data, status) {
       const i = tabelas.fin_dias.findIndex((d) => d.data === data);

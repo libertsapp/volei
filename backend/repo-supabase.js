@@ -6,7 +6,7 @@ const PAGINA = 1000; // limite de linhas por consulta do Supabase; as tabelas de
 const CHAVES = {
   jogadores: ['id'], rodadas: ['round_id'], times_rodada: ['id'], time_jogadores: ['time_rodada_id', 'jogador_id'],
   checkins: ['id'], config: ['chave'], usuarios: ['email'], fin_dias: ['data'], fin_pagamentos: ['id'],
-  fin_creditos: ['id'], fin_lancamentos: ['id'], fin_jogos: ['data', 'jogo'], ao_vivo: ['id'], ao_vivo_log: ['id']
+  fin_creditos: ['id'], fin_lancamentos: ['id'], fin_pendencias: ['id'], fin_jogos: ['data', 'jogo'], ao_vivo: ['id'], ao_vivo_log: ['id']
 };
 
 const DICA_AJUSTE_6 = ' (rode sql/schema-terca-supabase-ajuste-6.sql no SQL Editor do Supabase)';
@@ -166,6 +166,16 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
     async inserirFinLog(linha) {
       const { error } = await cliente.from('fin_log').insert(linha);
       if (error) throw new Error('fin_log: ' + error.message);
+    },
+    async inserirFinPendencia(linha) {
+      const { error } = await cliente.from('fin_pendencias').insert(linha);
+      if (error) throw new Error('fin_pendencias: ' + error.message);
+    },
+    async baixarFinPendencia(id, { por, em }) {
+      const { data, error } = await cliente.from('fin_pendencias')
+        .update({ status: 'paga', baixado_por: por, baixado_em: em }).eq('id', id).neq('status', 'paga').select('id');
+      if (error) throw new Error('fin_pendencias: ' + error.message);
+      return data.length > 0;
     },
     // muda só o status de um dia existente ('normal' | 'semjogo'); false se o dia não existe
     async definirStatusFinDia(data, status) {

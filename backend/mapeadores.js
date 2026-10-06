@@ -152,7 +152,7 @@ function detalheComoTexto(d) {
   return JSON.stringify(d);
 }
 
-export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_lancamentos, fin_log, fin_jogos }) {
+export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_lancamentos, fin_log, fin_jogos, fin_pendencias }) {
   const dias = fin_dias.slice().sort(porOrdem).map((d) => ({
     data: texto(d.data), valorPessoa: numero(d.valor_pessoa), pix: texto(d.pix), valorQuadra: numero(d.valor_quadra),
     temBrinde: d.tem_brinde === true, valorBrinde: numero(d.valor_brinde), icone: icone(d.icone), status: statusDia(d.status),
@@ -183,5 +183,10 @@ export function mapearFinanceiro({ fin_dias, fin_pagamentos, fin_creditos, fin_l
   const log = fin_log.slice().sort((a, b) => b.id - a.id).slice(0, 100).map((l) => ({
     timestamp: iso(l.timestamp), nome: texto(l.nome), acao: texto(l.acao), detalhe: detalheComoTexto(l.detalhe) // e-mail nunca sai daqui
   }));
-  return { dias, jogos, pagamentos, lancamentos, log, creditos };
+  const pendencias = (fin_pendencias || []).slice().sort(porOrdem).map((p) => ({
+    id: texto(p.id), jogadorId: texto(p.jogador_id), jogadorNome: texto(p.jogador_nome), valor: numero(p.valor),
+    observacao: texto(p.observacao), data: texto(p.data), criadoPor: texto(p.criado_por), criadoEm: iso(p.criado_em),
+    status: texto(p.status) === 'paga' ? 'paga' : 'pendente', baixadoPor: texto(p.baixado_por), baixadoEm: iso(p.baixado_em)
+  }));
+  return { dias, jogos, pagamentos, lancamentos, log, creditos, pendencias };
 }

@@ -339,6 +339,33 @@ export async function estornarLancamento(deps, id, auth) {
   return ok(deps);
 }
 
+// pendência = dívida avulsa de um jogador (ex.: saiu sem pagar algo combinado). NÃO mexe no caixa — é só um
+// aviso que aparece pra ele no check-in (ver finPendenciasDe no front) até alguém marcar como paga.
+export async function addPendencia(deps, p, auth) {
+  const { repo } = deps;
+  if (!p || !p.jogadorId) return { error: 'Jogador inválido.' };
+  const v = valor(p.valor);
+  if (v === null || v <= 0) return { error: 'O valor precisa ser maior que zero.' };
+  if (v > MAXIMO) return { error: 'Valor alto demais (máximo 99.999.999,99).' };
+  const data = dataValida(p.data) ? String(p.data) : agora(deps).slice(0, 10);
+  const observacao = String(p.observacao || '').trim().slice(0, 200);
+  const jogadorNome = String(p.jogadorNome || '').slice(0, 80);
+  await repo.inserirFinPendencia({ id: gerarId(deps), jogador_id: String(p.jogadorId), jogador_nome: jogadorNome, valor: v,
+    observacao, data, criado_por: nomeDe(auth), criado_em: agora(deps), status: 'pendente', baixado_por: null, baixado_em: null });
+  await log(deps, auth, 'addPendencia', { jogadorId: String(p.jogadorId), jogadorNome, valor: v, data, observacao });
+  return ok(deps);
+}
+
+export async function baixarPendencia(deps, id, auth) {
+  const { repo } = deps;
+  const r = (await repo.lerTudo()).fin_pendencias.find((x) => texto(x.id) === String(id));
+  if (!r) return { error: 'Pendência não encontrada.' };
+  if (r.status === 'paga') return ok(deps);
+  if (!(await repo.baixarFinPendencia(texto(r.id), { por: nomeDe(auth), em: agora(deps) }))) return ok(deps);
+  await log(deps, auth, 'baixarPendencia', { jogadorId: texto(r.jogador_id), jogadorNome: texto(r.jogador_nome), valor: num(r.valor) });
+  return ok(deps);
+}
+
 // ====================== dia sem jogo, crédito e ganchos do check-in ======================
 
 async function aplicarCreditosEmTodasAsChaves(deps, data, auth) {

@@ -14,7 +14,7 @@ const F = new Function(html.slice(ini, fim) + `
            finPendentes, finSinalizados, finMarcas, finResumoMes, finCabecalhoWhatsApp, finSaldoPrevisto,
            finPagamentosRecentesPrimeiro, finCaixaAte, finDataCurtaComDia, finResumoFechamento,
            finSemJogo, finTipoPagamento, finRecebidoDinheiroDia, finCreditosDisponiveis, finTotalCreditos,
-           finSaldoLivre, finCreditoDe, finRotuloCredito, finSaldoCredito };
+           finSaldoLivre, finCreditoDe, finRotuloCredito, finSaldoCredito, finPendenciasAtivas, finPendenciasDe };
 `)();
 
 let falhas = 0;
@@ -189,8 +189,21 @@ t('finNormalizar: null/undefined/parcial viram listas vazias', () => {
   // dois jogos no mesmo dia (2026-10-03): finNormalizar também repassa fin.jogos (a config do 2º jogo quando o
   // financeiro é separado) — sem isso, cfgFinDaChave(FINANCEIRO, data, 2) nunca encontrava nada (bug achado e
   // corrigido na Task 14 deste plano via verificação manual no navegador, não por um teste como este).
-  assert.deepEqual(F.finNormalizar(null), { dias: [], jogos: [], pagamentos: [], lancamentos: [], log: [], creditos: [] });
-  assert.deepEqual(F.finNormalizar({ dias: [1] }), { dias: [1], jogos: [], pagamentos: [], lancamentos: [], log: [], creditos: [] });
+  assert.deepEqual(F.finNormalizar(null), { dias: [], jogos: [], pagamentos: [], lancamentos: [], log: [], creditos: [], pendencias: [] });
+  assert.deepEqual(F.finNormalizar({ dias: [1] }), { dias: [1], jogos: [], pagamentos: [], lancamentos: [], log: [], creditos: [], pendencias: [] });
+});
+
+/* ---------- pendências (dívida avulsa de um jogador, cobrada "no olho" no próximo check-in) ---------- */
+t('finPendenciasAtivas: só as pendentes, mais recente primeiro; finPendenciasDe filtra por jogador', () => {
+  const fin = F.finNormalizar({ pendencias: [
+    { id: 'p1', jogadorId: 'j1', jogadorNome: 'Heleno', valor: 10, observacao: 'saiu depois do horário', data: '2026-10-06', status: 'pendente' },
+    { id: 'p2', jogadorId: 'j1', jogadorNome: 'Heleno', valor: 5, observacao: '', data: '2026-09-01', status: 'paga' },
+    { id: 'p3', jogadorId: 'j2', jogadorNome: 'Ana', valor: 20, observacao: '', data: '2026-10-05', status: 'pendente' }
+  ] });
+  assert.deepEqual(F.finPendenciasAtivas(fin).map(p => p.id), ['p1', 'p3']); // p2 está paga, não entra
+  assert.deepEqual(F.finPendenciasDe(fin, 'j1').map(p => p.id), ['p1']);
+  assert.deepEqual(F.finPendenciasDe(fin, 'j2').map(p => p.id), ['p3']);
+  assert.deepEqual(F.finPendenciasDe(fin, 'j3'), []);
 });
 
 /* ---------- dia sem jogo e crédito ---------- */

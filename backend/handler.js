@@ -15,7 +15,8 @@ import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin } from
 import { salvarJogo2, removerJogo2 } from './jogos2.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
-  addLancamento, estornarLancamento, marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito
+  addLancamento, estornarLancamento, marcarDiaSemJogo, reabrirDia, aplicarCreditosDoDia, devolverCredito,
+  addPendencia, baixarPendencia
 } from './financeiro.js';
 import { lerAoVivo, iniciarTransmissaoAoVivo, salvarParcialAoVivo, cancelarTransmissaoAoVivo, incrementarAcesso } from './aovivo.js';
 import { comTrava } from './trava.js';
@@ -134,6 +135,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'reabrirDia': return await travar(() => reabrirDia(deps, b.data, chaveDe(b), auth));
           case 'aplicarCreditosDoDia': return await travar(() => aplicarCreditosDoDia(deps, b.data, auth));
           case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
+          case 'addPendencia': return await travar(() => addPendencia(deps, b.pendencia, auth));
+          case 'baixarPendencia': return await travar(() => baixarPendencia(deps, b.id, auth));
           // Ao Vivo (etapa 5): o .gs segurava a trava nas três
           case 'iniciarTransmissaoAoVivo': return await travar(() => iniciarTransmissaoAoVivo(deps, b.roundId, b.duracaoMinutos));
           case 'salvarParcialAoVivo': return await travar(() => salvarParcialAoVivo(deps, b.roundId, b.vitoriasPorTime));

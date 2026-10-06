@@ -20,7 +20,8 @@ const acoes = {
   marcarTodosPagamentos: { data: '2026-09-22' },
   estornarTodosPagamentos: { data: '2026-09-22' },
   addLancamento: { lancamento: { data: '2026-09-22', tipo: 'entrada', valor: 3, descricao: 'x' } },
-  estornarLancamento: { id: 'l1' }
+  estornarLancamento: { id: 'l1' },
+  addPendencia: { pendencia: { jogadorId: 'p2', jogadorNome: 'Bruno', valor: 10, data: '2026-10-06' } }
 };
 
 await ta('jogador e quem não logou são negados em toda ação financeira; nada muda no banco', async () => {
@@ -61,6 +62,16 @@ await ta('falha do repositório vira { error }; sem gerarId injetado o id é um 
   const h2 = novo();
   await h2.post({ action: 'addLancamento', idToken: 'tok-b', ...acoes.addLancamento });
   assert.match((await h2.get()).financeiro.lancamentos.at(-1).id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+});
+
+await ta('baixarPendencia: mesma permissão de addPendencia (organizador e admin; jogador e sem login são negados)', async () => {
+  const h = novo();
+  const id = (await h.post({ action: 'addPendencia', idToken: 'tok-b', ...acoes.addPendencia })).financeiro.pendencias[0].id;
+  assert.deepEqual(await h.post({ action: 'baixarPendencia', idToken: 'tok-c', id }), NEGADO('jogador'));
+  assert.deepEqual(await h.post({ action: 'baixarPendencia', id }), { error: 'Sem token de login. Entre com sua conta Google.' });
+  const r = await h.post({ action: 'baixarPendencia', idToken: 'tok-b', id });
+  assert.equal(r.status, 'ok');
+  assert.equal(r.financeiro.pendencias[0].status, 'paga');
 });
 
 fim();

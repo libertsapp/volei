@@ -5,7 +5,7 @@ import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { mapearFinanceiro } from '../../backend/mapeadores.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
-  addLancamento, estornarLancamento, aplicarCreditos
+  addLancamento, estornarLancamento, aplicarCreditos, addPendencia, baixarPendencia
 } from '../../backend/financeiro.js';
 
 const ORG = { perfil: 'organizador', nome: 'Org', email: 'b@exemplo.com', viaChaveMestra: false };
@@ -192,6 +192,34 @@ await ta('estornarLancamento: estorna uma vez só (idempotente, sem log repetido
   assert.equal(r.financeiro.log[0].detalhe, '{"data":"2026-09-01","tipo":"entrada","descricao":"Saldo inicial","valor":500}');
   assert.equal((await estornarLancamento(d, 'l1', ADM)).financeiro.log.length, r.financeiro.log.length);
   assert.deepEqual(await estornarLancamento(d, 'nao-existe', ADM), { error: 'Lançamento não encontrado.' });
+});
+
+await ta('addPendencia: valida jogador e valor, grava pendente e loga; NÃO mexe no caixa', async () => {
+  const d = ambiente();
+  const p = (x) => ({ jogadorId: 'p1', jogadorNome: 'Ana', valor: 30, observacao: 'saiu depois do horário', data: '2026-10-06', ...x });
+  assert.deepEqual(await addPendencia(d, null, ORG), { error: 'Jogador inválido.' });
+  assert.deepEqual(await addPendencia(d, p({ jogadorId: '' }), ORG), { error: 'Jogador inválido.' });
+  for (const v of [0, '', 'x', '-1']) assert.deepEqual(await addPendencia(d, p({ valor: v }), ORG), { error: 'O valor precisa ser maior que zero.' });
+  assert.deepEqual(await addPendencia(d, p({ valor: 1e10 }), ORG), { error: 'Valor alto demais (máximo 99.999.999,99).' });
+  const caixaAntes = (await fin(d)).pagamentos.length;
+  const r = await addPendencia(d, p(), SEM_NOME);
+  assert.equal(r.status, 'ok');
+  const nova = r.financeiro.pendencias.at(-1);
+  assert.deepEqual({ j: nova.jogadorId, v: nova.valor, o: nova.observacao, s: nova.status, por: nova.criadoPor },
+    { j: 'p1', v: 30, o: 'saiu depois do horário', s: 'pendente', por: 'Desconhecido' });
+  assert.equal(r.financeiro.log[0].acao, 'addPendencia');
+  assert.equal((await fin(d)).pagamentos.length, caixaAntes); // pendência nunca cria pagamento
+});
+
+await ta('baixarPendencia: marca como paga uma vez só (idempotente); id inexistente dá erro', async () => {
+  const d = ambiente();
+  const id = (await addPendencia(d, { jogadorId: 'p1', jogadorNome: 'Ana', valor: 30, data: '2026-10-06' }, ORG)).financeiro.pendencias[0].id;
+  const r = await baixarPendencia(d, id, ADM);
+  const pend = r.financeiro.pendencias[0];
+  assert.deepEqual({ s: pend.status, por: pend.baixadoPor }, { s: 'paga', por: 'Adm' });
+  assert.equal(r.financeiro.log[0].acao, 'baixarPendencia');
+  assert.equal((await baixarPendencia(d, id, ADM)).financeiro.log.length, r.financeiro.log.length); // idempotente: sem log repetido
+  assert.deepEqual(await baixarPendencia(d, 'nao-existe', ADM), { error: 'Pendência não encontrada.' });
 });
 
 await ta('estornarPagamento: falha ao fechar o crédito no meio da sequência; a nova tentativa cura (crédito fechado UMA vez, sem crédito em dobro depois)', async () => {

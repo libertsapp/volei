@@ -38,5 +38,7 @@ export const PERMISSOES = {
   marcarDiaSemJogo:   ['organizador', 'admin'],
   reabrirDia:         ['organizador', 'admin'],
   aplicarCreditosDoDia: ['organizador', 'admin'],
-  devolverCredito:    ['admin']
+  devolverCredito:    ['admin'],
+  addPendencia:       ['organizador', 'admin'],
+  baixarPendencia:    ['organizador', 'admin']
 };

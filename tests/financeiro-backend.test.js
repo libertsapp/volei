@@ -196,6 +196,32 @@ t('estornarLancamento é só do admin', () => {
   assert.equal(r.financeiro.lancamentos[0].estornado, true);
 });
 
+t('addPendencia valida jogador e valor; grava, loga e aparece em pendencias', () => {
+  const amb = novoAmbiente();
+  assert.ok(admin(amb, 'addPendencia', { pendencia: { jogadorId: '', jogadorNome: 'Michel', valor: 10, data: DIA } }).error);
+  assert.ok(admin(amb, 'addPendencia', { pendencia: { jogadorId: 'j0', jogadorNome: 'Michel', valor: 0, data: DIA } }).error);
+  const r = org(amb, 'addPendencia', { pendencia: { jogadorId: 'j0', jogadorNome: 'Michel', valor: 30, observacao: 'saiu depois do horário', data: DIA } });
+  assert.equal(r.financeiro.pendencias.length, 1);
+  const p = r.financeiro.pendencias[0];
+  assert.equal(p.jogadorId, 'j0');
+  assert.equal(p.valor, 30);
+  assert.equal(p.observacao, 'saiu depois do horário');
+  assert.equal(p.status, 'pendente');
+  assert.equal(p.criadoPor, 'Org Teste');
+});
+
+t('baixarPendencia marca como paga, é idempotente e não mexe no caixa', () => {
+  const amb = novoAmbiente();
+  const id = org(amb, 'addPendencia', { pendencia: { jogadorId: 'j0', jogadorNome: 'Michel', valor: 30, data: DIA } }).financeiro.pendencias[0].id;
+  const caixaAntes = amb.get().financeiro.pagamentos.length;
+  const r = org(amb, 'baixarPendencia', { id });
+  assert.equal(r.financeiro.pendencias[0].status, 'paga');
+  assert.equal(r.financeiro.pendencias[0].baixadoPor, 'Org Teste');
+  assert.equal(amb.get().financeiro.pagamentos.length, caixaAntes); // pendência nunca vira pagamento sozinha
+  const r2 = org(amb, 'baixarPendencia', { id }); // idempotente: baixar de novo não quebra nem duplica log
+  assert.equal(r2.status, 'ok');
+});
+
 t('doGet devolve o financeiro e o log NÃO expõe e-mail', () => {
   const amb = novoAmbiente();
   org(amb, 'addLancamento', { lancamento: { data: DIA, tipo: 'entrada', descricao: 'x', valor: 1 } });
