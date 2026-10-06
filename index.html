@@ -1102,6 +1102,8 @@
   .fin-alerta{margin:10px 0;padding:10px 12px;border:1px solid color-mix(in srgb, var(--danger) 55%, transparent);border-radius:10px;background:color-mix(in srgb, var(--danger) 8%, transparent);font-size:13px;}
   .fin-alerta-linha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:4px 0;}
   .fin-alerta-linha .btn{padding:4px 10px;font-size:12px;}
+  .fin-pendencia-aviso{margin:4px 0 0;padding:4px 8px;border-radius:8px;font-size:12px;line-height:1.4;
+    color:var(--danger);background:color-mix(in srgb, var(--danger) 10%, transparent);}
 
   /* ===== PÁGINA Controle Financeiro ===== */
   .fin-saldo{position:relative;overflow:hidden;padding:22px 24px;border-radius:20px;margin-bottom:14px;
@@ -2090,6 +2092,10 @@
           <summary>🎟️ Créditos de jogadores</summary>
           <div id="fin-creditos-lista"></div>
         </details>
+        <details class="dash-accordion" id="fin-pendencias-sec" style="display:none;">
+          <summary>⚠️ Pendências de jogadores</summary>
+          <div id="fin-pendencias-lista"></div>
+        </details>
         <details class="dash-accordion" id="fin-auditoria">
           <summary>🔍 Auditoria — últimas ações</summary>
           <div id="fin-auditoria-lista"></div>
@@ -2816,7 +2822,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2885,6 +2891,8 @@ const PERMISSOES_UI = {
   devolverCredito:     ['admin'],                   // devolver o DINHEIRO de um crédito é do admin
   addLancamento:       ['organizador','admin'],
   estornarLancamento:  ['admin'],
+  addPendencia:        ['organizador','admin'],
+  baixarPendencia:     ['organizador','admin'],
   moverCheckin:       ['organizador','admin'],
   salvarJogo2:        ['organizador','admin'],
   removerJogo2:       ['organizador','admin']
@@ -2896,7 +2904,7 @@ const PERMISSOES_UI = {
    (ex.: 16 x 13,60 em decimal pode dar 217.60000000000002). O formato de "fin" está no plano/spec. */
 function finNormalizar(f){
   const x = f || {};
-  return { dias: x.dias || [], jogos: x.jogos || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [] };
+  return { dias: x.dias || [], jogos: x.jogos || [], pagamentos: x.pagamentos || [], lancamentos: x.lancamentos || [], log: x.log || [], creditos: x.creditos || [], pendencias: x.pendencias || [] };
 }
 // dia marcado como "sem jogo" (chuva, poucos jogadores): a quadra e o brinde não foram pagos, então a saída não conta
 function finSemJogo(d){ return !!d && d.status === 'semjogo'; }
@@ -2992,6 +3000,13 @@ function finCreditoDe(fin, jogadorId){
 // o dinheiro dos créditos está no caixa mas é dos jogadores: o que sobra "de verdade" pro grupo é caixa − créditos
 function finSaldoLivre(fin){
   return finCaixa(fin) - finTotalCreditos(fin);
+}
+/* ---------- pendências (dívida avulsa de um jogador, cobrada "no olho" no próximo check-in — não mexe no caixa) ---------- */
+function finPendenciasAtivas(fin){
+  return (fin.pendencias || []).filter(p => p.status === 'pendente').sort((a, b) => a.data < b.data ? 1 : -1);
+}
+function finPendenciasDe(fin, jogadorId){
+  return finPendenciasAtivas(fin).filter(p => String(p.jogadorId) === String(jogadorId));
 }
 // 'Crédito' se o pagamento válido dessa pessoa no dia foi feito com crédito (aparece como "(Crédito)" na lista)
 function finRotuloCredito(fin, data, jogadorId){
@@ -7937,10 +7952,14 @@ function renderCheckinOrdenados(){
       const creditoDisp = (!marcas && cobrando) ? finCreditoDe(FINANCEIRO, c.jogadorId) : 0;
       const dica = marcas ? (porCredito ? 'desmarcar o pagamento por crédito (o crédito volta ao saldo)' : 'desmarcar o pagamento') : 'marcar o pagamento';
       const atrib = podeMarcar ? ` class="fin-toque" role="button" tabindex="0" data-fin-jogador="${escapeHtml(c.jogadorId)}" data-fin-nome="${escapeHtml(nome)}" title="Toque para ${dica}"` : '';
+      const pendenciasDele = finPendenciasDe(FINANCEIRO, c.jogadorId);
+      const avisoPendencia = pendenciasDele.map(p =>
+        `<div class="fin-pendencia-aviso">⚠️ ${escapeHtml(nome)} deve ${finFormatar(finCentavos(p.valor))} do dia ${formatDate(p.data)}${p.observacao ? ' — ' + escapeHtml(p.observacao) : ''}</div>`
+      ).join('');
       html += `<li${atrib}>${escapeHtml(nome)}${marcas ? `<span class="fin-marca" title="Pago">${marcas}</span>` : ''}`
         + (porCredito ? '<span class="fin-credito-tag" title="Pago com crédito de um dia sem jogo">(Crédito)</span>' : '')
         + (creditoDisp ? `<span class="fin-credito-tag" title="Tem crédito de um dia sem jogo que ainda não cobre este dia">🎟️ crédito ${finFormatar(creditoDisp)}</span>` : '')
-        + tagOutroHtml(c) + botaoMoverHtml(c, outro ? outro.horario : '') + '</li>';
+        + tagOutroHtml(c) + botaoMoverHtml(c, outro ? outro.horario : '') + avisoPendencia + '</li>';
     });
     html += '</ol></div>';
   }
@@ -8269,7 +8288,7 @@ const FIN_ACOES_ROTULO = {
   addLancamento: 'fez um lançamento', estornarLancamento: 'estornou um lançamento',
   marcarTodosPagamentos: 'confirmou todos os pagamentos', estornarTodosPagamentos: 'cancelou todos os pagamentos',
   marcarDiaSemJogo: 'marcou o dia como sem jogo', reabrirDia: 'reabriu o dia', aplicarCreditos: 'aplicou créditos',
-  devolverCredito: 'devolveu um crédito'
+  devolverCredito: 'devolveu um crédito', addPendencia: 'cadastrou uma pendência', baixarPendencia: 'marcou uma pendência como paga'
 };
 // "18/09 19:05" a partir do ISO; texto vazio se não der pra ler
 function finQuando(iso){
@@ -8295,6 +8314,8 @@ function finDetalheLegivel(acao, detalhe){
   if(acao === 'reabrirDia') return `${quando}: ${d.creditosCancelados} crédito(s) cancelado(s)`;
   if(acao === 'aplicarCreditos') return `${d.quantidade} pagamento(s) por crédito em ${quando}: ${escapeHtml((d.nomes || []).join(', '))}`;
   if(acao === 'devolverCredito') return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))} (crédito de ${d.dataOrigem ? formatDate(d.dataOrigem) : ''})`;
+  if(acao === 'addPendencia' || acao === 'baixarPendencia')
+    return `${escapeHtml(d.jogadorNome || '')} — ${finFormatar(finCentavos(d.valor))}${quando ? ' (' + quando + ')' : ''}${d.observacao ? ' · ' + escapeHtml(d.observacao) : ''}`;
   if(acao === 'salvarFinDia' && d.depois)
     return `${quando}: ${finFormatar(finCentavos(d.depois.valorPessoa))}/pessoa · quadra ${finFormatar(finCentavos(d.depois.valorQuadra))}${d.depois.temBrinde ? ' · brinde ' + finFormatar(finCentavos(d.depois.valorBrinde)) : ''}${d.antes ? ' (antes: ' + finFormatar(finCentavos(d.antes.valorPessoa)) + '/pessoa)' : ''}`;
   return '';
@@ -8386,7 +8407,7 @@ function renderFinanceiro(){
   document.getElementById('fin-bloqueado').style.display = liberado ? 'none' : '';
   document.getElementById('fin-conteudo').style.display = liberado ? '' : 'none';
   if(!liberado){
-    ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+    ['fin-topo', 'fin-acoes', 'fin-extrato', 'fin-creditos-lista', 'fin-pendencias-lista', 'fin-auditoria-lista'].forEach(id => { document.getElementById(id).innerHTML = ''; });
     return;
   }
   const visaoCaixa = finVisaoCaixa(FINANCEIRO);
@@ -8454,7 +8475,14 @@ function renderFinanceiro(){
       <span class="fin-linha-valor" style="color:var(--accent);">${finFormatar(saldo)}</span></div>`;
   }).join('');
   document.getElementById('fin-acoes').innerHTML = pode
-    ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button>' : '';
+    ? '<button type="button" class="btn" id="fin-lancar-btn">+ Lançar</button><button type="button" class="btn secondary" id="fin-ajustar-btn">Ajustar caixa</button><button type="button" class="btn secondary" id="fin-pendencia-btn">+ Pendência</button>' : '';
+  const pendencias = finPendenciasAtivas(FINANCEIRO);
+  document.getElementById('fin-pendencias-sec').style.display = pendencias.length ? '' : 'none';
+  document.getElementById('fin-pendencias-lista').innerHTML = pendencias.map(p => `<div class="fin-linha">
+      <span class="fin-linha-nome">${escapeHtml(p.jogadorNome || 'Jogador removido')}</span>
+      <span class="fin-linha-meta" style="flex-basis:auto;">de ${formatDate(p.data)}${p.observacao ? ' · ' + escapeHtml(p.observacao) : ''}</span>
+      ${pode ? `<button type="button" class="btn secondary" data-fin-baixar-pendencia="${escapeHtml(p.id)}" data-fin-nome="${escapeHtml(p.jogadorNome || '')}">Marcar paga</button>` : ''}
+      <span class="fin-linha-valor fin-neg">${finFormatar(finCentavos(p.valor))}</span></div>`).join('');
   const datas = finDatas(visaoCaixa);
   document.getElementById('fin-extrato').innerHTML = datas.length
     ? datas.map(d => finDiaHtml(d, pode, admin)).join('')
@@ -8535,7 +8563,32 @@ function finAbrirAjustarCaixa(){
     });
 }
 
+function finAbrirPendencia(){
+  const hoje = new Date().toISOString().slice(0, 10);
+  const jogadoresOrdenados = sortByName(DATA.players);
+  const opcoesJogador = jogadoresOrdenados.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+  finAbrirModal('Nova pendência', `
+    <label class="fin-campo">Jogador<select id="fin-m-jogador">${opcoesJogador}</select></label>
+    ${finCampoNum('fin-m-valor', 'Valor (R$)', '', '0,00')}
+    <label class="fin-campo">Observação<input type="text" id="fin-m-obs" maxlength="200" placeholder="Ex.: saiu depois do horário"></label>
+    <label class="fin-campo">Data<input type="date" id="fin-m-data" value="${hoje}"></label>`,
+    async (ov)=>{
+      const select = ov.querySelector('#fin-m-jogador');
+      const jogador = jogadoresOrdenados.find(p => p.id === select.value);
+      return finPost('addPendencia', { pendencia: {
+        jogadorId: select.value, jogadorNome: jogador ? jogador.nome : '',
+        valor: ov.querySelector('#fin-m-valor').value, observacao: ov.querySelector('#fin-m-obs').value,
+        data: ov.querySelector('#fin-m-data').value } });
+    });
+}
+
 document.getElementById('view-financeiro').addEventListener('click', async (e)=>{
+  const baixar = e.target.closest('[data-fin-baixar-pendencia]');
+  if(baixar){
+    if(!confirm('Marcar a pendência de ' + baixar.dataset.finNome + ' como paga?')) return;
+    return finPost('baixarPendencia', { id: baixar.dataset.finBaixarPendencia });
+  }
+  if(e.target.closest('#fin-pendencia-btn')) return finAbrirPendencia();
   // copiar o resumo do dia (vale pra qualquer visitante); está dentro do <summary>, então não pode abrir/fechar o dia
   const cp = e.target.closest('[data-fin-copiar-resumo]');
   if(cp){
