@@ -102,6 +102,22 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
       const { error } = await cliente.from('sessoes').delete().eq('email', email).lte('expira_em', agoraIso);
       if (error) throw new Error('sessoes: ' + error.message);
     },
+    // notificações push (ajuste 11): upsert por endpoint, fora de TABELAS (mesma razão das sessões)
+    async lerPushInscricoes() {
+      return comNovasTentativas(async () => {
+        const { data, error } = await cliente.from('push_inscricoes').select('*');
+        if (error) throw new Error('push_inscricoes: ' + error.message);
+        return data;
+      }, esperar);
+    },
+    async gravarPushInscricao(linha) {
+      const { error } = await cliente.from('push_inscricoes').upsert(linha, { onConflict: 'endpoint' });
+      if (error) throw new Error('push_inscricoes: ' + error.message);
+    },
+    async removerPushInscricao(endpoint) {
+      const { error } = await cliente.from('push_inscricoes').delete().eq('endpoint', endpoint);
+      if (error) throw new Error('push_inscricoes: ' + error.message);
+    },
     async inserirJogador(linha) {
       const { error } = await cliente.from('jogadores').insert(linha);
       if (error) throw new Error('jogadores: ' + error.message);

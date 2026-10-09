@@ -31,12 +31,14 @@ if (!fs.existsSync(caminhoGs)) {
     // restorePlayer só existe no backend novo (o .gs apaga a linha do jogador e não tem como restaurar).
     // moverCheckin/salvarJogo2/removerJogo2 (dois jogos no mesmo dia, 2026-10-03) também: a funcionalidade inteira
     // só existe no backend novo (Supabase) — o .gs não tem addCheckin com campo "jogo" nem essas três ações.
-    const { restorePlayer, moverCheckin, salvarJogo2, removerJogo2, ...resto } = PERMISSOES;
+    // enviarNotificacao (ajuste 11, notificações push): também só existe no backend novo.
+    const { restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao, ...resto } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
     assert.deepEqual(moverCheckin, ['organizador', 'admin']);
     assert.deepEqual(salvarJogo2, ['organizador', 'admin']);
     assert.deepEqual(removerJogo2, ['organizador', 'admin']);
+    assert.deepEqual(enviarNotificacao, ['organizador', 'admin']);
   });
 }
 

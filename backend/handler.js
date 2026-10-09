@@ -12,6 +12,7 @@ import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin } from './checkins.js';
+import { inscreverPush, enviarNotificacao } from './notificacoes.js';
 import { salvarJogo2, removerJogo2 } from './jogos2.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
@@ -28,10 +29,11 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador, ocultarErrosInternos = false, registrar = () => {} }) {
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador, ocultarErrosInternos = false, registrar = () => {}, enviarPush }) {
   // gerarDono: dono da trava de gravação (separado de gerarId para não gastar ids de registros); esperar: pausa entre tentativas da trava
   // limitador (opcional): limita tentativas da chave mestra por IP; sem ele (servidor local, testes) nada muda
-  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador };
+  // enviarPush (opcional): quem manda a notificação de verdade (VAPID/web-push); sem ele, enviarNotificacao dá erro claro
+  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador, enviarPush: enviarPush || (async () => { throw new Error('Notificações push não configuradas neste servidor.'); }) };
   // trava única 'gravacao' (o LockService do .gs): as ações do financeiro e o check-in (com seus ganchos) nunca se misturam.
   // As demais gravações (jogadores, rodadas, configurações, fotos) NÃO usam a trava hoje: para incluí-las, é só trocar
   // `return await acao(...)` por `return await travar(() => acao(...))` no case dela (uma linha por ação).
@@ -95,6 +97,9 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id)));
         }
 
+        // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app)
+        if (acao === 'inscreverPush') return await inscreverPush(deps, b.inscricao);
+
         // daqui pra baixo é tudo sensível: passa pelo porteiro (chave mestra OU login do Google)
         const auth = await autorizar(deps, b, contexto);
         if (auth.error) return { error: auth.error };
@@ -137,6 +142,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'devolverCredito': return await travar(() => devolverCredito(deps, b.id, auth));
           case 'addPendencia': return await travar(() => addPendencia(deps, b.pendencia, auth));
           case 'baixarPendencia': return await travar(() => baixarPendencia(deps, b.id, auth));
+          case 'enviarNotificacao': return await enviarNotificacao(deps, b.mensagem, auth);
           // Ao Vivo (etapa 5): o .gs segurava a trava nas três
           case 'iniciarTransmissaoAoVivo': return await travar(() => iniciarTransmissaoAoVivo(deps, b.roundId, b.duracaoMinutos));
           case 'salvarParcialAoVivo': return await travar(() => salvarParcialAoVivo(deps, b.roundId, b.vitoriasPorTime));

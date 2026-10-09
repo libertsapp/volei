@@ -2,6 +2,7 @@
 // bucket "fotos-meme" e segredos com prefixo MEME_ (os segredos das funções são do projeto inteiro, então não podem colidir com os do Terça).
 // Os módulos de ./backend/ são gerados por "npm run preparar-edge -- meme-api" (cópia de backend/*.js).
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import webpush from 'npm:web-push@3';
 import { criarHandler } from './backend/handler.js';
 import { criarEdge } from './backend/edge.js';
 import { criarRepoSupabase } from './backend/repo-supabase.js';
@@ -29,12 +30,22 @@ if (faltando.length || senhaCurta) {
   });
   const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   const repo = criarRepoSupabase(cliente);
+  // notificações push (ajuste 11): chaves VAPID compartilhadas com o Terça (mesma ideia do GOOGLE_CLIENT_ID — só a
+  // origem importa pro navegador, a chave em si não precisa ser por app). Opcional de propósito: sem configurar,
+  // o resto da função continua funcionando normal, só "enviarNotificacao" fica indisponível.
+  const vapidPub = env('VAPID_PUBLIC_KEY'), vapidPriv = env('VAPID_PRIVATE_KEY');
+  if (vapidPub && vapidPriv) webpush.setVapidDetails(env('MEME_ORIGENS_PERMITIDAS').split(',')[0], vapidPub, vapidPriv);
+  const enviarPush = (vapidPub && vapidPriv)
+    ? async (insc: { endpoint: string; p256dh: string; auth: string }, payload: string) =>
+        webpush.sendNotification({ endpoint: insc.endpoint, keys: { p256dh: insc.p256dh, auth: insc.auth } }, payload)
+    : undefined;
   const handler = criarHandler({
     repo,
     armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: env('SUPABASE_URL'), bucket: 'fotos-meme' }),
     config: { adminPassword: env('MEME_ADMIN_PASSWORD') },
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
+    enviarPush,
     avisar: (...a: unknown[]) => console.error(...a),
     ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco; a mensagem real vai só para o log
     registrar

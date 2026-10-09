@@ -16,6 +16,7 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
   const travas = new Map(); // nome -> { dono, expira } (na memória; no banco é a tabela "travas", ajuste 5)
   const tentativas = new Map(); // chave -> { tentativas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
   let sessoes = []; // tabela "sessoes" (ajuste 8): fora de TABELAS de propósito, o lerTudo (GET público) não a lê
+  let pushInscricoes = (dados.push_inscricoes || []).map((l) => ({ ...l })); // "push_inscricoes" (ajuste 11): mesma ideia — fora do GET geral
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -64,6 +65,15 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
     async apagarSessoesVencidas(email, agoraIso) {
       sessoes = sessoes.filter((x) => !(x.email === email && new Date(x.expira_em) <= new Date(agoraIso)));
     },
+
+    // notificações push (ajuste 11): upsert por endpoint (o navegador manda sempre o mesmo endpoint pro mesmo aparelho/instalação)
+    async lerPushInscricoes() { return pushInscricoes.map((x) => ({ ...x })); },
+    async gravarPushInscricao(linha) {
+      const i = pushInscricoes.findIndex((x) => x.endpoint === linha.endpoint);
+      if (i === -1) pushInscricoes.push({ ...linha });
+      else pushInscricoes[i] = { ...pushInscricoes[i], ...linha };
+    },
+    async removerPushInscricao(endpoint) { pushInscricoes = pushInscricoes.filter((x) => x.endpoint !== endpoint); },
 
     async inserirJogador(linha) {
       if (tabelas.jogadores.some((j) => j.id === linha.id)) {

@@ -24,3 +24,23 @@ self.addEventListener('fetch', (event) => {
   // preso numa versão antiga da página mesmo com o SW dizendo que não guarda nada.
   event.respondWith(fetch(event.request, { cache: 'no-store' }));
 });
+
+// notificações push (ajuste 11): mostra a notificação mesmo com o app fechado. Se o corpo não vier
+// (ou não for um JSON válido), ainda mostra algo em vez de falhar em silêncio.
+self.addEventListener('push', (event) => {
+  let dados = {};
+  try { dados = event.data ? event.data.json() : {}; } catch (e) { /* não era JSON — segue com o padrão */ }
+  const titulo = dados.titulo || 'Vôlei de Terça';
+  event.waitUntil(self.registration.showNotification(titulo, { body: dados.corpo || '', tag: 'volei-terca' }));
+});
+
+// toque na notificação: foca uma aba já aberta do app, ou abre uma nova
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      for (const c of lista) if ('focus' in c) return c.focus();
+      if (self.clients.openWindow) return self.clients.openWindow('.');
+    })
+  );
+});

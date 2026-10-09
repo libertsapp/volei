@@ -1,6 +1,7 @@
 // Edge Function do backend do Terça (Deno). Casca fina: lê o ambiente, monta as peças e entrega ao adaptador (criarEdge).
 // Os módulos de ./backend/ são gerados por "npm run preparar-edge" (cópia de backend/*.js); deploy: ver docs/superpowers/terca-supabase-deploy.md
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import webpush from 'npm:web-push@3';
 import { criarHandler } from './backend/handler.js';
 import { criarEdge } from './backend/edge.js';
 import { criarRepoSupabase } from './backend/repo-supabase.js';
@@ -27,12 +28,22 @@ if (faltando.length || senhaCurta) {
   });
   const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   const repo = criarRepoSupabase(cliente);
+  // notificações push (ajuste 11): opcional de propósito — sem as chaves VAPID, a função sobe normal (GET, check-in,
+  // financeiro, tudo funciona) e só "enviarNotificacao" devolve erro. Nunca travar o resto do app por causa disso
+  // (lição do deploy de fin_pendencias antes do SQL rodar: nunca derrubar o app todo por uma peça opcional).
+  const vapidPub = env('VAPID_PUBLIC_KEY'), vapidPriv = env('VAPID_PRIVATE_KEY');
+  if (vapidPub && vapidPriv) webpush.setVapidDetails(env('ORIGENS_PERMITIDAS').split(',')[0], vapidPub, vapidPriv);
+  const enviarPush = (vapidPub && vapidPriv)
+    ? async (insc: { endpoint: string; p256dh: string; auth: string }, payload: string) =>
+        webpush.sendNotification({ endpoint: insc.endpoint, keys: { p256dh: insc.p256dh, auth: insc.auth } }, payload)
+    : undefined;
   const handler = criarHandler({
     repo,
     armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: env('SUPABASE_URL') }),
     config: { adminPassword: env('ADMIN_PASSWORD') },
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
+    enviarPush,
     avisar: (...a: unknown[]) => console.error(...a),
     ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco; a mensagem real vai só para o log
     registrar

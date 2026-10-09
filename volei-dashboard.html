@@ -1855,6 +1855,7 @@
         </span>
       </button>
       <button type="button" id="pwa-install-btn" class="admin-status admin-status-icone" title="Instalar o app no celular" aria-label="Instalar app" style="display:none;">📲</button>
+      <button type="button" id="push-notif-btn" class="admin-status admin-status-icone" title="Ativar notificações" aria-label="Ativar notificações" style="display:none;">🔕</button>
       <button type="button" id="theme-toggle-btn" class="admin-status admin-status-icone" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)" aria-label="Alternar modo claro/escuro">☀️</button>
       <button type="button" id="som-toggle-btn" class="admin-status admin-status-icone" aria-pressed="true" title="Ligar/desligar os sons do app" aria-label="Ligar/desligar os sons do app">🔊</button>
       <button type="button" id="admin-status-btn" class="admin-status admin-status-icone" title="Visitante" aria-label="Visitante">🔒</button>
@@ -1983,6 +1984,7 @@
             <button class="btn cheio" id="open-checkin-btn">Abrir check-in</button>
             <button class="btn secondary" id="toggle-checkin-lock-btn" title="Travar ou destravar inclusões e exclusões na lista">🔒 Travar lista</button>
             <button class="btn danger" id="close-checkin-btn">✕ Fechar check-in</button>
+            <button class="btn secondary" id="notificar-btn" title="Mandar uma notificação push pra quem instalou o app">📣 Notificar</button>
             <button class="btn secondary cheio" id="add-jogo2-btn" style="display:none;">➕ Adicionar 2º jogo neste dia</button>
           </div>
         </div>
@@ -2822,7 +2824,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2893,6 +2895,7 @@ const PERMISSOES_UI = {
   estornarLancamento:  ['admin'],
   addPendencia:        ['organizador','admin'],
   baixarPendencia:     ['organizador','admin'],
+  enviarNotificacao:   ['organizador','admin'],
   moverCheckin:       ['organizador','admin'],
   salvarJogo2:        ['organizador','admin'],
   removerJogo2:       ['organizador','admin']
@@ -7863,6 +7866,8 @@ document.getElementById('open-checkin-btn').addEventListener('click', async ()=>
   renderCheckinList();
   const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
+  // avisa quem tem o app instalado — best-effort: sem bloquear a tela nem incomodar se não houver ninguém inscrito ainda
+  else postAction('enviarNotificacao', { mensagem: { titulo: 'Check-in aberto! 🏐', corpo: 'Confirme sua presença pro próximo jogo.' } }, cred);
 });
 
 document.getElementById('close-checkin-btn').addEventListener('click', async ()=>{
@@ -7875,6 +7880,50 @@ document.getElementById('close-checkin-btn').addEventListener('click', async ()=
   const ok = await postAction('saveCheckinSettings', {settings: SETTINGS}, cred);
   if(!ok){ SETTINGS.checkinDataAberta = anterior; renderCheckinStatus(); renderCheckinList(); }
 });
+
+function abrirNotificar(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">Notificar quem instalou o app</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button type="button" class="btn secondary" data-notif-pronta="Check-in aberto! 🏐|Confirme sua presença pro próximo jogo.">Check-in aberto</button>
+        <button type="button" class="btn secondary" data-notif-pronta="Times sorteados! ⚔️|Já dá pra ver seu time na aba Jogadores/Sorteio.">Times sorteados</button>
+      </div>
+      <label class="fin-campo">Título<input type="text" id="notif-titulo" maxlength="80" placeholder="Ex.: Check-in aberto!"></label>
+      <label class="fin-campo">Mensagem (opcional)<input type="text" id="notif-corpo" maxlength="200" placeholder="Ex.: Confirme sua presença"></label>
+      <div class="password-actions">
+        <button type="button" class="btn" data-acao="enviar">Enviar</button>
+        <button type="button" class="btn secondary" data-acao="fechar">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', async (e)=>{
+    const pronta = e.target.closest('[data-notif-pronta]');
+    if(pronta){
+      const [titulo, corpo] = pronta.dataset.notifPronta.split('|');
+      overlay.querySelector('#notif-titulo').value = titulo;
+      overlay.querySelector('#notif-corpo').value = corpo;
+      return;
+    }
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')){ overlay.remove(); return; }
+    if(e.target.closest('[data-acao="enviar"]')){
+      const titulo = overlay.querySelector('#notif-titulo').value.trim();
+      if(!titulo){ mostrarToast('Escreva um título para a notificação.', 'erro'); return; }
+      const corpo = overlay.querySelector('#notif-corpo').value.trim();
+      const cred = await requireAuth('enviarNotificacao');
+      if(!cred) return;
+      const ok = await postAction('enviarNotificacao', { mensagem: { titulo, corpo } }, cred);
+      if(ok){
+        const r = ULTIMA_RESPOSTA_POST || {};
+        mostrarToast(`Notificação enviada (${r.enviados || 0} aparelho(s)).`, 'sucesso');
+        overlay.remove();
+      }
+    }
+  });
+}
+document.getElementById('notificar-btn').addEventListener('click', abrirNotificar);
 
 document.getElementById('add-checkin-guest-btn').addEventListener('click', async ()=>{
   const data = SETTINGS.checkinDataAberta;
@@ -10273,6 +10322,60 @@ document.getElementById('pwa-install-btn').addEventListener('click', async ()=>{
   }
 });
 atualizarBotaoInstalar();
+
+/* ---------- Notificações push ----------
+   Chave pública VAPID (não é segredo: todo mundo que vê o app vê ela — quem assina de verdade é a
+   chave PRIVADA, que só existe no servidor). Precisa do navegador suportar Notification + PushManager
+   (iOS só suporta depois de instalado como PWA — Safari não oferece push num site só aberto no navegador). */
+const VAPID_PUBLIC_KEY = 'BJsM9vyQyOaMtW22rX36idBhiFzrc688EzeXRGjSOWk4l2u9ED5UepcYJYTW6yB8GaAg4yGF9Y7L_VTdbvp0Pw4';
+function urlBase64ParaUint8Array(base64){
+  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  const base64Seguro = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const bruto = atob(base64Seguro);
+  return Uint8Array.from([...bruto].map(c => c.charCodeAt(0)));
+}
+function suportaPush(){
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+async function atualizarBotaoNotificacao(){
+  const btn = document.getElementById('push-notif-btn');
+  if(!btn || !suportaPush()) { if(btn) btn.style.display = 'none'; return; }
+  if(Notification.permission === 'denied'){
+    btn.style.display = '';
+    btn.textContent = '🔕';
+    btn.title = 'Notificações bloqueadas — libere nas configurações do navegador/aparelho';
+    return;
+  }
+  const registration = await navigator.serviceWorker.ready;
+  const inscricao = await registration.pushManager.getSubscription();
+  btn.style.display = '';
+  btn.textContent = inscricao ? '🔔' : '🔕';
+  btn.title = inscricao ? 'Notificações ativadas (toque para desativar)' : 'Ativar notificações';
+}
+document.getElementById('push-notif-btn').addEventListener('click', async ()=>{
+  const registration = await navigator.serviceWorker.ready;
+  const existente = await registration.pushManager.getSubscription();
+  if(existente){
+    await existente.unsubscribe();
+    mostrarToast('Notificações desativadas neste aparelho.', 'sucesso');
+  } else {
+    if(Notification.permission === 'denied'){
+      mostrarToast('As notificações estão bloqueadas para este site. Libere nas configurações do navegador.', 'erro');
+      return;
+    }
+    try{
+      const inscricao = await registration.pushManager.subscribe({
+        userVisibleOnly: true, applicationServerKey: urlBase64ParaUint8Array(VAPID_PUBLIC_KEY)
+      });
+      await postAction('inscreverPush', { inscricao: inscricao.toJSON() });
+      mostrarToast('Notificações ativadas neste aparelho!', 'sucesso');
+    }catch(e){
+      mostrarToast('Não foi possível ativar as notificações.', 'erro');
+    }
+  }
+  atualizarBotaoNotificacao();
+});
+atualizarBotaoNotificacao();
 
 /* ---------- Checagem de versão nova ----------
    O app instalado pode ficar "suspenso" na memória do celular (o usuário tira da

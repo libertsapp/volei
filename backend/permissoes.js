@@ -40,5 +40,6 @@ export const PERMISSOES = {
   aplicarCreditosDoDia: ['organizador', 'admin'],
   devolverCredito:    ['admin'],
   addPendencia:       ['organizador', 'admin'],
-  baixarPendencia:    ['organizador', 'admin']
+  baixarPendencia:    ['organizador', 'admin'],
+  enviarNotificacao:  ['organizador', 'admin']
 };
