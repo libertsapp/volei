@@ -1913,6 +1913,13 @@
     <span>✨ Tem uma versão mais nova do app — o aparelho ficou com uma página antiga aberta.</span>
     <button type="button" id="versao-nova-btn" class="btn" style="flex-shrink:0;">Atualizar agora</button>
   </div>
+  <div id="instalar-app-aviso" style="display:none;background:var(--court-navy-2);border:1px solid var(--ball-yellow);color:var(--chalk);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;line-height:1.5;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <span>📲 Instale o app pra receber notificação de check-in aberto e sorteio dos times.</span>
+    <span style="display:flex;gap:8px;flex-shrink:0;">
+      <button type="button" id="instalar-app-aviso-btn" class="btn" style="flex-shrink:0;">Instalar</button>
+      <button type="button" id="instalar-app-aviso-fechar" class="btn secondary" style="flex-shrink:0;" aria-label="Fechar aviso">✕</button>
+    </span>
+  </div>
 
   <div id="app" style="display:none;">
 
@@ -2824,7 +2831,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 15.8 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -10288,10 +10295,12 @@ window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault(); // segura o prompt automático do navegador pra disparar só no clique do botão
   pwaPromptEvento = e;
   atualizarBotaoInstalar();
+  atualizarAvisoInstalar();
 });
 window.addEventListener('appinstalled', ()=>{
   pwaPromptEvento = null;
   atualizarBotaoInstalar();
+  atualizarAvisoInstalar();
 });
 function abrirInstrucoesInstalarIOS(){
   const overlay = document.createElement('div');
@@ -10311,7 +10320,7 @@ function abrirInstrucoesInstalarIOS(){
     if(e.target === overlay || (e.target.dataset && e.target.dataset.acao === 'fechar')) overlay.remove();
   });
 }
-document.getElementById('pwa-install-btn').addEventListener('click', async ()=>{
+async function instalarApp(){
   if(pwaPromptEvento){
     pwaPromptEvento.prompt();
     await pwaPromptEvento.userChoice;
@@ -10320,8 +10329,64 @@ document.getElementById('pwa-install-btn').addEventListener('click', async ()=>{
   } else if(dispositivoEhIOS()){
     abrirInstrucoesInstalarIOS();
   }
-});
+}
+document.getElementById('pwa-install-btn').addEventListener('click', instalarApp);
 atualizarBotaoInstalar();
+
+/* ---------- Aviso "instale o app" (quem entra pelo navegador, sem o app instalado) ----------
+   Banner no topo, dispensável (uma vez fechado, não volta a aparecer neste aparelho). Só aparece
+   quando dá pra instalar de verdade (mesma condição do botão 📲) — sem isso, seria um convite sem ação possível. */
+const CHAVE_INSTALAR_AVISO_FECHADO = 'volei-instalar-aviso-fechado';
+function atualizarAvisoInstalar(){
+  const aviso = document.getElementById('instalar-app-aviso');
+  if(!aviso) return;
+  const fechado = localStorage.getItem(CHAVE_INSTALAR_AVISO_FECHADO) === '1';
+  const podeInstalar = !appJaInstalado() && (pwaPromptEvento || dispositivoEhIOS());
+  aviso.style.display = (podeInstalar && !fechado) ? 'flex' : 'none';
+}
+document.getElementById('instalar-app-aviso-btn').addEventListener('click', instalarApp);
+document.getElementById('instalar-app-aviso-fechar').addEventListener('click', ()=>{
+  localStorage.setItem(CHAVE_INSTALAR_AVISO_FECHADO, '1');
+  atualizarAvisoInstalar();
+});
+atualizarAvisoInstalar();
+
+/* ---------- Pop de autorizar notificações (quem já tem o app instalado) ----------
+   Mostrado uma vez (ao abrir o app instalado, se o navegador nunca perguntou e a pessoa nunca dispensou
+   este pop). "Agora não" marca como dispensado — o botão 🔔 no cabeçalho continua disponível pra sempre. */
+const CHAVE_NOTIF_POP_DISPENSADO = 'volei-notif-pop-dispensado';
+function abrirPopAutorizarNotificacoes(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">🔔 Ativar notificações?</p>
+      <p style="margin:0 0 12px;">Avisamos quando o check-in abrir e quando os times forem sorteados — direto no seu celular, sem precisar abrir o app.</p>
+      <div class="password-actions">
+        <button type="button" class="btn" data-acao="ativar">Ativar</button>
+        <button type="button" class="btn secondary" data-acao="depois">Agora não</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', async (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="depois"]')){
+      localStorage.setItem(CHAVE_NOTIF_POP_DISPENSADO, '1');
+      overlay.remove();
+      return;
+    }
+    if(e.target.closest('[data-acao="ativar"]')){
+      overlay.remove();
+      document.getElementById('push-notif-btn').click(); // reaproveita o mesmo fluxo de inscrição do botão 🔔
+    }
+  });
+}
+async function checarPopNotificacoes(){
+  if(!appJaInstalado() || !suportaPush()) return;
+  if(Notification.permission !== 'default') return; // já respondeu (aceitou ou bloqueou) — não insiste
+  if(localStorage.getItem(CHAVE_NOTIF_POP_DISPENSADO) === '1') return;
+  setTimeout(abrirPopAutorizarNotificacoes, 1200); // um instante depois de abrir, sem brigar com outras telas de carregamento
+}
+checarPopNotificacoes();
 
 /* ---------- Notificações push ----------
    Chave pública VAPID (não é segredo: todo mundo que vê o app vê ela — quem assina de verdade é a
