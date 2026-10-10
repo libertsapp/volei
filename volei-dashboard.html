@@ -1341,6 +1341,21 @@
     box-shadow:0 0 14px rgba(255,59,59,0.18);
   }
   .aovivo-alerta-ir{margin-left:auto;font-size:12px;color:var(--muted);}
+  /* aviso "times sorteados" (rascunho pendente): mesmo formato do aviso Ao Vivo, só que amarelo */
+  @keyframes pulso-amarelo{
+    0%{box-shadow:0 0 0 0 rgba(255,215,0,0.75);}
+    70%{box-shadow:0 0 0 9px rgba(255,215,0,0);}
+    100%{box-shadow:0 0 0 0 rgba(255,215,0,0);}
+  }
+  .rascunho-alerta{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 16px;border-radius:10px;cursor:pointer;
+    background:var(--glass-bg);border:1px solid rgba(255,215,0,0.6);font-size:14px;
+    box-shadow:0 0 14px rgba(255,215,0,0.18);
+  }
+  .ponto-rascunho{flex:none;width:10px;height:10px;border-radius:50%;background:var(--ball-yellow);animation:pulso-amarelo 1.8s infinite;}
+  /* destaque rápido no cartão do rascunho quando a pessoa chega pelo aviso */
+  @keyframes destaque-rascunho{0%,60%{box-shadow:0 0 0 3px var(--ball-yellow);}100%{box-shadow:0 0 0 0 transparent;}}
+  .history-item.rascunho-destaque{animation:destaque-rascunho 2.4s ease-out;}
   /* no título da tela Ao Vivo o ponto fica em linha com o texto (no aviso do Início ele é item de flex) */
   .section-title .ponto-ao-vivo{display:inline-block;margin-right:12px;vertical-align:middle;}
 
@@ -1929,6 +1944,12 @@
         <span class="ponto-ao-vivo" aria-hidden="true"></span>
         <strong id="aovivo-alerta-texto"></strong>
         <span class="aovivo-alerta-ir">Acompanhar ›</span>
+      </div>
+      <!-- aviso de times sorteados: aparece enquanto existir rascunho pendente (ver atualizarAlertaRascunhos) -->
+      <div id="rascunho-alerta" class="rascunho-alerta" style="display:none;" role="button" tabindex="0" title="Toque para ver os times sorteados">
+        <span class="ponto-rascunho" aria-hidden="true"></span>
+        <strong id="rascunho-alerta-texto"></strong>
+        <span class="aovivo-alerta-ir">Ver times ›</span>
       </div>
       <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
         🔔 <strong id="usuarios-pendentes-texto"></strong>
@@ -2831,7 +2852,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 16.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 16.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6185,6 +6206,34 @@ function atualizarBadgeAoVivo(){
       total === 1 ? 'Jogo ao vivo agora' : total + ' jogos ao vivo agora';
   }
 }
+// Aviso amarelo na primeira tela: "times sorteados" enquanto houver rascunho pendente (placar ainda não lançado).
+// Visível a todos (os rascunhos já são públicos no Histórico). Toque leva ao rascunho mais recente.
+function atualizarAlertaRascunhos(){
+  const alerta = document.getElementById('rascunho-alerta');
+  if(!alerta) return;
+  const rascunhos = DATA.rounds.filter(r=>r.rascunho).sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
+  alerta.style.display = rascunhos.length ? 'flex' : 'none';
+  if(!rascunhos.length) return;
+  document.getElementById('rascunho-alerta-texto').textContent = rascunhos.length === 1
+    ? 'Times sorteados — jogo de ' + formatDate(rascunhos[0].data)
+    : rascunhos.length + ' jogos com times sorteados';
+  alerta.dataset.rascunhoId = rascunhos[0].id;
+}
+function irParaRascunho(){
+  const id = document.getElementById('rascunho-alerta').dataset.rascunhoId;
+  abrirTelaVia('historico'); // o clique no menu já redesenha o Histórico
+  setTimeout(()=>{
+    const card = id && document.getElementById('rascunho-' + id);
+    if(!card) return;
+    card.scrollIntoView({ behavior:'smooth', block:'center' });
+    card.classList.remove('rascunho-destaque'); void card.offsetWidth; card.classList.add('rascunho-destaque');
+  }, 80);
+}
+document.getElementById('rascunho-alerta').addEventListener('click', irParaRascunho);
+document.getElementById('rascunho-alerta').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); irParaRascunho(); }
+});
+
 function irParaAoVivo(){ document.querySelector('#nav button[data-view="aovivo"]').click(); }
 document.getElementById('aovivo-alerta').addEventListener('click', irParaAoVivo);
 document.getElementById('aovivo-alerta').addEventListener('keydown', (e)=>{
@@ -6530,6 +6579,7 @@ let QUADRO_RESIZE_TIMER = null;
 window.addEventListener('resize', ()=>{ clearTimeout(QUADRO_RESIZE_TIMER); QUADRO_RESIZE_TIMER = setTimeout(igualarCartoesDoQuadro, 120); });
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(igualarCartoesDoQuadro); // a fonte carregada muda a altura do texto
 function renderDashboard(){
+  atualizarAlertaRascunhos(); // salvar/finalizar rascunho redesenha o Início por aqui
   const ctxCards = contextoCards(); // uma vez por render: o cartão precisa de emblemas e da posição no ranking
   const hero = document.getElementById('dash-hero');
   const sorted = roundsOficiais().sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
@@ -7384,6 +7434,7 @@ function renderHistory(){
   const notaDoTime = ehAdminAgora()
     ? (t, data)=> `<span class="history-nota" title="Nota total do time (ajuste do check-in daquele dia ou nota atual; sem nota conta 3)">${formatarNotaTotal(notaTotalDoTime(t.playerIds, data, CHECKINS, getPlayer))}</span>`
     : null;
+  atualizarAlertaRascunhos(); // salvar/excluir/finalizar um rascunho passa por aqui: o aviso do Início acompanha
   const draftsContainer = document.getElementById('history-drafts');
   const rascunhos = DATA.rounds.filter(r=>r.rascunho).sort((a,b)=> toTimestamp(b.data) - toTimestamp(a.data));
   if(rascunhos.length===0){
@@ -7394,7 +7445,7 @@ function renderHistory(){
       <div id="drafts-list" style="margin-bottom:24px;"></div>`;
     const draftsList = document.getElementById('drafts-list');
     draftsList.innerHTML = rascunhos.map(r=>`
-      <div class="history-item" style="border-color:var(--ball-yellow);">
+      <div class="history-item" id="rascunho-${r.id}" style="border-color:var(--ball-yellow);">
         <div class="history-head">
           <span class="history-date">${formatDate(r.data)} <span class="badge-guest" style="margin-left:6px;">rascunho</span></span>
           <div style="display:flex;gap:2px;">
@@ -7544,6 +7595,7 @@ function renderAll(){
   // O doGet inicial já manda DATA.aoVivo, então o badge 🔴 precisa refletir isso
   // desde a primeira pintura — sem esperar o primeiro poll da página Ao Vivo.
   atualizarBadgeAoVivo();
+  atualizarAlertaRascunhos();
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */

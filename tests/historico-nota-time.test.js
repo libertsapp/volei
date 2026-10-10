@@ -60,6 +60,7 @@ function telaDoHistorico(admin) {
     const HISTORICO_LIMITE = 20;
     ${pegar('function notaTotalDoTime(')}
     ${pegar('function formatarNotaTotal(')}
+    const atualizarAlertaRascunhos = () => {}; // aviso do Início: coberto em alerta-rascunhos.test.js
     ${pegar('function renderHistory(')}
     renderHistory();`);
   F(admin, elemento);
