@@ -8,7 +8,7 @@ import { mapearRodadas } from '../../backend/mapeadores.js';
 const deps = () => ({ repo: criarRepoMemoria(fixture) });
 const rodadas = async (d) => { const t = await d.repo.lerTudo(); return mapearRodadas(t.rodadas, t.times_rodada, t.time_jogadores); };
 const r9 = () => ({
-  id: 'r9', data: '2026-09-30', rascunho: true, vencedores: [0, 1],
+  id: 'r9', data: '2026-09-30', horario: '', rascunho: true, vencedores: [0, 1],
   times: [
     { nome: 'Time A', vitorias: 3, playerIds: ['p1', 'convidado:LUCAS#zz01'] },
     { nome: 'Time B', vitorias: '3', playerIds: ['p2', ''] }
@@ -21,7 +21,7 @@ await ta('addRound: cria a rodada no fim com times, vencedores (empate), rascunh
   const todas = await rodadas(d);
   assert.deepEqual(todas.map((r) => r.id), ['r1', 'r2', 'r9']);
   assert.deepEqual(todas[2], {
-    id: 'r9', data: '2026-09-30', rascunho: true, vencedores: [0, 1],
+    id: 'r9', data: '2026-09-30', horario: '', rascunho: true, vencedores: [0, 1],
     times: [{ nome: 'Time A', playerIds: ['p1', 'convidado:LUCAS#zz01'], vitorias: 3 }, { nome: 'Time B', playerIds: ['p2'], vitorias: 3 }]
   });
   const convidado = (await d.repo.lerJogadores()).find((j) => j.id === 'convidado:LUCAS#zz01');

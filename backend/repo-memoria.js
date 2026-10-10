@@ -305,7 +305,7 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
         }
       }
       apagarRodada(r.id);
-      inserir('rodadas', { round_id: r.id, data: r.data, rascunho: r.rascunho });
+      inserir('rodadas', { round_id: r.id, data: r.data, rascunho: r.rascunho, horario: r.horario || null });
       r.times.forEach((time, idx) => {
         const id = tabelas.times_rodada.reduce((m, x) => Math.max(m, x.id), 0) + 1;
         tabelas.times_rodada.push({ id, round_id: r.id, time_index: idx, time_nome: time.nome, vitorias: time.vitorias, vencedor: time.vencedor });

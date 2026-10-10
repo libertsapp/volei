@@ -53,7 +53,7 @@ export function mapearRodadas(rodadas, times, timeJogadores) {
     timesPorRodada.get(time.round_id).push(time);
   }
   return rodadas.slice().sort(porOrdem).map((r) => {
-    const saida = { id: texto(r.round_id), data: texto(r.data), times: [], vencedores: [], rascunho: r.rascunho === true };
+    const saida = { id: texto(r.round_id), data: texto(r.data), horario: texto(r.horario), times: [], vencedores: [], rascunho: r.rascunho === true };
     for (const time of timesPorRodada.get(r.round_id) || []) {
       saida.times[time.time_index] = {
         nome: texto(time.time_nome),

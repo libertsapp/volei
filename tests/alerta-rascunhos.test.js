@@ -14,6 +14,7 @@ function montar(rounds) {
   const F = new Function('ctx', `
     const DATA = { rounds: ctx.rounds }; const document = { getElementById: (id) => ctx.els[id] || null };
     const toTimestamp = (d) => Date.parse(d); const formatDate = (d) => d.split('-').reverse().join('/');
+    ${pega('dataComHorario')}
     ${pega('atualizarAlertaRascunhos')}
     return { atualizarAlertaRascunhos };`);
   return { ...F({ rounds, els, cliques }), els };
@@ -32,6 +33,11 @@ t('1 rascunho: mostra a data e guarda o id', () => {
   assert.equal(m.els['rascunho-alerta'].style.display, 'flex');
   assert.equal(m.els['rascunho-alerta-texto'].textContent, 'Times sorteados — jogo de 13/10/2026');
   assert.equal(m.els['rascunho-alerta'].dataset.rascunhoId, 'b');
+});
+t('rascunho com horário: o aviso mostra data · horário', () => {
+  const m = montar([{ id: 'b', data: '2026-10-13', horario: '20:00', rascunho: true }]);
+  m.atualizarAlertaRascunhos();
+  assert.equal(m.els['rascunho-alerta-texto'].textContent, 'Times sorteados — jogo de 13/10/2026 · 20:00');
 });
 t('2 rascunhos: plural e aponta pro mais recente', () => {
   const m = montar([{ id: 'x', data: '2026-10-13', rascunho: true }, { id: 'y', data: '2026-10-20', rascunho: true }]);

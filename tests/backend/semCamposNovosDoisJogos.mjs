@@ -1,7 +1,7 @@
-// Tira dos JSONs de resposta os campos que só existem no backend novo (dois jogos no mesmo dia, 2026-10-03): o .gs
+// Tira dos JSONs de resposta os campos que só existem no backend novo (dois jogos no mesmo dia, 2026-10-03; horário da rodada, ajuste 12): o .gs
 // real não tem esse conceito, então as comparações byte a byte com ele (paridade-*.test.mjs) precisam ignorar esses
 // campos, em qualquer profundidade do objeto — eles aparecem dentro de arrays (checkins[], pagamentos[], creditos[]).
-const CAMPOS_NOVOS = new Set(['jogo', 'porJogo', 'jogoOrigem', 'jogos', 'checkinJogo2']);
+const CAMPOS_NOVOS = new Set(['jogo', 'porJogo', 'jogoOrigem', 'jogos', 'checkinJogo2', 'horario']);
 
 export function semCamposNovos(valor) {
   if (Array.isArray(valor)) return valor.map(semCamposNovos);

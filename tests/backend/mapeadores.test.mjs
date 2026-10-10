@@ -16,10 +16,10 @@ t('jogadores: sem convidados, na ordem da planilha, textos vazios e estrelas num
 t('rodadas: ordem por "ordem", times por time_index, jogadores por posicao (com convidado), empate = 2 vencedores', () => {
   const r = mapearRodadas(fixture.rodadas, fixture.times_rodada, fixture.time_jogadores);
   assert.deepEqual(r, [
-    { id: 'r1', data: '2026-09-01', rascunho: false, vencedores: [0, 1], times: [
+    { id: 'r1', data: '2026-09-01', horario: '', rascunho: false, vencedores: [0, 1], times: [
       { nome: 'Time 1', playerIds: ['p1', 'p2'], vitorias: 2 },
       { nome: 'Time 2', playerIds: ['convidado:LUCAS#ab12'], vitorias: 2 } ] },
-    { id: 'r2', data: '2026-09-08', rascunho: false, vencedores: [0], times: [
+    { id: 'r2', data: '2026-09-08', horario: '', rascunho: false, vencedores: [0], times: [
       { nome: 'Time 1', playerIds: ['p1'], vitorias: 3 },
       { nome: 'Time 2', playerIds: ['p2'], vitorias: 1 } ] }
   ]);

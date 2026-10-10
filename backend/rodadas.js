@@ -7,6 +7,8 @@ import { coletarConvidados } from './convidados.js';
 
 const NAO_ACHOU = 'Rodada não encontrada (pode já ter sido removida por outra pessoa).';
 
+const horarioValido = (h) => (/^[0-2]\d:[0-5]\d$/.test(texto(h).trim()) ? texto(h).trim() : '');
+
 // até 2 times podem empatar e virar campeões juntos: "vencedor" é uma marca por time
 function montar(r) {
   const vencedores = Array.isArray(r.vencedores) ? r.vencedores : [];
@@ -19,6 +21,7 @@ function montar(r) {
   return {
     id: texto(r.id),
     data: texto(r.data),
+    horario: horarioValido(r.horario), // 'HH:MM' do jogo (vem do check-in); '' = não informado (rodadas antigas)
     rascunho: !!r.rascunho,
     times,
     convidados: coletarConvidados(times.flatMap((t) => t.playerIds))
