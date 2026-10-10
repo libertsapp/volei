@@ -18,7 +18,8 @@ const ARQUIVOS_DO_TERCA = [
   'schema-terca-supabase-ajuste-8.sql',
   'schema-terca-supabase-ajuste-9.sql',
   'schema-terca-supabase-ajuste-10.sql',
-  'schema-terca-supabase-ajuste-11.sql'
+  'schema-terca-supabase-ajuste-11.sql',
+  'schema-terca-supabase-ajuste-12.sql'
 ];
 
 function trocarSchema(sql, schema) {
