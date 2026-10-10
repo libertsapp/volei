@@ -90,28 +90,37 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
     assert.equal(a.auth().logado, false);
   });
 
-  await t('requireAuth com sessão: devolve a sessão sem pedir nada ao Google nem a senha', async () => {
+  await t('requireAuth com sessão: devolve a sessão sem pedir nada ao Google', async () => {
     const a = pagina({ auth: { logado: true, perfil: 'organizador', sessao: 'S1' } });
-    assert.deepEqual(await a.requireAuth('addPlayer'), { sessao: 'S1', idToken: '', senha: '' });
+    assert.deepEqual(await a.requireAuth('addPlayer'), { sessao: 'S1', idToken: '' });
     assert.equal(a.espioes.garantir, 0);
     assert.equal(a.espioes.pedirSenha, 0);
   });
 
-  await t('requireAuth com chave mestra guardada e perfil sem permissão: manda a senha E a sessão', async () => {
-    const a = pagina({ auth: { logado: true, perfil: 'jogador', sessao: 'S1' }, senhaCacheada: 'CHAVE', podePerfil: () => false });
-    assert.deepEqual(await a.requireAuth('removePlayer'), { idToken: '', senha: 'CHAVE', sessao: 'S1' });
+  await t('requireAuth sem permissão (sem chave mestra desde a v16.0): devolve null, avisa por toast e não pede senha', async () => {
+    const a = pagina({ auth: { logado: true, perfil: 'jogador', sessao: 'S1' }, podePerfil: () => false });
+    assert.equal(await a.requireAuth('removePlayer'), null);
+    assert.equal(a.espioes.pedirSenha, 0);
+    assert.equal(a.toasts.length, 1);
+  });
+
+  await t('requireAuth sem login: devolve null e pede o login do Google, nunca uma senha', async () => {
+    const a = pagina({ auth: { logado: false } });
+    assert.equal(await a.requireAuth('addPlayer'), null);
+    assert.equal(a.espioes.pedirSenha, 0);
+    assert.equal(a.toasts.length, 1);
   });
 
   await t('postAction manda a sessão no corpo', async () => {
     const a = pagina({ auth: { logado: true, sessao: 'S1' } });
-    assert.equal(await a.postAction('addPlayer', { player: { id: 'p1' } }, { sessao: 'S1', idToken: '', senha: '' }), true);
+    assert.equal(await a.postAction('addPlayer', { player: { id: 'p1' } }, { sessao: 'S1', idToken: '' }), true);
     assert.equal(a.posts[0].action, 'addPlayer');
     assert.equal(a.posts[0].sessao, 'S1');
   });
 
   await t('postAction com "sessão expirou": sai da conta e avisa', async () => {
     const a = pagina({ auth: { logado: true, sessao: 'S1' }, respostas: [{ error: 'Sua sessão expirou. Entre com o Google de novo.' }] });
-    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '', senha: '' }), false);
+    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '' }), false);
     assert.equal(a.auth().logado, false);
     assert.equal(a.auth().sessao, '');
     assert.equal(a.toasts.length, 1);
@@ -119,7 +128,7 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
 
   await t('postAction com banco fora do ar ao conferir a sessão: NÃO sai da conta', async () => {
     const a = pagina({ auth: { logado: true, sessao: 'S1' }, respostas: [{ error: 'Não foi possível conferir sua sessão agora. Tente de novo.' }] });
-    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '', senha: '' }), false);
+    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '' }), false);
     assert.equal(a.auth().logado, true);
     assert.equal(a.auth().sessao, 'S1');
     assert.equal(a.toasts.length, 1);
@@ -127,7 +136,7 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
 
   await t('postAction com "não tem permissão": avisa e reconfere a conta na hora (o cargo pode ter mudado em outro aparelho)', async () => {
     const a = pagina({ auth: { logado: true, perfil: 'organizador', sessao: 'S1' }, respostas: [{ error: 'Seu perfil (jogador) não tem permissão para esta ação.' }, { status: 'ok', perfil: 'jogador' }] });
-    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '', senha: '' }), false);
+    assert.equal(await a.postAction('addPlayer', {}, { sessao: 'S1', idToken: '' }), false);
     await umInstante();
     assert.equal(a.toasts.length, 1);
     assert.equal(a.posts[1].action, 'minhaConta');
@@ -137,7 +146,7 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
 
   await t('envio de foto manda a sessão', async () => {
     const a = pagina({ auth: { logado: true, sessao: 'S1' }, respostas: [{ url: 'https://x/f.jpg' }] });
-    assert.equal(await a.uploadPhoto({ name: 'foto.png' }, { sessao: 'S1', idToken: '', senha: '' }, ''), 'https://x/f.jpg');
+    assert.equal(await a.uploadPhoto({ name: 'foto.png' }, { sessao: 'S1', idToken: '' }, ''), 'https://x/f.jpg');
     assert.equal(a.posts[0].action, 'uploadPhoto');
     assert.equal(a.posts[0].sessao, 'S1');
   });

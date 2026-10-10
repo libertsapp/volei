@@ -94,15 +94,14 @@ function montar({ logado, perfil = 'admin', token = '', expirado = false, senhaC
     assert.equal(m.chamadas.fetch.length, 1);
     assert.equal(m.chamadas.fetch[0].action, 'listarUsuarios');
     assert.equal(m.chamadas.fetch[0].idToken, 'novo');
-    assert.equal(m.chamadas.fetch[0].senha, '');
+    assert.equal(m.chamadas.fetch[0].senha, undefined, 'a chave mestra não existe mais: nenhum campo senha vai pro servidor');
   });
 
-  await t('aviso automático com chave mestra já em cache: usa a senha em cache, sem pop-up', async () => {
-    const m = montar({ logado: false, senhaCache: 'cache', token: '' });
+  await t('visitante com senha velha no sessionStorage: ela é ignorada (chave mestra aposentada), nada vai pro servidor', async () => {
+    const m = montar({ logado: false, token: '' });
     await m.atualizarAvisoUsuariosPendentes();
     assert.deepEqual(m.chamadas.requireAuth, []);
-    assert.equal(m.chamadas.fetch.length, 1);
-    assert.equal(m.chamadas.fetch[0].senha, 'cache');
+    assert.equal(m.chamadas.fetch.length, 0);
   });
 
   await t('aviso automático de visitante sem permissão: não faz nada e não pede nada', async () => {

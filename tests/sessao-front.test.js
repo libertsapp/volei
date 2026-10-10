@@ -31,11 +31,11 @@ function amb({ auth, garantir = async () => null, respostas = [], relogio = { ms
   // com sessão: credencial é a sessão, sem pedir nada ao Google
   let chamouGoogle = false;
   let a = amb({ auth: { logado: true, sessao: 'S1', idToken: '' }, garantir: async () => { chamouGoogle = true; return 'G'; } });
-  assert.deepEqual(await a.credencialLogada(), { sessao: 'S1', idToken: '', senha: '' });
+  assert.deepEqual(await a.credencialLogada(), { sessao: 'S1', idToken: '' });
   assert.equal(chamouGoogle, false);
   // sem sessão (app antigo): cai no token do Google, como antes
   a = amb({ auth: { logado: true, sessao: '', idToken: 'G' }, garantir: async () => 'G2' });
-  assert.deepEqual(await a.credencialLogada(), { sessao: '', idToken: 'G2', senha: '' });
+  assert.deepEqual(await a.credencialLogada(), { sessao: '', idToken: 'G2' });
   // deslogado / Google não renovou: null
   assert.equal(await amb({ auth: { logado: false } }).credencialLogada(), null);
   assert.equal(await amb({ auth: { logado: true, sessao: '' } }).credencialLogada(), null);

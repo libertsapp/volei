@@ -10,18 +10,16 @@ import { criarArmazenamentoSupabase } from './backend/armazenamento-supabase.js'
 import { criarVerificadorGoogle } from './backend/auth.js';
 import { criarLimitador } from './backend/limitador.js';
 
-const NOMES = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MEME_ADMIN_PASSWORD', 'GOOGLE_CLIENT_ID', 'MEME_ORIGENS_PERMITIDAS'];
+const NOMES = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_CLIENT_ID', 'MEME_ORIGENS_PERMITIDAS'];
 const env = (nome: string): string => (Deno.env.get(nome) ?? '').trim();
 const faltando = NOMES.filter((nome) => !env(nome));
 if (faltando.length) console.error('Faltam variáveis de ambiente na função: ' + faltando.join(', '));
-const senhaCurta = env('MEME_ADMIN_PASSWORD') !== '' && env('MEME_ADMIN_PASSWORD').length < 20;
-if (senhaCurta) console.error('MEME_ADMIN_PASSWORD tem menos de 20 caracteres: use uma senha longa e aleatória.');
 
 const recusar = (): Response => new Response(JSON.stringify({ error: 'Configuração incompleta no servidor.' }), {
   status: 500, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
-if (faltando.length || senhaCurta) {
+if (faltando.length) {
   Deno.serve(recusar); // nunca sobe "meio configurada": toda requisição recebe 500
 } else {
   const cliente = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
@@ -42,7 +40,9 @@ if (faltando.length || senhaCurta) {
   const handler = criarHandler({
     repo,
     armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: env('SUPABASE_URL'), bucket: 'fotos-meme' }),
-    config: { adminPassword: env('MEME_ADMIN_PASSWORD') },
+    // sem chave mestra (v16.0): adminPassword vazio faz o porteiro e o bootstrapAdmin recusarem qualquer senha, mesmo que sobre um
+    // MEME_ADMIN_PASSWORD esquecido nos segredos. Admin de emergência = SQL no painel do Supabase (ver CLAUDE.md).
+    config: { adminPassword: '' },
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
     enviarPush,

@@ -2831,7 +2831,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 15.8 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 16.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3567,10 +3567,6 @@ async function loginComGoogle(idToken){
     renderCheckinStatus();
     renderCheckinList();
     atualizarAvisoUsuariosPendentes();
-    // aba Usuarios vazia até agora = ninguém é admin ainda: oferece o bootstrap
-    if(json.totalUsuarios <= 1 && AUTH.perfil !== 'admin'){
-      await pedirBootstrapAdmin();
-    }
     // sem jogador vinculado ainda (aprovado ou pendente): sempre pergunta "esse é você?" —
     // com um palpite de nome pronto (sugestao) OU, se não achou ninguém parecido, abrindo
     // direto no modo "escolher da lista" (perguntarVinculoJogador já trata sugestao=null)
@@ -3598,9 +3594,9 @@ function tratarSessaoExpirada(){
 }
 async function credencialLogada(){
   if(!AUTH.logado) return null;
-  if(AUTH.sessao) return { sessao: AUTH.sessao, idToken: '', senha: '' };
+  if(AUTH.sessao) return { sessao: AUTH.sessao, idToken: '' };
   const token = await garantirTokenFresco();
-  return token ? { sessao: '', idToken: token, senha: '' } : null;
+  return token ? { sessao: '', idToken: token } : null;
 }
 function aplicarDadosDaConta(json){
   const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
@@ -3668,8 +3664,7 @@ async function sairDeTodosOsAparelhos(){
 // </sessao-front>
 
 /* A sessão mora no localStorage (sobrevive a fechar a aba/app — só sai quando a
-   pessoa clica em "sair" de propósito). Diferente da senha de admin, que continua
-   no sessionStorage por ser uma chave mestra de emergência.
+   pessoa clica em "sair" de propósito).
    O backend guarda só o hash da sessão do app (tabela sessoes) e a confere a cada requisição. */
 function salvarSessaoAuth(){
   localStorage.setItem(CHAVE_LOGIN_LOCAL, JSON.stringify({
@@ -3735,8 +3730,7 @@ function renovarTokenGoogle(){
 /* Bug real (2026-09): a renovação só era tentada NA HORA de uma ação de admin, nunca proativamente ao reabrir
    o app; e quando falhava (comum depois de muito tempo fechado — o navegador nem sempre consegue renovar em
    silêncio), o app deslogava tudo com um alert() feio, mesmo o servidor sabendo perfeitamente quem era a
-   pessoa. Agora NUNCA desloga sozinho (o requireAuth() já cai pra chave mestra sozinho quando isso devolve
-   null) e usa toast em vez de alert(). ULTIMA_FALHA_RENOVACAO evita ficar tentando (e travando ~8s) de novo
+   pessoa. Agora NUNCA desloga sozinho (o requireAuth() já devolve null e a ação simplesmente não segue quando isso falha) e usa toast em vez de alert(). ULTIMA_FALHA_RENOVACAO evita ficar tentando (e travando ~8s) de novo
    em toda ação seguinte logo depois de uma falha — só tenta de novo depois do cooldown, ou quando a pessoa
    clicar em "Entrar com Google" de propósito (isso passa por outro caminho, loginComGoogle). */
 let ULTIMA_FALHA_RENOVACAO = 0;
@@ -3748,7 +3742,7 @@ async function garantirTokenFresco(){
   const novo = await renovarTokenGoogle();
   if(novo){ ULTIMA_FALHA_RENOVACAO = 0; return novo; }
   ULTIMA_FALHA_RENOVACAO = Date.now();
-  mostrarToast('Seu login do Google expirou. Toque em "Entrar com Google" pra continuar (ou use a chave mestra).', 'erro');
+  mostrarToast('Seu login do Google expirou. Toque em "Entrar com Google" pra continuar.', 'erro');
   return null;
 }
 
@@ -3766,36 +3760,6 @@ window.addEventListener('focus', tentarRenovarSeNecessario);
 // renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
 // a aba aberta a tarde inteira não travar na hora de salvar a rodada
 setInterval(()=>{ if(AUTH.logado && AUTH.sessao) sincronizarContaSeFazTempo(); else if(AUTH.logado && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
-
-/* Primeiro admin: a aba Usuarios começa vazia, então quem logar com Google E souber
-   a chave mestra vira admin. Depois disso esse convite não aparece mais. */
-async function pedirBootstrapAdmin(){
-  if(!confirm('Ninguém é administrador ainda. Se você é o organizador, informe a chave mestra agora pra virar administrador. Quer fazer isso?')) return false;
-  const senha = await pedirSenhaModal();
-  if(!senha) return false;
-  try{
-    const res = await fetch(SHEET_API_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'bootstrapAdmin', senha: senha, idToken: AUTH.idToken })
-    });
-    const json = await res.json();
-    if(json && json.error){ mostrarToast('Não deu: ' + json.error, 'erro'); return false; }
-    AUTH.perfil = json.perfil;
-    AUTH.jogadorId = json.jogadorId || '';
-    salvarSessaoAuth();
-    atualizarStatusAuth();
-    aplicarPermissoesUI();
-    renderAll();
-    atualizarAvisoUsuariosPendentes();
-    mostrarToast('Pronto! Agora você é administrador. A chave mestra não é mais necessária no dia a dia.', 'sucesso');
-    return true;
-  }catch(e){
-    console.error('Falha no bootstrap de admin', e);
-    mostrarToast('Não foi possível falar com o servidor agora. Tente de novo.', 'erro');
-    return false;
-  }
-}
 
 /* Primeiro login de um e-mail novo: o backend tenta casar o nome da conta Google com
    um jogador já cadastrado e manda um palpite. Quem decide é a pessoa — a gente nunca
@@ -3857,16 +3821,14 @@ function perguntarVinculoJogador(sugestao){
 // a lista de e-mails NÃO vem no doGet público de propósito — ela é buscada por POST
 // autenticado, senão qualquer visitante leria os e-mails de todo mundo
 // 'silencioso' = chamada automática (ex.: aviso de pendentes ao abrir a página), não um clique da pessoa.
-// Nesse modo NUNCA abre pop-up nem desloga: só usa a chave mestra em cache, a sessão do app ou um token ainda válido e, se
+// Nesse modo NUNCA abre pop-up nem desloga: só usa a sessão do app ou um token ainda válido e, se
 // não tiver nenhum dos dois, desiste em silêncio (o aviso só atualiza quando a pessoa fizer algo ou abrir
-// "Gerenciar usuários"). Sem isso, um token vencido no F5 fazia aparecer a tela da chave mestra do nada.
+// "Gerenciar usuários"). Sem isso, um token vencido no F5 fazia aparecer um pedido de login do nada.
 async function carregarUsuarios(silencioso){
   let cred;
   if(silencioso){
-    const senha = getCachedPassword();
-    if(senha) cred = { idToken: AUTH.idToken || '', senha: senha, sessao: AUTH.sessao || '' };
-    else if(AUTH.logado && AUTH.sessao) cred = { sessao: AUTH.sessao, idToken: '', senha: '' };
-    else if(AUTH.logado && !tokenExpirado(120)) cred = { idToken: AUTH.idToken, senha: '' };
+    if(AUTH.logado && AUTH.sessao) cred = { sessao: AUTH.sessao, idToken: '' };
+    else if(AUTH.logado && !tokenExpirado(120)) cred = { idToken: AUTH.idToken };
     else return null;
   } else {
     cred = await requireAuth('listarUsuarios');
@@ -3876,7 +3838,7 @@ async function carregarUsuarios(silencioso){
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'listarUsuarios', senha: cred.senha || '', idToken: cred.idToken || '', sessao: cred.sessao || '' })
+      body: JSON.stringify({ action:'listarUsuarios', idToken: cred.idToken || '', sessao: cred.sessao || '' })
     });
     const json = await res.json();
     if(json && json.error){ alert('Não foi possível carregar os usuários: ' + json.error); return null; }
@@ -4273,16 +4235,16 @@ function abrirAreaDaConta(){
   });
 }
 
-// "usuário registrado" = entrou com a conta Google (qualquer perfil, inclusive jogador) OU está com a chave mestra.
+// "usuário registrado" = entrou com a conta Google (qualquer perfil, inclusive jogador).
 // A página Controle Financeiro só aparece pra esse pessoal. É restrição VISUAL (conforto): o Check-in continua mostrando
 // valor, PIX e ✅ a todos, e o servidor ainda entrega os dados a quem consultar o endereço direto.
 function podeVerFinanceiro(){
-  return !!AUTH.logado || !!getCachedPassword();
+  return !!AUTH.logado;
 }
 
-// "admin de verdade agora": perfil admin no Google OU chave mestra digitada nesta aba
+// "admin de verdade agora": logado no Google com perfil admin
 function ehAdminAgora(){
-  return !!getCachedPassword() || AUTH.perfil === 'admin';
+  return !!AUTH.logado && AUTH.perfil === 'admin';
 }
 
 // organizador também vê as estrelas sempre (precisa pra cadastrar/montar rodada com
@@ -4302,7 +4264,7 @@ function aplicarPermissoesUI(){
   mostrar('add-player-row', temPermissao('addPlayer'));
   mostrar('star-visibility-toggle', temPermissao('saveSettings'));
   mostrar('checkin-admin-controls', temPermissao('saveCheckinSettings'));
-  // Controle Financeiro: só usuário registrado (login do Google, qualquer perfil, ou chave mestra). Visual: ver podeVerFinanceiro()
+  // Controle Financeiro: só usuário registrado (login do Google, qualquer perfil). Visual: ver podeVerFinanceiro()
   mostrar('nav-financeiro-btn', podeVerFinanceiro());
   mostrar('mais-financeiro-btn', podeVerFinanceiro());
   const viewFin = document.getElementById('view-financeiro');
@@ -4322,7 +4284,7 @@ function aplicarPermissoesUI(){
   }
   const checkinCtrls = document.getElementById('checkin-admin-controls');
   if(checkinCtrls && temPermissao('saveCheckinSettings')) checkinCtrls.style.display = 'flex';
-  // quem pode tocar/estornar mudou (login/logout/chave mestra): repinta lista do check-in e página financeira
+  // quem pode tocar/estornar mudou (login/logout): repinta lista do check-in e página financeira
   renderFinanceiroTudo();
   renderHistory(); // a nota total dos times no Histórico é só do admin
   atualizarBlocoListaGrupo(); // a lista colada do WhatsApp é só de organizador/admin
@@ -4330,21 +4292,19 @@ function aplicarPermissoesUI(){
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
-function getCachedPassword(){ return sessionStorage.getItem('volei-admin-pwd') || ''; }
-function setCachedPassword(p){ sessionStorage.setItem('volei-admin-pwd', p); }
-function clearCachedPassword(){ sessionStorage.removeItem('volei-admin-pwd'); }
+// A chave mestra foi aposentada (v16.0): a identidade é só o login do Google. Apaga a senha que versões antigas
+// deixaram guardada nesta aba, pra não sobrar rastro dela no aparelho.
+try{ sessionStorage.removeItem('volei-admin-pwd'); }catch(e){ /* sessionStorage bloqueado: nada a limpar */ }
 
 function updateAdminStatusBtn(){
   const btn = document.getElementById('admin-status-btn');
-  const comChaveMestra = !!getCachedPassword();
-  // o botão antigo agora é só o indicador da CHAVE MESTRA — a identidade individual
-  // mora no chip do Google, ao lado
+  // o botão é só um indicador do perfil — a identidade individual mora no chip do Google, ao lado
   // só o ícone no botão (cabeçalho enxuto); o texto completo vai no tooltip e no aria-label
-  const rotulo = comChaveMestra ? 'Chave mestra ativa (toque para parar de usar)' : (AUTH.logado ? 'Perfil: ' + (AUTH.perfil || 'jogador') : 'Visitante');
-  btn.textContent = comChaveMestra ? '🔑' : (AUTH.logado ? '🔓' : '🔒');
+  const rotulo = AUTH.logado ? 'Perfil: ' + (AUTH.perfil || 'jogador') : 'Visitante';
+  btn.textContent = AUTH.logado ? '🔓' : '🔒';
   btn.title = rotulo;
   btn.setAttribute('aria-label', rotulo);
-  btn.classList.toggle('is-admin', comChaveMestra || AUTH.perfil === 'admin');
+  btn.classList.toggle('is-admin', ehAdminAgora());
   atualizarStatusAuth();
   aplicarPermissoesUI();
   renderPlayers(); // reaplica a visibilidade das estrelas e dos botões de editar/remover
@@ -4369,25 +4329,13 @@ document.getElementById('star-visibility-checkbox').addEventListener('change', a
   }
 });
 document.getElementById('admin-status-btn').addEventListener('click', ()=>{
-  if(getCachedPassword()){
-    if(confirm('Parar de usar a chave mestra nesta aba?')){
-      clearCachedPassword();
-      updateAdminStatusBtn();
-    }
+  if(AUTH.logado){
+    alert('Você está logado como ' + (AUTH.perfil || 'jogador') + ' (' + AUTH.email + ').');
     return;
   }
-  if(AUTH.logado && AUTH.perfil === 'admin'){
-    alert('Você já está logado como administrador (' + AUTH.email + '). A chave mestra não é necessária.');
-    return;
-  }
-  requireAuth('saveSettings'); // pede a chave mestra (caminho de emergência)
+  mostrarToast('Toque em "Entrar com Google" pra identificar sua conta.', 'info');
 });
 
-/* Garante uma senha válida (pede e confirma com o servidor se ainda não tiver uma em cache).
-   Retorna a senha em caso de sucesso, ou null se o usuário cancelou / errou a senha. */
-/* modal de senha com campo mascarado (bolinhas), no lugar do prompt() nativo do
-   navegador — o prompt() sempre mostra a senha em texto puro, sem nenhuma opção
-   de mascarar, então qualquer um olhando pra tela via o que foi digitado */
 /* pop-up de relatar bug / sugerir funcionalidade — manda a mensagem digitada pro
    WhatsApp do desenvolvedor, já formatada, sem precisar de nenhuma senha */
 function abrirRelatarBug(){
@@ -4417,36 +4365,6 @@ function abrirRelatarBug(){
   });
 }
 document.getElementById('report-bug-btn').addEventListener('click', abrirRelatarBug);
-
-function pedirSenhaModal(){
-  return new Promise((resolve)=>{
-    const overlay = document.createElement('div');
-    overlay.className = 'profile-overlay';
-    overlay.innerHTML = `
-      <div class="password-card">
-        <p class="password-title">🔒 Senha de administrador</p>
-        <input type="password" id="password-input" class="password-field" placeholder="••••••" autocomplete="current-password">
-        <div class="password-actions">
-          <button class="btn" id="password-confirm-btn">Confirmar</button>
-          <button class="btn secondary" id="password-cancel-btn">Cancelar</button>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    const input = overlay.querySelector('#password-input');
-    setTimeout(()=> input.focus(), 50);
-    function fechar(valor){
-      overlay.remove();
-      resolve(valor);
-    }
-    overlay.querySelector('#password-confirm-btn').addEventListener('click', ()=> fechar(input.value || null));
-    overlay.querySelector('#password-cancel-btn').addEventListener('click', ()=> fechar(null));
-    input.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter') fechar(input.value || null);
-      if(e.key === 'Escape') fechar(null);
-    });
-    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) fechar(null); });
-  });
-}
 
 function pedirDuracaoModal(){
   return new Promise((resolve)=>{
@@ -4485,58 +4403,31 @@ function podePerfil(acao, perfil){
   return !!lista && lista.indexOf(perfil) > -1;
 }
 
-// "essa pessoa pode fazer essa ação agora?" — vale por perfil do Google OU por
-// chave mestra já digitada nessa aba (que equivale a admin)
+// "essa pessoa pode fazer essa ação agora?" — vale pelo perfil do login do Google
 function temPermissao(acao){
-  if(getCachedPassword()) return true;
   return AUTH.logado && podePerfil(acao, AUTH.perfil);
 }
 
-/* Garante uma CREDENCIAL válida pra executar 'acao'. Devolve { idToken, senha } ou
-   null (a pessoa desistiu / não tem permissão). O contrato de retorno é o mesmo de
-   antes — objeto truthy pra seguir, null pra abortar — então todos os call sites
-   continuam com a mesma forma: "const cred = await requireAuth('x'); if(!cred) return;"
-   Ordem: login do Google com perfil suficiente > exceção da própria foto > chave
-   mestra em cache > pede a chave.
-   'proprioJogadorId' espelha a exceção do backend (excecaoPropriaFoto_): um jogador
+/* Garante uma CREDENCIAL válida pra executar 'acao'. Devolve { sessao } ou { idToken } ou
+   null (a pessoa não está logada / não tem permissão). Os call sites seguem a mesma forma:
+   "const cred = await requireAuth('x'); if(!cred) return;"
+   'proprioJogadorId' espelha a exceção do backend (excecaoPropriaFoto): um jogador
    pode trocar a PRÓPRIA foto sem ser organizador/admin. Sem isso, PERMISSOES_UI nega
-   updatePlayer pra 'jogador' e a tela pede a chave mestra até pra trocar a própria foto. */
+   updatePlayer pra 'jogador' e a tela não deixa nem trocar a própria foto. */
 async function requireAuth(acao, proprioJogadorId){
-  if(AUTH.logado && (podePerfil(acao, AUTH.perfil)
-      || (acao === 'updatePlayer' && proprioJogadorId && String(AUTH.jogadorId) === String(proprioJogadorId)))){
-    const cred = await credencialLogada(); // sessão do app; sem ela, o token do Google (app de antes da v14.0)
-    if(cred) return cred;
-  }
-
-  const cacheada = getCachedPassword();
-  if(cacheada) return { idToken: AUTH.idToken || '', senha: cacheada, sessao: AUTH.sessao || '' };
-
-  if(AUTH.logado && !podePerfil(acao, AUTH.perfil)){
-    if(!confirm('Seu perfil (' + (AUTH.perfil || 'jogador') + ') não tem permissão pra isso.\n\nSe você tem a chave mestra do administrador, pode usá-la agora. Quer digitar?')) return null;
-  }
-
-  const digitada = await pedirSenhaModal();
-  if(!digitada) return null;
-  if(!sheetReady){ setCachedPassword(digitada); updateAdminStatusBtn(); return { idToken:'', senha: digitada, sessao: AUTH.sessao || '' }; }
-  try{
-    const res = await fetch(SHEET_API_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'ping', senha: digitada })
-    });
-    const json = await res.json();
-    if(json && json.error){
-      alert('Senha incorreta.');
-      return null;
-    }
-  }catch(e){
-    console.error('Falha ao validar senha', e);
-    alert('Não foi possível confirmar a senha agora. Verifique sua conexão e tente de novo.');
+  if(!AUTH.logado){
+    mostrarToast('Entre com sua conta Google pra fazer isso.', 'erro');
     return null;
   }
-  setCachedPassword(digitada);
-  updateAdminStatusBtn();
-  return { idToken: AUTH.idToken || '', senha: digitada, sessao: AUTH.sessao || '' };
+  if(podePerfil(acao, AUTH.perfil)
+      || (acao === 'updatePlayer' && proprioJogadorId && String(AUTH.jogadorId) === String(proprioJogadorId))){
+    const cred = await credencialLogada(); // sessão do app; sem ela, o token do Google (app de antes da v14.0)
+    if(cred) return cred;
+    mostrarToast('Seu login expirou. Toque em "Entrar com Google" e tente de novo.', 'erro');
+    return null;
+  }
+  mostrarToast('Seu perfil (' + (AUTH.perfil || 'jogador') + ') não tem permissão pra isso.', 'erro');
+  return null;
 }
 
 /* ---------- feedback visual de salvamento — substitui o alert()/confirm() cinza do
@@ -4665,8 +4556,7 @@ atualizarBotaoSom();
 
 // Envia uma AÇÃO ESPECÍFICA (só a linha que mudou), não a planilha inteira de novo —
 // isso evita que uma gravação apague o que outra pessoa acabou de salvar.
-// 'cred' é o que o requireAuth() devolveu: { idToken, senha }. Os dois vão juntos e
-// o backend decide qual usar (chave mestra primeiro, token depois).
+// 'cred' é o que o requireAuth() devolveu: { sessao } ou { idToken } (o backend confere quem é a pessoa).
 let ULTIMA_RESPOSTA_POST = null; // JSON da última resposta OK (o financeiro lê o snapshot devolvido daqui)
 async function postAction(action, payload, cred){
   if(!sheetReady) return true;
@@ -4677,7 +4567,6 @@ async function postAction(action, payload, cred){
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action,
-        senha: (cred && cred.senha) || '',
         idToken: (cred && cred.idToken) || '',
         sessao: (cred && cred.sessao) || '',
         ...payload
@@ -4686,11 +4575,7 @@ async function postAction(action, payload, cred){
     const json = await res.json();
     if(json && json.error){
       const erro = json.error.toLowerCase();
-      if(erro.includes('senha') || erro.includes('chave mestra')){
-        clearCachedPassword();
-        updateAdminStatusBtn();
-        mostrarToast('Senha de administrador incorreta ou expirada. Tente salvar de novo para digitar a senha.', 'erro');
-      } else if(sessaoExpirou(json.error)){
+      if(sessaoExpirou(json.error)){
         tratarSessaoExpirada(); // o servidor não reconhece mais a sessão: sai e mostra o botão "Entrar com Google"
       } else if(erro.includes('login do google')){
         AUTH.idToken = ''; AUTH.exp = 0;
@@ -5045,7 +4930,7 @@ async function uploadPhoto(file, cred, fileIdAntigo){
     const res = await fetch(SHEET_API_URL, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', senha: (cred && cred.senha) || '', idToken: (cred && cred.idToken) || '', sessao: (cred && cred.sessao) || '' })
+      body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', idToken: (cred && cred.idToken) || '', sessao: (cred && cred.sessao) || '' })
     });
     const json = await res.json();
     if(json.error){ throw new Error(json.error); }
@@ -7495,7 +7380,7 @@ function timesMaisFortes(round, checkins, getPlayerFn){
 }
 
 function renderHistory(){
-  // nota total de cada time: só para admin (ou chave mestra) — renderHistory roda de novo a cada login/logout
+  // nota total de cada time: só para admin — renderHistory roda de novo a cada login/logout
   const notaDoTime = ehAdminAgora()
     ? (t, data)=> `<span class="history-nota" title="Nota total do time (ajuste do check-in daquele dia ou nota atual; sem nota conta 3)">${formatarNotaTotal(notaTotalDoTime(t.playerIds, data, CHECKINS, getPlayer))}</span>`
     : null;
@@ -8978,7 +8863,7 @@ async function desconfirmarTodosDoDia(aoProgresso = ()=>{}){
   }
   return { removidos, falhas };
 }
-// só organizador/admin logado (a chave mestra sozinha não desmarca check-in), com check-in aberto, destravado e com gente
+// só organizador/admin logado, com check-in aberto, destravado e com gente
 function atualizarBotaoDesconfirmarTodos(){
   const botao = document.getElementById('desconfirmar-todos-btn');
   if(!botao) return;

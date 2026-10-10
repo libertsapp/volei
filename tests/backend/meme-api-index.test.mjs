@@ -19,7 +19,8 @@ await ta('validarNomeFuncao aceita nomes de função e recusa caminhos/estranhos
 
 await ta('meme-api lê só segredos MEME_* (e o GOOGLE_CLIENT_ID compartilhado), no schema meme e no bucket fotos-meme', () => {
   const c = semComentarios(ler('supabase/functions/meme-api/index.ts'));
-  assert.match(c, /'MEME_ADMIN_PASSWORD'/);
+  assert.doesNotMatch(c, /'MEME_ADMIN_PASSWORD'/); // v16.0: sem chave mestra, a função nem pede o segredo
+  assert.match(c, /adminPassword: ''/);
   assert.match(c, /'MEME_ORIGENS_PERMITIDAS'/);
   assert.match(c, /'GOOGLE_CLIENT_ID'/);
   assert.match(c, /db:\s*\{\s*schema:\s*'meme'\s*\}/);
@@ -33,7 +34,9 @@ await ta('meme-api lê só segredos MEME_* (e o GOOGLE_CLIENT_ID compartilhado),
 await ta('a função do Terça continua sem qualquer menção ao Meme (produção intocada)', () => {
   const c = ler('supabase/functions/terca-api-teste/index.ts');
   assert.doesNotMatch(c, /meme/i);
-  assert.match(c, /'ADMIN_PASSWORD'/);
+  // v16.0: o Terça não lê mais a chave mestra (a Edge Function nem pede o segredo); só o Meme ainda usa
+  assert.doesNotMatch(c, /Deno\.env\.get\('ADMIN_PASSWORD'\)|env\('ADMIN_PASSWORD'\)|'ADMIN_PASSWORD'/);
+  assert.match(c, /adminPassword: ''/);
 });
 
 await ta('config.toml liga verify_jwt=false para as duas funções e .gitignore cobre backend/ gerado de qualquer função', () => {
