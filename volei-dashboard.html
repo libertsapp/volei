@@ -2857,7 +2857,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 16.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 16.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3588,6 +3588,7 @@ async function loginComGoogle(idToken){
     AUTH.sessao = json.sessao || '';                 // a partir daqui a identidade é a sessão do app (90 dias)
     AUTH.sessaoExpiraEm = json.sessaoExpiraEm || '';
     salvarSessaoAuth();
+    if(loginSemSessao(json)) avisarSessaoNaoCriada();
     atualizarStatusAuth();
     aplicarPermissoesUI();
     renderCheckinStatus();
@@ -3623,6 +3624,20 @@ async function credencialLogada(){
   if(AUTH.sessao) return { sessao: AUTH.sessao, idToken: '' };
   const token = await garantirTokenFresco();
   return token ? { sessao: '', idToken: token } : null;
+}
+/* O servidor confirmou o login (loginGoogle) mas NÃO devolveu a sessão do app: o login fica só com o token do Google,
+   que vence em ~1 h, e volta o "login expirou" + seletor de contas. O backend faz isso de propósito quando não consegue
+   criar a sessão (sessaoOuNada), pra não barrar o login — mas o problema ficou ESCONDIDO por 11 dias (a tabela sessoes
+   nunca tinha sido criada, 2026-10-11). Agora fica visível: admin/organizador recebem o aviso com a causa provável;
+   o jogador comum não vê termo técnico (só a linha na área da conta). Avisa uma vez por abertura do app. */
+function loginSemSessao(json){ return !!json && !json.error && !json.sessao; }
+let AVISOU_SEM_SESSAO = false;
+function avisarSessaoNaoCriada(){
+  console.error('Login confirmado pelo servidor, mas sem sessão do app: o login vai cair quando o token do Google vencer (~1 h).');
+  if(AVISOU_SEM_SESSAO) return;
+  if(AUTH.perfil !== 'admin' && AUTH.perfil !== 'organizador') return;
+  AVISOU_SEM_SESSAO = true;
+  mostrarToast('O servidor não criou a sessão do app: seu login vai cair em cerca de 1 hora. Causa provável: tabela "sessoes" faltando no banco — avise o desenvolvedor.', 'erro', 12000);
 }
 function aplicarDadosDaConta(json){
   const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
@@ -3665,6 +3680,7 @@ async function sincronizarContaComServidor(){
       return;
     }
     if(json) aplicarDadosDaConta(json);
+    if(corpo.action === 'loginGoogle' && loginSemSessao(json)) avisarSessaoNaoCriada();
   }catch(e){
     console.error('Falha ao sincronizar a conta (silencioso; tenta de novo ao reabrir)', e);
   }
@@ -4244,6 +4260,7 @@ function abrirAreaDaConta(){
       <p style="margin:0 0 4px;">${escapeHtml(AUTH.email || '')}</p>
       <p style="margin:0 0 4px;color:var(--muted);font-size:13px;">Perfil: ${escapeHtml((AUTH.perfil || 'jogador').toUpperCase())}</p>
       ${validade ? `<p style="margin:0 0 12px;color:var(--muted);font-size:13px;">${validade}</p>` : ''}
+      ${AUTH.logado && !AUTH.sessao ? `<p style="margin:0 0 12px;color:var(--ball-yellow);font-size:13px;">⚠️ Login sem sessão do app: neste aparelho ele vale só cerca de 1 hora. Toque em Sair e entre com Google de novo; se continuar, avise o organizador.</p>` : ''}
       <div class="password-actions">
         <button class="btn danger" data-acao="sair">Sair</button>
         ${AUTH.sessao ? '<button class="btn secondary" data-acao="todos">Sair de todos os aparelhos</button>' : ''}
@@ -4473,7 +4490,7 @@ function esconderCarregando(){
   if(LOADING_DEPTH === 0) document.getElementById('loading-overlay').style.display = 'none';
 }
 
-function mostrarToast(mensagem, tipo){
+function mostrarToast(mensagem, tipo, duracaoMs){
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   tocarSom(tipo === 'erro' ? 'erro' : 'sucesso');
@@ -4481,7 +4498,7 @@ function mostrarToast(mensagem, tipo){
   toast.textContent = (tipo === 'erro' ? '⚠️ ' : '✅ ') + mensagem;
   container.appendChild(toast);
   requestAnimationFrame(()=> toast.classList.add('visivel'));
-  const duracao = tipo === 'erro' ? 4500 : 3000; // erro fica mais tempo — mensagem costuma ser mais longa
+  const duracao = duracaoMs || (tipo === 'erro' ? 4500 : 3000); // erro fica mais tempo — mensagem costuma ser mais longa
   setTimeout(()=>{
     toast.classList.remove('visivel');
     setTimeout(()=> toast.remove(), 300); // espera a transição de saída terminar antes de remover do DOM

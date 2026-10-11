@@ -22,7 +22,7 @@ function amb({ auth, garantir = async () => null, respostas = [], relogio = { ms
     const salvarSessaoAuth = () => {}; const atualizarStatusAuth = () => {}; const aplicarPermissoesUI = () => {}; const renderAll = () => {};
     const sairDaConta = () => { marcarSaida(); AUTH.logado = false; AUTH.sessao = ''; };
     ${bloco}
-    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor, textoValidadeSessao, sairDeTodosOsAparelhos, sincronizarContaSeFazTempo };`);
+    return { credencialLogada, sessaoExpirou, tratarSessaoExpirada, sincronizarContaComServidor, textoValidadeSessao, sairDeTodosOsAparelhos, sincronizarContaSeFazTempo, loginSemSessao, avisarSessaoNaoCriada };`);
   const api = F(auth, garantir, respostas, posts, toasts, () => { saiu++; }, DateFalso);
   return { ...api, posts, toasts, saidas: () => saiu, auth };
 }
@@ -104,5 +104,32 @@ function amb({ auth, garantir = async () => null, respostas = [], relogio = { ms
   a = amb({ auth: { logado: true, sessao: '', idToken: 'G', exp: Math.floor(Date.now() / 1000) + 1800 } });
   a.sincronizarContaSeFazTempo();
   assert.equal(a.posts.length, 0);
+
+  // login confirmado SEM sessão (tabela sessoes faltando, bug real de 2026-10-11): detectado e avisado
+  assert.equal(a.loginSemSessao({ status: 'ok', perfil: 'admin' }), true);
+  assert.equal(a.loginSemSessao({ status: 'ok', perfil: 'admin', sessao: 'S9' }), false);
+  assert.equal(a.loginSemSessao({ error: 'inválido' }), false, 'erro de login não é "sem sessão"');
+  assert.equal(a.loginSemSessao(null), false);
+  // admin/organizador: um toast só por abertura do app, mesmo chamando várias vezes
+  for (const perfil of ['admin', 'organizador']) {
+    const x = amb({ auth: { logado: true, perfil } });
+    x.avisarSessaoNaoCriada(); x.avisarSessaoNaoCriada();
+    assert.equal(x.toasts.length, 1, perfil);
+    assert.match(x.toasts[0], /sessoes/);
+  }
+  // jogador comum: nenhum aviso técnico
+  const j = amb({ auth: { logado: true, perfil: 'jogador' } });
+  j.avisarSessaoNaoCriada();
+  assert.equal(j.toasts.length, 0);
+  // migração silenciosa (token do Google ainda válido -> loginGoogle) que volta sem sessão: avisa o admin
+  a = amb({ auth: { logado: true, perfil: 'admin', sessao: '', idToken: 'G', exp: Math.floor(Date.now() / 1000) + 1800 }, respostas: [{ status: 'ok', perfil: 'admin', jogadorId: '' }] });
+  await a.sincronizarContaComServidor();
+  assert.equal(a.posts[0].action, 'loginGoogle');
+  assert.equal(a.toasts.length, 1);
+  // a mesma migração COM sessão: guarda a sessão e não avisa
+  a = amb({ auth: { logado: true, perfil: 'admin', sessao: '', idToken: 'G', exp: Math.floor(Date.now() / 1000) + 1800 }, respostas: [{ status: 'ok', perfil: 'admin', jogadorId: '', sessao: 'NOVA', sessaoExpiraEm: '2027-01-09T00:00:00.000Z' }] });
+  await a.sincronizarContaComServidor();
+  assert.equal(a.auth.sessao, 'NOVA');
+  assert.equal(a.toasts.length, 0);
   console.log('ok — sessão do app no front');
 })().catch(e => { console.error(e); process.exit(1); });
