@@ -110,4 +110,11 @@ t('liga ganha cidade e uf (ajuste próprio, idempotente)', () => {
   assert.match(liga, /update liga\.grupos set cidade = 'Santa Luzia', uf = 'MG' where id in \('terca', 'meme'\);/);
 });
 
+t('criar_grupo trava por e-mail dentro da transação (dois cliques juntos não furam o limite de 1 grupo)', () => {
+  const corpo = sql.match(/create or replace function criar_grupo\([\s\S]*?\n\$\$;/)[0];
+  const trava = corpo.indexOf("perform pg_advisory_xact_lock(hashtext('criar_grupo:' || v_email));");
+  assert.ok(trava > -1, 'sem trava por e-mail');
+  assert.ok(trava < corpo.indexOf('select count(*) from grupos where dono_email'), 'a trava precisa vir antes da contagem');
+});
+
 fim();

@@ -585,6 +585,9 @@ declare
   v_email text := lower(btrim(p_dono_email));
   v_max int;
 begin
+  -- dois "Criar meu grupo" quase juntos com o mesmo e-mail (clique duplo, duas abas): sem esta trava as duas transações
+  -- contariam 0 grupos e as duas criariam. A trava vale até o fim da transação e só segura pedidos do MESMO e-mail.
+  perform pg_advisory_xact_lock(hashtext('criar_grupo:' || v_email));
   select max_grupos_por_email into v_max from limites limit 1;
   if v_apelido !~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$' or v_apelido ~ '--' then
     raise exception 'apelido_invalido';
