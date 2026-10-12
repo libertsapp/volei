@@ -22,8 +22,9 @@ function ambiente(respostas) {
   const setTimeout = (fn, ms) => { esperas.push(ms); fn(); };
   const F = new Function('fetch', 'localStorage', 'setTimeout', `
     const SHEET_API_URL = 'x'; const console = { error(){} };
-    let DATA, SETTINGS = {}, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO, JOGO_ATIVO;
+    let DATA, SETTINGS = {}, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO, JOGO_ATIVO, LIGA;
     const finNormalizar = f => f || {}; const reconstituirConvidadosDosCheckins = () => {};
+    const amiNormalizar = l => l || {}; // amistosos (v17.0): aplicarDados guarda o bloco "liga
     const jogosDoDia = () => [{ numero: 1 }];
     ${bloco}
     return { buscarDadosComNovasTentativas, salvarCopiaDosDados, lerCopiaDosDados, aplicarDados, dados: () => ({ DATA, CHECKINS }), chaveCopia: CHAVE_COPIA_DADOS };`);
