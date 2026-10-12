@@ -5,7 +5,8 @@ import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarRepoLigaMemoria } from '../../backend/repo-liga-memoria.js';
 import {
   statusEfetivo, inicioDoJogo, mapearLiga, lerBlocoLiga, ligaVazia,
-  convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso
+  convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso,
+  entrarAmistoso, sairAmistoso, confirmarEscalado, desconfirmarEscalado, travarEscalacao, destravarEscalacao
 } from '../../backend/amistosos.js';
 
 const GRUPOS = [{ id: 'terca', nome: 'Vôlei de Terça', cor: '#ffd700' }, { id: 'meme', nome: 'Vôlei Meme Brasil', cor: '#b3790a' }, { id: 'outro', nome: 'Outro' }];
@@ -227,6 +228,78 @@ await ta('recadoAmistoso: grava no histórico; texto vazio é recusado; corta em
   const r = await recadoAmistoso(m.meme, { id, texto: 'x'.repeat(600) }, ORG);
   const msg = r.liga.amistosos.find((x) => x.id === id).mensagens.at(-1);
   assert.deepEqual([msg.tipo, msg.grupo, msg.texto.length, msg.autorNome], ['recado', 'meme', 500, 'Org']);
+});
+
+async function marcado(m, vagas = 6) {
+  const r = await convidarGrupo(m.terca, { ...CONVITE, vagasPorGrupo: vagas }, ORG);
+  const id = r.liga.amistosos[0].id;
+  await responderConvite(m.meme, { id, resposta: 'aceitar' }, ORG);
+  return id;
+}
+const minha = (r, id) => r.liga.amistosos.find((x) => x.id === id).minhaEscalacao;
+
+await ta('entrarAmistoso: só depois de marcado; copia nome (apelido) e foto do jogador do grupo; não repete', async () => {
+  const m = mundo();
+  const r0 = await convidarGrupo(m.terca, CONVITE, ORG);
+  const idPendente = r0.liga.amistosos[0].id;
+  assert.deepEqual(await entrarAmistoso(m.terca, { id: idPendente, jogadorId: 'p2' }), { error: 'A lista só abre depois que o amistoso é marcado.' });
+  const id = await marcado(m);
+  const r = await entrarAmistoso(m.terca, { id, jogadorId: 'p2' });
+  assert.deepEqual(minha(r, id).jogadores.map((j) => [j.jogadorId, j.nome, j.foto, j.status]), [['p2', 'Bru', 'https://exemplo.com/b.jpg', 'interessado']]);
+  assert.deepEqual(await entrarAmistoso(m.terca, { id, jogadorId: 'p2' }), { error: 'Essa pessoa já está na lista.' });
+});
+
+await ta('entrarAmistoso: jogador inexistente, convidado ou removido é recusado', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  assert.deepEqual(await entrarAmistoso(m.terca, { id, jogadorId: 'inventado' }), { error: 'Jogador não encontrado no seu grupo.' });
+  assert.deepEqual(await entrarAmistoso(m.terca, { id, jogadorId: 'convidado:LUCAS#ab12' }), { error: 'Jogador não encontrado no seu grupo.' });
+  await m.terca.repo.atualizarJogador('p1', { removido: true });
+  assert.deepEqual(await entrarAmistoso(m.terca, { id, jogadorId: 'p1' }), { error: 'Jogador não encontrado no seu grupo.' });
+});
+
+await ta('isolamento: cada servidor só mexe na escalação do próprio grupo', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  await entrarAmistoso(m.terca, { id, jogadorId: 'p1' });
+  await entrarAmistoso(m.meme, { id, jogadorId: 'p1' }); // "p1" do Meme é outra pessoa (outro schema)
+  assert.deepEqual(m.repoLiga.tabelas.escalacoes.map((e) => e.grupo).sort(), ['meme', 'terca']);
+  await sairAmistoso(m.meme, { id, jogadorId: 'p1' });
+  assert.deepEqual(m.repoLiga.tabelas.escalacoes.map((e) => e.grupo), ['terca']);
+});
+
+await ta('confirmar/desconfirmar: respeita o limite de vagas; o adversário passa a ver o confirmado', async () => {
+  const m = mundo();
+  const id = await marcado(m, 1);
+  await entrarAmistoso(m.terca, { id, jogadorId: 'p1' });
+  await entrarAmistoso(m.terca, { id, jogadorId: 'p2' });
+  assert.deepEqual(await confirmarEscalado(m.terca, { id, jogadorId: 'p9' }), { error: 'Essa pessoa não está na lista.' });
+  assert.equal((await confirmarEscalado(m.terca, { id, jogadorId: 'p1' })).status, 'ok');
+  assert.deepEqual(await confirmarEscalado(m.terca, { id, jogadorId: 'p2' }), { error: 'Já tem 1 confirmados (limite 1).' });
+  const visto = (await lerBlocoLiga(m.meme)).amistosos.find((x) => x.id === id).escalacaoAdversario;
+  assert.deepEqual(visto, { confirmados: [{ jogadorId: 'p1', nome: 'Ana', foto: '' }], interessados: 1 });
+  const r = await desconfirmarEscalado(m.terca, { id, jogadorId: 'p1' });
+  assert.equal(minha(r, id).jogadores.find((j) => j.jogadorId === 'p1').status, 'interessado');
+});
+
+await ta('travar: ninguém entra nem sai, mas o organizador ainda confirma; destravar libera', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  await entrarAmistoso(m.terca, { id, jogadorId: 'p1' });
+  const r = await travarEscalacao(m.terca, { id });
+  assert.equal(minha(r, id).travada, true);
+  assert.deepEqual(await entrarAmistoso(m.terca, { id, jogadorId: 'p2' }), { error: 'A lista do seu grupo está travada.' });
+  assert.deepEqual(await sairAmistoso(m.terca, { id, jogadorId: 'p1' }), { error: 'A lista do seu grupo está travada.' });
+  assert.equal((await confirmarEscalado(m.terca, { id, jogadorId: 'p1' })).status, 'ok');
+  assert.equal((await entrarAmistoso(m.meme, { id, jogadorId: 'p2' })).status, 'ok'); // a trava do Terça não trava o Meme
+  await destravarEscalacao(m.terca, { id });
+  assert.equal((await entrarAmistoso(m.terca, { id, jogadorId: 'p2' })).status, 'ok');
+});
+
+await ta('sairAmistoso: quem não está na lista recebe erro', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  assert.deepEqual(await sairAmistoso(m.terca, { id, jogadorId: 'p1' }), { error: 'Essa pessoa não está na lista.' });
 });
 
 fim();

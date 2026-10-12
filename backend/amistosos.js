@@ -221,3 +221,76 @@ export async function recadoAmistoso(deps, b, auth) {
   await registrarMensagem(deps, r.amistoso, 'recado', b.texto, auth);
   return respostaOk(deps);
 }
+
+// ---------------------------------------------------------------- convocação
+// lista aberta de interessados ("Vou jogar") + o organizador confirma quem joga. Separada da rodada: não toca em checkins.
+async function carregarParaEscalacao(deps, b) {
+  if (semLiga(deps)) return { erro: MSG_SEM_LIGA };
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return r;
+  if (r.amistoso.status !== 'marcado') return { erro: 'A lista só abre depois que o amistoso é marcado.' };
+  const travada = r.travas.some((x) => x.grupo === deps.liga.grupoId);
+  return { ...r, travada };
+}
+
+export async function entrarAmistoso(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  if (r.travada) return { error: 'A lista do seu grupo está travada.' };
+  // só jogador de verdade do PRÓPRIO grupo (nem convidado, nem removido): o id vem do navegador e não é confiável
+  const jogador = mapearJogadores(await deps.repo.lerJogadores()).find((p) => p.id === texto(b.jogadorId));
+  if (!jogador) return { error: 'Jogador não encontrado no seu grupo.' };
+  const entrou = await deps.liga.repo.inserirEscalacao({
+    id: gerarId(deps), amistoso_id: r.amistoso.id, grupo: deps.liga.grupoId, jogador_id: jogador.id,
+    nome: jogador.apelido || jogador.nome, foto_url: jogador.foto || null, status: 'interessado', criado_em: agoraDe(deps).toISOString()
+  });
+  if (!entrou) return { error: 'Essa pessoa já está na lista.' };
+  return respostaOk(deps);
+}
+
+export async function sairAmistoso(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  if (r.travada) return { error: 'A lista do seu grupo está travada.' };
+  if (!(await deps.liga.repo.removerEscalacao(r.amistoso.id, deps.liga.grupoId, texto(b.jogadorId)))) return { error: 'Essa pessoa não está na lista.' };
+  return respostaOk(deps);
+}
+
+// a trava não impede o organizador de confirmar: travar é justamente o momento de fechar a escalação
+export async function confirmarEscalado(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  const { grupoId } = deps.liga;
+  const meus = r.escalacoes.filter((e) => e.grupo === grupoId);
+  const alvo = meus.find((e) => e.jogador_id === texto(b.jogadorId));
+  if (!alvo) return { error: 'Essa pessoa não está na lista.' };
+  if (alvo.status === 'confirmado') return respostaOk(deps); // confirmar duas vezes não é erro
+  const vagas = Number(r.amistoso.vagas_por_grupo) || 0;
+  const confirmados = meus.filter((e) => e.status === 'confirmado').length;
+  if (confirmados >= vagas) return { error: 'Já tem ' + confirmados + ' confirmados (limite ' + vagas + ').' };
+  await deps.liga.repo.atualizarEscalacao(r.amistoso.id, grupoId, alvo.jogador_id, { status: 'confirmado' });
+  return respostaOk(deps);
+}
+
+export async function desconfirmarEscalado(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  if (!(await deps.liga.repo.atualizarEscalacao(r.amistoso.id, deps.liga.grupoId, texto(b.jogadorId), { status: 'interessado' }))) {
+    return { error: 'Essa pessoa não está na lista.' };
+  }
+  return respostaOk(deps);
+}
+
+export async function travarEscalacao(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  await deps.liga.repo.definirTrava(r.amistoso.id, deps.liga.grupoId, true);
+  return respostaOk(deps);
+}
+
+export async function destravarEscalacao(deps, b) {
+  const r = await carregarParaEscalacao(deps, b);
+  if (r.erro) return { error: r.erro };
+  await deps.liga.repo.definirTrava(r.amistoso.id, deps.liga.grupoId, false);
+  return respostaOk(deps);
+}
