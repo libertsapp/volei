@@ -37,7 +37,7 @@ const pessoa = (e) => ({ jogadorId: texto(e.jogador_id), nome: texto(e.nome), fo
 
 export function mapearLiga(bruto, grupoId, agora) {
   const grupos = (bruto.grupos || []).filter((g) => g.ativo !== false)
-    .map((g) => ({ id: texto(g.id), nome: texto(g.nome), logoUrl: texto(g.logo_url), cor: texto(g.cor) }));
+    .map((g) => ({ id: texto(g.id), nome: texto(g.nome), logoUrl: texto(g.logo_url), cor: texto(g.cor), cidade: texto(g.cidade), uf: texto(g.uf) }));
   const todos = (bruto.amistosos || []).filter((a) => participa(a, grupoId)).map((a) => ({ a, status: statusEfetivo(a, agora) }));
   const ativos = todos.filter((x) => ATIVOS.includes(x.status));
   // histórico: os 50 mais recentes por data do jogo (o resto continua no banco, só não vai pro app)
