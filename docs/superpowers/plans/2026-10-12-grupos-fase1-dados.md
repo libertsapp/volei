@@ -1166,6 +1166,7 @@ t('liga ganha cidade e uf (ajuste próprio, idempotente)', () => {
   const liga = ler('sql/liga/ajuste-1-cidade.sql');
   assert.match(liga, /alter table liga\.grupos add column if not exists cidade text;/);
   assert.match(liga, /alter table liga\.grupos add column if not exists uf char\(2\);/);
+  assert.match(liga, /update liga\.grupos set cidade = 'Santa Luzia', uf = 'MG' where id in \('terca', 'meme'\);/);
 });
 ```
 
@@ -1237,11 +1238,10 @@ export function validarCadastroGrupo({ nome, apelido, cidade, uf, cor } = {}) {
 ```sql
 -- Amistosos: cidade e UF de cada grupo, para o convite mostrar primeiro os adversários da mesma cidade
 -- (grupos independentes, spec 2026-10-12). Idempotente. QUEM RODA: o usuário, antes do sql/grupos/schema-grupos.sql.
--- Depois de rodar, informe a cidade do Terça e do Meme com:
---   update liga.grupos set cidade = 'Nome da Cidade', uf = 'UF' where id = 'terca';
---   update liga.grupos set cidade = 'Nome da Cidade', uf = 'UF' where id = 'meme';
 alter table liga.grupos add column if not exists cidade text;
 alter table liga.grupos add column if not exists uf char(2);
+-- Terça e Meme são de Santa Luzia/MG (informado pelo usuário em 2026-10-12)
+update liga.grupos set cidade = 'Santa Luzia', uf = 'MG' where id in ('terca', 'meme');
 ```
 
 - [ ] **Step 5: Acrescentar `criar_grupo` no fim de `sql/grupos/schema-grupos.sql`**
@@ -1385,4 +1385,4 @@ Expected: nenhuma mudança.
 
 - [ ] **Step 3: Relatório ao usuário**
 
-Explicar que a Fase 1 está pronta e testada, mas **nada foi rodado no Supabase ainda**: o SQL (`sql/liga/ajuste-1-cidade.sql` e depois `sql/grupos/schema-grupos.sql`) só deve ser rodado quando a Fase 2 (a função `grupos-api`) estiver pronta, junto com expor o schema `grupos`. Pedir a cidade/UF do Terça e do Meme para o `update` da liga. Próximo passo: plano da Fase 2 (backend: `grupos-api`, `verificarApelido`/`criarGrupo`, tetos, fotos por grupo).
+Explicar que a Fase 1 está pronta e testada, mas **nada foi rodado no Supabase ainda**: o SQL (`sql/liga/ajuste-1-cidade.sql` e depois `sql/grupos/schema-grupos.sql`) só deve ser rodado quando a Fase 2 (a função `grupos-api`) estiver pronta, junto com expor o schema `grupos`. A cidade do Terça e do Meme (Santa Luzia/MG) já vai no próprio `sql/liga/ajuste-1-cidade.sql`. Próximo passo: plano da Fase 2 (backend: `grupos-api`, `verificarApelido`/`criarGrupo`, tetos, fotos por grupo).
