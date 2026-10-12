@@ -46,4 +46,15 @@ await ta('config.toml liga verify_jwt=false para as duas funções e .gitignore 
   assert.match(ler('.gitignore'), /^supabase\/functions\/\*\/backend\/\r?$/m);
 });
 
+await ta('amistosos: cada função usa o schema compartilhado "liga" com o PRÓPRIO grupoId', () => {
+  const meme = semComentarios(ler('supabase/functions/meme-api/index.ts'));
+  const terca = semComentarios(ler('supabase/functions/terca-api-teste/index.ts'));
+  for (const c of [meme, terca]) {
+    assert.match(c, /db:\s*\{\s*schema:\s*'liga'\s*\}/);
+    assert.match(c, /criarRepoLigaSupabase\(clienteLiga\)/);
+  }
+  assert.match(meme, /grupoId:\s*'meme'/);
+  assert.match(terca, /grupoId:\s*'terca'/);
+});
+
 fim();

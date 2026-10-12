@@ -9,6 +9,7 @@ import { criarRepoSupabase } from './backend/repo-supabase.js';
 import { criarArmazenamentoSupabase } from './backend/armazenamento-supabase.js';
 import { criarVerificadorGoogle } from './backend/auth.js';
 import { criarLimitador } from './backend/limitador.js';
+import { criarRepoLigaSupabase } from './backend/repo-liga-supabase.js';
 
 const NOMES = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_CLIENT_ID', 'MEME_ORIGENS_PERMITIDAS'];
 const env = (nome: string): string => (Deno.env.get(nome) ?? '').trim();
@@ -28,6 +29,12 @@ if (faltando.length) {
   });
   const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   const repo = criarRepoSupabase(cliente);
+  // amistosos entre grupos: segundo cliente apontando pro schema COMPARTILHADO "liga" (o mesmo do Terça). Se o SQL da liga
+  // ainda não rodou, o GET devolve o bloco vazio e o resto do app segue normal (nunca derrubar o app por uma peça nova).
+  const clienteLiga = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: 'liga' }
+  });
   // notificações push (ajuste 11): chaves VAPID compartilhadas com o Terça (mesma ideia do GOOGLE_CLIENT_ID — só a
   // origem importa pro navegador, a chave em si não precisa ser por app). Opcional de propósito: sem configurar,
   // o resto da função continua funcionando normal, só "enviarNotificacao" fica indisponível.
@@ -46,6 +53,7 @@ if (faltando.length) {
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
     enviarPush,
+    liga: { repo: criarRepoLigaSupabase(clienteLiga), grupoId: 'meme' },
     avisar: (...a: unknown[]) => console.error(...a),
     ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco; a mensagem real vai só para o log
     registrar
