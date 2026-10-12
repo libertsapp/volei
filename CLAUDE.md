@@ -119,6 +119,14 @@ exceção específica no backend (`excecaoPropriaFoto_`).
 sequência de presença, comparação com a média do grupo, melhor/pior parceiro), troca de foto
 (apaga a antiga do Drive automaticamente) e vínculo com jogador — igual nos dois apps.
 
+## Amistosos entre grupos (v17.0 no Terça, 2026-10-12)
+
+Spec: `docs/superpowers/specs/2026-10-12-amistosos-entre-grupos-design.md`. Schema **compartilhado** `liga` no mesmo
+projeto Supabase (`sql/liga/schema-liga.sql`, roda uma vez só, sem versão Meme; "liga" precisa estar em Exposed schemas).
+Backend: `backend/amistosos.js` + `repo-liga-*.js`, injetados em `criarHandler({ liga: { repo, grupoId } })`. Cada Edge
+Function só altera o lado do próprio grupo. Grupo novo = linha em `liga.grupos` + função com o `grupoId` dele. Push de
+"amistoso marcado" só vai para os inscritos do grupo que aceitou (as inscrições não são compartilhadas).
+
 ## Erros já vividos neste projeto (não repetir)
 
 - **Cache de GET no Apps Script**: nunca confiar em `fetch()` simples pra
