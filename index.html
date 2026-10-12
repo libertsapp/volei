@@ -1353,6 +1353,25 @@
     background:var(--glass-bg);border:1px solid rgba(255,215,0,0.6);font-size:14px;
     box-shadow:0 0 14px rgba(255,215,0,0.18);
   }
+  /* ===== AMISTOSOS ===== */
+  .ami-subtitulo{font-size:15px;margin:18px 0 8px;color:var(--chalk);}
+  .ami-vazio{font-size:13px;color:var(--muted);margin:4px 0 10px;}
+  .ami-cartao{background:var(--glass-bg);border:1px solid rgba(255,255,255,0.08);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:14px;}
+  .ami-topo{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .ami-status{font-size:12px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,0.08);color:var(--chalk-dim);}
+  .ami-status-marcado{background:rgba(0,200,120,0.18);color:var(--chalk);}
+  .ami-status-pendente,.ami-status-aguardando_confirmacao{background:rgba(255,215,0,0.18);color:var(--chalk);}
+  .ami-quando,.ami-info{font-size:13px;color:var(--chalk-dim);margin-top:4px;}
+  .ami-placar{font-size:16px;margin:8px 0;}
+  .ami-escalacao{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);}
+  .ami-escalacao-titulo{font-size:13px;color:var(--muted);margin:8px 0 4px;}
+  .ami-jogador{display:flex;align-items:center;gap:8px;padding:3px 0;}
+  .ami-jogador .btn{padding:2px 8px;font-size:12px;}
+  .ami-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .ami-msgs{margin-top:8px;font-size:13px;}
+  .ami-msgs summary{cursor:pointer;color:var(--muted);}
+  .ami-msg{padding:3px 0;color:var(--chalk-dim);}
+  .ami-retro{font-size:14px;margin-bottom:6px;}
   .ponto-rascunho{flex:none;width:10px;height:10px;border-radius:50%;background:var(--ball-yellow);animation:pulso-amarelo 1.8s infinite;}
   /* destaque rápido no cartão do rascunho quando a pessoa chega pelo aviso */
   @keyframes destaque-rascunho{0%,60%{box-shadow:0 0 0 3px var(--ball-yellow);}100%{box-shadow:0 0 0 0 transparent;}}
@@ -1854,6 +1873,7 @@
       <button data-view="ranking">Ranking</button>
       <button data-view="hall">Hall da Fama 🏛️</button>
       <button data-view="historico">Histórico</button>
+      <button data-view="amistosos" id="nav-amistosos-btn" style="display:none;">Amistosos 🤝<span class="badge-count" id="nav-amistosos-badge" style="display:none;"></span></button>
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
@@ -1903,6 +1923,7 @@
         <button class="mais-item" data-view="jogadores"><span class="mais-item-icon">👥</span>Jogadores</button>
         <button class="mais-item" data-view="hall"><span class="mais-item-icon">🏛️</span>Hall da Fama</button>
         <button class="mais-item" data-view="historico"><span class="mais-item-icon">📜</span>Histórico</button>
+        <button class="mais-item" data-view="amistosos" id="mais-amistosos-btn" style="display:none;"><span class="mais-item-icon">🤝</span>Amistosos<span class="badge-count" id="mais-amistosos-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
@@ -1954,6 +1975,17 @@
       </div>
       <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
         🔔 <strong id="usuarios-pendentes-texto"></strong>
+      </div>
+      <!-- amistosos: um aviso pro organizador (tem algo pra responder) e um pra todos (amistoso marcado) — ver atualizarAvisosAmistosos -->
+      <div id="amistosos-alerta" class="rascunho-alerta" style="display:none;" role="button" tabindex="0" title="Toque para responder">
+        <span class="ponto-rascunho" aria-hidden="true"></span>
+        <strong id="amistosos-alerta-texto"></strong>
+        <span class="aovivo-alerta-ir">Responder ›</span>
+      </div>
+      <div id="amistoso-marcado-alerta" class="rascunho-alerta" style="display:none;" role="button" tabindex="0" title="Toque para ver o amistoso">
+        <span aria-hidden="true">🤝</span>
+        <strong id="amistoso-marcado-texto"></strong>
+        <span class="aovivo-alerta-ir">Vou jogar ›</span>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Resumo da semana</button>
@@ -2354,6 +2386,21 @@
       <div style="text-align:center;margin-top:14px;">
         <button class="btn secondary" id="history-load-more-btn" style="display:none;">Carregar rodadas mais antigas</button>
       </div>
+    </section>
+
+    <section id="view-amistosos">
+      <h2 class="section-title">🤝 Amistosos</h2>
+      <p id="ami-indisponivel" class="ami-vazio" style="display:none;">Amistosos ainda não estão disponíveis neste servidor.</p>
+      <div id="ami-acoes-topo" style="display:none;margin-bottom:14px;"><button type="button" class="btn" id="ami-convidar-btn">+ Convidar grupo</button></div>
+      <div id="ami-esperando-bloco" role="group" aria-label="Esperando resposta">
+        <h3 class="ami-subtitulo">Esperando resposta</h3>
+        <div id="ami-esperando"></div>
+      </div>
+      <h3 class="ami-subtitulo">Marcados</h3>
+      <div id="ami-marcados"></div>
+      <h3 class="ami-subtitulo">Histórico de confrontos</h3>
+      <div id="ami-retrospecto"></div>
+      <div id="ami-historico"></div>
     </section>
 
     <section id="view-hall">
@@ -2857,7 +2904,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 16.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 17.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2877,6 +2924,8 @@ let JOGO_ATIVO = 1; // 1 ou 2 — a aba do check-in; reaproveitado como "chave d
 // Controle Financeiro: espelho do que o backend devolve em "financeiro" (formato no plano). Nunca é editado à mão:
 // cada ação devolve o estado completo e ele é substituído inteiro em finPost().
 let FINANCEIRO = finNormalizar(null);
+// amistosos entre grupos: bloco "liga" do servidor (ver <amistosos-puro>); vazio até a primeira leitura
+let LIGA = { disponivel: false, grupoId: '', grupos: [], amistosos: [] };
 let CHECKINS = [];
 let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a uma conta (qualquer perfil), sem e-mail (ver perfisPublicos_ no .gs)
 
@@ -2931,7 +2980,19 @@ const PERMISSOES_UI = {
   enviarNotificacao:   ['organizador','admin'],
   moverCheckin:       ['organizador','admin'],
   salvarJogo2:        ['organizador','admin'],
-  removerJogo2:       ['organizador','admin']
+  removerJogo2:       ['organizador','admin'],
+  // amistosos entre grupos (entrar/sair são como o check-in: só login, sem entrada aqui)
+  convidarGrupo:        ['organizador','admin'],
+  responderConvite:     ['organizador','admin'],
+  cancelarAmistoso:     ['organizador','admin'],
+  recadoAmistoso:       ['organizador','admin'],
+  confirmarEscalado:    ['organizador','admin'],
+  desconfirmarEscalado: ['organizador','admin'],
+  travarEscalacao:      ['organizador','admin'],
+  destravarEscalacao:   ['organizador','admin'],
+  lancarPlacar:         ['organizador','admin'],
+  confirmarPlacar:      ['organizador','admin'],
+  contestarPlacar:      ['organizador','admin']
 };
 
 // <financeiro-puro>
@@ -3184,6 +3245,63 @@ function finResumoFechamento(fin, data){
   ].join('\n');
 }
 // </financeiro-puro>
+// <amistosos-puro>
+/* Amistosos entre grupos — cálculos PUROS (sem DOM, DATA nem rede): recebem o bloco "liga" que o servidor manda e
+   devolvem dados prontos pra tela. Testados em tests/amistosos-puro.test.js extraindo este bloco do HTML. */
+const AMI_ATIVOS = ['pendente', 'marcado', 'aguardando_confirmacao'];
+function amiNormalizar(l){
+  const x = l || {};
+  return { disponivel: !!x.disponivel, grupoId: x.grupoId || '', grupos: x.grupos || [], amistosos: x.amistosos || [] };
+}
+function amiNomeGrupo(liga, id){ const g = liga.grupos.find(g => g.id === id); return g ? g.nome : id; }
+function amiDataCurta(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
+// "hoje" no Brasil (-03:00), igual ao backend: às 22h de Brasília o UTC já virou o dia
+function amiHojeBrasil(agoraMs){ return new Date(agoraMs - 3 * 3600000).toISOString().slice(0, 10); }
+// o que ESTE grupo precisa responder: convite/contraproposta na vez dele, ou placar lançado pelo adversário
+function amiPendencias(liga){
+  return liga.amistosos.filter(a =>
+    (a.status === 'pendente' && a.vezDe === liga.grupoId) ||
+    (a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo && a.placarLancadoPorGrupo !== liga.grupoId));
+}
+function amiTextoAviso(liga){
+  const p = amiPendencias(liga);
+  if(!p.length) return '';
+  if(p.length > 1) return p.length + ' amistosos esperando resposta';
+  const a = p[0], adv = amiNomeGrupo(liga, a.adversario), quando = amiDataCurta(a.data);
+  if(a.status === 'aguardando_confirmacao') return adv + ' lançou o placar do amistoso de ' + quando + ' — confirme';
+  // pendente na NOSSA vez mas fomos nós que convidamos = o outro grupo devolveu com outra data
+  if(a.convidante === liga.grupoId) return adv + ' propôs outra data pro amistoso: ' + quando;
+  return adv + ' convidou vocês pra um amistoso em ' + quando;
+}
+const amiPorDataHora = (x, y) => (x.data + x.horario < y.data + y.horario ? -1 : x.data + x.horario > y.data + y.horario ? 1 : 0);
+function amiProximoMarcado(liga, hojeIso){
+  return liga.amistosos.filter(a => a.status === 'marcado' && a.data >= hojeIso).sort(amiPorDataHora)[0] || null;
+}
+// os sets "do nosso lado": no banco o placar é do convidante/convidado, a tela fala em "nós × eles"
+function amiPlacarNosso(liga, a){
+  const nosConvidamos = a.convidante === liga.grupoId;
+  return { nos: nosConvidamos ? a.setsConvidante : a.setsConvidado, eles: nosConvidamos ? a.setsConvidado : a.setsConvidante };
+}
+function amiRetrospecto(liga){
+  const por = {};
+  liga.amistosos.filter(a => a.status === 'encerrado').forEach(a => {
+    const r = por[a.adversario] || (por[a.adversario] = { adversario: a.adversario, nome: amiNomeGrupo(liga, a.adversario), jogos: 0, vitorias: 0, derrotas: 0, empates: 0 });
+    const p = amiPlacarNosso(liga, a);
+    r.jogos++;
+    if(p.nos > p.eles) r.vitorias++; else if(p.nos < p.eles) r.derrotas++; else r.empates++;
+  });
+  return Object.values(por).sort((x, y) => y.jogos - x.jogos || x.nome.localeCompare(y.nome));
+}
+// mesma regra do backend (inicioDoJogo): o botão "Lançar placar" só aparece depois do horário do jogo em Brasília
+function amiJogoComecou(a, agoraMs){ return agoraMs >= Date.parse(a.data + 'T' + (a.horario || '00:00') + ':00-03:00'); }
+function amiSeparar(liga){
+  return {
+    esperando: liga.amistosos.filter(a => a.status === 'pendente' || a.status === 'aguardando_confirmacao'),
+    marcados: liga.amistosos.filter(a => a.status === 'marcado').sort(amiPorDataHora),
+    historico: liga.amistosos.filter(a => AMI_ATIVOS.indexOf(a.status) === -1).sort((x, y) => -amiPorDataHora(x, y))
+  };
+}
+// </amistosos-puro>
 // <dois-jogos-puro>
 /* Dois jogos no mesmo dia (2026-10-03). PURO: não lê DATA, DOM nem rede. Reaproveita <financeiro-puro> SEM mudá-lo:
    "chave de cobrança" é null (o dia inteiro, modo único — o padrão) ou 1/2 (um jogo, modo separado). Para qualquer
@@ -3439,6 +3557,7 @@ function aplicarDados(json){
   PERFIS_PUBLICOS = json.perfisPublicos || [];
   CHECKINS = json.checkins || [];
   FINANCEIRO = finNormalizar(json.financeiro);
+  LIGA = amiNormalizar(json.liga);
   reconstituirConvidadosDosCheckins();
   JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
@@ -4332,6 +4451,7 @@ function aplicarPermissoesUI(){
   renderHistory(); // a nota total dos times no Histórico é só do admin
   atualizarBlocoListaGrupo(); // a lista colada do WhatsApp é só de organizador/admin
   atualizarBotaoDesconfirmarTodos();
+  atualizarAvisosAmistosos(); // login/logout muda quem vê o aviso de amistoso
 }
 
 /* ---------- CONTROLE DE ADMINISTRADOR ---------- */
@@ -4663,6 +4783,235 @@ function renderFinanceiroTudo(){
   if(typeof renderFinanceiro === 'function') renderFinanceiro();
 }
 
+/* ---------- AMISTOSOS ENTRE GRUPOS ---------- */
+// Envia uma ação de amistoso e troca LIGA pelo bloco que o servidor devolveu (fonte da verdade, igual ao financeiro).
+// "Vou jogar"/"desmarcar" seguem a regra do check-in: qualquer pessoa logada; o resto pede o perfil certo.
+async function amiPost(acao, payload){
+  let cred;
+  if(acao === 'entrarAmistoso' || acao === 'sairAmistoso'){
+    if(!exigirLoginParaCheckin()) return false;
+    cred = await credencialLogada();
+    if(!cred){ mostrarToast('Seu login expirou. Toque em "Entrar com Google" e tente de novo.', 'erro'); return false; }
+  } else {
+    cred = await requireAuth(acao);
+    if(!cred) return false;
+  }
+  ULTIMA_RESPOSTA_POST = null;
+  const ok = await postAction(acao, payload, cred);
+  if(!ok) return false;
+  if(ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.liga) LIGA = amiNormalizar(ULTIMA_RESPOSTA_POST.liga);
+  renderAmistosos();
+  atualizarAvisosAmistosos();
+  return true;
+}
+
+// tela inicial + contador no menu. O aviso "pra responder" só aparece pra quem pode responder (organizador/admin);
+// o do amistoso marcado é pra todo mundo (é ele que leva a pessoa a marcar "Vou jogar").
+function atualizarAvisosAmistosos(){
+  const mostrar = (id, sim)=>{ const el = document.getElementById(id); if(el) el.style.display = sim ? '' : 'none'; };
+  mostrar('nav-amistosos-btn', LIGA.disponivel);
+  mostrar('mais-amistosos-btn', LIGA.disponivel);
+  const podeResponder = LIGA.disponivel && temPermissao('responderConvite');
+  const pendentes = podeResponder ? amiPendencias(LIGA).length : 0;
+  ['nav-amistosos-badge', 'mais-amistosos-badge'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = String(pendentes);
+    el.style.display = pendentes > 0 ? 'inline-flex' : 'none';
+  });
+  const alerta = document.getElementById('amistosos-alerta');
+  if(pendentes > 0){
+    document.getElementById('amistosos-alerta-texto').textContent = '🏐 ' + amiTextoAviso(LIGA);
+    alerta.style.display = 'flex';
+  } else alerta.style.display = 'none';
+  const proximo = LIGA.disponivel ? amiProximoMarcado(LIGA, amiHojeBrasil(Date.now())) : null;
+  const marcado = document.getElementById('amistoso-marcado-alerta');
+  if(proximo){
+    document.getElementById('amistoso-marcado-texto').textContent =
+      'Amistoso marcado: ' + amiNomeGrupo(LIGA, LIGA.grupoId) + ' × ' + amiNomeGrupo(LIGA, proximo.adversario) + ', ' + amiDataCurta(proximo.data) + ' às ' + proximo.horario;
+    marcado.dataset.amiId = proximo.id;
+    marcado.style.display = 'flex';
+  } else marcado.style.display = 'none';
+}
+// os dois avisos levam pra aba e rolam até o cartão certo (mesmo truque do aviso de rascunho)
+function irParaAmistoso(id){
+  abrirTelaVia('amistosos');
+  setTimeout(()=>{
+    const card = id && document.getElementById('ami-' + id);
+    if(card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 80);
+}
+function ligarAviso(id, alvo){
+  const el = document.getElementById(id);
+  el.addEventListener('click', ()=> irParaAmistoso(alvo()));
+  el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); irParaAmistoso(alvo()); } });
+}
+ligarAviso('amistosos-alerta', ()=> (amiPendencias(LIGA)[0] || {}).id);
+ligarAviso('amistoso-marcado-alerta', ()=> document.getElementById('amistoso-marcado-alerta').dataset.amiId);
+
+const AMI_STATUS = { pendente: 'Aguardando resposta', marcado: 'Marcado', aguardando_confirmacao: 'Placar aguardando confirmação', encerrado: 'Encerrado', recusado: 'Recusado', cancelado: 'Cancelado' };
+const AMI_TIPO_MSG = { convite: 'enviou o convite', contraproposta: 'propôs outra data', aceite: 'aceitou', recusa: 'recusou', cancelamento: 'cancelou',
+  placar: 'lançou o placar', confirmacao: 'confirmou o placar', contestacao: 'contestou o placar', recado: 'mandou um recado' };
+
+function amiBotao(acao, rotulo, id, extra){
+  const sec = extra && extra.secundario ? ' secondary' : '';
+  const jog = extra && extra.jogadorId ? ` data-ami-jogador="${escapeHtml(extra.jogadorId)}"` : '';
+  const aria = extra && extra.aria ? ` aria-label="${escapeHtml(extra.aria)}"` : '';
+  return `<button type="button" class="btn${sec}" data-ami-acao="${acao}" data-ami-id="${escapeHtml(id)}"${jog}${aria}>${rotulo}</button>`;
+}
+
+function amiEscalacaoHtml(a, adv){
+  const minha = a.minhaEscalacao, org = temPermissao('confirmarEscalado');
+  const confirmados = minha.jogadores.filter(j => j.status === 'confirmado').length;
+  const linhas = minha.jogadores.map(j => `<div class="ami-jogador">
+      <span>${j.status === 'confirmado' ? '✅' : '🙋'} ${escapeHtml(j.nome)}</span>
+      ${org ? (j.status === 'confirmado'
+        ? amiBotao('desconfirmarEscalado', 'Tirar', a.id, { secundario: true, jogadorId: j.jogadorId })
+        : amiBotao('confirmarEscalado', 'Confirmar', a.id, { secundario: true, jogadorId: j.jogadorId })) : ''}
+      ${!minha.travada ? amiBotao('sairAmistoso', '✕', a.id, { secundario: true, jogadorId: j.jogadorId, aria: 'Desmarcar ' + j.nome }) : ''}
+    </div>`).join('');
+  const deles = a.escalacaoAdversario;
+  const adversario = deles.confirmados.length
+    ? deles.confirmados.map(p => escapeHtml(p.nome)).join(', ')
+    : `Escalação ainda não confirmada (${deles.interessados} ${deles.interessados === 1 ? 'interessado' : 'interessados'})`;
+  return `<div class="ami-escalacao">
+      <div class="ami-escalacao-titulo">${escapeHtml(amiNomeGrupo(LIGA, LIGA.grupoId))} — ${confirmados}/${a.vagasPorGrupo} confirmados${minha.travada ? ' · 🔒 lista travada' : ''}</div>
+      ${linhas || '<p class="ami-vazio">Ninguém marcou ainda.</p>'}
+      <div class="ami-acoes">
+        ${!minha.travada ? amiBotao('entrarAmistoso', '🙋 Vou jogar', a.id) : ''}
+        ${org ? (minha.travada ? amiBotao('destravarEscalacao', '🔓 Destravar lista', a.id, { secundario: true }) : amiBotao('travarEscalacao', '🔒 Travar lista', a.id, { secundario: true })) : ''}
+      </div>
+      <div class="ami-escalacao-titulo">${escapeHtml(adv.nome)}</div>
+      <div>${adversario}</div>
+    </div>`;
+}
+
+function amiCartaoHtml(a){
+  const adv = LIGA.grupos.find(g => g.id === a.adversario) || { nome: a.adversario, cor: '' };
+  const nosso = amiNomeGrupo(LIGA, LIGA.grupoId);
+  const org = temPermissao('responderConvite');
+  const nossaVez = a.status === 'pendente' && a.vezDe === LIGA.grupoId;
+  let acoes = '';
+  if(org && nossaVez) acoes += amiBotao('aceitar', 'Aceitar', a.id) + amiBotao('contrapropor', 'Outra data', a.id, { secundario: true }) + amiBotao('recusar', 'Recusar', a.id, { secundario: true });
+  if(org && a.status === 'marcado' && amiJogoComecou(a, Date.now())) acoes += amiBotao('lancarPlacar', 'Lançar placar', a.id);
+  if(org && a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo !== LIGA.grupoId) acoes += amiBotao('confirmarPlacar', 'Confirmar placar', a.id) + amiBotao('contestarPlacar', 'Contestar', a.id, { secundario: true });
+  if(org && AMI_ATIVOS.indexOf(a.status) > -1) acoes += amiBotao('recado', '💬 Recado', a.id, { secundario: true });
+  if(org && (a.status === 'pendente' || a.status === 'marcado')) acoes += amiBotao('cancelar', 'Cancelar', a.id, { secundario: true });
+  const esperandoOutro = a.status === 'pendente' && !nossaVez ? `<div class="ami-info">Esperando ${escapeHtml(adv.nome)} responder</div>` : '';
+  const esperandoPlacar = a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo === LIGA.grupoId ? `<div class="ami-info">Esperando ${escapeHtml(adv.nome)} confirmar o placar</div>` : '';
+  let placar = '';
+  if(a.status === 'encerrado' || a.status === 'aguardando_confirmacao'){
+    const p = amiPlacarNosso(LIGA, a);
+    placar = `<div class="ami-placar">${escapeHtml(nosso)} <strong>${p.nos}</strong> × <strong>${p.eles}</strong> ${escapeHtml(adv.nome)}</div>`;
+  }
+  const escalacao = a.status === 'marcado' ? amiEscalacaoHtml(a, adv) : '';
+  const msgs = a.mensagens.length ? `<details class="ami-msgs"><summary>💬 Conversa (${a.mensagens.length})</summary>${a.mensagens.map(m =>
+    `<div class="ami-msg"><strong>${escapeHtml(amiNomeGrupo(LIGA, m.grupo))}</strong> · ${escapeHtml(m.autorNome)} ${escapeHtml(AMI_TIPO_MSG[m.tipo] || m.tipo)}${m.texto ? ': ' + escapeHtml(m.texto) : ''}</div>`).join('')}</details>` : '';
+  const cor = /^#[0-9a-fA-F]{3,8}$/.test(adv.cor || '') ? ` style="border-left-color:${adv.cor};"` : '';
+  return `<div class="ami-cartao" id="ami-${escapeHtml(a.id)}"${cor}>
+      <div class="ami-topo"><strong>${escapeHtml(nosso)} × ${escapeHtml(adv.nome)}</strong><span class="ami-status ami-status-${escapeHtml(a.status)}">${AMI_STATUS[a.status] || escapeHtml(a.status)}</span></div>
+      <div class="ami-quando">📅 ${formatDate(a.data)} às ${escapeHtml(a.horario)}${a.local ? ' · 📍 ' + escapeHtml(a.local) : ''} · ${a.vagasPorGrupo} por grupo</div>
+      ${a.motivoCancelamento ? `<div class="ami-info">Motivo: ${escapeHtml(a.motivoCancelamento)}</div>` : ''}
+      ${esperandoOutro}${esperandoPlacar}${placar}${escalacao}${msgs}
+      ${acoes ? `<div class="ami-acoes">${acoes}</div>` : ''}
+    </div>`;
+}
+
+function renderAmistosos(){
+  const el = (id)=> document.getElementById(id);
+  el('ami-indisponivel').style.display = LIGA.disponivel ? 'none' : '';
+  el('ami-acoes-topo').style.display = LIGA.disponivel && temPermissao('convidarGrupo') ? '' : 'none';
+  const { esperando, marcados, historico } = amiSeparar(LIGA);
+  const vazio = (t)=> `<p class="ami-vazio">${t}</p>`;
+  // convites pendentes são assunto dos organizadores: jogador comum nem vê o bloco
+  const org = temPermissao('responderConvite');
+  el('ami-esperando-bloco').style.display = org ? '' : 'none';
+  el('ami-esperando').innerHTML = esperando.length ? esperando.map(amiCartaoHtml).join('') : vazio('Nada esperando resposta.');
+  el('ami-marcados').innerHTML = marcados.length ? marcados.map(amiCartaoHtml).join('') : vazio('Nenhum amistoso marcado.');
+  const nosso = amiNomeGrupo(LIGA, LIGA.grupoId);
+  el('ami-retrospecto').innerHTML = amiRetrospecto(LIGA).map(r =>
+    `<div class="ami-retro"><strong>${escapeHtml(nosso)} × ${escapeHtml(r.nome)}</strong>: ${r.jogos} ${r.jogos === 1 ? 'jogo' : 'jogos'} — ${r.vitorias}V ${r.derrotas}D${r.empates ? ' ' + r.empates + 'E' : ''}</div>`).join('');
+  el('ami-historico').innerHTML = historico.length ? historico.map(amiCartaoHtml).join('') : vazio('Nenhum confronto ainda.');
+}
+
+// campos de data/horário/local/vagas: os mesmos no convite e na contraproposta
+function amiCamposHtml(v){
+  return `<label class="fin-campo">Data<input type="date" id="ami-m-data" value="${escapeHtml(v.data || '')}"></label>
+    <label class="fin-campo">Horário<input type="time" id="ami-m-horario" value="${escapeHtml(v.horario || '20:00')}"></label>
+    <label class="fin-campo">Local<input type="text" id="ami-m-local" maxlength="200" value="${escapeHtml(v.local || '')}" placeholder="Quadra, endereço"></label>
+    <label class="fin-campo">Jogadores por grupo<input type="number" id="ami-m-vagas" min="1" max="30" inputmode="numeric" value="${escapeHtml(String(v.vagasPorGrupo || 6))}"></label>
+    <label class="fin-campo">Recado (opcional)<textarea id="ami-m-recado" maxlength="500" rows="3"></textarea></label>`;
+}
+function amiLerCampos(ov){
+  const val = (id)=> ov.querySelector('#' + id).value.trim();
+  return { data: val('ami-m-data'), horario: val('ami-m-horario'), local: val('ami-m-local'), vagasPorGrupo: Number(val('ami-m-vagas')), recado: val('ami-m-recado') };
+}
+// caixa de texto simples (recado, motivo, contestação). obrigatorio=true não deixa enviar vazio.
+function amiPedirTexto(titulo, rotuloOk, obrigatorio, aoEnviar){
+  finAbrirModal(titulo, `<label class="fin-campo"><textarea id="ami-m-texto" maxlength="500" rows="4"></textarea></label>`, async (ov)=>{
+    const texto = ov.querySelector('#ami-m-texto').value.trim();
+    if(obrigatorio && !texto){ mostrarToast('Escreva alguma coisa antes de enviar.', 'erro'); return false; }
+    return aoEnviar(texto);
+  }, rotuloOk);
+}
+
+document.getElementById('ami-convidar-btn').addEventListener('click', ()=>{
+  const outros = LIGA.grupos.filter(g => g.id !== LIGA.grupoId);
+  if(!outros.length){ mostrarToast('Ainda não há outro grupo cadastrado pra convidar.', 'erro'); return; }
+  finAbrirModal('🤝 Convidar para amistoso', `
+    <label class="fin-campo">Grupo<select id="ami-m-grupo">${outros.map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.nome)}</option>`).join('')}</select></label>
+    ${amiCamposHtml({})}`, async (ov)=>{
+    const c = amiLerCampos(ov);
+    if(!c.data){ mostrarToast('Escolha a data do amistoso.', 'erro'); return false; }
+    return amiPost('convidarGrupo', { convite: { grupo: ov.querySelector('#ami-m-grupo').value, ...c } });
+  }, 'Enviar convite');
+});
+
+// "Vou jogar": escolhe o jogador da lista do grupo (já vem marcado quem está vinculado à conta), igual ao check-in
+function amiEscolherJogador(id){
+  const jogadores = (DATA.players || []).slice().sort((x, y) => (x.apelido || x.nome).localeCompare(y.apelido || y.nome));
+  finAbrirModal('🙋 Quem vai jogar?', `<label class="fin-campo">Jogador<select id="ami-m-jogador">${jogadores.map(p =>
+    `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(AUTH.jogadorId) ? 'selected' : ''}>${escapeHtml(p.apelido || p.nome)}</option>`).join('')}</select></label>`,
+    async (ov)=> amiPost('entrarAmistoso', { id, jogadorId: ov.querySelector('#ami-m-jogador').value }), 'Vou jogar');
+}
+
+function amiLancarPlacar(a){
+  const nosso = amiNomeGrupo(LIGA, LIGA.grupoId), adv = amiNomeGrupo(LIGA, a.adversario);
+  finAbrirModal('🔢 Placar do amistoso', `
+    <label class="fin-campo">Sets — ${escapeHtml(nosso)}<input type="number" id="ami-m-nos" min="0" max="9" inputmode="numeric"></label>
+    <label class="fin-campo">Sets — ${escapeHtml(adv)}<input type="number" id="ami-m-eles" min="0" max="9" inputmode="numeric"></label>
+    <label class="fin-campo">Recado (opcional)<textarea id="ami-m-recado" maxlength="500" rows="2"></textarea></label>`, async (ov)=>{
+    const nos = Number(ov.querySelector('#ami-m-nos').value), eles = Number(ov.querySelector('#ami-m-eles').value);
+    // o servidor guarda convidante/convidado: traduz o "nós × eles" da tela
+    const nosConvidamos = a.convidante === LIGA.grupoId;
+    return amiPost('lancarPlacar', { id: a.id, setsConvidante: nosConvidamos ? nos : eles, setsConvidado: nosConvidamos ? eles : nos,
+      recado: ov.querySelector('#ami-m-recado').value.trim() });
+  }, 'Lançar');
+}
+
+document.getElementById('view-amistosos').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-ami-acao]');
+  if(!b) return;
+  const id = b.dataset.amiId, acao = b.dataset.amiAcao, jogadorId = b.dataset.amiJogador;
+  const a = LIGA.amistosos.find(x => x.id === id);
+  if(!a) return;
+  // versao = o que a pessoa estava vendo: se o outro grupo mudou a data ou o placar nesse meio tempo, o servidor recusa
+  const versao = a.atualizadoEm;
+  if(acao === 'aceitar') return amiPost('responderConvite', { id, resposta: 'aceitar', versao });
+  if(acao === 'recusar') return amiPedirTexto('Recusar convite', 'Recusar', false, (t)=> amiPost('responderConvite', { id, resposta: 'recusar', recado: t, versao }));
+  if(acao === 'contrapropor') return finAbrirModal('📅 Propor outra data', amiCamposHtml(a), async (ov)=>{
+    return amiPost('responderConvite', { id, resposta: 'contrapropor', ...amiLerCampos(ov), versao });
+  }, 'Enviar proposta');
+  if(acao === 'cancelar') return amiPedirTexto('Cancelar amistoso — motivo', 'Cancelar amistoso', a.status === 'marcado', (t)=> amiPost('cancelarAmistoso', { id, motivo: t }));
+  if(acao === 'recado') return amiPedirTexto('💬 Recado para o outro grupo', 'Enviar', true, (t)=> amiPost('recadoAmistoso', { id, texto: t }));
+  if(acao === 'lancarPlacar') return amiLancarPlacar(a);
+  if(acao === 'confirmarPlacar') return amiPost('confirmarPlacar', { id, versao });
+  if(acao === 'contestarPlacar') return amiPedirTexto('Contestar placar — o que está errado?', 'Contestar', true, (t)=> amiPost('contestarPlacar', { id, texto: t, versao }));
+  if(acao === 'entrarAmistoso') return amiEscolherJogador(id);
+  if(acao === 'sairAmistoso' || acao === 'confirmarEscalado' || acao === 'desconfirmarEscalado') return amiPost(acao, { id, jogadorId });
+  if(acao === 'travarEscalacao' || acao === 'destravarEscalacao') return amiPost(acao, { id });
+});
+
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
 // Rodadas "rascunho" (times já montados, mas placar ainda não lançado) não contam em
@@ -4736,6 +5085,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='rodada'){ renderTeamsGrid(); renderRodadaGuestChips(); if(!EDITING_ROUND_ID) sugerirHorarioDaRodada(); }
   if(btn.dataset.view==='ranking') renderRanking();
   if(btn.dataset.view==='historico') renderHistory();
+  if(btn.dataset.view==='amistosos') renderAmistosos();
   if(btn.dataset.view==='hall') renderHallDaFama(document.querySelector('.hall-tab.active')?.dataset.hallView || 'mensal');
   if(btn.dataset.view==='dashboard') renderDashboard();
   if(btn.dataset.view==='sorteio'){ renderSorteioList(); atualizarBotoesImportarCheckin(); }
@@ -7644,6 +7994,7 @@ function renderAll(){
   // desde a primeira pintura — sem esperar o primeiro poll da página Ao Vivo.
   atualizarBadgeAoVivo();
   atualizarAlertaRascunhos();
+  atualizarAvisosAmistosos();
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
