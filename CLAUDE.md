@@ -14,7 +14,7 @@ framework, sem build step — é só abrir o `.html` e funciona.
 | `apps-script-codigo-volei-meme.gs` | Backend do Meme (script **avulso**, usa `openById`) |
 | `sw.js` | Service Worker — de propósito **sem cache nenhum**, só existe pra deixar o app instalável (PWA) |
 
-Hospedagem: GitHub Pages (`libertsapp.github.io/volei/` e `/voleimeme`). O Terça também sai em
+Hospedagem: GitHub Pages. **Links oficiais (desde 2026-10-12): `https://memberstars.com/volei/` e `https://memberstars.com/voleimeme/`** — o domínio próprio do MemberStars configurado na conta `libertsapp` faz o antigo `libertsapp.github.io/...` redirecionar (301) pra lá. Pro navegador são sites DIFERENTES: app instalado pelo link antigo parou de receber notificação (push/instalação/permissão são por site) e precisa reinstalar pelo link novo (o aviso do topo, v17.1, pede isso). O Terça também sai em
 `https://voleiterca.vercel.app` (e `https://libertsapp-volei.vercel.app`, mesmo projeto) (Vercel ligado ao repo; `vercel.json` monta a pasta `publicar/` só com
 `volei-dashboard.html`→`index.html` + `sw.js`, a cada push na `main`). Endereço novo de hospedagem = acrescentar a
 origem no segredo `ORIGENS_PERMITIDAS` da função (Supabase) e nas "Origens JavaScript autorizadas" do Client ID do Google. Os

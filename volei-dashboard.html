@@ -1951,7 +1951,7 @@
     <button type="button" id="versao-nova-btn" class="btn" style="flex-shrink:0;">Atualizar agora</button>
   </div>
   <div id="instalar-app-aviso" style="display:none;background:var(--court-navy-2);border:1px solid var(--ball-yellow);color:var(--chalk);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;line-height:1.5;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-    <span>📲 Instale o app pra receber notificação de check-in aberto e sorteio dos times.</span>
+    <span id="instalar-app-aviso-texto">📲 Instale o app pra receber notificação de check-in aberto e sorteio dos times.</span>
     <span style="display:flex;gap:8px;flex-shrink:0;">
       <button type="button" id="instalar-app-aviso-btn" class="btn" style="flex-shrink:0;">Instalar</button>
       <button type="button" id="instalar-app-aviso-fechar" class="btn secondary" style="flex-shrink:0;" aria-label="Fechar aviso">✕</button>
@@ -2904,7 +2904,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 17.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 17.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -10669,21 +10669,61 @@ async function instalarApp(){
 document.getElementById('pwa-install-btn').addEventListener('click', instalarApp);
 atualizarBotaoInstalar();
 
-/* ---------- Aviso "instale o app" (quem entra pelo navegador, sem o app instalado) ----------
-   Banner no topo, dispensável (uma vez fechado, não volta a aparecer neste aparelho). Só aparece
-   quando dá pra instalar de verdade (mesma condição do botão 📲) — sem isso, seria um convite sem ação possível. */
-const CHAVE_INSTALAR_AVISO_FECHADO = 'volei-instalar-aviso-fechado';
+/* ---------- Aviso "instale o app" / "o endereço mudou" (v17.1) ----------
+   O link antigo (libertsapp.github.io) passou a redirecionar pro memberstars.com, e pro navegador isso é OUTRO site:
+   quem instalou pelo link antigo ficou com um app que não recebe mais notificação, e não dá pra avisar essas pessoas
+   por push. Quando esse app antigo abre, ele cai aqui como "não instalado neste endereço" (sem nenhuma marca de que veio
+   do ícone antigo), então o aviso aparece pra todo mundo que abre sem o app instalado NESTE endereço — inclusive quem
+   só usa pelo navegador, pra quem o texto continua fazendo sentido. Quem já instalou pelo link novo nunca vê.
+   Dispensável (uma vez fechado, não volta neste aparelho). Chave nova (v2) de propósito: quem tinha fechado o convite
+   antigo precisa ver o recado da mudança de endereço. */
+const CHAVE_INSTALAR_AVISO_FECHADO = 'volei-instalar-aviso-v2-fechado';
+// <aviso-instalar-puro>
+function avisoInstalarTexto(hostname){
+  const oficial = /(^|\.)memberstars\.com$/.test(String(hostname || ''));
+  return oficial
+    ? '📲 <strong>O endereço do app mudou.</strong> Se você tinha o app instalado, apague o antigo e instale de novo por aqui pra voltar a receber as notificações.'
+    : '📲 Instale o app pra receber notificação de check-in aberto e sorteio dos times.';
+}
+// antes só aparecia quando o navegador oferecia o botão de instalar; agora aparece sempre que o app não está instalado
+// aqui (o app antigo abrindo pelo redirecionamento quase nunca recebe esse botão do navegador)
+function mostrarAvisoInstalar({ instalado, fechado }){ return !instalado && !fechado; }
+function comoInstalar({ temPrompt, ios }){ return temPrompt ? 'prompt' : (ios ? 'ios' : 'manual'); }
+// </aviso-instalar-puro>
+// Android/computador sem o botão automático do navegador: passo a passo pelo menu
+function abrirInstrucoesInstalarManual(){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="password-card">
+      <p class="password-title">Instalar o app</p>
+      <p style="margin:0 0 10px;">1. Se o app antigo ainda estiver no celular, apague ele (segure o ícone → Desinstalar/Remover)</p>
+      <p style="margin:0 0 6px;">2. Aqui no navegador, toque no menu <strong>⋮</strong> (três pontinhos, no canto de cima)</p>
+      <p style="margin:0 0 12px;">3. Escolha <strong>"Instalar app"</strong> ou <strong>"Adicionar à tela inicial"</strong> e aceite as notificações quando o app abrir</p>
+      <div class="password-actions">
+        <button class="btn secondary" data-acao="fechar">Entendi</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || (e.target.dataset && e.target.dataset.acao === 'fechar')) overlay.remove();
+  });
+}
 function atualizarAvisoInstalar(){
   const aviso = document.getElementById('instalar-app-aviso');
   if(!aviso) return;
-  const fechado = localStorage.getItem(CHAVE_INSTALAR_AVISO_FECHADO) === '1';
-  const podeInstalar = !appJaInstalado() && (pwaPromptEvento || dispositivoEhIOS());
-  aviso.style.display = (podeInstalar && !fechado) ? 'flex' : 'none';
+  let fechado = false;
+  try{ fechado = localStorage.getItem(CHAVE_INSTALAR_AVISO_FECHADO) === '1'; }catch(e){ /* localStorage bloqueado: mostra */ }
+  document.getElementById('instalar-app-aviso-texto').innerHTML = avisoInstalarTexto(location.hostname);
+  aviso.style.display = mostrarAvisoInstalar({ instalado: appJaInstalado(), fechado }) ? 'flex' : 'none';
 }
-document.getElementById('instalar-app-aviso-btn').addEventListener('click', instalarApp);
+document.getElementById('instalar-app-aviso-btn').addEventListener('click', ()=>{
+  const como = comoInstalar({ temPrompt: !!pwaPromptEvento, ios: dispositivoEhIOS() });
+  if(como === 'manual') abrirInstrucoesInstalarManual(); else instalarApp();
+});
 document.getElementById('instalar-app-aviso-fechar').addEventListener('click', ()=>{
-  localStorage.setItem(CHAVE_INSTALAR_AVISO_FECHADO, '1');
-  atualizarAvisoInstalar();
+  try{ localStorage.setItem(CHAVE_INSTALAR_AVISO_FECHADO, '1'); }catch(e){ /* bloqueado: só esconde agora */ }
+  document.getElementById('instalar-app-aviso').style.display = 'none';
 });
 atualizarAvisoInstalar();
 
