@@ -84,3 +84,140 @@ export async function lerBlocoLiga(deps) {
     return ligaVazia(grupoId);
   }
 }
+
+// ---------------------------------------------------------------- escrita: helpers comuns
+export const MSG_SEM_LIGA = 'Amistosos não estão disponíveis neste servidor.';
+export const MSG_MUDOU = 'Esse amistoso mudou enquanto você olhava. Recarregue a página e tente de novo.';
+const gerarId = (deps) => (deps.gerarId ? deps.gerarId() : globalThis.crypto.randomUUID());
+const nomeDe = (auth) => (auth && (auth.nome || auth.email)) || 'Desconhecido';
+const recado = (v) => texto(v).trim().slice(0, MAX_RECADO);
+// "hoje" no Brasil (-03:00): sem isso, às 22h de Brasília o servidor (UTC) já acharia que é amanhã
+const hojeBrasil = (agora) => new Date(agora.getTime() - 3 * 3600000).toISOString().slice(0, 10);
+const dataCurta = (iso) => { const [, m, d] = texto(iso).split('-'); return d + '/' + m; };
+
+// toda escrita devolve o bloco atualizado: o app troca o estado local por ele (igual ao financeiro)
+export async function respostaOk(deps) { return { status: 'ok', liga: await lerBlocoLiga(deps) }; }
+
+// Lê o amistoso para uma ação. Amistoso de outros grupos "não existe" para este servidor. Se o placar já venceu os 7 dias,
+// esta é "a primeira escrita que toca nele": grava o encerramento antes de seguir.
+export async function carregar(deps, id) {
+  const { repo, grupoId } = deps.liga;
+  const r = await repo.lerAmistoso(texto(id));
+  if (!r || !participa(r.amistoso, grupoId)) return { erro: 'Amistoso não encontrado.' };
+  const a = r.amistoso;
+  if (a.status === 'aguardando_confirmacao' && statusEfetivo(a, agoraDe(deps)) === 'encerrado') {
+    if (await repo.atualizarAmistosoSe(a.id, 'aguardando_confirmacao', { status: 'encerrado', atualizado_em: agoraDe(deps).toISOString() })) a.status = 'encerrado';
+  }
+  return { ...r, amistoso: a };
+}
+
+// muda o amistoso SÓ se o status ainda é o que esta ação leu (concorrência otimista); false = alguém agiu antes
+export async function transicionar(deps, a, campos) {
+  return deps.liga.repo.atualizarAmistosoSe(a.id, a.status, { ...campos, atualizado_em: agoraDe(deps).toISOString() });
+}
+
+export async function registrarMensagem(deps, a, tipo, textoLivre, auth) {
+  await deps.liga.repo.inserirMensagem({
+    id: gerarId(deps), amistoso_id: a.id, grupo: deps.liga.grupoId, autor_nome: nomeDe(auth), tipo,
+    texto: recado(textoLivre), criado_em: agoraDe(deps).toISOString()
+  });
+}
+
+function validarCampos(c, agora) {
+  if (!c || !dataValida(c.data)) return { erro: 'Data inválida.' };
+  if (!horarioValido(c.horario)) return { erro: 'Horário inválido.' };
+  const bruto = c.vagasPorGrupo;
+  const vagas = bruto === undefined || bruto === null || bruto === '' ? 6 : Number(bruto);
+  if (!Number.isInteger(vagas) || vagas < 1 || vagas > 30) return { erro: 'Vagas por grupo precisam ser entre 1 e 30.' };
+  if (texto(c.data) < hojeBrasil(agora)) return { erro: 'A data do amistoso já passou.' };
+  return { campos: { data: texto(c.data), horario: texto(c.horario), local: texto(c.local).trim().slice(0, MAX_LOCAL), vagas_por_grupo: vagas } };
+}
+
+// push é bônus: só vai para os inscritos DESTE grupo (cada servidor só lê as próprias inscrições) e nunca desfaz o aceite
+async function avisarMarcado(deps, a, auth) {
+  try {
+    const grupos = await deps.liga.repo.lerGrupos();
+    const adv = grupos.find((g) => g.id === outroGrupo(a, deps.liga.grupoId));
+    await enviarNotificacao(deps, {
+      titulo: '🏐 Amistoso marcado!',
+      corpo: 'Contra ' + (adv ? adv.nome : 'outro grupo') + ' em ' + dataCurta(a.data) + ' às ' + a.horario + '. Marque "Vou jogar" no app.'
+    }, auth);
+  } catch (erro) {
+    try { (deps.avisar || (() => {}))('push do amistoso falhou: ' + (erro && erro.message)); } catch { /* nada */ }
+  }
+}
+
+// ---------------------------------------------------------------- convite
+export async function convidarGrupo(deps, convite, auth) {
+  if (semLiga(deps)) return { error: MSG_SEM_LIGA };
+  const { repo, grupoId } = deps.liga;
+  const destino = texto(convite && convite.grupo);
+  if (!destino || destino === grupoId) return { error: 'Escolha outro grupo para convidar.' };
+  const grupos = await repo.lerGrupos();
+  if (!grupos.some((g) => g.id === destino && g.ativo !== false)) return { error: 'Grupo não encontrado.' };
+  const v = validarCampos(convite, agoraDe(deps));
+  if (v.erro) return { error: v.erro };
+  const agora = agoraDe(deps).toISOString();
+  const a = {
+    id: gerarId(deps), grupo_convidante: grupoId, grupo_convidado: destino, ...v.campos,
+    status: 'pendente', vez_de: destino, criado_por: texto(auth && auth.email), criado_em: agora, atualizado_em: agora
+  };
+  await repo.inserirAmistoso(a);
+  await registrarMensagem(deps, a, 'convite', convite.recado, auth);
+  return respostaOk(deps);
+}
+
+export async function responderConvite(deps, b, auth) {
+  if (semLiga(deps)) return { error: MSG_SEM_LIGA };
+  const { grupoId } = deps.liga;
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return { error: r.erro };
+  const a = r.amistoso;
+  if (a.status !== 'pendente') return { error: 'Esse convite não está mais esperando resposta.' };
+  if (a.vez_de !== grupoId) return { error: 'Agora a vez de responder é do outro grupo.' };
+  const resposta = texto(b.resposta);
+  if (resposta === 'aceitar') {
+    if (!(await transicionar(deps, a, { status: 'marcado', vez_de: null }))) return { error: MSG_MUDOU };
+    await registrarMensagem(deps, a, 'aceite', b.recado, auth);
+    await avisarMarcado(deps, a, auth);
+    return respostaOk(deps);
+  }
+  if (resposta === 'recusar') {
+    if (!(await transicionar(deps, a, { status: 'recusado', vez_de: null }))) return { error: MSG_MUDOU };
+    await registrarMensagem(deps, a, 'recusa', b.recado, auth);
+    return respostaOk(deps);
+  }
+  if (resposta === 'contrapropor') {
+    const v = validarCampos(b, agoraDe(deps));
+    if (v.erro) return { error: v.erro };
+    if (!(await transicionar(deps, a, { ...v.campos, vez_de: outroGrupo(a, grupoId) }))) return { error: MSG_MUDOU };
+    // o histórico guarda a proposta por escrito: quem lê depois entende o vai e volta sem comparar campos
+    const c = v.campos;
+    const resumo = dataCurta(c.data) + ' às ' + c.horario + (c.local ? ' em ' + c.local : '');
+    await registrarMensagem(deps, a, 'contraproposta', [resumo, recado(b.recado)].filter(Boolean).join(' — '), auth);
+    return respostaOk(deps);
+  }
+  return { error: 'Resposta inválida.' };
+}
+
+export async function cancelarAmistoso(deps, b, auth) {
+  if (semLiga(deps)) return { error: MSG_SEM_LIGA };
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return { error: r.erro };
+  const a = r.amistoso;
+  if (a.status !== 'pendente' && a.status !== 'marcado') return { error: 'Esse amistoso não pode mais ser cancelado.' };
+  const motivo = recado(b.motivo);
+  if (a.status === 'marcado' && !motivo) return { error: 'Conte o motivo do cancelamento (o outro grupo vai ver).' };
+  if (!(await transicionar(deps, a, { status: 'cancelado', vez_de: null, motivo_cancelamento: motivo || null }))) return { error: MSG_MUDOU };
+  await registrarMensagem(deps, a, 'cancelamento', motivo, auth);
+  return respostaOk(deps);
+}
+
+export async function recadoAmistoso(deps, b, auth) {
+  if (semLiga(deps)) return { error: MSG_SEM_LIGA };
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return { error: r.erro };
+  if (!recado(b.texto)) return { error: 'Escreva o recado.' };
+  await registrarMensagem(deps, r.amistoso, 'recado', b.texto, auth);
+  return respostaOk(deps);
+}

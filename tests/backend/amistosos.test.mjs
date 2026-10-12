@@ -3,7 +3,10 @@ import { ta, t, fim } from './executor.mjs';
 import { fixture } from './fixture.mjs';
 import { criarRepoMemoria } from '../../backend/repo-memoria.js';
 import { criarRepoLigaMemoria } from '../../backend/repo-liga-memoria.js';
-import { statusEfetivo, inicioDoJogo, mapearLiga, lerBlocoLiga, ligaVazia } from '../../backend/amistosos.js';
+import {
+  statusEfetivo, inicioDoJogo, mapearLiga, lerBlocoLiga, ligaVazia,
+  convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso
+} from '../../backend/amistosos.js';
 
 const GRUPOS = [{ id: 'terca', nome: 'Vôlei de Terça', cor: '#ffd700' }, { id: 'meme', nome: 'Vôlei Meme Brasil', cor: '#b3790a' }, { id: 'outro', nome: 'Outro' }];
 const linha = (id, extra = {}) => ({
@@ -97,6 +100,133 @@ await ta('lerBlocoLiga: com liga, devolve o mapeamento do grupo', async () => {
   const r = await lerBlocoLiga({ repo: criarRepoMemoria(fixture), liga, relogio: () => AGORA });
   assert.equal(r.disponivel, true);
   assert.deepEqual(r.amistosos.map((a) => a.id), ['a1']);
+});
+
+// ---- dois "servidores" (Terça e Meme) falando com a MESMA liga ----
+const ORG = { perfil: 'organizador', nome: 'Org', email: 'b@exemplo.com' };
+function mundo() {
+  let agora = new Date('2026-10-12T15:00:00.000Z');
+  let n = 0;
+  const repoLiga = criarRepoLigaMemoria({ grupos: GRUPOS });
+  const push = [];
+  const servidor = (grupoId) => ({
+    repo: criarRepoMemoria({ ...fixture, push_inscricoes: [{ id: 'i1', endpoint: 'e-' + grupoId, p256dh: 'p', auth: 'a' }] }),
+    liga: { repo: repoLiga, grupoId },
+    relogio: () => agora,
+    gerarId: () => 'id' + (++n),
+    enviarPush: async (insc, payload) => { push.push([grupoId, JSON.parse(payload)]); }
+  });
+  return { terca: servidor('terca'), meme: servidor('meme'), outro: servidor('outro'), repoLiga, push, avancar: (iso) => { agora = new Date(iso); } };
+}
+const CONVITE = { grupo: 'meme', data: '2026-10-20', horario: '20:00', local: 'Quadra X', vagasPorGrupo: 6, recado: 'levamos bola' };
+async function convidar(m) {
+  const r = await convidarGrupo(m.terca, CONVITE, ORG);
+  assert.equal(r.status, 'ok', JSON.stringify(r));
+  return r.liga.amistosos[0].id;
+}
+
+await ta('convidarGrupo: cria pendente com a vez do convidado e registra a mensagem; o Meme enxerga', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  const visto = (await lerBlocoLiga(m.meme)).amistosos.find((a) => a.id === id);
+  assert.equal(visto.status, 'pendente');
+  assert.equal(visto.vezDe, 'meme');
+  assert.deepEqual(visto.mensagens.map((x) => [x.tipo, x.texto, x.grupo]), [['convite', 'levamos bola', 'terca']]);
+});
+
+await ta('convidarGrupo: validações (grupo, data, horário, vagas, data passada)', async () => {
+  const m = mundo();
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, grupo: 'terca' }, ORG), { error: 'Escolha outro grupo para convidar.' });
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, grupo: 'fantasma' }, ORG), { error: 'Grupo não encontrado.' });
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, data: '2026-02-30' }, ORG), { error: 'Data inválida.' });
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, horario: '8h' }, ORG), { error: 'Horário inválido.' });
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, vagasPorGrupo: 31 }, ORG), { error: 'Vagas por grupo precisam ser entre 1 e 30.' });
+  assert.deepEqual(await convidarGrupo(m.terca, { ...CONVITE, data: '2026-10-11' }, ORG), { error: 'A data do amistoso já passou.' });
+  assert.equal(m.repoLiga.tabelas.amistosos.length, 0);
+});
+
+await ta('convidarGrupo: sem liga configurada responde erro claro', async () => {
+  assert.deepEqual(await convidarGrupo({ repo: criarRepoMemoria(fixture) }, CONVITE, ORG), { error: 'Amistosos não estão disponíveis neste servidor.' });
+});
+
+await ta('responderConvite: só quem tem a vez responde; aceitar marca e manda push só aos inscritos de quem aceitou', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  assert.deepEqual(await responderConvite(m.terca, { id, resposta: 'aceitar' }, ORG), { error: 'Agora a vez de responder é do outro grupo.' });
+  const r = await responderConvite(m.meme, { id, resposta: 'aceitar', recado: 'fechado!' }, ORG);
+  assert.equal(r.status, 'ok');
+  const a = r.liga.amistosos.find((x) => x.id === id);
+  assert.equal(a.status, 'marcado');
+  assert.equal(a.vezDe, '');
+  assert.deepEqual(m.push.map(([g]) => g), ['meme']);
+  assert.match(m.push[0][1].corpo, /Vôlei de Terça em 20\/10 às 20:00/);
+  assert.deepEqual(await responderConvite(m.meme, { id, resposta: 'recusar' }, ORG), { error: 'Esse convite não está mais esperando resposta.' });
+});
+
+await ta('responderConvite: contraproposta troca a vez e os campos; o vai e volta continua até aceitar', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  const r1 = await responderConvite(m.meme, { id, resposta: 'contrapropor', data: '2026-10-22', horario: '19:00', local: 'Ginásio', vagasPorGrupo: 12, recado: 'terça não dá' }, ORG);
+  assert.equal(r1.status, 'ok');
+  let a = r1.liga.amistosos.find((x) => x.id === id);
+  assert.deepEqual([a.status, a.vezDe, a.data, a.horario, a.local, a.vagasPorGrupo], ['pendente', 'terca', '2026-10-22', '19:00', 'Ginásio', 12]);
+  assert.equal(a.mensagens.at(-1).tipo, 'contraproposta');
+  assert.match(a.mensagens.at(-1).texto, /22\/10 às 19:00 em Ginásio — terça não dá/);
+  const r2 = await responderConvite(m.terca, { id, resposta: 'aceitar' }, ORG);
+  a = r2.liga.amistosos.find((x) => x.id === id);
+  assert.equal(a.status, 'marcado');
+});
+
+await ta('responderConvite: recusar, resposta inválida e contraproposta com campos ruins', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  assert.deepEqual(await responderConvite(m.meme, { id, resposta: 'talvez' }, ORG), { error: 'Resposta inválida.' });
+  assert.deepEqual(await responderConvite(m.meme, { id, resposta: 'contrapropor', data: 'x', horario: '19:00' }, ORG), { error: 'Data inválida.' });
+  const r = await responderConvite(m.meme, { id, resposta: 'recusar', recado: 'sem quadra' }, ORG);
+  assert.equal(r.liga.amistosos.find((x) => x.id === id).status, 'recusado');
+});
+
+await ta('isolamento: grupo que não participa do amistoso recebe "não encontrado" e nada muda', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  assert.deepEqual(await responderConvite(m.outro, { id, resposta: 'aceitar' }, ORG), { error: 'Amistoso não encontrado.' });
+  assert.deepEqual(await cancelarAmistoso(m.outro, { id, motivo: 'x' }, ORG), { error: 'Amistoso não encontrado.' });
+  assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'pendente');
+});
+
+await ta('concorrência: se o status mudou entre a leitura e a gravação, a segunda ação perde', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  // simula outro organizador do Meme aceitando "no meio" da recusa deste
+  const original = m.repoLiga.atualizarAmistosoSe;
+  m.repoLiga.atualizarAmistosoSe = async (...args) => { await original('' + id, 'pendente', { status: 'marcado' }); return original(...args); };
+  assert.deepEqual(await responderConvite(m.meme, { id, resposta: 'recusar' }, ORG),
+    { error: 'Esse amistoso mudou enquanto você olhava. Recarregue a página e tente de novo.' });
+  m.repoLiga.atualizarAmistosoSe = original;
+  assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'marcado');
+});
+
+await ta('cancelarAmistoso: qualquer lado; marcado exige motivo; encerrado não cancela', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  await responderConvite(m.meme, { id, resposta: 'aceitar' }, ORG);
+  assert.deepEqual(await cancelarAmistoso(m.terca, { id }, ORG), { error: 'Conte o motivo do cancelamento (o outro grupo vai ver).' });
+  const r = await cancelarAmistoso(m.terca, { id, motivo: 'choveu' }, ORG);
+  const a = r.liga.amistosos.find((x) => x.id === id);
+  assert.deepEqual([a.status, a.motivoCancelamento], ['cancelado', 'choveu']);
+  assert.deepEqual(await cancelarAmistoso(m.meme, { id, motivo: 'x' }, ORG), { error: 'Esse amistoso não pode mais ser cancelado.' });
+  // pendente cancela sem motivo
+  const id2 = await convidar(m);
+  assert.equal((await cancelarAmistoso(m.terca, { id: id2 }, ORG)).status, 'ok');
+});
+
+await ta('recadoAmistoso: grava no histórico; texto vazio é recusado; corta em 500', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  assert.deepEqual(await recadoAmistoso(m.meme, { id, texto: '   ' }, ORG), { error: 'Escreva o recado.' });
+  const r = await recadoAmistoso(m.meme, { id, texto: 'x'.repeat(600) }, ORG);
+  const msg = r.liga.amistosos.find((x) => x.id === id).mensagens.at(-1);
+  assert.deepEqual([msg.tipo, msg.grupo, msg.texto.length, msg.autorNome], ['recado', 'meme', 500, 'Org']);
 });
 
 fim();
