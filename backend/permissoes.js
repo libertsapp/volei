@@ -41,5 +41,18 @@ export const PERMISSOES = {
   devolverCredito:    ['admin'],
   addPendencia:       ['organizador', 'admin'],
   baixarPendencia:    ['organizador', 'admin'],
+  // amistosos entre grupos (2026-10-12). entrarAmistoso/sairAmistoso ficam FORA da matriz de propósito: são como o
+  // check-in (só pedem login, qualquer perfil) e o handler trata antes do porteiro
+  convidarGrupo:        ['organizador', 'admin'],
+  responderConvite:     ['organizador', 'admin'],
+  cancelarAmistoso:     ['organizador', 'admin'],
+  recadoAmistoso:       ['organizador', 'admin'],
+  confirmarEscalado:    ['organizador', 'admin'],
+  desconfirmarEscalado: ['organizador', 'admin'],
+  travarEscalacao:      ['organizador', 'admin'],
+  destravarEscalacao:   ['organizador', 'admin'],
+  lancarPlacar:         ['organizador', 'admin'],
+  confirmarPlacar:      ['organizador', 'admin'],
+  contestarPlacar:      ['organizador', 'admin'],
   enviarNotificacao:  ['organizador', 'admin']
 };

@@ -8,6 +8,7 @@ import { criarRepoSupabase } from './backend/repo-supabase.js';
 import { criarArmazenamentoSupabase } from './backend/armazenamento-supabase.js';
 import { criarVerificadorGoogle } from './backend/auth.js';
 import { criarLimitador } from './backend/limitador.js';
+import { criarRepoLigaSupabase } from './backend/repo-liga-supabase.js';
 
 const NOMES = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_CLIENT_ID', 'ORIGENS_PERMITIDAS'];
 const env = (nome: string): string => (Deno.env.get(nome) ?? '').trim();
@@ -26,6 +27,12 @@ if (faltando.length) {
   });
   const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   const repo = criarRepoSupabase(cliente);
+  // amistosos entre grupos: segundo cliente apontando pro schema compartilhado "liga". Se o SQL da liga ainda não rodou,
+  // o GET devolve o bloco vazio e o resto do app segue normal (nunca derrubar o app por uma peça nova).
+  const clienteLiga = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: 'liga' }
+  });
   // notificações push (ajuste 11): opcional de propósito — sem as chaves VAPID, a função sobe normal (GET, check-in,
   // financeiro, tudo funciona) e só "enviarNotificacao" devolve erro. Nunca travar o resto do app por causa disso
   // (lição do deploy de fin_pendencias antes do SQL rodar: nunca derrubar o app todo por uma peça opcional).
@@ -44,6 +51,7 @@ if (faltando.length) {
     verificarToken: criarVerificadorGoogle({ clientId: env('GOOGLE_CLIENT_ID') }),
     limitador: criarLimitador({ repo }),
     enviarPush,
+    liga: { repo: criarRepoLigaSupabase(clienteLiga), grupoId: 'terca' },
     avisar: (...a: unknown[]) => console.error(...a),
     ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco; a mensagem real vai só para o log
     registrar

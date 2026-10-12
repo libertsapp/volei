@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { criarHandler } from './handler.js';
 import { criarRepoSupabase } from './repo-supabase.js';
+import { criarRepoLigaSupabase } from './repo-liga-supabase.js';
 import { criarArmazenamentoSupabase } from './armazenamento-supabase.js';
 import { criarVerificadorGoogle } from './auth.js';
 import { criarServidor } from './servidor.js';
@@ -34,6 +35,8 @@ const handler = criarHandler({
   repo: criarRepoSupabase(cliente),
   armazenamento: criarArmazenamentoSupabase({ cliente, urlBase: process.env.SUPABASE_URL, bucket: cfg.bucket }),
   config: { adminPassword: process.env[cfg.adminPasswordVar] },
+  // amistosos: o schema "liga" é o mesmo pros dois grupos; o grupo deste servidor é o do .env (GRUPO=meme ou Terça)
+  liga: { repo: criarRepoLigaSupabase(createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { db: { schema: 'liga' } })), grupoId: cfg.grupo },
   verificarToken: criarVerificadorGoogle({ clientId: process.env.GOOGLE_CLIENT_ID }),
   avisar: (...a) => console.error(...a) // erros engolidos (ganchos do check-in, trava) ficam visíveis no terminal
 });

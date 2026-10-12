@@ -32,13 +32,20 @@ if (!fs.existsSync(caminhoGs)) {
     // moverCheckin/salvarJogo2/removerJogo2 (dois jogos no mesmo dia, 2026-10-03) também: a funcionalidade inteira
     // só existe no backend novo (Supabase) — o .gs não tem addCheckin com campo "jogo" nem essas três ações.
     // enviarNotificacao (ajuste 11, notificações push): também só existe no backend novo.
-    const { restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao, ...resto } = PERMISSOES;
+    // amistosos entre grupos (2026-10-12): também só existem no backend novo
+    const {
+      restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao,
+      convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
+      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, ...resto
+    } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
     assert.deepEqual(moverCheckin, ['organizador', 'admin']);
     assert.deepEqual(salvarJogo2, ['organizador', 'admin']);
     assert.deepEqual(removerJogo2, ['organizador', 'admin']);
     assert.deepEqual(enviarNotificacao, ['organizador', 'admin']);
+    for (const acao of [convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
+      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar]) assert.deepEqual(acao, ['organizador', 'admin']);
   });
 }
 

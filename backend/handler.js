@@ -20,6 +20,11 @@ import {
   addPendencia, baixarPendencia
 } from './financeiro.js';
 import { lerAoVivo, iniciarTransmissaoAoVivo, salvarParcialAoVivo, cancelarTransmissaoAoVivo, incrementarAcesso } from './aovivo.js';
+import {
+  lerBlocoLiga, convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso,
+  entrarAmistoso, sairAmistoso, confirmarEscalado, desconfirmarEscalado, travarEscalacao, destravarEscalacao,
+  lancarPlacar, confirmarPlacar, contestarPlacar
+} from './amistosos.js';
 import { comTrava } from './trava.js';
 import { ErroDeNegocio, MSG_ERRO_INTERNO } from './erros.js';
 
@@ -29,11 +34,12 @@ const semLogin = async () => ({ ok: false, erro: 'Login do Google não configura
 // Handler do backend: mesma cara do doGet/doPost do Apps Script. Tudo entra por injeção: o repositório
 // (memória nos testes, Supabase de verdade no servidor e na Edge Function), a chave mestra, o verificador
 // do token do Google e o relógio.
-export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador, ocultarErrosInternos = false, registrar = () => {}, enviarPush }) {
+export function criarHandler({ repo, config = {}, verificarToken = semLogin, relogio = () => new Date(), armazenamento, gerarId, gerarDono = () => globalThis.crypto.randomUUID(), esperar, avisar = () => {}, limitador, ocultarErrosInternos = false, registrar = () => {}, enviarPush, liga }) {
   // gerarDono: dono da trava de gravação (separado de gerarId para não gastar ids de registros); esperar: pausa entre tentativas da trava
   // limitador (opcional): limita tentativas da chave mestra por IP; sem ele (servidor local, testes) nada muda
   // enviarPush (opcional): quem manda a notificação de verdade (VAPID/web-push); sem ele, enviarNotificacao dá erro claro
-  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador, enviarPush: enviarPush || (async () => { throw new Error('Notificações push não configuradas neste servidor.'); }) };
+  // liga (opcional): { repo, grupoId } dos amistosos entre grupos (schema "liga"); sem ela o bloco vem vazio e as ações respondem erro claro
+  const deps = { repo, config, verificarToken, relogio, armazenamento, gerarId, gerarDono, esperar, avisar, limitador, liga, enviarPush: enviarPush || (async () => { throw new Error('Notificações push não configuradas neste servidor.'); }) };
   // trava única 'gravacao' (o LockService do .gs): as ações do financeiro e o check-in (com seus ganchos) nunca se misturam.
   // As demais gravações (jogadores, rodadas, configurações, fotos) NÃO usam a trava hoje: para incluí-las, é só trocar
   // `return await acao(...)` por `return await travar(() => acao(...))` no case dela (uma linha por ação).
@@ -54,7 +60,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
   return {
     async get() {
       try {
-        const t = await repo.lerTudo();
+        // o bloco da liga nunca lança (schema ausente = bloco vazio), então pode correr em paralelo sem risco
+        const [t, liga] = await Promise.all([repo.lerTudo(), lerBlocoLiga(deps)]);
         return {
           players: mapearJogadores(t.jogadores),
           removidos: mapearJogadoresRemovidos(t.jogadores), // arquivados: a aba Jogadores lista pra reativar; o resto do app ignora
@@ -63,7 +70,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           checkins: mapearCheckins(t.checkins),
           perfisPublicos: mapearPerfisPublicos(t.usuarios),
           aoVivo: mapearAoVivo(t.ao_vivo, t.ao_vivo_log),
-          financeiro: mapearFinanceiro(t)
+          financeiro: mapearFinanceiro(t),
+          liga
         };
       } catch (erro) {
         return falhaInesperada(erro);
@@ -95,6 +103,13 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           if (!token.ok) return { error: token.erro };
           // os ganchos do financeiro rodam dentro de addCheckin/removeCheckin, sob a mesma trava
           return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id)));
+        }
+
+        // "Vou jogar" num amistoso: mesma regra do check-in (só login, qualquer perfil), por isso antes do porteiro
+        if (acao === 'entrarAmistoso' || acao === 'sairAmistoso') {
+          const token = await identificar(deps, b);
+          if (!token.ok) return { error: token.erro };
+          return await travar(() => (acao === 'entrarAmistoso' ? entrarAmistoso(deps, b) : sairAmistoso(deps, b)));
         }
 
         // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app)
@@ -147,6 +162,18 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'iniciarTransmissaoAoVivo': return await travar(() => iniciarTransmissaoAoVivo(deps, b.roundId, b.duracaoMinutos));
           case 'salvarParcialAoVivo': return await travar(() => salvarParcialAoVivo(deps, b.roundId, b.vitoriasPorTime));
           case 'cancelarTransmissaoAoVivo': return await travar(() => cancelarTransmissaoAoVivo(deps, b.roundId));
+          // amistosos entre grupos (2026-10-12): toda gravação sob a trava, como o resto
+          case 'convidarGrupo': return await travar(() => convidarGrupo(deps, b.convite, auth));
+          case 'responderConvite': return await travar(() => responderConvite(deps, b, auth));
+          case 'cancelarAmistoso': return await travar(() => cancelarAmistoso(deps, b, auth));
+          case 'recadoAmistoso': return await travar(() => recadoAmistoso(deps, b, auth));
+          case 'confirmarEscalado': return await travar(() => confirmarEscalado(deps, b));
+          case 'desconfirmarEscalado': return await travar(() => desconfirmarEscalado(deps, b));
+          case 'travarEscalacao': return await travar(() => travarEscalacao(deps, b));
+          case 'destravarEscalacao': return await travar(() => destravarEscalacao(deps, b));
+          case 'lancarPlacar': return await travar(() => lancarPlacar(deps, b, auth));
+          case 'confirmarPlacar': return await travar(() => confirmarPlacar(deps, b, auth));
+          case 'contestarPlacar': return await travar(() => contestarPlacar(deps, b, auth));
           default: return naoDisponivel(acao);
         }
       } catch (erro) {
