@@ -70,7 +70,8 @@ export function criarEdge({ handler, origensPermitidas = [], limiteCorpoBytes = 
         });
       }
 
-      if (request.method === 'GET') return responder(200, await handler.get());
+      // a query vai junto (grupos independentes: ?g=<apelido>); os handlers do Terça e do Meme ignoram o argumento
+      if (request.method === 'GET') return responder(200, await handler.get({ consulta: Object.fromEntries(new URL(request.url).searchParams) }));
 
       if (request.method === 'POST') {
         if (!origemOk(origem)) return responder(403, { error: 'Origem não permitida.' });
