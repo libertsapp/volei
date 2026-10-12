@@ -569,3 +569,43 @@ grant execute on function limpar_falhas(uuid, text) to service_role;
 grant execute on function mover_checkin_de_jogo(uuid, text, smallint) to service_role;
 grant execute on function mover_jogo2_para_jogo1(uuid, date) to service_role;
 grant execute on function mover_fila_para_jogo(uuid, date, smallint, smallint) to service_role;
+
+-- ======================================================================= criação de grupo (o "um clique")
+-- Tudo numa transação: valida o apelido e o limite por e-mail, cria o cadastro, o dono como admin e a linha na liga
+-- (id da liga = apelido). A config fica vazia de propósito: mapearConfig já devolve os padrões quando a chave não existe.
+-- Erros saem como exceção com a mensagem-código (apelido_invalido | apelido_reservado | apelido_em_uso |
+-- limite_por_email); a função grupos-api traduz para o usuário. Corrida de dois criando o mesmo apelido ao mesmo tempo
+-- cai no unique de grupos.apelido / liga.grupos.id (erro 23505), que a grupos-api também traduz para apelido_em_uso.
+create or replace function criar_grupo(p_apelido text, p_nome text, p_cidade text, p_uf text, p_cor text,
+                                       p_dono_email text, p_dono_nome text) returns uuid
+language plpgsql set search_path = grupos as $$
+declare
+  v_id uuid;
+  v_apelido text := lower(btrim(p_apelido));
+  v_email text := lower(btrim(p_dono_email));
+  v_max int;
+begin
+  select max_grupos_por_email into v_max from limites limit 1;
+  if v_apelido !~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$' or v_apelido ~ '--' then
+    raise exception 'apelido_invalido';
+  end if;
+  if exists (select 1 from apelidos_reservados where apelido = v_apelido) then
+    raise exception 'apelido_reservado';
+  end if;
+  if exists (select 1 from grupos where apelido = v_apelido) or exists (select 1 from liga.grupos where id = v_apelido) then
+    raise exception 'apelido_em_uso';
+  end if;
+  if (select count(*) from grupos where dono_email = v_email) >= coalesce(v_max, 1) then
+    raise exception 'limite_por_email';
+  end if;
+  insert into grupos (apelido, nome, cidade, uf, cor_destaque, dono_email)
+  values (v_apelido, btrim(p_nome), btrim(p_cidade), upper(btrim(p_uf)), lower(btrim(p_cor)), v_email)
+  returning id into v_id;
+  insert into usuarios (grupo_id, email, nome, perfil) values (v_id, v_email, p_dono_nome, 'admin');
+  insert into liga.grupos (id, nome, cor, cidade, uf)
+  values (v_apelido, btrim(p_nome), lower(btrim(p_cor)), btrim(p_cidade), upper(btrim(p_uf)));
+  return v_id;
+end;
+$$;
+revoke execute on function criar_grupo(text, text, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function criar_grupo(text, text, text, text, text, text, text) to service_role;

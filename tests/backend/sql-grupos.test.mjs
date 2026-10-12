@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { t, fim } from './executor.mjs';
 import { TABELAS } from '../../backend/repo-memoria.js';
+import { UFS, APELIDOS_RESERVADOS } from '../../backend/grupos-cadastro.js';
 
 const raiz = path.join(import.meta.dirname, '..', '..');
 const ler = (rel) => fs.readFileSync(path.join(raiz, rel), 'utf8').replace(/\r/g, '');
@@ -80,6 +81,33 @@ t('as funções nunca tocam linhas sem filtrar pelo grupo (todo delete/update ne
       assert.match(cmd, /grupo_id = p_grupo_id/, nome + ': ' + cmd.slice(0, 80));
     }
   }
+});
+
+t('JS e SQL concordam: mesmas UFs, mesmos reservados, mesma regex de apelido', () => {
+  const ufsSql = sql.match(/uf in \(([^)]*)\)/)[1].split(',').map((s) => s.trim().replace(/'/g, ''));
+  assert.deepEqual(ufsSql.sort(), [...UFS].sort());
+  const blocoReservados = sql.match(/insert into apelidos_reservados \(apelido\) values([\s\S]*?)on conflict/)[1];
+  const reservadosSql = [...blocoReservados.matchAll(/\('([a-z0-9-]+)'\)/g)].map((m) => m[1]);
+  assert.deepEqual(reservadosSql.sort(), [...APELIDOS_RESERVADOS].sort());
+  assert.match(sql, /apelido ~ '\^\[a-z0-9\]\[a-z0-9-\]\{1,28\}\[a-z0-9\]\$' and apelido !~ '--'/);
+});
+
+t('criar_grupo: uma transação que valida limites e cria cadastro, dono admin e linha na liga', () => {
+  const corpo = sql.match(/create or replace function criar_grupo\([\s\S]*?\n\$\$;/)[0];
+  for (const erro of ['apelido_invalido', 'apelido_reservado', 'apelido_em_uso', 'limite_por_email']) assert.match(corpo, new RegExp("'" + erro + "'"));
+  assert.match(corpo, /insert into grupos \(/);
+  assert.match(corpo, /insert into usuarios \(grupo_id, email, nome, perfil\)[\s\S]*'admin'/);
+  assert.match(corpo, /insert into liga\.grupos \(id, nome, cor, cidade, uf\)/);
+  assert.match(corpo, /from limites/);
+  assert.match(sql, /revoke execute on function criar_grupo\(text, text, text, text, text, text, text\) from public, anon, authenticated;/);
+  assert.match(sql, /grant execute on function criar_grupo\(text, text, text, text, text, text, text\) to service_role;/);
+});
+
+t('liga ganha cidade e uf (ajuste próprio, idempotente)', () => {
+  const liga = ler('sql/liga/ajuste-1-cidade.sql');
+  assert.match(liga, /alter table liga\.grupos add column if not exists cidade text;/);
+  assert.match(liga, /alter table liga\.grupos add column if not exists uf char\(2\);/);
+  assert.match(liga, /update liga\.grupos set cidade = 'Santa Luzia', uf = 'MG' where id in \('terca', 'meme'\);/);
 });
 
 fim();
