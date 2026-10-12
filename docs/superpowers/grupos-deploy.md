@@ -15,6 +15,11 @@ Passos do USUÁRIO (o assistente não publica nada). Ordem importa.
    `npx supabase functions deploy grupos-api --no-verify-jwt --project-ref lzwmirrjpoqucwlhgkku`
 6. **Conferir:** `curl https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/grupos-api?g=teste` deve responder
    `{"error":"Esse grupo não existe.","codigo":"grupo_inexistente"}`.
+7. **Conferir o IP nos logs** (Supabase → Edge Functions → grupos-api → Logs): NÃO pode aparecer
+   `cf-connecting-ip ausente`. Se aparecer, o limite de criações por IP vira um teto único para todo mundo (bem mais
+   alto, para não travar ninguém) — avise o assistente.
+8. **Suspender um grupo** (abuso): `update grupos.grupos set status = 'suspenso' where apelido = '...';` — pode levar
+   até 1 minuto para valer (cache da função).
 
 Nada disso muda o Terça nem o Meme. A página de criação e o "modo grupo" do app vêm na Fase 3; o endereço
 `volei.memberstars.com` na Fase 4.

@@ -115,4 +115,24 @@ await ta('teto de jogadores do plano grátis (só ativos contam)', async () => {
   assert.equal((await add('p3')).status, 'ok'); // removido não conta
 });
 
+await ta('fix: teto de jogadores também vale ao reativar um removido (restorePlayer)', async () => {
+  const { api } = mundo({ max_jogadores_por_grupo: 2 });
+  await criar(api, 'tok-dono', NOVO);
+  const post = (b) => api.post({ grupo: 'quinta', idToken: 'tok-dono', ...b });
+  await post({ action: 'addPlayer', player: jogador('p1', 'A') });
+  await post({ action: 'removePlayer', id: 'p1' });
+  await post({ action: 'addPlayer', player: jogador('p2', 'B') });
+  await post({ action: 'addPlayer', player: jogador('p3', 'C') });
+  assert.deepEqual(await post({ action: 'restorePlayer', id: 'p1' }), { error: 'Este grupo chegou ao limite de 2 jogadores do plano grátis.' });
+  assert.deepEqual((await api.get({ consulta: { g: 'quinta' } })).players.length, 2);
+});
+
+await ta('fix: sem IP conhecido (cabeçalho ausente) o limite vira um teto geral maior, não trava todo mundo na 3ª tentativa', async () => {
+  const { api } = mundo({ max_criacoes_por_ip_hora: 3 });
+  for (let i = 0; i < 5; i++) await criar(api, '', NOVO, 'desconhecido'); // 5 falhas sem login, todas sem IP
+  assert.equal((await criar(api, 'tok-dono', NOVO, 'desconhecido')).status, 'ok');
+  for (let i = 0; i < 5; i++) await api.post({ action: 'criarGrupo', idToken: '', grupoNovo: NOVO }, {}); // contexto sem ip
+  assert.equal((await criar(api, 'tok-outro', { ...NOVO, apelido: 'sabado' }, undefined)).status, 'ok');
+});
+
 fim();

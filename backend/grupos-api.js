@@ -62,7 +62,15 @@ export function criarGruposApi({
     return { error: String(erro && erro.message ? erro.message : erro) };
   };
 
-  const dentroDoLimite = (prefixo, ip, max) => cadastro.registrarTentativaGlobal(prefixo + ':' + normalizarIp(ip), max, 3600, 3600);
+  // Sem o IP de verdade (cabeçalho cf-connecting-ip ausente), todo mundo cairia num balde só e 3 tentativas de qualquer
+  // pessoa trancariam a criação de grupos do país inteiro por 1 hora. Nesse caso o balde comum ganha um teto bem maior:
+  // ainda segura um robô, mas não deixa gente de verdade travar umas às outras.
+  const MULTIPLICADOR_SEM_IP = 50;
+  const dentroDoLimite = (prefixo, ip, max) => {
+    const conhecido = !!ip && ip !== 'desconhecido';
+    const chave = prefixo + ':' + (conhecido ? normalizarIp(ip) : 'desconhecido');
+    return cadastro.registrarTentativaGlobal(chave, conhecido ? max : max * MULTIPLICADOR_SEM_IP, 3600, 3600);
+  };
 
   async function verificarApelido(b, contexto) {
     if (!(await dentroDoLimite('apelido', contexto.ip, MAX_VERIFICACOES_POR_IP_HORA))) return { error: MSG_MUITAS_CRIACOES };
@@ -119,7 +127,8 @@ export function criarGruposApi({
         if (acao === 'criarGrupo') return await criarGrupo(b, contexto);
         const r = await resolver(b.grupo);
         if (r.erro) return r.erro;
-        if (acao === 'addPlayer') {
+        // reativar um removido também aumenta os ativos: sem isso, remover/cadastrar/reativar furava o teto
+        if (acao === 'addPlayer' || acao === 'restorePlayer') {
           const teto = await tetoDeJogadores(r.grupo);
           if (teto) return teto;
         }
