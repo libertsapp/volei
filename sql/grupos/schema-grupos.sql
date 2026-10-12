@@ -612,3 +612,61 @@ end;
 $$;
 revoke execute on function criar_grupo(text, text, text, text, text, text, text) from public, anon, authenticated;
 grant execute on function criar_grupo(text, text, text, text, text, text, text) to service_role;
+
+-- ======================================================================= Fase 2: antes de existir grupo
+-- verificarApelido e criarGrupo acontecem ANTES de haver grupo: o limite por IP fica numa tabela sem grupo_id
+create table limite_global (
+  chave text primary key,
+  tentativas int not null default 0,
+  bloqueado_ate timestamptz,
+  atualizado_em timestamptz not null default now()
+);
+alter table limite_global enable row level security;
+grant select, insert, update, delete on limite_global to service_role;
+
+-- mesma regra do registrar_tentativa (Terça, ajuste 7), sem grupo: true = pode seguir
+create or replace function registrar_tentativa_global(p_chave text, p_max int, p_janela_seg int, p_bloqueio_seg int) returns boolean
+language plpgsql set search_path = grupos as $$
+declare
+  v_permitido boolean;
+begin
+  delete from limite_global
+   where atualizado_em < now() - interval '1 day'
+     and (bloqueado_ate is null or bloqueado_ate < now())
+     and chave <> p_chave;
+  insert into limite_global as l (chave, tentativas, bloqueado_ate, atualizado_em)
+  values (p_chave, 1, null, now())
+  on conflict (chave) do update set
+    tentativas = case
+      when l.bloqueado_ate > now() then l.tentativas
+      when l.atualizado_em < now() - make_interval(secs => p_janela_seg)
+        or (l.bloqueado_ate is not null and l.bloqueado_ate <= now()) then 1
+      else l.tentativas + 1 end,
+    bloqueado_ate = case
+      when l.bloqueado_ate > now() then l.bloqueado_ate
+      when l.atualizado_em < now() - make_interval(secs => p_janela_seg)
+        or (l.bloqueado_ate is not null and l.bloqueado_ate <= now()) then null
+      when l.tentativas + 1 > p_max then now() + make_interval(secs => p_bloqueio_seg)
+      else null end,
+    atualizado_em = case when l.bloqueado_ate > now() then l.atualizado_em else now() end
+  returning (bloqueado_ate is null or bloqueado_ate <= now()) into v_permitido;
+  return coalesce(v_permitido, false);
+end;
+$$;
+
+-- "esse endereço está livre?" — a mesma checagem que o criar_grupo faz, para a tela responder enquanto a pessoa digita
+create or replace function apelido_disponivel(p_apelido text) returns boolean
+language plpgsql stable set search_path = grupos as $$
+declare
+  v text := lower(btrim(coalesce(p_apelido, '')));
+begin
+  return not exists (select 1 from grupos where apelido = v)
+     and not exists (select 1 from liga.grupos where id = v)
+     and not exists (select 1 from apelidos_reservados where apelido = v);
+end;
+$$;
+
+revoke execute on function registrar_tentativa_global(text, int, int, int) from public, anon, authenticated;
+revoke execute on function apelido_disponivel(text) from public, anon, authenticated;
+grant execute on function registrar_tentativa_global(text, int, int, int) to service_role;
+grant execute on function apelido_disponivel(text) to service_role;

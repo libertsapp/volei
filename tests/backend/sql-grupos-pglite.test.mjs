@@ -95,4 +95,12 @@ ok('o mesmo aparelho (endpoint) pode se inscrever em dois grupos');
 await db.query('delete from grupos.grupos where id = $1', [B]);
 const restoB = (await db.query('select (select count(*) from grupos.jogadores where grupo_id = $1) + (select count(*) from grupos.rodadas where grupo_id = $1) + (select count(*) from grupos.checkins where grupo_id = $1) as n', [B])).rows[0].n;
 (Number(restoB) === 0 ? ok : falha)('apagar o grupo apaga os dados dele em cascata');
+// Fase 2: limite global e apelido livre
+const g1 = (await db.query("select grupos.registrar_tentativa_global('criar:1.2.3.4', 1, 3600, 3600) as ok")).rows[0].ok;
+const g2 = (await db.query("select grupos.registrar_tentativa_global('criar:1.2.3.4', 1, 3600, 3600) as ok")).rows[0].ok;
+const g3 = (await db.query("select grupos.registrar_tentativa_global('criar:5.6.7.8', 1, 3600, 3600) as ok")).rows[0].ok;
+(g1 && !g2 && g3 ? ok : falha)('limite global por chave (IP)');
+const livre = async (a) => (await db.query('select grupos.apelido_disponivel($1) as ok', [a])).rows[0].ok;
+(!(await livre('quinta')) && !(await livre(' QUINTA ')) && !(await livre('terca')) && !(await livre('admin')) && (await livre('domingo')) ? ok : falha)('apelido_disponivel: em uso, da liga, reservado, livre');
+
 console.log(process.exitCode ? '\nFALHA(S)' : '\nTODOS OS TESTES PASSARAM');

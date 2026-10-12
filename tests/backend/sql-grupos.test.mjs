@@ -117,4 +117,18 @@ t('criar_grupo trava por e-mail dentro da transação (dois cliques juntos não 
   assert.ok(trava < corpo.indexOf('select count(*) from grupos where dono_email'), 'a trava precisa vir antes da contagem');
 });
 
+t('limite global (antes de existir grupo) e apelido_disponivel, só para a service_role', () => {
+  assert.match(sql, /create table limite_global \(\n  chave text primary key,/);
+  assert.match(sql, /alter table limite_global enable row level security;/);
+  assert.match(sql, /grant select, insert, update, delete on limite_global to service_role;/);
+  assert.match(sql, /create or replace function registrar_tentativa_global\(p_chave text, p_max int, p_janela_seg int, p_bloqueio_seg int\) returns boolean/);
+  assert.match(sql, /create or replace function apelido_disponivel\(p_apelido text\) returns boolean/);
+  for (const assinatura of ['registrar_tentativa_global\\(text, int, int, int\\)', 'apelido_disponivel\\(text\\)']) {
+    assert.match(sql, new RegExp('revoke execute on function ' + assinatura + ' from public, anon, authenticated;'));
+    assert.match(sql, new RegExp('grant execute on function ' + assinatura + ' to service_role;'));
+  }
+  const corpo = sql.match(/create or replace function apelido_disponivel[\s\S]*?\n\$\$;/)[0];
+  for (const fonte of ['from grupos', 'from liga.grupos', 'from apelidos_reservados']) assert.ok(corpo.includes(fonte), fonte);
+});
+
 fim();
