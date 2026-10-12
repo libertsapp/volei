@@ -116,6 +116,11 @@ export async function transicionar(deps, a, campos) {
   return deps.liga.repo.atualizarAmistosoSe(a.id, a.status, { ...campos, atualizado_em: agoraDe(deps).toISOString() });
 }
 
+// a pessoa decidiu olhando uma versão do amistoso (o app manda o atualizadoEm que exibiu). A contraproposta e o placar
+// relançado não mudam o status, então só o status não basta: se a versão mudou, recusa em vez de aceitar algo não visto.
+// Sem "versao" (app antigo em cache) segue a regra de antes.
+const versaoVelha = (a, b) => !!(b && b.versao) && texto(b.versao) !== iso(a.atualizado_em);
+
 export async function registrarMensagem(deps, a, tipo, textoLivre, auth) {
   await deps.liga.repo.inserirMensagem({
     id: gerarId(deps), amistoso_id: a.id, grupo: deps.liga.grupoId, autor_nome: nomeDe(auth), tipo,
@@ -175,6 +180,7 @@ export async function responderConvite(deps, b, auth) {
   const a = r.amistoso;
   if (a.status !== 'pendente') return { error: 'Esse convite não está mais esperando resposta.' };
   if (a.vez_de !== grupoId) return { error: 'Agora a vez de responder é do outro grupo.' };
+  if (versaoVelha(a, b)) return { error: MSG_MUDOU };
   const resposta = texto(b.resposta);
   if (resposta === 'aceitar') {
     if (!(await transicionar(deps, a, { status: 'marcado', vez_de: null }))) return { error: MSG_MUDOU };
@@ -336,6 +342,7 @@ async function carregarParaConferir(deps, b) {
   if (a.status === 'encerrado') return { erro: 'Esse placar já foi confirmado.' };
   if (a.status !== 'aguardando_confirmacao') return { erro: 'Esse amistoso não tem placar esperando confirmação.' };
   if (a.placar_lancado_por_grupo === deps.liga.grupoId) return { erro: 'Quem confirma o placar é o outro grupo.' };
+  if (versaoVelha(a, b)) return { erro: MSG_MUDOU };
   return r;
 }
 

@@ -368,4 +368,42 @@ await ta('confirmação automática: depois de 7 dias aparece encerrado e a prim
   assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'encerrado'); // a escrita gravou
 });
 
+// ---- revisão final: versão vista pela pessoa e limite de 500 do histórico ----
+await ta('fix: aceitar/confirmar com versão velha (a data mudou numa contraproposta) é recusado; sem versão segue valendo', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  m.avancar('2026-10-12T15:01:00.000Z');
+  const r1 = await responderConvite(m.meme, { id, resposta: 'contrapropor', data: '2026-10-22', horario: '19:00' }, ORG);
+  const versaoVista = r1.liga.amistosos.find((x) => x.id === id).atualizadoEm; // organizador B do Terça abre a página aqui
+  m.avancar('2026-10-12T15:02:00.000Z');
+  await responderConvite(m.terca, { id, resposta: 'contrapropor', data: '2026-10-23', horario: '19:00' }, ORG);
+  m.avancar('2026-10-12T15:03:00.000Z');
+  const r3 = await responderConvite(m.meme, { id, resposta: 'contrapropor', data: '2026-10-25', horario: '19:00' }, ORG);
+  assert.deepEqual(await responderConvite(m.terca, { id, resposta: 'aceitar', versao: versaoVista }, ORG),
+    { error: 'Esse amistoso mudou enquanto você olhava. Recarregue a página e tente de novo.' });
+  const atual = (await lerBlocoLiga(m.terca)).amistosos.find((x) => x.id === id).atualizadoEm;
+  assert.equal(r3.liga.amistosos.find((x) => x.id === id).atualizadoEm, atual);
+  assert.equal((await responderConvite(m.terca, { id, resposta: 'aceitar', versao: atual }, ORG)).status, 'ok');
+  // placar contestado e relançado diferente: confirmar com a versão do placar antigo é recusado
+  m.avancar('2026-10-26T01:00:00.000Z');
+  const p1 = await lancarPlacar(m.meme, { id, setsConvidante: 3, setsConvidado: 0 }, ORG);
+  const versaoPlacar1 = p1.liga.amistosos.find((x) => x.id === id).atualizadoEm;
+  m.avancar('2026-10-26T01:01:00.000Z');
+  await contestarPlacar(m.terca, { id, texto: 'não foi isso' }, ORG);
+  m.avancar('2026-10-26T01:02:00.000Z');
+  await lancarPlacar(m.meme, { id, setsConvidante: 0, setsConvidado: 3 }, ORG);
+  assert.deepEqual(await confirmarPlacar(m.terca, { id, versao: versaoPlacar1 }, ORG),
+    { error: 'Esse amistoso mudou enquanto você olhava. Recarregue a página e tente de novo.' });
+  assert.equal((await confirmarPlacar(m.terca, { id }, ORG)).status, 'ok');
+});
+
+await ta('fix: texto montado do histórico (contraproposta com local longo + recado longo) nunca passa de 500', async () => {
+  const m = mundo();
+  const id = await convidar(m);
+  const r = await responderConvite(m.meme, { id, resposta: 'contrapropor', data: '2026-10-22', horario: '19:00', local: 'L'.repeat(200), recado: 'r'.repeat(500) }, ORG);
+  assert.equal(r.status, 'ok', JSON.stringify(r));
+  const textos = m.repoLiga.tabelas.amistoso_mensagens.map((x) => x.texto.length);
+  assert.ok(textos.every((n) => n <= 500), JSON.stringify(textos));
+});
+
 fim();

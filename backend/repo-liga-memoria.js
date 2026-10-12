@@ -47,7 +47,11 @@ export function criarRepoLigaMemoria(dados = {}) {
       t.amistosos[i] = { ...t.amistosos[i], ...campos };
       return true;
     },
-    async inserirMensagem(linha) { t.amistoso_mensagens.push({ ...linha }); },
+    // mesmo CHECK do banco (char_length(texto) <= 500): sem isto os testes não pegariam texto montado grande demais
+    async inserirMensagem(linha) {
+      if (String(linha.texto || '').length > 500) throw new Error('amistoso_mensagens: new row violates check constraint "amistoso_mensagens_texto_check"');
+      t.amistoso_mensagens.push({ ...linha });
+    },
     // false = a pessoa já está na lista desse grupo nesse amistoso (o unique do banco)
     async inserirEscalacao(linha) {
       if (t.escalacoes.some((e) => mesmaEscalacao(e, linha.amistoso_id, linha.grupo, linha.jogador_id))) return false;

@@ -153,4 +153,10 @@ await ta('supabase: lerAmistoso devolve null quando não acha; definirTrava faz 
   assert.deepEqual(c2.chamadas[1].filtros, [['eq', 'amistoso_id', 'a1'], ['eq', 'grupo', 'terca']]);
 });
 
+await ta('memória espelha o CHECK do banco: mensagem com mais de 500 caracteres é recusada', async () => {
+  const r = criarRepoLigaMemoria({ grupos: GRUPOS });
+  await r.inserirMensagem({ id: 'm1', amistoso_id: 'a1', grupo: 'terca', tipo: 'recado', texto: 'x'.repeat(500) });
+  await assert.rejects(r.inserirMensagem({ id: 'm2', amistoso_id: 'a1', grupo: 'terca', tipo: 'recado', texto: 'x'.repeat(501) }), /check constraint/);
+});
+
 fim();

@@ -4995,16 +4995,18 @@ document.getElementById('view-amistosos').addEventListener('click', (e)=>{
   const id = b.dataset.amiId, acao = b.dataset.amiAcao, jogadorId = b.dataset.amiJogador;
   const a = LIGA.amistosos.find(x => x.id === id);
   if(!a) return;
-  if(acao === 'aceitar') return amiPost('responderConvite', { id, resposta: 'aceitar' });
-  if(acao === 'recusar') return amiPedirTexto('Recusar convite', 'Recusar', false, (t)=> amiPost('responderConvite', { id, resposta: 'recusar', recado: t }));
+  // versao = o que a pessoa estava vendo: se o outro grupo mudou a data ou o placar nesse meio tempo, o servidor recusa
+  const versao = a.atualizadoEm;
+  if(acao === 'aceitar') return amiPost('responderConvite', { id, resposta: 'aceitar', versao });
+  if(acao === 'recusar') return amiPedirTexto('Recusar convite', 'Recusar', false, (t)=> amiPost('responderConvite', { id, resposta: 'recusar', recado: t, versao }));
   if(acao === 'contrapropor') return finAbrirModal('📅 Propor outra data', amiCamposHtml(a), async (ov)=>{
-    return amiPost('responderConvite', { id, resposta: 'contrapropor', ...amiLerCampos(ov) });
+    return amiPost('responderConvite', { id, resposta: 'contrapropor', ...amiLerCampos(ov), versao });
   }, 'Enviar proposta');
   if(acao === 'cancelar') return amiPedirTexto('Cancelar amistoso — motivo', 'Cancelar amistoso', a.status === 'marcado', (t)=> amiPost('cancelarAmistoso', { id, motivo: t }));
   if(acao === 'recado') return amiPedirTexto('💬 Recado para o outro grupo', 'Enviar', true, (t)=> amiPost('recadoAmistoso', { id, texto: t }));
   if(acao === 'lancarPlacar') return amiLancarPlacar(a);
-  if(acao === 'confirmarPlacar') return amiPost('confirmarPlacar', { id });
-  if(acao === 'contestarPlacar') return amiPedirTexto('Contestar placar — o que está errado?', 'Contestar', true, (t)=> amiPost('contestarPlacar', { id, texto: t }));
+  if(acao === 'confirmarPlacar') return amiPost('confirmarPlacar', { id, versao });
+  if(acao === 'contestarPlacar') return amiPedirTexto('Contestar placar — o que está errado?', 'Contestar', true, (t)=> amiPost('contestarPlacar', { id, texto: t, versao }));
   if(acao === 'entrarAmistoso') return amiEscolherJogador(id);
   if(acao === 'sairAmistoso' || acao === 'confirmarEscalado' || acao === 'desconfirmarEscalado') return amiPost(acao, { id, jogadorId });
   if(acao === 'travarEscalacao' || acao === 'destravarEscalacao') return amiPost(acao, { id });
