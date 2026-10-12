@@ -3505,6 +3505,55 @@ const SHEET_API_URL = "https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/ter
 const GOOGLE_CLIENT_ID = "986000653553-d5ri8n0k3kg6f1iii2e8c3v3854uuk3d.apps.googleusercontent.com";
 
 let sheetReady = SHEET_API_URL.startsWith("http");
+// <grupo-puro>
+const GRUPOS_API_URL = "https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/grupos-api";
+const HOSTS_MODO_GRUPO = ["volei.memberstars.com"];
+/* Grupos independentes (spec 2026-10-12) — decisões PURAS do "modo grupo": aberto em volei.memberstars.com/<apelido>/
+   este mesmo HTML vira o app daquele grupo. Fora desse host tudo devolve exatamente os valores do Terça (teste
+   tests/grupo-puro.test.js garante). Sem DOM nem rede aqui. */
+const NOME_PADRAO_APP = 'Volei de Terça';
+const UFS_GRUPO = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE',
+  'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+const PALETA_GRUPO = ['#ffd700', '#00f3ff', '#39ff9e', '#ff4d6d', '#b388ff', '#ff9f1c', '#4dabf7', '#f06595'];
+function contextoDoGrupo(hostname, pathname, hosts){
+  if(hosts.indexOf(String(hostname || '').toLowerCase()) === -1) return null;
+  let seg = String(pathname || '/').split('/').filter(Boolean)[0] || '';
+  try{ seg = decodeURIComponent(seg); }catch(e){ /* caminho malformado: usa como veio */ }
+  const apelido = seg.trim().toLowerCase();
+  if(!apelido || apelido === 'criar') return { pagina: 'criar', apelido: '' };
+  return { pagina: 'grupo', apelido };
+}
+// a grupos-api recebe o grupo pela query em TODAS as chamadas (GET e POST): o resto do app não precisa saber
+function urlDaApi(base, apiGrupos, ctx){
+  if(!ctx) return base;
+  return ctx.pagina === 'grupo' ? apiGrupos + '?g=' + encodeURIComponent(ctx.apelido) : apiGrupos;
+}
+// todos os grupos dividem o localStorage de volei.memberstars.com: login, cópia de dados e avisos levam o apelido
+function chaveDoAparelho(base, ctx){
+  if(!ctx || ctx.pagina !== 'grupo') return base;
+  return String(base).replace(/^(volei-|placar-estado-)/, '$1g-' + ctx.apelido + '-');
+}
+// um endereço só por grupo (/quinta/): sem isso "/Quinta" e "/quinta" virariam dois apps instalados
+function caminhoCanonico(pathname, ctx){
+  if(!ctx || ctx.pagina !== 'grupo') return null;
+  const certo = '/' + ctx.apelido + '/';
+  const atual = String(pathname || '');
+  const primeiro = '/' + (atual.split('/').filter(Boolean)[0] || '') + '/';
+  if(primeiro === certo && atual.startsWith(certo)) return null;
+  return certo;
+}
+function iniciaisDoGrupo(nome){
+  const PEQUENAS = ['de', 'da', 'do', 'das', 'dos', 'e'];
+  const palavras = String(nome || '').trim().split(/\s+/).filter(p => p && PEQUENAS.indexOf(p.toLowerCase()) === -1);
+  if(!palavras.length) return '?';
+  if(palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
+  return (palavras[0][0] + palavras[1][0]).toUpperCase();
+}
+function sugerirApelidoFront(nome){
+  return String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/g, '');
+}
+// </grupo-puro>
 
 function atualizarContadorAcessos(){
   const el = document.getElementById('visit-counter');
