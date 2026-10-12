@@ -5,13 +5,13 @@ import { texto, mapearConfig } from './mapeadores.js';
 import { removeCheckin } from './checkins.js';
 import { aplicarCreditosDoDia } from './financeiro.js';
 
-function dataValida(s) {
+export function dataValida(s) {
   const v = String(s || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || v < '0001-01-01') return false;
   const d = new Date(v + 'T00:00:00Z');
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
-const horarioValido = (s) => /^\d{2}:\d{2}$/.test(String(s || ''));
+export const horarioValido = (s) => /^\d{2}:\d{2}$/.test(String(s || ''));
 const agora = (deps) => (deps.relogio ? deps.relogio() : new Date()).toISOString();
 const nomeDe = (auth) => auth.nome || (auth.viaChaveMestra ? 'Chave mestra' : (auth.email || 'Desconhecido'));
 
