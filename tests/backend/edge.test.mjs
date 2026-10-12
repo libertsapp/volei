@@ -63,7 +63,7 @@ await ta('POST de origem permitida com text/plain: corpo vira objeto, resposta c
   assert.deepEqual(await json(r), { eco: { action: 'ping', n: 'ção' } });
   assert.equal(r.headers.get('access-control-allow-origin'), LOCAL);
   assert.equal(r.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(chamadas.post.at(-1)[1], { ip: '1.2.3.4' });
+  assert.deepEqual(chamadas.post.at(-1)[1], { ip: '1.2.3.4', consulta: {} }); // consulta: parâmetros da URL (grupos ?g=)
 });
 
 await ta('413 pelo Content-Length declarado, sem chamar o handler', async () => {

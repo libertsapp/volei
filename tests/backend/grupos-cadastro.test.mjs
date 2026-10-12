@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { t, fim } from './executor.mjs';
 import {
-  UFS, PALETA, APELIDOS_RESERVADOS, normalizarApelido, validarApelido, sugerirApelido, normalizarCidade, validarCadastroGrupo
+  UFS, PALETA, APELIDOS_RESERVADOS, normalizarApelido, validarApelido, sugerirApelido, normalizarCidade, validarCadastroGrupo,
+  motivoDoApelido, MENSAGENS_CADASTRO
 } from '../../backend/grupos-cadastro.js';
 
 t('UFs: as 27, únicas', () => {
@@ -55,6 +56,17 @@ t('validarCadastroGrupo: devolve os dados normalizados ou o primeiro erro', () =
 t('lista de reservados: minúscula e sem repetição', () => {
   assert.equal(new Set(APELIDOS_RESERVADOS).size, APELIDOS_RESERVADOS.length);
   for (const r of APELIDOS_RESERVADOS) assert.equal(r, r.toLowerCase());
+});
+
+t('motivoDoApelido: código e mensagem iguais aos do SQL (mesmo texto para a mesma recusa)', () => {
+  assert.equal(motivoDoApelido('quinta'), null);
+  assert.deepEqual(motivoDoApelido('Qu Inta'), { codigo: 'apelido_invalido', mensagem: MENSAGENS_CADASTRO.apelido_invalido });
+  assert.deepEqual(motivoDoApelido('ab'), { codigo: 'apelido_invalido', mensagem: 'O endereço precisa ter de 3 a 30 caracteres.' });
+  assert.deepEqual(motivoDoApelido('admin'), { codigo: 'apelido_reservado', mensagem: MENSAGENS_CADASTRO.apelido_reservado });
+  assert.equal(validarApelido('admin'), MENSAGENS_CADASTRO.apelido_reservado);
+  assert.deepEqual(validarCadastroGrupo({ nome: 'Vôlei', apelido: 'admin', cidade: 'BH', uf: 'MG', cor: PALETA[0] }),
+    { erro: MENSAGENS_CADASTRO.apelido_reservado, codigo: 'apelido_reservado' });
+  assert.deepEqual(Object.keys(MENSAGENS_CADASTRO).sort(), ['apelido_em_uso', 'apelido_invalido', 'apelido_reservado', 'limite_por_email']);
 });
 
 fim();

@@ -82,7 +82,8 @@ export function criarEdge({ handler, origensPermitidas = [], limiteCorpoBytes = 
         let corpo;
         try { corpo = JSON.parse(texto || '{}'); } catch { return responder(400, { error: 'Corpo inválido.' }); }
         if (corpo === null || typeof corpo !== 'object' || Array.isArray(corpo)) return responder(400, { error: 'Corpo inválido.' });
-        return responder(200, await handler.post(corpo, { ip: ipParaLimitador(request.headers) }));
+        // a query vai junto também no POST (grupos: ?g=<apelido> em todas as chamadas); Terça/Meme só olham o ip
+        return responder(200, await handler.post(corpo, { ip: ipParaLimitador(request.headers), consulta: Object.fromEntries(new URL(request.url).searchParams) }));
       }
 
       return responder(405, { error: 'Método não permitido.' }, { allow: 'GET,POST,OPTIONS' });

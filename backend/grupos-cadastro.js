@@ -17,12 +17,25 @@ const texto = (v) => (v === undefined || v === null ? '' : String(v));
 
 export const normalizarApelido = (s) => texto(s).trim();
 
-export function validarApelido(s) {
+// mesmo texto para a mesma recusa, venha ela do JS ou do criar_grupo do SQL (a tela confia no "codigo")
+export const MENSAGENS_CADASTRO = {
+  apelido_invalido: 'Use só letras minúsculas, números e hífen (sem acento, sem espaço, sem hífen nas pontas).',
+  apelido_reservado: 'Esse endereço é reservado. Escolha outro.',
+  apelido_em_uso: 'Esse endereço já está em uso. Escolha outro.',
+  limite_por_email: 'Por enquanto cada pessoa pode criar 1 grupo.'
+};
+
+export function motivoDoApelido(s) {
   const a = normalizarApelido(s);
-  if (a.length < 3 || a.length > 30) return 'O endereço precisa ter de 3 a 30 caracteres.';
-  if (!FORMATO_APELIDO.test(a) || a.includes('--')) return 'Use só letras minúsculas, números e hífen (sem acento, sem espaço, sem hífen nas pontas).';
-  if (APELIDOS_RESERVADOS.includes(a)) return 'Esse endereço é reservado. Escolha outro.';
-  return '';
+  if (a.length < 3 || a.length > 30) return { codigo: 'apelido_invalido', mensagem: 'O endereço precisa ter de 3 a 30 caracteres.' };
+  if (!FORMATO_APELIDO.test(a) || a.includes('--')) return { codigo: 'apelido_invalido', mensagem: MENSAGENS_CADASTRO.apelido_invalido };
+  if (APELIDOS_RESERVADOS.includes(a)) return { codigo: 'apelido_reservado', mensagem: MENSAGENS_CADASTRO.apelido_reservado };
+  return null;
+}
+
+export function validarApelido(s) {
+  const m = motivoDoApelido(s);
+  return m ? m.mensagem : '';
 }
 
 export function sugerirApelido(nome) {
@@ -41,8 +54,8 @@ export function normalizarCidade(s) {
 export function validarCadastroGrupo({ nome, apelido, cidade, uf, cor } = {}) {
   const n = texto(nome).trim().replace(/\s+/g, ' ');
   if (n.length < 3 || n.length > 60) return { erro: 'O nome do grupo precisa ter de 3 a 60 caracteres.' };
-  const erroApelido = validarApelido(apelido);
-  if (erroApelido) return { erro: erroApelido };
+  const motivo = motivoDoApelido(apelido);
+  if (motivo) return { erro: motivo.mensagem, codigo: motivo.codigo };
   const c = normalizarCidade(cidade);
   if (c.length < 2 || c.length > 60) return { erro: 'Informe a cidade do grupo.' };
   const u = texto(uf).trim().toUpperCase();

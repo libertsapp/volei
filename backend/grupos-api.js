@@ -4,7 +4,7 @@
 // grupo (verificarApelido, criarGrupo) vivem só aqui, com limite por IP numa tabela global.
 import { criarHandler } from './handler.js';
 import { armazenamentoDoGrupo } from './armazenamento-grupo.js';
-import { validarApelido, validarCadastroGrupo, normalizarApelido } from './grupos-cadastro.js';
+import { motivoDoApelido, validarCadastroGrupo, normalizarApelido, MENSAGENS_CADASTRO } from './grupos-cadastro.js';
 import { normalizarIp } from './limitador.js';
 import { mapearJogadores } from './mapeadores.js';
 import { ErroDeNegocio, MSG_ERRO_INTERNO } from './erros.js';
@@ -13,13 +13,6 @@ export const MSG_MUITAS_CRIACOES = 'Muitas tentativas. Tente de novo mais tarde.
 const MAX_VERIFICACOES_POR_IP_HORA = 120;
 const INEXISTENTE = { error: 'Esse grupo não existe.', codigo: 'grupo_inexistente' };
 const SUSPENSO = { error: 'Grupo indisponível.', codigo: 'grupo_suspenso' };
-const MSG_EM_USO = 'Esse endereço já está em uso. Escolha outro.';
-const MENSAGENS = {
-  apelido_invalido: 'Use só letras minúsculas, números e hífen no endereço.',
-  apelido_reservado: 'Esse endereço é reservado. Escolha outro.',
-  apelido_em_uso: MSG_EM_USO,
-  limite_por_email: 'Por enquanto cada pessoa pode criar 1 grupo.'
-};
 
 export function criarGruposApi({
   cadastro, criarRepoDoGrupo, armazenamentoBase, repoLiga, verificarToken, relogio = () => new Date(),
@@ -75,11 +68,14 @@ export function criarGruposApi({
   async function verificarApelido(b, contexto) {
     if (!(await dentroDoLimite('apelido', contexto.ip, MAX_VERIFICACOES_POR_IP_HORA))) return { error: MSG_MUITAS_CRIACOES };
     const apelido = normalizarApelido(b.apelido);
-    const motivo = validarApelido(apelido);
-    if (motivo) return { status: 'ok', disponivel: false, motivo };
+    const motivo = motivoDoApelido(apelido);
+    if (motivo) return { status: 'ok', disponivel: false, motivo: motivo.mensagem, codigo: motivo.codigo };
     const livre = await cadastro.apelidoDisponivel(apelido);
-    return { status: 'ok', disponivel: livre, motivo: livre ? '' : MSG_EM_USO };
+    return livre
+      ? { status: 'ok', disponivel: true, motivo: '', codigo: '' }
+      : { status: 'ok', disponivel: false, motivo: MENSAGENS_CADASTRO.apelido_em_uso, codigo: 'apelido_em_uso' };
   }
+
 
   async function criarGrupo(b, contexto) {
     const limites = await cadastro.lerLimites();
@@ -88,11 +84,11 @@ export function criarGruposApi({
     const token = await verificarToken(b.idToken);
     if (!token.ok) return { error: token.erro };
     const v = validarCadastroGrupo(b.grupoNovo || {});
-    if (v.erro) return { error: v.erro };
+    if (v.erro) return v.codigo ? { error: v.erro, codigo: v.codigo } : { error: v.erro };
     try {
       await cadastro.criarGrupo({ ...v.dados, email: token.email, nomeDono: token.nome || '' });
     } catch (erro) {
-      if (erro && erro.codigo && MENSAGENS[erro.codigo]) return { error: MENSAGENS[erro.codigo], codigo: erro.codigo };
+      if (erro && erro.codigo && MENSAGENS_CADASTRO[erro.codigo]) return { error: MENSAGENS_CADASTRO[erro.codigo], codigo: erro.codigo };
       throw erro;
     }
     cache.delete(v.dados.apelido);
@@ -125,7 +121,7 @@ export function criarGruposApi({
         const acao = String(b.action || '');
         if (acao === 'verificarApelido') return await verificarApelido(b, contexto);
         if (acao === 'criarGrupo') return await criarGrupo(b, contexto);
-        const r = await resolver(b.grupo);
+        const r = await resolver(b.grupo || (contexto.consulta && contexto.consulta.g));
         if (r.erro) return r.erro;
         // reativar um removido também aumenta os ativos: sem isso, remover/cadastrar/reativar furava o teto
         if (acao === 'addPlayer' || acao === 'restorePlayer') {

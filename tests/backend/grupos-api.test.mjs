@@ -43,7 +43,7 @@ await ta('criarGrupo: sem login, dados inválidos, endereço em uso/reservado, s
   await criar(api, 'tok-dono', NOVO, '2.2.2.2');
   assert.deepEqual(await criar(api, 'tok-outro', NOVO, '3.3.3.3'), { error: 'Esse endereço já está em uso. Escolha outro.', codigo: 'apelido_em_uso' });
   assert.deepEqual(await criar(api, 'tok-outro', { ...NOVO, apelido: 'praia' }, '3.3.3.3'), { error: 'Esse endereço já está em uso. Escolha outro.', codigo: 'apelido_em_uso' });
-  assert.deepEqual(await criar(api, 'tok-outro', { ...NOVO, apelido: 'terca' }, '6.6.6.6'), { error: 'Esse endereço é reservado. Escolha outro.' });
+  assert.deepEqual(await criar(api, 'tok-outro', { ...NOVO, apelido: 'terca' }, '6.6.6.6'), { error: 'Esse endereço é reservado. Escolha outro.', codigo: 'apelido_reservado' });
   assert.match((await criar(api, 'tok-outro', { ...NOVO, apelido: 'admin' }, '4.4.4.4')).error, /reservado/);
   assert.deepEqual(await criar(api, 'tok-dono', { ...NOVO, apelido: 'sabado' }, '5.5.5.5'), { error: 'Por enquanto cada pessoa pode criar 1 grupo.', codigo: 'limite_por_email' });
   assert.equal(cadastro.grupos.length, 1);
@@ -63,9 +63,9 @@ await ta('verificarApelido: inválido, reservado, em uso (inclusive na liga) e l
   const v = (apelido) => api.post({ action: 'verificarApelido', apelido }, { ip: '1.1.1.1' });
   assert.equal((await v('Qu Inta')).disponivel, false);
   assert.match((await v('admin')).motivo, /reservado/);
-  assert.deepEqual(await v('quinta'), { status: 'ok', disponivel: false, motivo: 'Esse endereço já está em uso. Escolha outro.' });
+  assert.deepEqual(await v('quinta'), { status: 'ok', disponivel: false, motivo: 'Esse endereço já está em uso. Escolha outro.', codigo: 'apelido_em_uso' });
   assert.equal((await v('terca')).disponivel, false);
-  assert.deepEqual(await v('domingo'), { status: 'ok', disponivel: true, motivo: '' });
+  assert.deepEqual(await v('domingo'), { status: 'ok', disponivel: true, motivo: '', codigo: '' });
 });
 
 await ta('grupo inexistente, suspenso e apelido com maiúscula/espaço', async () => {
@@ -133,6 +133,21 @@ await ta('fix: sem IP conhecido (cabeçalho ausente) o limite vira um teto geral
   assert.equal((await criar(api, 'tok-dono', NOVO, 'desconhecido')).status, 'ok');
   for (let i = 0; i < 5; i++) await api.post({ action: 'criarGrupo', idToken: '', grupoNovo: NOVO }, {}); // contexto sem ip
   assert.equal((await criar(api, 'tok-outro', { ...NOVO, apelido: 'sabado' }, undefined)).status, 'ok');
+});
+
+await ta('grupo pela query no POST (contexto.consulta.g) quando o corpo não traz "grupo"', async () => {
+  const { api } = mundo();
+  await criar(api, 'tok-dono', NOVO);
+  const r = await api.post({ action: 'addPlayer', idToken: 'tok-dono', player: jogador('p1', 'Ana') }, { consulta: { g: 'quinta' } });
+  assert.equal(r.status, 'ok');
+  assert.deepEqual((await api.get({ consulta: { g: 'quinta' } })).players.map((p) => p.nome), ['Ana']);
+});
+
+await ta('recusa de apelido vem sempre com código (validação JS e verificarApelido)', async () => {
+  const { api } = mundo();
+  assert.deepEqual(await criar(api, 'tok-dono', { ...NOVO, apelido: 'Qu Inta' }), { error: 'Use só letras minúsculas, números e hífen (sem acento, sem espaço, sem hífen nas pontas).', codigo: 'apelido_invalido' });
+  const v = await api.post({ action: 'verificarApelido', apelido: 'admin' }, { ip: '1.1.1.1' });
+  assert.deepEqual(v, { status: 'ok', disponivel: false, motivo: 'Esse endereço é reservado. Escolha outro.', codigo: 'apelido_reservado' });
 });
 
 fim();
