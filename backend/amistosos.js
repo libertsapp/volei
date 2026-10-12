@@ -6,7 +6,8 @@ import { texto, mapearJogadores } from './mapeadores.js';
 import { dataValida, horarioValido } from './jogos2.js';
 import { enviarNotificacao } from './notificacoes.js';
 
-export const DIAS_CONFIRMACAO_AUTOMATICA = 7;
+// prazo pro outro grupo conferir o placar (pedido do usuário em 2026-10-12: era 7 dias, virou 24 horas)
+export const HORAS_CONFIRMACAO_AUTOMATICA = 24;
 const MAX_RECADO = 500;
 const MAX_LOCAL = 200;
 const MAX_FECHADOS = 50;
@@ -23,10 +24,10 @@ export function inicioDoJogo(a) {
   return new Date(texto(a.data) + 'T' + (texto(a.horario) || '00:00') + ':00-03:00');
 }
 
-// placar parado há 7+ dias conta como confirmado — calculado na leitura, sem agendamento nenhum
+// placar parado há 24+ horas conta como confirmado — calculado na leitura, sem agendamento nenhum
 export function statusEfetivo(a, agora) {
   if (a.status !== 'aguardando_confirmacao' || !a.placar_lancado_em) return a.status;
-  const limite = new Date(a.placar_lancado_em).getTime() + DIAS_CONFIRMACAO_AUTOMATICA * 86400000;
+  const limite = new Date(a.placar_lancado_em).getTime() + HORAS_CONFIRMACAO_AUTOMATICA * 3600000;
   return agora.getTime() >= limite ? 'encerrado' : a.status;
 }
 
@@ -98,7 +99,7 @@ const dataCurta = (iso) => { const [, m, d] = texto(iso).split('-'); return d + 
 // toda escrita devolve o bloco atualizado: o app troca o estado local por ele (igual ao financeiro)
 export async function respostaOk(deps) { return { status: 'ok', liga: await lerBlocoLiga(deps) }; }
 
-// Lê o amistoso para uma ação. Amistoso de outros grupos "não existe" para este servidor. Se o placar já venceu os 7 dias,
+// Lê o amistoso para uma ação. Amistoso de outros grupos "não existe" para este servidor. Se o placar já venceu as 24 horas,
 // esta é "a primeira escrita que toca nele": grava o encerramento antes de seguir.
 export async function carregar(deps, id) {
   const { repo, grupoId } = deps.liga;
@@ -333,7 +334,7 @@ export async function lancarPlacar(deps, b, auth) {
   return respostaOk(deps);
 }
 
-// confirmar e contestar: só o grupo que NÃO lançou. Se os 7 dias já passaram, carregar() já gravou o encerramento.
+// confirmar e contestar: só o grupo que NÃO lançou. Se as 24 horas já passaram, carregar() já gravou o encerramento.
 async function carregarParaConferir(deps, b) {
   if (semLiga(deps)) return { erro: MSG_SEM_LIGA };
   const r = await carregar(deps, b && b.id);

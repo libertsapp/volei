@@ -21,10 +21,10 @@ t('inicioDoJogo usa o horário de Brasília (-03:00)', () => {
   assert.equal(inicioDoJogo(linha('a')).toISOString(), '2026-10-20T23:00:00.000Z');
 });
 
-t('statusEfetivo: placar parado 7 dias vira encerrado; antes disso continua aguardando; outros status não mudam', () => {
+t('statusEfetivo: placar parado 24 horas vira encerrado; antes disso continua aguardando; outros status não mudam', () => {
   const a = linha('a', { status: 'aguardando_confirmacao', placar_lancado_em: '2026-10-21T00:00:00.000Z' });
-  assert.equal(statusEfetivo(a, new Date('2026-10-27T23:59:59.000Z')), 'aguardando_confirmacao');
-  assert.equal(statusEfetivo(a, new Date('2026-10-28T00:00:00.000Z')), 'encerrado');
+  assert.equal(statusEfetivo(a, new Date('2026-10-21T23:59:59.000Z')), 'aguardando_confirmacao');
+  assert.equal(statusEfetivo(a, new Date('2026-10-22T00:00:00.000Z')), 'encerrado');
   assert.equal(statusEfetivo(linha('b', { status: 'marcado' }), new Date('2030-01-01')), 'marcado');
 });
 
@@ -356,12 +356,14 @@ await ta('contestarPlacar: exige texto, limpa o placar e volta para marcado; qua
   assert.equal((await lancarPlacar(m.meme, { id, setsConvidante: 3, setsConvidado: 2 }, ORG)).status, 'ok');
 });
 
-await ta('confirmação automática: depois de 7 dias aparece encerrado e a primeira escrita grava isso', async () => {
+await ta('confirmação automática: depois de 24 horas aparece encerrado e a primeira escrita grava isso', async () => {
   const m = mundo();
   const id = await marcado(m);
   m.avancar('2026-10-21T01:00:00.000Z');
   await lancarPlacar(m.terca, { id, ...PLACAR }, ORG);
-  m.avancar('2026-10-28T01:00:00.000Z');
+  m.avancar('2026-10-22T00:59:59.000Z'); // 1 segundo antes das 24 horas: o outro grupo ainda pode conferir
+  assert.equal((await lerBlocoLiga(m.meme)).amistosos.find((x) => x.id === id).status, 'aguardando_confirmacao');
+  m.avancar('2026-10-22T01:00:00.000Z');
   assert.equal((await lerBlocoLiga(m.meme)).amistosos.find((x) => x.id === id).status, 'encerrado');
   assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'aguardando_confirmacao'); // a leitura não grava
   assert.deepEqual(await contestarPlacar(m.meme, { id, texto: 'tarde demais' }, ORG), { error: 'Esse placar já foi confirmado.' });

@@ -84,7 +84,7 @@ Pré-requisito operacional: incluir `liga` em "Exposed schemas" (API settings do
 ## Fluxo do convite
 
 ```
-pendente ──aceitar──▶ marcado ──lançar placar──▶ aguardando_confirmacao ──confirmar / 7 dias──▶ encerrado
+pendente ──aceitar──▶ marcado ──lançar placar──▶ aguardando_confirmacao ──confirmar / 24 h──▶ encerrado
    │  └──contrapropor──▶ pendente (vez_de passa para o outro grupo)          └──contestar──▶ marcado
    ├──recusar──▶ recusado
    └──cancelar (qualquer lado, enquanto pendente ou marcado) ──▶ cancelado
@@ -95,7 +95,7 @@ pendente ──aceitar──▶ marcado ──lançar placar──▶ aguardando
 - **Cancelar:** qualquer um dos dois grupos; se já estava `marcado`, `motivo` obrigatório.
 - **Lançar placar:** qualquer lado, status `marcado`, a partir da data/horário do jogo. Sets inteiros ≥ 0, não ambos zero.
 - **Confirmar/contestar placar:** só o grupo que **não** lançou. Contestar exige texto e volta a `marcado` (placar limpo).
-- **Confirmação automática:** `aguardando_confirmacao` com `placar_lancado_em` há mais de 7 dias é **tratado como
+- **Confirmação automática:** `aguardando_confirmacao` com `placar_lancado_em` há mais de 24 horas (era 7 dias; mudado a pedido do usuário em 2026-10-12) é **tratado como
   `encerrado` na leitura** (mapeamento) e a primeira escrita que tocar no amistoso persiste a mudança. Nenhum agendamento.
 - Toda transição grava uma linha em `amistoso_mensagens` (com o recado opcional, ≤500 chars).
 - Concorrência: transições checam o status esperado no `update … where status = X` (falha = "o convite mudou, recarregue").
@@ -170,7 +170,7 @@ Padrão de `tests/` com `repo-memoria`:
 - permissões (jogador não convida; entrar/sair livre)
 - limite de vagas, trava da lista
 - visibilidade (adversário só vê confirmados)
-- confirmação automática após 7 dias (relógio injetado)
+- confirmação automática após 24 horas (relógio injetado)
 - leitura com schema `liga` ausente não quebra o app
 - testes de front puros para o cálculo dos avisos e do retrospecto
 
