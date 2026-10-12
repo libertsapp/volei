@@ -6,7 +6,8 @@ import { criarRepoLigaMemoria } from '../../backend/repo-liga-memoria.js';
 import {
   statusEfetivo, inicioDoJogo, mapearLiga, lerBlocoLiga, ligaVazia,
   convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso,
-  entrarAmistoso, sairAmistoso, confirmarEscalado, desconfirmarEscalado, travarEscalacao, destravarEscalacao
+  entrarAmistoso, sairAmistoso, confirmarEscalado, desconfirmarEscalado, travarEscalacao, destravarEscalacao,
+  lancarPlacar, confirmarPlacar, contestarPlacar
 } from '../../backend/amistosos.js';
 
 const GRUPOS = [{ id: 'terca', nome: 'Vôlei de Terça', cor: '#ffd700' }, { id: 'meme', nome: 'Vôlei Meme Brasil', cor: '#b3790a' }, { id: 'outro', nome: 'Outro' }];
@@ -300,6 +301,71 @@ await ta('sairAmistoso: quem não está na lista recebe erro', async () => {
   const m = mundo();
   const id = await marcado(m);
   assert.deepEqual(await sairAmistoso(m.terca, { id, jogadorId: 'p1' }), { error: 'Essa pessoa não está na lista.' });
+});
+
+const PLACAR = { setsConvidante: 3, setsConvidado: 1, parciais: [[25, 20], [25, 22], [18, 25], [25, 23]] };
+
+await ta('lancarPlacar: só marcado e só depois do horário (Brasília); fica aguardando o outro grupo', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  assert.deepEqual(await lancarPlacar(m.terca, { id, ...PLACAR }, ORG), { error: 'O placar só pode ser lançado depois do horário do jogo.' });
+  m.avancar('2026-10-20T22:59:00.000Z'); // 19:59 em Brasília, jogo às 20:00
+  assert.deepEqual(await lancarPlacar(m.terca, { id, ...PLACAR }, ORG), { error: 'O placar só pode ser lançado depois do horário do jogo.' });
+  m.avancar('2026-10-20T23:00:00.000Z');
+  const r = await lancarPlacar(m.terca, { id, ...PLACAR }, ORG);
+  const a = r.liga.amistosos.find((x) => x.id === id);
+  assert.deepEqual([a.status, a.setsConvidante, a.setsConvidado, a.placarLancadoPorGrupo], ['aguardando_confirmacao', 3, 1, 'terca']);
+  assert.deepEqual(a.parciais, PLACAR.parciais);
+  assert.equal(a.mensagens.at(-1).tipo, 'placar');
+  assert.match(a.mensagens.at(-1).texto, /3 × 1/);
+});
+
+await ta('lancarPlacar: placar inválido e parciais inválidas', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  m.avancar('2026-10-21T01:00:00.000Z');
+  for (const ruim of [{ setsConvidante: 0, setsConvidado: 0 }, { setsConvidante: -1, setsConvidado: 2 }, { setsConvidante: 1.5, setsConvidado: 2 }, { setsConvidante: 10, setsConvidado: 0 }, { setsConvidante: 'a', setsConvidado: 1 }]) {
+    assert.deepEqual(await lancarPlacar(m.terca, { id, ...ruim }, ORG), { error: 'Placar inválido.' }, JSON.stringify(ruim));
+  }
+  assert.deepEqual(await lancarPlacar(m.terca, { id, setsConvidante: 2, setsConvidado: 1, parciais: [[25, 'x']] }, ORG), { error: 'Parciais inválidas.' });
+  assert.deepEqual(await lancarPlacar(m.terca, { id, setsConvidante: 2, setsConvidado: 1, parciais: 'abc' }, ORG), { error: 'Parciais inválidas.' });
+  assert.equal((await lancarPlacar(m.terca, { id, setsConvidante: 2, setsConvidado: 1 }, ORG)).status, 'ok'); // parciais opcionais
+});
+
+await ta('confirmarPlacar: só o grupo que NÃO lançou; encerra', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  m.avancar('2026-10-21T01:00:00.000Z');
+  await lancarPlacar(m.terca, { id, ...PLACAR }, ORG);
+  assert.deepEqual(await confirmarPlacar(m.terca, { id }, ORG), { error: 'Quem confirma o placar é o outro grupo.' });
+  const r = await confirmarPlacar(m.meme, { id }, ORG);
+  assert.equal(r.liga.amistosos.find((x) => x.id === id).status, 'encerrado');
+  assert.deepEqual(await confirmarPlacar(m.meme, { id }, ORG), { error: 'Esse placar já foi confirmado.' });
+});
+
+await ta('contestarPlacar: exige texto, limpa o placar e volta para marcado; qualquer lado lança de novo', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  m.avancar('2026-10-21T01:00:00.000Z');
+  await lancarPlacar(m.terca, { id, ...PLACAR }, ORG);
+  assert.deepEqual(await contestarPlacar(m.meme, { id, texto: ' ' }, ORG), { error: 'Explique o que está errado no placar.' });
+  assert.deepEqual(await contestarPlacar(m.terca, { id, texto: 'x' }, ORG), { error: 'Quem confirma o placar é o outro grupo.' });
+  const r = await contestarPlacar(m.meme, { id, texto: 'foi 3 × 2' }, ORG);
+  const a = r.liga.amistosos.find((x) => x.id === id);
+  assert.deepEqual([a.status, a.setsConvidante, a.placarLancadoPorGrupo, a.parciais], ['marcado', null, '', []]);
+  assert.equal((await lancarPlacar(m.meme, { id, setsConvidante: 3, setsConvidado: 2 }, ORG)).status, 'ok');
+});
+
+await ta('confirmação automática: depois de 7 dias aparece encerrado e a primeira escrita grava isso', async () => {
+  const m = mundo();
+  const id = await marcado(m);
+  m.avancar('2026-10-21T01:00:00.000Z');
+  await lancarPlacar(m.terca, { id, ...PLACAR }, ORG);
+  m.avancar('2026-10-28T01:00:00.000Z');
+  assert.equal((await lerBlocoLiga(m.meme)).amistosos.find((x) => x.id === id).status, 'encerrado');
+  assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'aguardando_confirmacao'); // a leitura não grava
+  assert.deepEqual(await contestarPlacar(m.meme, { id, texto: 'tarde demais' }, ORG), { error: 'Esse placar já foi confirmado.' });
+  assert.equal(m.repoLiga.tabelas.amistosos[0].status, 'encerrado'); // a escrita gravou
 });
 
 fim();

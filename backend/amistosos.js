@@ -294,3 +294,67 @@ export async function destravarEscalacao(deps, b) {
   await deps.liga.repo.definirTrava(r.amistoso.id, deps.liga.grupoId, false);
   return respostaOk(deps);
 }
+
+// ---------------------------------------------------------------- placar
+const setsValidos = (n) => Number.isInteger(n) && n >= 0 && n <= 9;
+// parciais opcionais: até 9 sets, cada um [pontos do convidante, pontos do convidado]
+function validarParciais(p) {
+  if (p === undefined || p === null || (Array.isArray(p) && p.length === 0)) return { parciais: null };
+  if (!Array.isArray(p) || p.length > 9) return { erro: true };
+  for (const s of p) {
+    if (!Array.isArray(s) || s.length !== 2 || !s.every((x) => Number.isInteger(x) && x >= 0 && x <= 99)) return { erro: true };
+  }
+  return { parciais: p };
+}
+
+export async function lancarPlacar(deps, b, auth) {
+  if (semLiga(deps)) return { error: MSG_SEM_LIGA };
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return { error: r.erro };
+  const a = r.amistoso;
+  if (a.status !== 'marcado') return { error: 'Só dá pra lançar o placar de um amistoso marcado.' };
+  if (agoraDe(deps).getTime() < inicioDoJogo(a).getTime()) return { error: 'O placar só pode ser lançado depois do horário do jogo.' };
+  const sc = b.setsConvidante, sd = b.setsConvidado;
+  if (!setsValidos(sc) || !setsValidos(sd) || sc + sd === 0) return { error: 'Placar inválido.' };
+  const p = validarParciais(b.parciais);
+  if (p.erro) return { error: 'Parciais inválidas.' };
+  const ok = await transicionar(deps, a, {
+    status: 'aguardando_confirmacao', sets_convidante: sc, sets_convidado: sd, parciais: p.parciais,
+    placar_lancado_por_grupo: deps.liga.grupoId, placar_lancado_em: agoraDe(deps).toISOString()
+  });
+  if (!ok) return { error: MSG_MUDOU };
+  await registrarMensagem(deps, a, 'placar', ['Placar: ' + sc + ' × ' + sd, recado(b.recado)].filter(Boolean).join(' — '), auth);
+  return respostaOk(deps);
+}
+
+// confirmar e contestar: só o grupo que NÃO lançou. Se os 7 dias já passaram, carregar() já gravou o encerramento.
+async function carregarParaConferir(deps, b) {
+  if (semLiga(deps)) return { erro: MSG_SEM_LIGA };
+  const r = await carregar(deps, b && b.id);
+  if (r.erro) return r;
+  const a = r.amistoso;
+  if (a.status === 'encerrado') return { erro: 'Esse placar já foi confirmado.' };
+  if (a.status !== 'aguardando_confirmacao') return { erro: 'Esse amistoso não tem placar esperando confirmação.' };
+  if (a.placar_lancado_por_grupo === deps.liga.grupoId) return { erro: 'Quem confirma o placar é o outro grupo.' };
+  return r;
+}
+
+export async function confirmarPlacar(deps, b, auth) {
+  const r = await carregarParaConferir(deps, b);
+  if (r.erro) return { error: r.erro };
+  if (!(await transicionar(deps, r.amistoso, { status: 'encerrado' }))) return { error: MSG_MUDOU };
+  await registrarMensagem(deps, r.amistoso, 'confirmacao', '', auth);
+  return respostaOk(deps);
+}
+
+export async function contestarPlacar(deps, b, auth) {
+  const r = await carregarParaConferir(deps, b);
+  if (r.erro) return { error: r.erro };
+  if (!recado(b.texto)) return { error: 'Explique o que está errado no placar.' };
+  const ok = await transicionar(deps, r.amistoso, {
+    status: 'marcado', sets_convidante: null, sets_convidado: null, parciais: null, placar_lancado_por_grupo: null, placar_lancado_em: null
+  });
+  if (!ok) return { error: MSG_MUDOU };
+  await registrarMensagem(deps, r.amistoso, 'contestacao', b.texto, auth);
+  return respostaOk(deps);
+}
