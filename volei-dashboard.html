@@ -3184,6 +3184,63 @@ function finResumoFechamento(fin, data){
   ].join('\n');
 }
 // </financeiro-puro>
+// <amistosos-puro>
+/* Amistosos entre grupos — cálculos PUROS (sem DOM, DATA nem rede): recebem o bloco "liga" que o servidor manda e
+   devolvem dados prontos pra tela. Testados em tests/amistosos-puro.test.js extraindo este bloco do HTML. */
+const AMI_ATIVOS = ['pendente', 'marcado', 'aguardando_confirmacao'];
+function amiNormalizar(l){
+  const x = l || {};
+  return { disponivel: !!x.disponivel, grupoId: x.grupoId || '', grupos: x.grupos || [], amistosos: x.amistosos || [] };
+}
+function amiNomeGrupo(liga, id){ const g = liga.grupos.find(g => g.id === id); return g ? g.nome : id; }
+function amiDataCurta(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
+// "hoje" no Brasil (-03:00), igual ao backend: às 22h de Brasília o UTC já virou o dia
+function amiHojeBrasil(agoraMs){ return new Date(agoraMs - 3 * 3600000).toISOString().slice(0, 10); }
+// o que ESTE grupo precisa responder: convite/contraproposta na vez dele, ou placar lançado pelo adversário
+function amiPendencias(liga){
+  return liga.amistosos.filter(a =>
+    (a.status === 'pendente' && a.vezDe === liga.grupoId) ||
+    (a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo && a.placarLancadoPorGrupo !== liga.grupoId));
+}
+function amiTextoAviso(liga){
+  const p = amiPendencias(liga);
+  if(!p.length) return '';
+  if(p.length > 1) return p.length + ' amistosos esperando resposta';
+  const a = p[0], adv = amiNomeGrupo(liga, a.adversario), quando = amiDataCurta(a.data);
+  if(a.status === 'aguardando_confirmacao') return adv + ' lançou o placar do amistoso de ' + quando + ' — confirme';
+  // pendente na NOSSA vez mas fomos nós que convidamos = o outro grupo devolveu com outra data
+  if(a.convidante === liga.grupoId) return adv + ' propôs outra data pro amistoso: ' + quando;
+  return adv + ' convidou vocês pra um amistoso em ' + quando;
+}
+const amiPorDataHora = (x, y) => (x.data + x.horario < y.data + y.horario ? -1 : x.data + x.horario > y.data + y.horario ? 1 : 0);
+function amiProximoMarcado(liga, hojeIso){
+  return liga.amistosos.filter(a => a.status === 'marcado' && a.data >= hojeIso).sort(amiPorDataHora)[0] || null;
+}
+// os sets "do nosso lado": no banco o placar é do convidante/convidado, a tela fala em "nós × eles"
+function amiPlacarNosso(liga, a){
+  const nosConvidamos = a.convidante === liga.grupoId;
+  return { nos: nosConvidamos ? a.setsConvidante : a.setsConvidado, eles: nosConvidamos ? a.setsConvidado : a.setsConvidante };
+}
+function amiRetrospecto(liga){
+  const por = {};
+  liga.amistosos.filter(a => a.status === 'encerrado').forEach(a => {
+    const r = por[a.adversario] || (por[a.adversario] = { adversario: a.adversario, nome: amiNomeGrupo(liga, a.adversario), jogos: 0, vitorias: 0, derrotas: 0, empates: 0 });
+    const p = amiPlacarNosso(liga, a);
+    r.jogos++;
+    if(p.nos > p.eles) r.vitorias++; else if(p.nos < p.eles) r.derrotas++; else r.empates++;
+  });
+  return Object.values(por).sort((x, y) => y.jogos - x.jogos || x.nome.localeCompare(y.nome));
+}
+// mesma regra do backend (inicioDoJogo): o botão "Lançar placar" só aparece depois do horário do jogo em Brasília
+function amiJogoComecou(a, agoraMs){ return agoraMs >= Date.parse(a.data + 'T' + (a.horario || '00:00') + ':00-03:00'); }
+function amiSeparar(liga){
+  return {
+    esperando: liga.amistosos.filter(a => a.status === 'pendente' || a.status === 'aguardando_confirmacao'),
+    marcados: liga.amistosos.filter(a => a.status === 'marcado').sort(amiPorDataHora),
+    historico: liga.amistosos.filter(a => AMI_ATIVOS.indexOf(a.status) === -1).sort((x, y) => -amiPorDataHora(x, y))
+  };
+}
+// </amistosos-puro>
 // <dois-jogos-puro>
 /* Dois jogos no mesmo dia (2026-10-03). PURO: não lê DATA, DOM nem rede. Reaproveita <financeiro-puro> SEM mudá-lo:
    "chave de cobrança" é null (o dia inteiro, modo único — o padrão) ou 1/2 (um jogo, modo separado). Para qualquer
