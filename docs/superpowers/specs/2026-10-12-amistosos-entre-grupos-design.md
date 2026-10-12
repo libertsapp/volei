@@ -65,7 +65,7 @@ Pré-requisito operacional: incluir `liga` em "Exposed schemas" (API settings do
 | criado_em, atualizado_em | timestamptz | |
 
 **`liga.amistoso_mensagens`** — histórico do convite
-| id uuid | amistoso_id | grupo | autor_nome | tipo (`convite`, `contraproposta`, `aceite`, `recusa`, `cancelamento`, `contestacao`, `recado`) | texto (≤500) | criado_em |
+| id uuid | amistoso_id | grupo | autor_nome | tipo (`convite`, `contraproposta`, `aceite`, `recusa`, `cancelamento`, `placar`, `confirmacao`, `contestacao`, `recado`) | texto (≤500) | criado_em |
 
 **`liga.escalacoes`**
 | coluna | tipo | nota |
@@ -103,7 +103,8 @@ pendente ──aceitar──▶ marcado ──lançar placar──▶ aguardando
 ## Convocação
 
 - Disponível com status `marcado` e enquanto a lista do grupo não está travada.
-- **"Vou jogar" é livre, sem login** (igual ao `addCheckin`): escolhe o jogador da lista do próprio grupo (não removido).
+- **"Vou jogar" segue a regra do `addCheckin`**: precisa estar logado (qualquer perfil, inclusive `jogador`) e escolhe
+  qualquer jogador da lista do próprio grupo (não removido), como no check-in de hoje.
   O backend valida que `jogador_id` existe no schema do grupo e copia nome/foto. "Desmarcar" idem.
 - Organizador/admin: **confirmar/desconfirmar** escalado (no máximo `vagas_por_grupo` confirmados), **travar/destravar** a lista.
 - Visibilidade: o próprio grupo vê interessados + confirmados; o adversário vê **só os confirmados**; se não houver
@@ -121,7 +122,7 @@ já filtradas pela regra de visibilidade. Se o schema `liga` não existir ainda,
 | `convidarGrupo` | organizador, admin | grupo destino, data, horário, local, vagas, recado |
 | `responderConvite` | organizador, admin | `aceitar` / `recusar` / `contrapropor` (+ campos novos) + recado |
 | `cancelarAmistoso` | organizador, admin | motivo |
-| `entrarAmistoso` / `sairAmistoso` | livre (como check-in) | amistoso, jogadorId |
+| `entrarAmistoso` / `sairAmistoso` | qualquer logado (como check-in) | amistoso, jogadorId |
 | `confirmarEscalado` / `desconfirmarEscalado` | organizador, admin | |
 | `travarEscalacao` / `destravarEscalacao` | organizador, admin | |
 | `lancarPlacar` | organizador, admin | sets + parciais opcionais |
