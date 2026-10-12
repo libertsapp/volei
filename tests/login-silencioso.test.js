@@ -41,9 +41,10 @@ function montar({ logado, perfil = 'admin', token = '', expirado = false, senhaC
   const els = {};
   const elemento = () => ({ style: {}, textContent: '' });
   const fabrica = new Function('ctx', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
     const { chamadas, els, elemento, logado, perfil, token, expirado, senhaCache, credManual } = ctx;
     const AUTH = { logado, perfil, idToken: token, exp: 0 };
-    const SHEET_API_URL = 'https://exemplo.test/api';
+    const SHEET_API_URL = 'https://exemplo.test/api'; const URL_API = SHEET_API_URL;
     const document = { getElementById: (id) => els[id] || (els[id] = elemento()) };
     const getCachedPassword = () => senhaCache;
     const tokenExpirado = () => expirado || !AUTH.idToken;

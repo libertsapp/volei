@@ -154,6 +154,9 @@
   /* header */
   header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;position:relative;}
   .brand{display:flex;align-items:center;gap:12px;}
+  /* modo grupo: a bola vira um círculo com as iniciais do grupo, na cor dele */
+  .brand .ball.ball-iniciais{background:var(--ball-yellow);background-image:none;display:flex;align-items:center;justify-content:center;
+    color:#101b33;font-weight:800;font-size:15px;letter-spacing:.5px;}
   .brand .ball{
     width:38px;height:38px;border-radius:50%;
     background: conic-gradient(var(--ball-yellow) 0 25%, var(--ball-blue) 0 50%, var(--ball-yellow) 0 75%, var(--ball-blue) 0);
@@ -3554,6 +3557,12 @@ function sugerirApelidoFront(nome){
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/g, '');
 }
 // </grupo-puro>
+const CTX_GRUPO = contextoDoGrupo(location.hostname, location.pathname, HOSTS_MODO_GRUPO);
+// endereço canônico do grupo (minúsculas + barra final) antes de qualquer outra coisa carregar
+(function(){ const certo = caminhoCanonico(location.pathname, CTX_GRUPO); if(certo) location.replace(certo + location.search); })();
+const URL_API = urlDaApi(SHEET_API_URL, GRUPOS_API_URL, CTX_GRUPO);
+let GRUPO_ATUAL = null; // cadastro público do grupo (vem no GET); null no Terça
+function nomeDoApp(){ return GRUPO_ATUAL ? GRUPO_ATUAL.nome : NOME_PADRAO_APP; }
 
 function atualizarContadorAcessos(){
   const el = document.getElementById('visit-counter');
@@ -3568,7 +3577,7 @@ function atualizarContadorAcessos(){
 async function registrarAcesso(){
   if(!sheetReady) return;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'incrementarAcesso' })
@@ -3589,7 +3598,7 @@ async function registrarAcesso(){
 async function buscarDadosComNovasTentativas(){
   for(let tentativa = 1; tentativa <= 3; tentativa++){
     try{
-      const res = await fetch(SHEET_API_URL);
+      const res = await fetch(URL_API);
       const json = await res.json();
       if(json && !json.error && Array.isArray(json.players)) return json;
       console.error('Servidor respondeu com erro ao carregar (tentativa ' + tentativa + ')', json && json.error);
@@ -3600,6 +3609,20 @@ async function buscarDadosComNovasTentativas(){
   }
   return null;
 }
+// modo grupo: veste o app com a identidade do grupo que veio no GET (nome, cor, iniciais, manifesto)
+function aplicarIdentidade(g){
+  if(!g) return;
+  GRUPO_ATUAL = g;
+  document.title = g.nome + ' — Dashboard do Time';
+  const h1 = document.querySelector('header .brand h1');
+  if(h1) h1.textContent = g.nome;
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if(meta) meta.setAttribute('content', g.nome);
+  if(/^#[0-9a-f]{6}$/i.test(g.cor || '')) document.documentElement.style.setProperty('--ball-yellow', g.cor);
+  const bola = document.querySelector('header .brand .ball');
+  if(bola){ bola.textContent = iniciaisDoGrupo(g.nome); bola.classList.add('ball-iniciais'); }
+  atualizarManifesto();
+}
 function aplicarDados(json){
   DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
   if(json.settings) SETTINGS = json.settings;
@@ -3607,13 +3630,14 @@ function aplicarDados(json){
   CHECKINS = json.checkins || [];
   FINANCEIRO = finNormalizar(json.financeiro);
   LIGA = amiNormalizar(json.liga);
+  if(json.grupo) aplicarIdentidade(json.grupo);
   reconstituirConvidadosDosCheckins();
   JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
 // cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
 // não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
 // Chave própria de cada app (Terça e Meme dividem o localStorage — ver CHAVE_LOGIN_LOCAL).
-const CHAVE_COPIA_DADOS = 'volei-copia-dados-v1';
+const CHAVE_COPIA_DADOS = chaveDoAparelho('volei-copia-dados-v1', CTX_GRUPO);
 function salvarCopiaDosDados(json){
   try{
     const { financeiro, ...semFinanceiro } = json;
@@ -3738,7 +3762,7 @@ async function loginComGoogle(idToken){
 
   if(!sheetReady){ aplicarPermissoesUI(); return; }
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'loginGoogle', idToken: idToken })
@@ -3781,7 +3805,7 @@ async function loginComGoogle(idToken){
 // Onde o login fica guardado no aparelho. O Terça e o Meme moram no mesmo endereço (libertsapp.github.io, só muda a
 // pasta), então dividem o localStorage: cada app precisa da SUA chave, senão um lê (e apaga) o login do outro — com a
 // sessão do app, que só vale no servidor que a criou, isso deslogaria quem usa os dois (tests/chaves-por-app.test.js).
-const CHAVE_LOGIN_LOCAL = 'volei-auth-v1';
+const CHAVE_LOGIN_LOCAL = chaveDoAparelho('volei-auth-v1', CTX_GRUPO);
 function sessaoExpirou(msg){ return String(msg || '').toLowerCase().includes('sessão expirou'); }
 function tratarSessaoExpirada(){
   sairDaConta(true);
@@ -3841,7 +3865,7 @@ async function sincronizarContaComServidor(){
   else return;
   ULTIMA_SINCRONIZACAO_CONTA = Date.now();
   try{
-    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
+    const res = await fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
     const json = await res.json();
     if(json && json.error){
       if(AUTH.sessao && sessaoExpirou(json.error)) tratarSessaoExpirada();
@@ -3860,7 +3884,7 @@ function textoValidadeSessao(iso){
 // derruba a sessão em TODOS os aparelhos (celular perdido, computador emprestado); este aparelho sai junto
 async function sairDeTodosOsAparelhos(){
   try{
-    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sairDeTodosOsAparelhos', sessao: AUTH.sessao }) });
+    const res = await fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sairDeTodosOsAparelhos', sessao: AUTH.sessao }) });
     const json = await res.json();
     if(json && json.error && !sessaoExpirou(json.error)){ mostrarToast('Não deu: ' + json.error, 'erro'); return false; }
     sairDaConta(true);
@@ -3900,7 +3924,7 @@ function restaurarSessaoAuth(){
 function sairDaConta(silencioso){
   // avisa o servidor pra apagar esta sessão (melhor esforço: sem internet, o aparelho sai mesmo assim)
   if(AUTH.sessao && sheetReady){
-    fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
+    fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
   }
   AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' };
   localStorage.removeItem(CHAVE_LOGIN_LOCAL);
@@ -4045,7 +4069,7 @@ async function carregarUsuarios(silencioso){
   }
   if(!cred) return null;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'listarUsuarios', idToken: cred.idToken || '', sessao: cred.sessao || '' })
@@ -4571,7 +4595,7 @@ function abrirRelatarBug(){
   overlay.querySelector('#bugreport-send-btn').addEventListener('click', ()=>{
     const texto = textarea.value.trim();
     if(!texto){ alert('Escreve alguma coisa antes de enviar :)'); return; }
-    const mensagem = `🐞 *Bug/sugestão — Volei de Terça*\n\n${texto}`;
+    const mensagem = `🐞 *Bug/sugestão — ${nomeDoApp()}*\n\n${texto}`;
     window.open('https://wa.me/553187310965?text=' + encodeURIComponent(mensagem), '_blank');
     fechar();
   });
@@ -4774,7 +4798,7 @@ async function postAction(action, payload, cred){
   if(!sheetReady) return true;
   mostrarCarregando('Salvando...');
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
@@ -5369,7 +5393,7 @@ async function uploadPhoto(file, cred, fileIdAntigo){
   mostrarCarregando('Enviando foto...');
   try{
     const base64 = await resizeImageToBase64(file);
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', idToken: (cred && cred.idToken) || '', sessao: (cred && cred.sessao) || '' })
@@ -6619,7 +6643,7 @@ let AOVIVO_REDUZIDO = (()=>{ try{ return localStorage.getItem('volei-aovivo-redu
 async function recarregarAoVivo(){
   if(!sheetReady) return;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'lerAoVivo' })
@@ -10039,7 +10063,7 @@ document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
 
 /* ---------- COMPARTILHAR NO WHATSAPP (grupos ou times) ---------- */
 function montarTextoWhatsApp(titulo, listas, rotulo){
-  let texto = `🏐 *${titulo}* — Volei de Terça\n\n`;
+  let texto = `🏐 *${titulo}* — ${nomeDoApp()}\n\n`;
   listas.forEach((lista, i)=>{
     if(!lista || lista.length===0) return;
     texto += `*${rotulo} ${i+1}*\n`;
@@ -10131,7 +10155,7 @@ function wireBotoesCompartilhar(idPrefix, getTexto){
 
 /* ---------- RESUMO SEMANAL PRO WHATSAPP ---------- */
 function montarResumoSemanal(){
-  let texto = `🏐 *Resumo da semana* — Volei de Terça\n\n`;
+  let texto = `🏐 *Resumo da semana* — ${nomeDoApp()}\n\n`;
 
   // o "dia" do resumo = todos os jogos da data mais recente (num dia de rodada dupla, o campeão de cada jogo)
   const jogosDoDia = jogosDoDiaMaisRecente(roundsOficiais(), toTimestamp);
@@ -10627,13 +10651,13 @@ document.getElementById('paleta-btn').addEventListener('click', (e)=>{
 aplicarPaleta();
 
 /* ---------- PWA (instalável na tela inicial) ---------- */
-function configurarPWA(){
+function atualizarManifesto(){
   const manifest = {
-    name: "Volei de Terça",
-    short_name: "Vôlei Terça",
+    name: nomeDoApp(),
+    short_name: CTX_GRUPO ? nomeDoApp().slice(0, 12) : "Vôlei Terça",
     description: "Dashboard do time de vôlei — jogadores, rodadas, sorteio e ranking.",
-    start_url: ".",
-    scope: ".",
+    start_url: CTX_GRUPO && CTX_GRUPO.apelido ? location.origin + '/' + CTX_GRUPO.apelido + '/' : ".",
+    scope: CTX_GRUPO && CTX_GRUPO.apelido ? location.origin + '/' + CTX_GRUPO.apelido + '/' : ".",
     display: "standalone",
     background_color: "#101b33",
     theme_color: "#101b33",
@@ -10644,6 +10668,10 @@ function configurarPWA(){
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   document.getElementById('pwa-manifest-link').href = URL.createObjectURL(blob);
+}
+// manifesto pode ser refeito (modo grupo: nome do grupo chega no GET); o Service Worker é registrado uma vez só
+function configurarPWA(){
+  atualizarManifesto();
 
   // o Service Worker fica num arquivo à parte (sw.js) — precisa subir ele junto no
   // host, na mesma pasta do HTML. Se o arquivo ainda não existir lá, o registro
@@ -10726,7 +10754,7 @@ atualizarBotaoInstalar();
    só usa pelo navegador, pra quem o texto continua fazendo sentido. Quem já instalou pelo link novo nunca vê.
    Dispensável (uma vez fechado, não volta neste aparelho). Chave nova (v2) de propósito: quem tinha fechado o convite
    antigo precisa ver o recado da mudança de endereço. */
-const CHAVE_INSTALAR_AVISO_FECHADO = 'volei-instalar-aviso-v2-fechado';
+const CHAVE_INSTALAR_AVISO_FECHADO = chaveDoAparelho('volei-instalar-aviso-v2-fechado', CTX_GRUPO);
 // <aviso-instalar-puro>
 function avisoInstalarTexto(hostname){
   const oficial = /(^|\.)memberstars\.com$/.test(String(hostname || ''));
@@ -10779,7 +10807,7 @@ atualizarAvisoInstalar();
 /* ---------- Pop de autorizar notificações (quem já tem o app instalado) ----------
    Mostrado uma vez (ao abrir o app instalado, se o navegador nunca perguntou e a pessoa nunca dispensou
    este pop). "Agora não" marca como dispensado — o botão 🔔 no cabeçalho continua disponível pra sempre. */
-const CHAVE_NOTIF_POP_DISPENSADO = 'volei-notif-pop-dispensado';
+const CHAVE_NOTIF_POP_DISPENSADO = chaveDoAparelho('volei-notif-pop-dispensado', CTX_GRUPO);
 function abrirPopAutorizarNotificacoes(){
   const overlay = document.createElement('div');
   overlay.className = 'profile-overlay';
@@ -10911,12 +10939,12 @@ function placarContraste(hex){
 }
 
 function salvarPlacarLocal(){
-  try{ localStorage.setItem('placar-estado-terca-v1', JSON.stringify({ score: PLACAR_SCORE, names: PLACAR_NAMES, colors: PLACAR_COLORS })); }
+  try{ localStorage.setItem(chaveDoAparelho('placar-estado-terca-v1', CTX_GRUPO), JSON.stringify({ score: PLACAR_SCORE, names: PLACAR_NAMES, colors: PLACAR_COLORS })); }
   catch(e){ /* modo privado do navegador pode bloquear — não é grave, só não persiste */ }
 }
 function carregarPlacarLocal(){
   try{
-    const raw = localStorage.getItem('placar-estado-terca-v1');
+    const raw = localStorage.getItem(chaveDoAparelho('placar-estado-terca-v1', CTX_GRUPO));
     if(!raw) return;
     const dados = JSON.parse(raw);
     if(Array.isArray(dados.score) && dados.score.length===2) PLACAR_SCORE = dados.score;

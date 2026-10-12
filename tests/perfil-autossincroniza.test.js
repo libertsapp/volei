@@ -41,7 +41,8 @@ function montar({ logado = true, idToken = 'tok-atual', perfil = 'admin', jogado
     perguntarVinculoJogador: 0, pedirBootstrapAdmin: 0, consoleError: 0, sairDaConta: 0 };
   const AUTH = { logado, idToken, perfil, jogadorId, jogadorIdPendente, nome: 'Fulano', exp, sessao };
   const fabrica = new Function('ctx', `
-    const { AUTH, chamadas, sheetReady, SHEET_API_URL } = ctx;
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
+    const { AUTH, chamadas, sheetReady, SHEET_API_URL } = ctx; const URL_API = SHEET_API_URL;
     const salvarSessaoAuth = () => { chamadas.salvarSessaoAuth++; };
     const atualizarStatusAuth = () => { chamadas.atualizarStatusAuth++; };
     const aplicarPermissoesUI = () => { chamadas.aplicarPermissoesUI++; };

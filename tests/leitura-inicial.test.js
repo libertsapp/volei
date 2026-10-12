@@ -21,7 +21,8 @@ function ambiente(respostas) {
   const esperas = [];
   const setTimeout = (fn, ms) => { esperas.push(ms); fn(); };
   const F = new Function('fetch', 'localStorage', 'setTimeout', `
-    const SHEET_API_URL = 'x'; const console = { error(){} };
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
+    const SHEET_API_URL = 'x'; const URL_API = SHEET_API_URL; const console = { error(){} };
     let DATA, SETTINGS = {}, PERFIS_PUBLICOS, CHECKINS, FINANCEIRO, JOGO_ATIVO, LIGA;
     const finNormalizar = f => f || {}; const reconstituirConvidadosDosCheckins = () => {};
     const amiNormalizar = l => l || {}; // amistosos (v17.0): aplicarDados guarda o bloco "liga

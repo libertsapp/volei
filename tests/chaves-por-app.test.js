@@ -30,6 +30,7 @@ function chavesGravadas(caminho) {
     + pegar(html, 'function salvarSessaoAuth(){', '// ID Token do Google dura ~1h')
     + pegar(html, 'async function buscarDadosComNovasTentativas(){', 'async function loadData(){');
   const F = new Function('gravadas', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
     const localStorage = { setItem: (k) => { gravadas.push(k); }, getItem: () => null, removeItem: () => {} };
     let AUTH = { idToken: '', exp: 0, email: 'a@exemplo.com', sessao: 'S1', sessaoExpiraEm: '', logado: true };
     ${codigo}
