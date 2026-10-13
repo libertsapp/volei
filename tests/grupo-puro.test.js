@@ -9,7 +9,7 @@ const fim = html.indexOf('// </grupo-puro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <grupo-puro> não encontrado');
 const G = new Function(html.slice(ini, fim) + `
   return { GRUPOS_API_URL, HOSTS_MODO_GRUPO, NOME_PADRAO_APP, UFS_GRUPO, PALETA_GRUPO, contextoDoGrupo, urlDaApi,
-           chaveDoAparelho, caminhoCanonico, iniciaisDoGrupo, sugerirApelidoFront };`)();
+           chaveDoAparelho, caminhoCanonico, iniciaisDoGrupo, sugerirApelidoFront, sessaoParaGuardar };`)();
 const backend = fs.readFileSync(path.join(__dirname, '..', 'backend', 'grupos-cadastro.js'), 'utf8');
 const listaDoBackend = (nome) => new Function('return ' + backend.match(new RegExp('export const ' + nome + ' = (\\[[\\s\\S]*?\\]);'))[1])();
 
@@ -69,6 +69,24 @@ t('iniciais e sugestão de apelido', () => {
 t('UFs e paleta iguais às do backend (grupos-cadastro.js)', () => {
   assert.deepEqual(G.UFS_GRUPO, listaDoBackend('UFS'));
   assert.deepEqual(G.PALETA_GRUPO, listaDoBackend('PALETA'));
+});
+
+t('fix: endereço com acento, espaço ou barra codificada NÃO redireciona (sem laço infinito nem ida para outro site)', () => {
+  for (const caminho of ['/s%C3%A1bado/', '/a%20b/', '/%2Fevil.com/', '/%5Cevil.com/', '/%2F%2Fevil.com', '/..%2F..%2Fx/', '/ab/', '/a--b/']) {
+    const ctx = G.contextoDoGrupo('volei.memberstars.com', caminho, HOSTS);
+    assert.equal(G.caminhoCanonico(caminho, ctx), null, caminho);
+  }
+  // o certo continua sendo canonizado
+  assert.equal(G.caminhoCanonico('/Quinta', G.contextoDoGrupo('volei.memberstars.com', '/Quinta', HOSTS)), '/quinta/');
+});
+
+t('fix: sessão que a página de criação guarda para o dono chegar logado (mesmo formato do salvarSessaoAuth)', () => {
+  const s = G.sessaoParaGuardar({ status: 'ok', email: 'dono@x.com', nome: 'Dono', perfil: 'admin', jogadorId: '', jogadorIdPendente: '', sessao: 'S1', sessaoExpiraEm: '2026-11-12T00:00:00.000Z' }, 'TOKEN');
+  assert.deepEqual(Object.keys(s).sort(), ['email', 'exp', 'foto', 'idToken', 'jogadorId', 'jogadorIdPendente', 'nome', 'perfil', 'sessao', 'sessaoExpiraEm']);
+  assert.equal(s.sessao, 'S1');
+  assert.equal(s.perfil, 'admin');
+  assert.equal(G.sessaoParaGuardar({ error: 'x' }, 'TOKEN'), null);
+  assert.equal(G.sessaoParaGuardar({ status: 'ok', email: 'a@x.com' }, 'TOKEN'), null); // sem sessão do app não guarda nada
 });
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');

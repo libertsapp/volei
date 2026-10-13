@@ -3556,11 +3556,17 @@ function urlDaApi(base, apiGrupos, ctx){
 // todos os grupos dividem o localStorage de volei.memberstars.com: login, cópia de dados e avisos levam o apelido
 function chaveDoAparelho(base, ctx){
   if(!ctx || ctx.pagina !== 'grupo') return base;
-  return String(base).replace(/^(volei-|placar-estado-)/, '$1g-' + ctx.apelido + '-');
+  return String(base).replace(/^(volei-|placar-estado-)/, (m, p1) => p1 + 'g-' + ctx.apelido + '-');
 }
 // um endereço só por grupo (/quinta/): sem isso "/Quinta" e "/quinta" virariam dois apps instalados
+const FORMATO_APELIDO_GRUPO = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/; // mesma regra de backend/grupos-cadastro.js
+function apelidoValido(a){ return FORMATO_APELIDO_GRUPO.test(String(a || '')) && String(a).indexOf('--') === -1; }
 function caminhoCanonico(pathname, ctx){
   if(!ctx || ctx.pagina !== 'grupo') return null;
+  // só redireciona apelido de formato válido: acento/espaço virariam um laço (o navegador recodifica a URL) e uma barra
+  // codificada (%2F, %5C) faria "/" + apelido virar "//outro-site" — ida para fora do domínio. O inválido segue para a
+  // tela de "grupo não existe".
+  if(!apelidoValido(ctx.apelido)) return null;
   const certo = '/' + ctx.apelido + '/';
   const atual = String(pathname || '');
   const primeiro = '/' + (atual.split('/').filter(Boolean)[0] || '') + '/';
@@ -3581,6 +3587,13 @@ function sugerirApelidoFront(nome){
 function respostaDeGrupoIndisponivel(json){
   const c = json && json.codigo;
   return c === 'grupo_inexistente' || c === 'grupo_suspenso' ? c : null;
+}
+// depois de criar o grupo: transforma a resposta do loginGoogle (no grupo novo) no que o app guarda em CHAVE_LOGIN_LOCAL
+// (mesmo formato de salvarSessaoAuth) — assim o dono chega ao app do grupo já logado como admin
+function sessaoParaGuardar(resp, idToken){
+  if(!resp || resp.error || !resp.sessao) return null;
+  return { idToken: idToken || '', exp: 0, email: resp.email || '', nome: resp.nome || '', foto: '', perfil: resp.perfil || 'jogador',
+    jogadorId: resp.jogadorId || '', jogadorIdPendente: resp.jogadorIdPendente || '', sessao: resp.sessao, sessaoExpiraEm: resp.sessaoExpiraEm || '' };
 }
 // </grupo-puro>
 const CTX_GRUPO = contextoDoGrupo(location.hostname, location.pathname, HOSTS_MODO_GRUPO);
@@ -3749,7 +3762,17 @@ function mostrarTelaCriarGrupo(){
     $('tg-criar').disabled = true;
     try{
       const r = await postGrupos({ action: 'criarGrupo', idToken: TOKEN_CRIAR_GRUPO, grupoNovo });
-      if(r && r.status === 'ok'){ location.href = '/' + r.apelido + '/'; return; }
+      if(r && r.status === 'ok'){
+        // entra no grupo novo com o mesmo login do Google: o dono chega já como admin (spec: "já logado como admin")
+        try{
+          const ctxNovo = { pagina: 'grupo', apelido: r.apelido };
+          const res = await fetch(urlDaApi(SHEET_API_URL, GRUPOS_API_URL, ctxNovo), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'loginGoogle', idToken: TOKEN_CRIAR_GRUPO }) });
+          const sessao = sessaoParaGuardar(await res.json(), TOKEN_CRIAR_GRUPO);
+          if(sessao) localStorage.setItem(chaveDoAparelho('volei-auth-v1', ctxNovo), JSON.stringify(sessao));
+        }catch(e){ /* sem o login automático o grupo existe do mesmo jeito: a pessoa entra com Google lá */ }
+        location.href = '/' + r.apelido + '/';
+        return;
+      }
       erro.textContent = (r && r.error) || 'Não foi possível criar o grupo. Tente de novo.';
     }catch(e){
       erro.textContent = 'Sem conexão. Tente de novo.';
