@@ -154,6 +154,9 @@
   /* header */
   header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;position:relative;}
   .brand{display:flex;align-items:center;gap:12px;}
+  /* modo grupo: a bola vira um círculo com as iniciais do grupo, na cor dele */
+  .brand .ball.ball-iniciais{background:var(--ball-yellow);background-image:none;display:flex;align-items:center;justify-content:center;
+    color:#101b33;font-weight:800;font-size:15px;letter-spacing:.5px;}
   .brand .ball{
     width:38px;height:38px;border-radius:50%;
     background: conic-gradient(var(--ball-yellow) 0 25%, var(--ball-blue) 0 50%, var(--ball-yellow) 0 75%, var(--ball-blue) 0);
@@ -1353,6 +1356,17 @@
     background:var(--glass-bg);border:1px solid rgba(255,215,0,0.6);font-size:14px;
     box-shadow:0 0 14px rgba(255,215,0,0.18);
   }
+  /* ===== MODO GRUPO (criação, indisponível, boas-vindas) ===== */
+  .tela-grupo{padding:12px 0;}
+  .tg-cartao{background:var(--glass-bg);border:1px solid var(--glass-borda);border-radius:12px;padding:18px 16px;margin-bottom:14px;}
+  .tg-cartao h2{font-size:18px;margin:0 0 6px;}
+  .tg-sub{font-size:14px;color:var(--chalk-dim);margin:0 0 12px;line-height:1.5;}
+  .tg-passos{margin:0;padding-left:20px;line-height:1.8;font-size:14px;}
+  .tg-erro{color:var(--danger);font-size:14px;min-height:1.2em;margin:8px 0 0;}
+  .tg-cores{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .tg-cor{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;}
+  .tg-cor.escolhida{border-color:var(--chalk);box-shadow:0 0 0 2px var(--court-navy);}
+  .tg-prefixo{display:block;font-size:12px;color:var(--muted);margin:4px 0 2px;}
   /* ===== AMISTOSOS ===== */
   .ami-subtitulo{font-size:15px;margin:18px 0 8px;color:var(--chalk);}
   .ami-vazio{font-size:13px;color:var(--muted);margin:4px 0 10px;}
@@ -1958,6 +1972,8 @@
     </span>
   </div>
 
+  <!-- modo grupo: página de criação e telas de grupo inexistente/suspenso (ver mostrarTelaGrupo / mostrarTelaCriarGrupo) -->
+  <div id="tela-grupo" class="tela-grupo" style="display:none;"></div>
   <div id="app" style="display:none;">
 
     <section id="view-dashboard" class="active">
@@ -1986,6 +2002,15 @@
         <span aria-hidden="true">🤝</span>
         <strong id="amistoso-marcado-texto"></strong>
         <span class="aovivo-alerta-ir">Vou jogar ›</span>
+      </div>
+      <div id="grupo-boas-vindas" class="tg-cartao" style="display:none;">
+        <h2>🎉 Seu grupo está no ar!</h2>
+        <p class="tg-sub">Três passos para começar:</p>
+        <ol class="tg-passos">
+          <li>Cadastre os jogadores em <strong>Mais → Jogadores</strong></li>
+          <li>Abra o primeiro check-in na aba <strong>Check-in</strong></li>
+          <li>Mande o link deste endereço no grupo do WhatsApp e peça pra todo mundo <strong>instalar o app</strong></li>
+        </ol>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Resumo da semana</button>
@@ -2904,7 +2929,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 17.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3505,6 +3530,79 @@ const SHEET_API_URL = "https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/ter
 const GOOGLE_CLIENT_ID = "986000653553-d5ri8n0k3kg6f1iii2e8c3v3854uuk3d.apps.googleusercontent.com";
 
 let sheetReady = SHEET_API_URL.startsWith("http");
+// <grupo-puro>
+const GRUPOS_API_URL = "https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/grupos-api";
+const HOSTS_MODO_GRUPO = ["volei.memberstars.com"];
+/* Grupos independentes (spec 2026-10-12) — decisões PURAS do "modo grupo": aberto em volei.memberstars.com/<apelido>/
+   este mesmo HTML vira o app daquele grupo. Fora desse host tudo devolve exatamente os valores do Terça (teste
+   tests/grupo-puro.test.js garante). Sem DOM nem rede aqui. */
+const NOME_PADRAO_APP = 'Volei de Terça';
+const UFS_GRUPO = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE',
+  'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+const PALETA_GRUPO = ['#ffd700', '#00f3ff', '#39ff9e', '#ff4d6d', '#b388ff', '#ff9f1c', '#4dabf7', '#f06595'];
+function contextoDoGrupo(hostname, pathname, hosts){
+  if(hosts.indexOf(String(hostname || '').toLowerCase()) === -1) return null;
+  let seg = String(pathname || '/').split('/').filter(Boolean)[0] || '';
+  try{ seg = decodeURIComponent(seg); }catch(e){ /* caminho malformado: usa como veio */ }
+  const apelido = seg.trim().toLowerCase();
+  if(!apelido || apelido === 'criar') return { pagina: 'criar', apelido: '' };
+  return { pagina: 'grupo', apelido };
+}
+// a grupos-api recebe o grupo pela query em TODAS as chamadas (GET e POST): o resto do app não precisa saber
+function urlDaApi(base, apiGrupos, ctx){
+  if(!ctx) return base;
+  return ctx.pagina === 'grupo' ? apiGrupos + '?g=' + encodeURIComponent(ctx.apelido) : apiGrupos;
+}
+// todos os grupos dividem o localStorage de volei.memberstars.com: login, cópia de dados e avisos levam o apelido
+function chaveDoAparelho(base, ctx){
+  if(!ctx || ctx.pagina !== 'grupo') return base;
+  return String(base).replace(/^(volei-|placar-estado-)/, (m, p1) => p1 + 'g-' + ctx.apelido + '-');
+}
+// um endereço só por grupo (/quinta/): sem isso "/Quinta" e "/quinta" virariam dois apps instalados
+const FORMATO_APELIDO_GRUPO = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/; // mesma regra de backend/grupos-cadastro.js
+function apelidoValido(a){ return FORMATO_APELIDO_GRUPO.test(String(a || '')) && String(a).indexOf('--') === -1; }
+function caminhoCanonico(pathname, ctx){
+  if(!ctx || ctx.pagina !== 'grupo') return null;
+  // só redireciona apelido de formato válido: acento/espaço virariam um laço (o navegador recodifica a URL) e uma barra
+  // codificada (%2F, %5C) faria "/" + apelido virar "//outro-site" — ida para fora do domínio. O inválido segue para a
+  // tela de "grupo não existe".
+  if(!apelidoValido(ctx.apelido)) return null;
+  const certo = '/' + ctx.apelido + '/';
+  const atual = String(pathname || '');
+  const primeiro = '/' + (atual.split('/').filter(Boolean)[0] || '') + '/';
+  if(primeiro === certo && atual.startsWith(certo)) return null;
+  return certo;
+}
+function iniciaisDoGrupo(nome){
+  const PEQUENAS = ['de', 'da', 'do', 'das', 'dos', 'e'];
+  const palavras = String(nome || '').trim().split(/\s+/).filter(p => p && PEQUENAS.indexOf(p.toLowerCase()) === -1);
+  if(!palavras.length) return '?';
+  if(palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
+  return (palavras[0][0] + palavras[1][0]).toUpperCase();
+}
+function sugerirApelidoFront(nome){
+  return String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/g, '');
+}
+function respostaDeGrupoIndisponivel(json){
+  const c = json && json.codigo;
+  return c === 'grupo_inexistente' || c === 'grupo_suspenso' ? c : null;
+}
+// depois de criar o grupo: transforma a resposta do loginGoogle (no grupo novo) no que o app guarda em CHAVE_LOGIN_LOCAL
+// (mesmo formato de salvarSessaoAuth) — assim o dono chega ao app do grupo já logado como admin
+function sessaoParaGuardar(resp, idToken){
+  if(!resp || resp.error || !resp.sessao) return null;
+  return { idToken: idToken || '', exp: 0, email: resp.email || '', nome: resp.nome || '', foto: '', perfil: resp.perfil || 'jogador',
+    jogadorId: resp.jogadorId || '', jogadorIdPendente: resp.jogadorIdPendente || '', sessao: resp.sessao, sessaoExpiraEm: resp.sessaoExpiraEm || '' };
+}
+// </grupo-puro>
+const CTX_GRUPO = contextoDoGrupo(location.hostname, location.pathname, HOSTS_MODO_GRUPO);
+// endereço canônico do grupo (minúsculas + barra final) antes de qualquer outra coisa carregar
+(function(){ const certo = caminhoCanonico(location.pathname, CTX_GRUPO); if(certo) location.replace(certo + location.search); })();
+const URL_API = urlDaApi(SHEET_API_URL, GRUPOS_API_URL, CTX_GRUPO);
+let GRUPO_ATUAL = null; // cadastro público do grupo (vem no GET); null no Terça
+let PAGINA_SEM_GRUPO = false; // criação / grupo inexistente ou suspenso: sem convite para instalar
+function nomeDoApp(){ return GRUPO_ATUAL ? GRUPO_ATUAL.nome : NOME_PADRAO_APP; }
 
 function atualizarContadorAcessos(){
   const el = document.getElementById('visit-counter');
@@ -3519,7 +3617,7 @@ function atualizarContadorAcessos(){
 async function registrarAcesso(){
   if(!sheetReady) return;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'incrementarAcesso' })
@@ -3540,8 +3638,9 @@ async function registrarAcesso(){
 async function buscarDadosComNovasTentativas(){
   for(let tentativa = 1; tentativa <= 3; tentativa++){
     try{
-      const res = await fetch(SHEET_API_URL);
+      const res = await fetch(URL_API);
       const json = await res.json();
+      if(respostaDeGrupoIndisponivel(json)) return json; // grupo que não existe não melhora tentando de novo
       if(json && !json.error && Array.isArray(json.players)) return json;
       console.error('Servidor respondeu com erro ao carregar (tentativa ' + tentativa + ')', json && json.error);
     }catch(e){
@@ -3551,6 +3650,137 @@ async function buscarDadosComNovasTentativas(){
   }
   return null;
 }
+// modo grupo: veste o app com a identidade do grupo que veio no GET (nome, cor, iniciais, manifesto)
+function aplicarIdentidade(g){
+  if(!g) return;
+  GRUPO_ATUAL = g;
+  document.title = g.nome + ' — Dashboard do Time';
+  const h1 = document.querySelector('header .brand h1');
+  if(h1) h1.textContent = g.nome;
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if(meta) meta.setAttribute('content', g.nome);
+  if(/^#[0-9a-f]{6}$/i.test(g.cor || '')) document.documentElement.style.setProperty('--ball-yellow', g.cor);
+  const bola = document.querySelector('header .brand .ball');
+  if(bola){ bola.textContent = iniciaisDoGrupo(g.nome); bola.classList.add('ball-iniciais'); }
+  atualizarManifesto();
+}
+// páginas do modo grupo SEM grupo carregado (criação, inexistente, suspenso): nada da marca do Terça no topo, sem convite
+// para instalar e sem o login do cabeçalho (que logaria num grupo que não existe)
+function identidadeNeutra(){
+  PAGINA_SEM_GRUPO = true;
+  document.title = 'App do seu grupo de vôlei';
+  const h1 = document.querySelector('header .brand h1');
+  if(h1) h1.textContent = 'Vôlei do seu grupo';
+  const bola = document.querySelector('header .brand .ball');
+  if(bola){ bola.textContent = '🏐'; bola.classList.add('ball-iniciais'); }
+  ['instalar-app-aviso', 'google-signin-btn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+}
+function mostrarTelaGrupo(tipo){
+  identidadeNeutra();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  const tela = document.getElementById('tela-grupo');
+  const texto = tipo === 'grupo_suspenso'
+    ? { titulo: 'Grupo indisponível', corpo: 'Este grupo está suspenso no momento.' }
+    : { titulo: 'Esse grupo não existe', corpo: 'Confira o endereço com quem te mandou o link — ou crie o app do seu grupo.' };
+  tela.innerHTML = `<div class="tg-cartao"><h2>🏐 ${texto.titulo}</h2><p class="tg-sub">${texto.corpo}</p>
+    <button type="button" class="btn" onclick="location.href='/criar'">Criar o app do meu grupo</button></div>`;
+  tela.style.display = 'block';
+}
+let TOKEN_CRIAR_GRUPO = '';
+let APELIDO_EDITADO = false;
+let TIMER_APELIDO = null;
+// o e-mail só aparece pra pessoa saber com qual conta vai criar (o servidor confere o token de verdade)
+function emailDoToken(token){
+  try{ return JSON.parse(atob(String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; }catch(e){ return ''; }
+}
+function receberTokenCriarGrupo(token){
+  if(!token) return;
+  TOKEN_CRIAR_GRUPO = token;
+  const el = document.getElementById('tg-logado');
+  if(el){ el.textContent = '✅ Entrou como ' + (emailDoToken(token) || 'sua conta Google') + '. Você será o administrador do grupo.'; el.style.display = ''; }
+  const btn = document.getElementById('tg-login');
+  if(btn) btn.style.display = 'none';
+  const erro = document.getElementById('tg-erro');
+  if(erro) erro.textContent = ''; // some o "entre com sua conta" que pode ter ficado de antes
+}
+async function postGrupos(corpo){
+  const res = await fetch(URL_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
+  return res.json();
+}
+function mostrarTelaCriarGrupo(){
+  identidadeNeutra();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.title = 'Crie o app do seu grupo de vôlei';
+  const tela = document.getElementById('tela-grupo');
+  tela.innerHTML = `<div class="tg-cartao">
+      <h2>🏐 Crie o app do seu grupo de vôlei</h2>
+      <p class="tg-sub">Check-in, sorteio de times equilibrados, ranking, controle financeiro e amistosos com outros grupos. De graça.</p>
+      <div id="tg-login"></div>
+      <p id="tg-logado" class="tg-sub" style="display:none;"></p>
+      <label class="fin-campo">Nome do grupo<input id="tg-nome" maxlength="60" placeholder="Vôlei de Quinta"></label>
+      <label class="fin-campo">Endereço do app<span class="tg-prefixo">${escapeHtml(location.host)}/</span><input id="tg-apelido" maxlength="30" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="volei-de-quinta"></label>
+      <p id="tg-apelido-status" class="tg-sub"></p>
+      <label class="fin-campo">Cidade<input id="tg-cidade" maxlength="60" placeholder="Santa Luzia"></label>
+      <label class="fin-campo">Estado<select id="tg-uf"><option value="">Escolha</option>${UFS_GRUPO.map(u => `<option value="${u}">${u}</option>`).join('')}</select></label>
+      <div class="fin-campo">Cor do grupo<div class="tg-cores">${PALETA_GRUPO.map((c, i) => `<button type="button" class="tg-cor${i === 0 ? ' escolhida' : ''}" data-cor="${c}" style="background:${c}" aria-label="Cor ${i + 1}"></button>`).join('')}</div></div>
+      <button type="button" class="btn" id="tg-criar">Criar meu grupo</button>
+      <p id="tg-erro" class="tg-erro" role="alert"></p>
+    </div>`;
+  tela.style.display = 'block';
+  const $ = (id)=> document.getElementById(id);
+  const verificar = ()=>{
+    clearTimeout(TIMER_APELIDO);
+    const apelido = $('tg-apelido').value.trim();
+    const status = $('tg-apelido-status');
+    if(!apelido){ status.textContent = ''; return; }
+    status.textContent = 'Conferindo…';
+    TIMER_APELIDO = setTimeout(async ()=>{
+      try{
+        const r = await postGrupos({ action: 'verificarApelido', apelido });
+        if($('tg-apelido').value.trim() !== apelido) return; // a pessoa já digitou outra coisa
+        status.textContent = r.error ? r.error : (r.disponivel ? '✅ Endereço livre' : '❌ ' + r.motivo);
+      }catch(e){ status.textContent = ''; }
+    }, 400);
+  };
+  $('tg-nome').addEventListener('input', ()=>{
+    if(!APELIDO_EDITADO){ $('tg-apelido').value = sugerirApelidoFront($('tg-nome').value); verificar(); }
+  });
+  $('tg-apelido').addEventListener('input', ()=>{ APELIDO_EDITADO = true; verificar(); });
+  tela.querySelector('.tg-cores').addEventListener('click', (e)=>{
+    const b = e.target.closest('.tg-cor');
+    if(!b) return;
+    tela.querySelectorAll('.tg-cor').forEach(x => x.classList.toggle('escolhida', x === b));
+  });
+  $('tg-criar').addEventListener('click', async ()=>{
+    const erro = $('tg-erro');
+    erro.textContent = '';
+    if(!TOKEN_CRIAR_GRUPO){ erro.textContent = 'Entre com sua conta Google primeiro (botão acima).'; return; }
+    const cor = (tela.querySelector('.tg-cor.escolhida') || {}).dataset;
+    const grupoNovo = { nome: $('tg-nome').value, apelido: $('tg-apelido').value.trim(), cidade: $('tg-cidade').value, uf: $('tg-uf').value, cor: cor ? cor.cor : PALETA_GRUPO[0] };
+    $('tg-criar').disabled = true;
+    try{
+      const r = await postGrupos({ action: 'criarGrupo', idToken: TOKEN_CRIAR_GRUPO, grupoNovo });
+      if(r && r.status === 'ok'){
+        // entra no grupo novo com o mesmo login do Google: o dono chega já como admin (spec: "já logado como admin")
+        try{
+          const ctxNovo = { pagina: 'grupo', apelido: r.apelido };
+          const res = await fetch(urlDaApi(SHEET_API_URL, GRUPOS_API_URL, ctxNovo), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'loginGoogle', idToken: TOKEN_CRIAR_GRUPO }) });
+          const sessao = sessaoParaGuardar(await res.json(), TOKEN_CRIAR_GRUPO);
+          if(sessao) localStorage.setItem(chaveDoAparelho('volei-auth-v1', ctxNovo), JSON.stringify(sessao));
+        }catch(e){ /* sem o login automático o grupo existe do mesmo jeito: a pessoa entra com Google lá */ }
+        location.href = '/' + r.apelido + '/';
+        return;
+      }
+      erro.textContent = (r && r.error) || 'Não foi possível criar o grupo. Tente de novo.';
+    }catch(e){
+      erro.textContent = 'Sem conexão. Tente de novo.';
+    }finally{
+      $('tg-criar').disabled = false;
+    }
+  });
+}
 function aplicarDados(json){
   DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
   if(json.settings) SETTINGS = json.settings;
@@ -3558,13 +3788,14 @@ function aplicarDados(json){
   CHECKINS = json.checkins || [];
   FINANCEIRO = finNormalizar(json.financeiro);
   LIGA = amiNormalizar(json.liga);
+  if(json.grupo) aplicarIdentidade(json.grupo);
   reconstituirConvidadosDosCheckins();
   JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
 // cópia da última leitura boa, só pra mostrar algo quando o servidor falhar. Sem o financeiro (dado sensível que
 // não precisa ficar guardado no aparelho). localStorage pode estar cheio/bloqueado: nesse caso só não guarda.
 // Chave própria de cada app (Terça e Meme dividem o localStorage — ver CHAVE_LOGIN_LOCAL).
-const CHAVE_COPIA_DADOS = 'volei-copia-dados-v1';
+const CHAVE_COPIA_DADOS = chaveDoAparelho('volei-copia-dados-v1', CTX_GRUPO);
 function salvarCopiaDosDados(json){
   try{
     const { financeiro, ...semFinanceiro } = json;
@@ -3588,6 +3819,8 @@ async function loadData(){
   }
   const aviso = document.getElementById('config-warning');
   const json = await buscarDadosComNovasTentativas();
+  const indisponivel = respostaDeGrupoIndisponivel(json);
+  if(indisponivel){ mostrarTelaGrupo(indisponivel); return; }
   if(json){
     aviso.style.display = 'none';
     aplicarDados(json);
@@ -3624,6 +3857,13 @@ async function loadData(){
 window.onGoogleLibraryLoad = function(){
   if(!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('COLE_AQUI') === 0){
     console.warn('GOOGLE_CLIENT_ID não configurado — o login com Google fica desligado.');
+    return;
+  }
+  // página de criação: não existe grupo para logar ainda — só pega o idToken do Google para o criarGrupo
+  if(CTX_GRUPO && CTX_GRUPO.pagina === 'criar'){
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (r)=> receberTokenCriarGrupo(r && r.credential), use_fedcm_for_prompt: true });
+    const alvo = document.getElementById('tg-login');
+    if(alvo) google.accounts.id.renderButton(alvo, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'pt-BR' });
     return;
   }
   google.accounts.id.initialize({
@@ -3689,7 +3929,7 @@ async function loginComGoogle(idToken){
 
   if(!sheetReady){ aplicarPermissoesUI(); return; }
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'loginGoogle', idToken: idToken })
@@ -3732,7 +3972,7 @@ async function loginComGoogle(idToken){
 // Onde o login fica guardado no aparelho. O Terça e o Meme moram no mesmo endereço (libertsapp.github.io, só muda a
 // pasta), então dividem o localStorage: cada app precisa da SUA chave, senão um lê (e apaga) o login do outro — com a
 // sessão do app, que só vale no servidor que a criou, isso deslogaria quem usa os dois (tests/chaves-por-app.test.js).
-const CHAVE_LOGIN_LOCAL = 'volei-auth-v1';
+const CHAVE_LOGIN_LOCAL = chaveDoAparelho('volei-auth-v1', CTX_GRUPO);
 function sessaoExpirou(msg){ return String(msg || '').toLowerCase().includes('sessão expirou'); }
 function tratarSessaoExpirada(){
   sairDaConta(true);
@@ -3792,7 +4032,7 @@ async function sincronizarContaComServidor(){
   else return;
   ULTIMA_SINCRONIZACAO_CONTA = Date.now();
   try{
-    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
+    const res = await fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
     const json = await res.json();
     if(json && json.error){
       if(AUTH.sessao && sessaoExpirou(json.error)) tratarSessaoExpirada();
@@ -3811,7 +4051,7 @@ function textoValidadeSessao(iso){
 // derruba a sessão em TODOS os aparelhos (celular perdido, computador emprestado); este aparelho sai junto
 async function sairDeTodosOsAparelhos(){
   try{
-    const res = await fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sairDeTodosOsAparelhos', sessao: AUTH.sessao }) });
+    const res = await fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sairDeTodosOsAparelhos', sessao: AUTH.sessao }) });
     const json = await res.json();
     if(json && json.error && !sessaoExpirou(json.error)){ mostrarToast('Não deu: ' + json.error, 'erro'); return false; }
     sairDaConta(true);
@@ -3851,7 +4091,7 @@ function restaurarSessaoAuth(){
 function sairDaConta(silencioso){
   // avisa o servidor pra apagar esta sessão (melhor esforço: sem internet, o aparelho sai mesmo assim)
   if(AUTH.sessao && sheetReady){
-    fetch(SHEET_API_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
+    fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
   }
   AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' };
   localStorage.removeItem(CHAVE_LOGIN_LOCAL);
@@ -3996,7 +4236,7 @@ async function carregarUsuarios(silencioso){
   }
   if(!cred) return null;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'listarUsuarios', idToken: cred.idToken || '', sessao: cred.sessao || '' })
@@ -4522,7 +4762,7 @@ function abrirRelatarBug(){
   overlay.querySelector('#bugreport-send-btn').addEventListener('click', ()=>{
     const texto = textarea.value.trim();
     if(!texto){ alert('Escreve alguma coisa antes de enviar :)'); return; }
-    const mensagem = `🐞 *Bug/sugestão — Volei de Terça*\n\n${texto}`;
+    const mensagem = `🐞 *Bug/sugestão — ${nomeDoApp()}*\n\n${texto}`;
     window.open('https://wa.me/553187310965?text=' + encodeURIComponent(mensagem), '_blank');
     fechar();
   });
@@ -4725,7 +4965,7 @@ async function postAction(action, payload, cred){
   if(!sheetReady) return true;
   mostrarCarregando('Salvando...');
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
@@ -5320,7 +5560,7 @@ async function uploadPhoto(file, cred, fileIdAntigo){
   mostrarCarregando('Enviando foto...');
   try{
     const base64 = await resizeImageToBase64(file);
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method:'POST',
       headers:{ 'Content-Type':'text/plain;charset=utf-8' },
       body: JSON.stringify({ action:'uploadPhoto', filename:(file.name.replace(/\.[^.]+$/,'') + '.jpg'), mimeType:'image/jpeg', base64, fileIdAntigo: fileIdAntigo || '', idToken: (cred && cred.idToken) || '', sessao: (cred && cred.sessao) || '' })
@@ -6570,7 +6810,7 @@ let AOVIVO_REDUZIDO = (()=>{ try{ return localStorage.getItem('volei-aovivo-redu
 async function recarregarAoVivo(){
   if(!sheetReady) return;
   try{
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(URL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'lerAoVivo' })
@@ -7995,6 +8235,8 @@ function renderAll(){
   atualizarBadgeAoVivo();
   atualizarAlertaRascunhos();
   atualizarAvisosAmistosos();
+  const boasVindas = document.getElementById('grupo-boas-vindas');
+  if(boasVindas) boasVindas.style.display = (GRUPO_ATUAL && temPermissao('addPlayer') && !DATA.players.length) ? '' : 'none';
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
@@ -9990,7 +10232,7 @@ document.getElementById('montar-grupos-btn').addEventListener('click', ()=>{
 
 /* ---------- COMPARTILHAR NO WHATSAPP (grupos ou times) ---------- */
 function montarTextoWhatsApp(titulo, listas, rotulo){
-  let texto = `🏐 *${titulo}* — Volei de Terça\n\n`;
+  let texto = `🏐 *${titulo}* — ${nomeDoApp()}\n\n`;
   listas.forEach((lista, i)=>{
     if(!lista || lista.length===0) return;
     texto += `*${rotulo} ${i+1}*\n`;
@@ -10082,7 +10324,7 @@ function wireBotoesCompartilhar(idPrefix, getTexto){
 
 /* ---------- RESUMO SEMANAL PRO WHATSAPP ---------- */
 function montarResumoSemanal(){
-  let texto = `🏐 *Resumo da semana* — Volei de Terça\n\n`;
+  let texto = `🏐 *Resumo da semana* — ${nomeDoApp()}\n\n`;
 
   // o "dia" do resumo = todos os jogos da data mais recente (num dia de rodada dupla, o campeão de cada jogo)
   const jogosDoDia = jogosDoDiaMaisRecente(roundsOficiais(), toTimestamp);
@@ -10578,13 +10820,13 @@ document.getElementById('paleta-btn').addEventListener('click', (e)=>{
 aplicarPaleta();
 
 /* ---------- PWA (instalável na tela inicial) ---------- */
-function configurarPWA(){
+function atualizarManifesto(){
   const manifest = {
-    name: "Volei de Terça",
-    short_name: "Vôlei Terça",
+    name: nomeDoApp(),
+    short_name: CTX_GRUPO ? nomeDoApp().slice(0, 12) : "Vôlei Terça",
     description: "Dashboard do time de vôlei — jogadores, rodadas, sorteio e ranking.",
-    start_url: ".",
-    scope: ".",
+    start_url: CTX_GRUPO && CTX_GRUPO.apelido ? location.origin + '/' + CTX_GRUPO.apelido + '/' : ".",
+    scope: CTX_GRUPO && CTX_GRUPO.apelido ? location.origin + '/' + CTX_GRUPO.apelido + '/' : ".",
     display: "standalone",
     background_color: "#101b33",
     theme_color: "#101b33",
@@ -10595,6 +10837,10 @@ function configurarPWA(){
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   document.getElementById('pwa-manifest-link').href = URL.createObjectURL(blob);
+}
+// manifesto pode ser refeito (modo grupo: nome do grupo chega no GET); o Service Worker é registrado uma vez só
+function configurarPWA(){
+  atualizarManifesto();
 
   // o Service Worker fica num arquivo à parte (sw.js) — precisa subir ele junto no
   // host, na mesma pasta do HTML. Se o arquivo ainda não existir lá, o registro
@@ -10677,7 +10923,7 @@ atualizarBotaoInstalar();
    só usa pelo navegador, pra quem o texto continua fazendo sentido. Quem já instalou pelo link novo nunca vê.
    Dispensável (uma vez fechado, não volta neste aparelho). Chave nova (v2) de propósito: quem tinha fechado o convite
    antigo precisa ver o recado da mudança de endereço. */
-const CHAVE_INSTALAR_AVISO_FECHADO = 'volei-instalar-aviso-v2-fechado';
+const CHAVE_INSTALAR_AVISO_FECHADO = chaveDoAparelho('volei-instalar-aviso-v2-fechado', CTX_GRUPO);
 // <aviso-instalar-puro>
 function avisoInstalarTexto(hostname){
   const oficial = /(^|\.)memberstars\.com$/.test(String(hostname || ''));
@@ -10712,6 +10958,7 @@ function abrirInstrucoesInstalarManual(){
 function atualizarAvisoInstalar(){
   const aviso = document.getElementById('instalar-app-aviso');
   if(!aviso) return;
+  if(PAGINA_SEM_GRUPO){ aviso.style.display = 'none'; return; }
   let fechado = false;
   try{ fechado = localStorage.getItem(CHAVE_INSTALAR_AVISO_FECHADO) === '1'; }catch(e){ /* localStorage bloqueado: mostra */ }
   document.getElementById('instalar-app-aviso-texto').innerHTML = avisoInstalarTexto(location.hostname);
@@ -10730,7 +10977,7 @@ atualizarAvisoInstalar();
 /* ---------- Pop de autorizar notificações (quem já tem o app instalado) ----------
    Mostrado uma vez (ao abrir o app instalado, se o navegador nunca perguntou e a pessoa nunca dispensou
    este pop). "Agora não" marca como dispensado — o botão 🔔 no cabeçalho continua disponível pra sempre. */
-const CHAVE_NOTIF_POP_DISPENSADO = 'volei-notif-pop-dispensado';
+const CHAVE_NOTIF_POP_DISPENSADO = chaveDoAparelho('volei-notif-pop-dispensado', CTX_GRUPO);
 function abrirPopAutorizarNotificacoes(){
   const overlay = document.createElement('div');
   overlay.className = 'profile-overlay';
@@ -10862,12 +11109,12 @@ function placarContraste(hex){
 }
 
 function salvarPlacarLocal(){
-  try{ localStorage.setItem('placar-estado-terca-v1', JSON.stringify({ score: PLACAR_SCORE, names: PLACAR_NAMES, colors: PLACAR_COLORS })); }
+  try{ localStorage.setItem(chaveDoAparelho('placar-estado-terca-v1', CTX_GRUPO), JSON.stringify({ score: PLACAR_SCORE, names: PLACAR_NAMES, colors: PLACAR_COLORS })); }
   catch(e){ /* modo privado do navegador pode bloquear — não é grave, só não persiste */ }
 }
 function carregarPlacarLocal(){
   try{
-    const raw = localStorage.getItem('placar-estado-terca-v1');
+    const raw = localStorage.getItem(chaveDoAparelho('placar-estado-terca-v1', CTX_GRUPO));
     if(!raw) return;
     const dados = JSON.parse(raw);
     if(Array.isArray(dados.score) && dados.score.length===2) PLACAR_SCORE = dados.score;
@@ -11001,11 +11248,15 @@ document.addEventListener('fullscreenchange', ()=>{
 carregarPlacarLocal();
 renderPlacar();
 
-restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
-loadData();
-sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
-tentarRenovarSeNecessario(); // cobre a abertura a frio (visibilitychange/focus não disparam no 1º load)
-atualizarAvisoUsuariosPendentes();
+if(CTX_GRUPO && CTX_GRUPO.pagina === 'criar'){
+  mostrarTelaCriarGrupo(); // volei.memberstars.com/ ou /criar: não há grupo para carregar
+} else {
+  restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
+  loadData();
+  sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
+  tentarRenovarSeNecessario(); // cobre a abertura a frio (visibilitychange/focus não disparam no 1º load)
+  atualizarAvisoUsuariosPendentes();
+}
 </script>
 </body>
 </html>

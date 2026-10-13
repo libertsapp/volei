@@ -18,6 +18,7 @@ const jogadores = {
 };
 function resumo({ times, estrelasVisiveis = true, paneleiro = ['a'], mochila = ['b', 'c'], rodadas } = {}) {
   const F = new Function('ctx', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
     const { jogadores } = ctx;
     const DATA = { rounds: ctx.rodadas || [{ id: 'r1', data: '2026-09-29', rascunho: false, vencedores: [0], times: ctx.times }] };
     const CHECKINS = []; const SETTINGS = { estrelasVisiveis: ctx.estrelasVisiveis };

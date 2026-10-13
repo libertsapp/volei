@@ -33,7 +33,7 @@ t('mapearLiga: formato do front, adversário do ponto de vista do grupo, grupos 
   assert.equal(bloco.disponivel, true);
   assert.equal(bloco.grupoId, 'meme');
   assert.deepEqual(bloco.grupos.map((g) => g.id), ['terca', 'meme', 'outro']);
-  assert.deepEqual(bloco.grupos[0], { id: 'terca', nome: 'Vôlei de Terça', logoUrl: '', cor: '#ffd700' });
+  assert.deepEqual(bloco.grupos[0], { id: 'terca', nome: 'Vôlei de Terça', logoUrl: '', cor: '#ffd700', cidade: '', uf: '' });
   const a = bloco.amistosos[0];
   assert.equal(a.adversario, 'terca');
   assert.equal(a.convidante, 'terca');
@@ -406,6 +406,12 @@ await ta('fix: texto montado do histórico (contraproposta com local longo + rec
   assert.equal(r.status, 'ok', JSON.stringify(r));
   const textos = m.repoLiga.tabelas.amistoso_mensagens.map((x) => x.texto.length);
   assert.ok(textos.every((n) => n <= 500), JSON.stringify(textos));
+});
+
+t('mapearLiga: cidade e UF de cada grupo vão para o front (para o convite agrupar por cidade)', () => {
+  const grupos = [{ id: 'terca', nome: 'Vôlei de Terça', cidade: 'Belo Horizonte', uf: 'MG' }, { id: 'meme', nome: 'Meme' }];
+  const bloco = mapearLiga({ grupos, amistosos: [], mensagens: [], escalacoes: [], travas: [] }, 'terca', AGORA);
+  assert.deepEqual(bloco.grupos.map((g) => [g.id, g.cidade, g.uf]), [['terca', 'Belo Horizonte', 'MG'], ['meme', '', '']]);
 });
 
 fim();

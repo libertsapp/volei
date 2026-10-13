@@ -41,9 +41,10 @@ function montar({ logado, perfil = 'admin', token = '', expirado = false, senhaC
   const els = {};
   const elemento = () => ({ style: {}, textContent: '' });
   const fabrica = new Function('ctx', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
     const { chamadas, els, elemento, logado, perfil, token, expirado, senhaCache, credManual } = ctx;
     const AUTH = { logado, perfil, idToken: token, exp: 0 };
-    const SHEET_API_URL = 'https://exemplo.test/api';
+    const SHEET_API_URL = 'https://exemplo.test/api'; const URL_API = SHEET_API_URL;
     const document = { getElementById: (id) => els[id] || (els[id] = elemento()) };
     const getCachedPassword = () => senhaCache;
     const tokenExpirado = () => expirado || !AUTH.idToken;
@@ -68,8 +69,9 @@ function montar({ logado, perfil = 'admin', token = '', expirado = false, senhaC
       initialize: () => { init++; }, renderButton: () => { botao++; }, prompt: () => { prompt++; }
     } } };
     const janela = {};
-    new Function('window', 'google', 'GOOGLE_CLIENT_ID', 'document', 'handleGoogleCredential', 'console',
-      codigoHook)(janela, google, 'id.apps.googleusercontent.com', { getElementById: () => ({}) }, () => {}, console);
+    // CTX_GRUPO = null: Terça (fora do modo grupo); a página de criação de grupos tem login próprio
+    new Function('window', 'google', 'GOOGLE_CLIENT_ID', 'document', 'handleGoogleCredential', 'console', 'CTX_GRUPO',
+      codigoHook)(janela, google, 'id.apps.googleusercontent.com', { getElementById: () => ({}) }, () => {}, console, null);
     janela.onGoogleLibraryLoad();
     assert.equal(init, 1, 'initialize deveria rodar 1 vez');
     assert.equal(botao, 1, 'o botão "Entrar com Google" deveria continuar sendo desenhado');

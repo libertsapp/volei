@@ -32,9 +32,10 @@ async function t(nome, fn) {
 function pagina({ auth = {}, guardado = {}, respostas = [], senhaCacheada = '', podePerfil = () => true, garantir = async () => null } = {}) {
   const posts = [], toasts = [], espioes = { pedirSenha: 0, garantir: 0, alert: [] };
   const F = new Function('ctx', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
     const { posts, toasts, espioes, respostas, guardado } = ctx;
     let AUTH = Object.assign({ idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' }, ctx.auth);
-    const SHEET_API_URL = 'x'; const sheetReady = true; const console = { error(){} };
+    const SHEET_API_URL = 'x'; const URL_API = SHEET_API_URL; const sheetReady = true; const console = { error(){} };
     const localStorage = { getItem: (k) => (k in guardado ? guardado[k] : null), setItem: (k, v) => { guardado[k] = String(v); }, removeItem: (k) => { delete guardado[k]; } };
     const fetch = async (u, o) => { posts.push(JSON.parse(o.body)); const r = respostas.shift(); if (r === 'rede') throw new TypeError('Failed to fetch'); return { json: async () => r || { status: 'ok' } }; };
     const mostrarToast = (m) => toasts.push(m); const alert = (m) => espioes.alert.push(m); const confirm = () => true;
@@ -169,6 +170,7 @@ const umInstante = () => new Promise((r) => setTimeout(r, 0));
     const chamadas = { sair: [], todos: 0, removido: 0 };
     let overlay = null;
     const F = new Function('ctx', `
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
       const { chamadas } = ctx;
       const AUTH = ctx.auth;
       const escapeHtml = (x) => String(x);

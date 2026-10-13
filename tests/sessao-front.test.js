@@ -16,7 +16,8 @@ function amb({ auth, garantir = async () => null, respostas = [], relogio = { ms
   let saiu = 0;
   class DateFalso extends Date { static now() { return relogio.ms; } }
   const F = new Function('AUTH', 'garantirTokenFresco', 'respostas', 'posts', 'toasts', 'marcarSaida', 'Date', `
-    const SHEET_API_URL = 'x'; const sheetReady = true; const console = { error(){} };
+    const CTX_GRUPO = null; const chaveDoAparelho = (b) => b; const nomeDoApp = () => 'Volei de Terça'; const respostaDeGrupoIndisponivel = () => null; // modo grupo desligado (Terça), como no app real fora de volei.memberstars.com
+    const SHEET_API_URL = 'x'; const URL_API = SHEET_API_URL; const sheetReady = true; const console = { error(){} };
     const fetch = async (u, o) => { const b = JSON.parse(o.body); posts.push(b); const r = respostas.shift(); if (r === 'rede') throw new TypeError('Failed to fetch'); return { json: async () => r || { status: 'ok' } }; };
     const mostrarToast = (m) => toasts.push(m);
     const salvarSessaoAuth = () => {}; const atualizarStatusAuth = () => {}; const aplicarPermissoesUI = () => {}; const renderAll = () => {};
