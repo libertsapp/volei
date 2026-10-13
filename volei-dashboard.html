@@ -3674,6 +3674,90 @@ function mostrarTelaGrupo(tipo){
     <button type="button" class="btn" onclick="location.href='/criar'">Criar o app do meu grupo</button></div>`;
   tela.style.display = 'block';
 }
+let TOKEN_CRIAR_GRUPO = '';
+let APELIDO_EDITADO = false;
+let TIMER_APELIDO = null;
+// o e-mail só aparece pra pessoa saber com qual conta vai criar (o servidor confere o token de verdade)
+function emailDoToken(token){
+  try{ return JSON.parse(atob(String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; }catch(e){ return ''; }
+}
+function receberTokenCriarGrupo(token){
+  if(!token) return;
+  TOKEN_CRIAR_GRUPO = token;
+  const el = document.getElementById('tg-logado');
+  if(el){ el.textContent = '✅ Entrou como ' + (emailDoToken(token) || 'sua conta Google') + '. Você será o administrador do grupo.'; el.style.display = ''; }
+  const btn = document.getElementById('tg-login');
+  if(btn) btn.style.display = 'none';
+  const erro = document.getElementById('tg-erro');
+  if(erro) erro.textContent = ''; // some o "entre com sua conta" que pode ter ficado de antes
+}
+async function postGrupos(corpo){
+  const res = await fetch(URL_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo) });
+  return res.json();
+}
+function mostrarTelaCriarGrupo(){
+  identidadeNeutra();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.title = 'Crie o app do seu grupo de vôlei';
+  const tela = document.getElementById('tela-grupo');
+  tela.innerHTML = `<div class="tg-cartao">
+      <h2>🏐 Crie o app do seu grupo de vôlei</h2>
+      <p class="tg-sub">Check-in, sorteio de times equilibrados, ranking, controle financeiro e amistosos com outros grupos. De graça.</p>
+      <div id="tg-login"></div>
+      <p id="tg-logado" class="tg-sub" style="display:none;"></p>
+      <label class="fin-campo">Nome do grupo<input id="tg-nome" maxlength="60" placeholder="Vôlei de Quinta"></label>
+      <label class="fin-campo">Endereço do app<span class="tg-prefixo">${escapeHtml(location.host)}/</span><input id="tg-apelido" maxlength="30" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="volei-de-quinta"></label>
+      <p id="tg-apelido-status" class="tg-sub"></p>
+      <label class="fin-campo">Cidade<input id="tg-cidade" maxlength="60" placeholder="Santa Luzia"></label>
+      <label class="fin-campo">Estado<select id="tg-uf"><option value="">Escolha</option>${UFS_GRUPO.map(u => `<option value="${u}">${u}</option>`).join('')}</select></label>
+      <div class="fin-campo">Cor do grupo<div class="tg-cores">${PALETA_GRUPO.map((c, i) => `<button type="button" class="tg-cor${i === 0 ? ' escolhida' : ''}" data-cor="${c}" style="background:${c}" aria-label="Cor ${i + 1}"></button>`).join('')}</div></div>
+      <button type="button" class="btn" id="tg-criar">Criar meu grupo</button>
+      <p id="tg-erro" class="tg-erro" role="alert"></p>
+    </div>`;
+  tela.style.display = 'block';
+  const $ = (id)=> document.getElementById(id);
+  const verificar = ()=>{
+    clearTimeout(TIMER_APELIDO);
+    const apelido = $('tg-apelido').value.trim();
+    const status = $('tg-apelido-status');
+    if(!apelido){ status.textContent = ''; return; }
+    status.textContent = 'Conferindo…';
+    TIMER_APELIDO = setTimeout(async ()=>{
+      try{
+        const r = await postGrupos({ action: 'verificarApelido', apelido });
+        if($('tg-apelido').value.trim() !== apelido) return; // a pessoa já digitou outra coisa
+        status.textContent = r.error ? r.error : (r.disponivel ? '✅ Endereço livre' : '❌ ' + r.motivo);
+      }catch(e){ status.textContent = ''; }
+    }, 400);
+  };
+  $('tg-nome').addEventListener('input', ()=>{
+    if(!APELIDO_EDITADO){ $('tg-apelido').value = sugerirApelidoFront($('tg-nome').value); verificar(); }
+  });
+  $('tg-apelido').addEventListener('input', ()=>{ APELIDO_EDITADO = true; verificar(); });
+  tela.querySelector('.tg-cores').addEventListener('click', (e)=>{
+    const b = e.target.closest('.tg-cor');
+    if(!b) return;
+    tela.querySelectorAll('.tg-cor').forEach(x => x.classList.toggle('escolhida', x === b));
+  });
+  $('tg-criar').addEventListener('click', async ()=>{
+    const erro = $('tg-erro');
+    erro.textContent = '';
+    if(!TOKEN_CRIAR_GRUPO){ erro.textContent = 'Entre com sua conta Google primeiro (botão acima).'; return; }
+    const cor = (tela.querySelector('.tg-cor.escolhida') || {}).dataset;
+    const grupoNovo = { nome: $('tg-nome').value, apelido: $('tg-apelido').value.trim(), cidade: $('tg-cidade').value, uf: $('tg-uf').value, cor: cor ? cor.cor : PALETA_GRUPO[0] };
+    $('tg-criar').disabled = true;
+    try{
+      const r = await postGrupos({ action: 'criarGrupo', idToken: TOKEN_CRIAR_GRUPO, grupoNovo });
+      if(r && r.status === 'ok'){ location.href = '/' + r.apelido + '/'; return; }
+      erro.textContent = (r && r.error) || 'Não foi possível criar o grupo. Tente de novo.';
+    }catch(e){
+      erro.textContent = 'Sem conexão. Tente de novo.';
+    }finally{
+      $('tg-criar').disabled = false;
+    }
+  });
+}
 function aplicarDados(json){
   DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
   if(json.settings) SETTINGS = json.settings;
@@ -3750,6 +3834,13 @@ async function loadData(){
 window.onGoogleLibraryLoad = function(){
   if(!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('COLE_AQUI') === 0){
     console.warn('GOOGLE_CLIENT_ID não configurado — o login com Google fica desligado.');
+    return;
+  }
+  // página de criação: não existe grupo para logar ainda — só pega o idToken do Google para o criarGrupo
+  if(CTX_GRUPO && CTX_GRUPO.pagina === 'criar'){
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (r)=> receberTokenCriarGrupo(r && r.credential), use_fedcm_for_prompt: true });
+    const alvo = document.getElementById('tg-login');
+    if(alvo) google.accounts.id.renderButton(alvo, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'pt-BR' });
     return;
   }
   google.accounts.id.initialize({
@@ -11134,11 +11225,15 @@ document.addEventListener('fullscreenchange', ()=>{
 carregarPlacarLocal();
 renderPlacar();
 
-restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
-loadData();
-sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
-tentarRenovarSeNecessario(); // cobre a abertura a frio (visibilitychange/focus não disparam no 1º load)
-atualizarAvisoUsuariosPendentes();
+if(CTX_GRUPO && CTX_GRUPO.pagina === 'criar'){
+  mostrarTelaCriarGrupo(); // volei.memberstars.com/ ou /criar: não há grupo para carregar
+} else {
+  restaurarSessaoAuth();   // se a aba já estava logada, volta o chip antes do primeiro render
+  loadData();
+  sincronizarContaComServidor(); // reconfere o vínculo (ver comentário na função) — silencioso, sem popup
+  tentarRenovarSeNecessario(); // cobre a abertura a frio (visibilitychange/focus não disparam no 1º load)
+  atualizarAvisoUsuariosPendentes();
+}
 </script>
 </body>
 </html>
