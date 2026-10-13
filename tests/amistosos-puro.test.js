@@ -10,7 +10,7 @@ const fim = html.indexOf('// </amistosos-puro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <amistosos-puro> não encontrado no volei-dashboard.html');
 const A = new Function(html.slice(ini, fim) + `
   return { AMI_ATIVOS, amiNormalizar, amiNomeGrupo, amiDataCurta, amiHojeBrasil, amiPendencias, amiTextoAviso,
-           amiProximoMarcado, amiPlacarNosso, amiRetrospecto, amiJogoComecou, amiSeparar };
+           amiProximoMarcado, amiPlacarNosso, amiRetrospecto, amiJogoComecou, amiSeparar, amiGruposParaConvite, amiRotuloGrupo };
 `)();
 
 let falhas = 0;
@@ -100,6 +100,65 @@ t('amiSeparar: esperando / marcados (mais próximo primeiro) / histórico (mais 
   assert.deepEqual(s.esperando.map(a => a.id), ['p', 'ag']);
   assert.deepEqual(s.marcados.map(a => a.id), ['m1', 'm2']);
   assert.deepEqual(s.historico.map(a => a.id), ['h2', 'h1', 'h3']);
+});
+
+// Fase 5: "+ Convidar grupo" separa "Na sua cidade" de "Outras cidades", com filtro por UF
+const ligaCidades = (grupoId, grupos) => A.amiNormalizar({ disponivel: true, grupoId, grupos, amistosos: [] });
+const G5 = [
+  { id: 'terca', nome: 'Vôlei de Terça', cidade: 'Santa Luzia', uf: 'MG' },
+  { id: 'meme', nome: 'Vôlei Meme Brasil', cidade: 'santa luzia', uf: 'mg' },
+  { id: 'zeta', nome: 'Zeta Vôlei', cidade: 'Sânta Lúzia ', uf: 'MG' },
+  { id: 'pb', nome: 'Areia PB', cidade: 'Santa Luzia', uf: 'PB' },
+  { id: 'bh', nome: 'Quinta BH', cidade: 'Belo Horizonte', uf: 'MG' },
+  { id: 'rio', nome: 'Alfa Rio', cidade: 'Rio de Janeiro', uf: 'RJ' },
+  { id: 'sem', nome: 'Beta sem cidade' }
+];
+const ids = (lista) => lista.map(g => g.id);
+
+t('amiGruposParaConvite: mesma cidade+UF (sem ligar pra acento/maiúscula/espaço) primeiro, o resto em ordem alfabética', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('terca', G5), '');
+  assert.deepEqual(ids(r.naCidade), ['meme', 'zeta']);
+  assert.deepEqual(ids(r.outras), ['rio', 'pb', 'sem', 'bh']);
+});
+t('amiGruposParaConvite: Santa Luzia/PB não é "sua cidade" para Santa Luzia/MG', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('terca', G5), '');
+  assert.ok(!ids(r.naCidade).includes('pb'));
+});
+t('amiGruposParaConvite: nunca lista o próprio grupo', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('terca', G5), '');
+  assert.ok(![...ids(r.naCidade), ...ids(r.outras)].includes('terca'));
+});
+t('amiGruposParaConvite: UFs dos outros grupos, sem repetir, em ordem (grupo sem UF não entra)', () => {
+  assert.deepEqual(A.amiGruposParaConvite(ligaCidades('terca', G5), '').ufs, ['MG', 'PB', 'RJ']);
+});
+t('amiGruposParaConvite: filtro por UF vale para as duas listas; grupo sem UF some no filtro', () => {
+  const mg = A.amiGruposParaConvite(ligaCidades('terca', G5), 'MG');
+  assert.deepEqual(ids(mg.naCidade), ['meme', 'zeta']);
+  assert.deepEqual(ids(mg.outras), ['bh']);
+  const rj = A.amiGruposParaConvite(ligaCidades('terca', G5), 'rj');
+  assert.deepEqual(ids(rj.naCidade), []);
+  assert.deepEqual(ids(rj.outras), ['rio']);
+  assert.deepEqual(rj.ufs, ['MG', 'PB', 'RJ'], 'a lista de UFs não depende do filtro');
+});
+t('amiGruposParaConvite: meu grupo sem cidade → ninguém é "da sua cidade" (nem quem também não tem cidade)', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('sem', G5), '');
+  assert.deepEqual(ids(r.naCidade), []);
+  assert.equal(r.outras.length, 6);
+});
+t('amiGruposParaConvite: nenhum grupo na minha cidade → tudo em "outras"', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('rio', G5), '');
+  assert.deepEqual(ids(r.naCidade), []);
+  assert.equal(r.outras.length, 6);
+});
+t('amiGruposParaConvite: grupos antigos sem cidade/uf no objeto não quebram', () => {
+  const r = A.amiGruposParaConvite(ligaCidades('terca', [{ id: 'terca', nome: 'T' }, { id: 'meme', nome: 'M' }]), '');
+  assert.deepEqual(ids(r.outras), ['meme']);
+  assert.deepEqual(r.ufs, []);
+});
+t('amiRotuloGrupo: nome — cidade/UF; só o nome quando não há cidade', () => {
+  assert.equal(A.amiRotuloGrupo({ nome: 'Quinta BH', cidade: 'Belo Horizonte', uf: 'mg' }), 'Quinta BH — Belo Horizonte/MG');
+  assert.equal(A.amiRotuloGrupo({ nome: 'Beta' }), 'Beta');
+  assert.equal(A.amiRotuloGrupo({ nome: 'Só cidade', cidade: 'Contagem' }), 'Só cidade — Contagem');
 });
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');
