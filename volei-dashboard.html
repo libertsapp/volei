@@ -1356,6 +1356,17 @@
     background:var(--glass-bg);border:1px solid rgba(255,215,0,0.6);font-size:14px;
     box-shadow:0 0 14px rgba(255,215,0,0.18);
   }
+  /* ===== MODO GRUPO (criação, indisponível, boas-vindas) ===== */
+  .tela-grupo{padding:12px 0;}
+  .tg-cartao{background:var(--glass-bg);border:1px solid var(--glass-borda);border-radius:12px;padding:18px 16px;margin-bottom:14px;}
+  .tg-cartao h2{font-size:18px;margin:0 0 6px;}
+  .tg-sub{font-size:14px;color:var(--chalk-dim);margin:0 0 12px;line-height:1.5;}
+  .tg-passos{margin:0;padding-left:20px;line-height:1.8;font-size:14px;}
+  .tg-erro{color:var(--danger);font-size:14px;min-height:1.2em;margin:8px 0 0;}
+  .tg-cores{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .tg-cor{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;}
+  .tg-cor.escolhida{border-color:var(--chalk);box-shadow:0 0 0 2px var(--court-navy);}
+  .tg-prefixo{display:block;font-size:12px;color:var(--muted);margin:4px 0 2px;}
   /* ===== AMISTOSOS ===== */
   .ami-subtitulo{font-size:15px;margin:18px 0 8px;color:var(--chalk);}
   .ami-vazio{font-size:13px;color:var(--muted);margin:4px 0 10px;}
@@ -1961,6 +1972,8 @@
     </span>
   </div>
 
+  <!-- modo grupo: página de criação e telas de grupo inexistente/suspenso (ver mostrarTelaGrupo / mostrarTelaCriarGrupo) -->
+  <div id="tela-grupo" class="tela-grupo" style="display:none;"></div>
   <div id="app" style="display:none;">
 
     <section id="view-dashboard" class="active">
@@ -1989,6 +2002,15 @@
         <span aria-hidden="true">🤝</span>
         <strong id="amistoso-marcado-texto"></strong>
         <span class="aovivo-alerta-ir">Vou jogar ›</span>
+      </div>
+      <div id="grupo-boas-vindas" class="tg-cartao" style="display:none;">
+        <h2>🎉 Seu grupo está no ar!</h2>
+        <p class="tg-sub">Três passos para começar:</p>
+        <ol class="tg-passos">
+          <li>Cadastre os jogadores em <strong>Mais → Jogadores</strong></li>
+          <li>Abra o primeiro check-in na aba <strong>Check-in</strong></li>
+          <li>Mande o link deste endereço no grupo do WhatsApp e peça pra todo mundo <strong>instalar o app</strong></li>
+        </ol>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="btn secondary" id="share-weekly-whatsapp-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/><path d="M12.031 0C5.437 0 .062 5.373.062 11.984c0 2.107.55 4.09 1.51 5.813L0 24l6.35-1.664a11.925 11.925 0 005.681 1.447h.005c6.594 0 11.968-5.373 11.968-11.985C24.004 5.373 18.63.007 12.03.007zm0 21.746h-.004a9.75 9.75 0 01-4.978-1.363l-.357-.213-3.702.972.988-3.612-.233-.371a9.717 9.717 0 01-1.492-5.176c0-5.376 4.375-9.75 9.782-9.75 2.613 0 5.07 1.02 6.916 2.868a9.72 9.72 0 012.865 6.918c-.001 5.377-4.376 9.727-9.785 9.727z"/></svg>Resumo da semana</button>
@@ -3556,12 +3578,17 @@ function sugerirApelidoFront(nome){
   return String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/g, '');
 }
+function respostaDeGrupoIndisponivel(json){
+  const c = json && json.codigo;
+  return c === 'grupo_inexistente' || c === 'grupo_suspenso' ? c : null;
+}
 // </grupo-puro>
 const CTX_GRUPO = contextoDoGrupo(location.hostname, location.pathname, HOSTS_MODO_GRUPO);
 // endereço canônico do grupo (minúsculas + barra final) antes de qualquer outra coisa carregar
 (function(){ const certo = caminhoCanonico(location.pathname, CTX_GRUPO); if(certo) location.replace(certo + location.search); })();
 const URL_API = urlDaApi(SHEET_API_URL, GRUPOS_API_URL, CTX_GRUPO);
 let GRUPO_ATUAL = null; // cadastro público do grupo (vem no GET); null no Terça
+let PAGINA_SEM_GRUPO = false; // criação / grupo inexistente ou suspenso: sem convite para instalar
 function nomeDoApp(){ return GRUPO_ATUAL ? GRUPO_ATUAL.nome : NOME_PADRAO_APP; }
 
 function atualizarContadorAcessos(){
@@ -3600,6 +3627,7 @@ async function buscarDadosComNovasTentativas(){
     try{
       const res = await fetch(URL_API);
       const json = await res.json();
+      if(respostaDeGrupoIndisponivel(json)) return json; // grupo que não existe não melhora tentando de novo
       if(json && !json.error && Array.isArray(json.players)) return json;
       console.error('Servidor respondeu com erro ao carregar (tentativa ' + tentativa + ')', json && json.error);
     }catch(e){
@@ -3622,6 +3650,29 @@ function aplicarIdentidade(g){
   const bola = document.querySelector('header .brand .ball');
   if(bola){ bola.textContent = iniciaisDoGrupo(g.nome); bola.classList.add('ball-iniciais'); }
   atualizarManifesto();
+}
+// páginas do modo grupo SEM grupo carregado (criação, inexistente, suspenso): nada da marca do Terça no topo, sem convite
+// para instalar e sem o login do cabeçalho (que logaria num grupo que não existe)
+function identidadeNeutra(){
+  PAGINA_SEM_GRUPO = true;
+  document.title = 'App do seu grupo de vôlei';
+  const h1 = document.querySelector('header .brand h1');
+  if(h1) h1.textContent = 'Vôlei do seu grupo';
+  const bola = document.querySelector('header .brand .ball');
+  if(bola){ bola.textContent = '🏐'; bola.classList.add('ball-iniciais'); }
+  ['instalar-app-aviso', 'google-signin-btn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+}
+function mostrarTelaGrupo(tipo){
+  identidadeNeutra();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  const tela = document.getElementById('tela-grupo');
+  const texto = tipo === 'grupo_suspenso'
+    ? { titulo: 'Grupo indisponível', corpo: 'Este grupo está suspenso no momento.' }
+    : { titulo: 'Esse grupo não existe', corpo: 'Confira o endereço com quem te mandou o link — ou crie o app do seu grupo.' };
+  tela.innerHTML = `<div class="tg-cartao"><h2>🏐 ${texto.titulo}</h2><p class="tg-sub">${texto.corpo}</p>
+    <button type="button" class="btn" onclick="location.href='/criar'">Criar o app do meu grupo</button></div>`;
+  tela.style.display = 'block';
 }
 function aplicarDados(json){
   DATA = { players: json.players || [], removidos: json.removidos || [], rounds: json.rounds || [], aoVivo: json.aoVivo || { rounds: [], log: [] } };
@@ -3661,6 +3712,8 @@ async function loadData(){
   }
   const aviso = document.getElementById('config-warning');
   const json = await buscarDadosComNovasTentativas();
+  const indisponivel = respostaDeGrupoIndisponivel(json);
+  if(indisponivel){ mostrarTelaGrupo(indisponivel); return; }
   if(json){
     aviso.style.display = 'none';
     aplicarDados(json);
@@ -8068,6 +8121,8 @@ function renderAll(){
   atualizarBadgeAoVivo();
   atualizarAlertaRascunhos();
   atualizarAvisosAmistosos();
+  const boasVindas = document.getElementById('grupo-boas-vindas');
+  if(boasVindas) boasVindas.style.display = (GRUPO_ATUAL && temPermissao('addPlayer') && !DATA.players.length) ? '' : 'none';
 }
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
@@ -10789,6 +10844,7 @@ function abrirInstrucoesInstalarManual(){
 function atualizarAvisoInstalar(){
   const aviso = document.getElementById('instalar-app-aviso');
   if(!aviso) return;
+  if(PAGINA_SEM_GRUPO){ aviso.style.display = 'none'; return; }
   let fechado = false;
   try{ fechado = localStorage.getItem(CHAVE_INSTALAR_AVISO_FECHADO) === '1'; }catch(e){ /* localStorage bloqueado: mostra */ }
   document.getElementById('instalar-app-aviso-texto').innerHTML = avisoInstalarTexto(location.hostname);
