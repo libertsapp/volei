@@ -127,6 +127,15 @@ Backend: `backend/amistosos.js` + `repo-liga-*.js`, injetados em `criarHandler({
 Function só altera o lado do próprio grupo. Grupo novo = linha em `liga.grupos` + função com o `grupoId` dele. Push de
 "amistoso marcado" só vai para os inscritos do grupo que aceitou (as inscrições não são compartilhadas).
 
+## Grupos independentes (v18.0 no Terça, 2026-10-12)
+
+Spec: `docs/superpowers/specs/2026-10-12-grupos-independentes-design.md`. Qualquer pessoa cria o app do grupo em
+`volei.memberstars.com/criar`; cada grupo vive em `volei.memberstars.com/<apelido>/`. Dados de todos os grupos no schema
+`grupos` (coluna `grupo_id`; `backend/cliente-do-grupo.js` aplica o grupo em toda operação), servidos pela função
+`grupos-api` (`backend/grupos-api.js`). O MESMO `volei-dashboard.html` entra em "modo grupo" só no host de
+`HOSTS_MODO_GRUPO`; fora dele tudo é o Terça de sempre (teste `tests/grupo-puro.test.js`). Teste local:
+`npm run servidor-grupos` (memória, login `dev:<email>`). Publicação: `docs/superpowers/grupos-deploy.md`.
+
 ## Erros já vividos neste projeto (não repetir)
 
 - **Cache de GET no Apps Script**: nunca confiar em `fetch()` simples pra
