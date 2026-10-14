@@ -2929,7 +2929,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.0 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.1 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3279,6 +3279,25 @@ function amiNormalizar(l){
   return { disponivel: !!x.disponivel, grupoId: x.grupoId || '', grupos: x.grupos || [], amistosos: x.amistosos || [] };
 }
 function amiNomeGrupo(liga, id){ const g = liga.grupos.find(g => g.id === id); return g ? g.nome : id; }
+// cidade/UF comparadas sem acento, maiúscula nem espaço sobrando: "Sânta Lúzia " é a mesma cidade que "santa luzia"
+function amiChaveLugar(t){ return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase(); }
+function amiRotuloGrupo(g){
+  const cidade = String(g.cidade || '').trim(), uf = String(g.uf || '').trim().toUpperCase();
+  return cidade ? g.nome + ' — ' + cidade + (uf ? '/' + uf : '') : g.nome;
+}
+// "+ Convidar grupo": quem é da MESMA cidade e UF primeiro (Santa Luzia/PB não é vizinho de Santa Luzia/MG), o resto
+// depois, cada parte em ordem alfabética. ufFiltro vazio = todos; a lista de UFs não depende do filtro.
+function amiGruposParaConvite(liga, ufFiltro){
+  const meu = liga.grupos.find(g => g.id === liga.grupoId) || {};
+  const minhaCidade = amiChaveLugar(meu.cidade), minhaUf = amiChaveLugar(meu.uf);
+  const outros = liga.grupos.filter(g => g.id !== liga.grupoId)
+    .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
+  const ufs = [...new Set(outros.map(g => amiChaveLugar(g.uf).toUpperCase()).filter(Boolean))].sort();
+  const filtro = amiChaveLugar(ufFiltro);
+  const visiveis = filtro ? outros.filter(g => amiChaveLugar(g.uf) === filtro) : outros;
+  const vizinho = (g) => !!minhaCidade && amiChaveLugar(g.cidade) === minhaCidade && amiChaveLugar(g.uf) === minhaUf;
+  return { naCidade: visiveis.filter(vizinho), outras: visiveis.filter(g => !vizinho(g)), ufs };
+}
 function amiDataCurta(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
 // "hoje" no Brasil (-03:00), igual ao backend: às 22h de Brasília o UTC já virou o dia
 function amiHojeBrasil(agoraMs){ return new Date(agoraMs - 3 * 3600000).toISOString().slice(0, 10); }
@@ -5195,16 +5214,31 @@ function amiPedirTexto(titulo, rotuloOk, obrigatorio, aoEnviar){
   }, rotuloOk);
 }
 
+// opções do "Grupo": "📍 Na sua cidade" e "Outras cidades" só viram divisões quando há alguém na sua cidade
+function amiOpcoesConvite(ufFiltro){
+  const { naCidade, outras } = amiGruposParaConvite(LIGA, ufFiltro);
+  const opcoes = (lista) => lista.map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(amiRotuloGrupo(g))}</option>`).join('');
+  if(!naCidade.length) return opcoes(outras);
+  return `<optgroup label="📍 Na sua cidade">${opcoes(naCidade)}</optgroup>` + (outras.length ? `<optgroup label="Outras cidades">${opcoes(outras)}</optgroup>` : '');
+}
 document.getElementById('ami-convidar-btn').addEventListener('click', ()=>{
-  const outros = LIGA.grupos.filter(g => g.id !== LIGA.grupoId);
-  if(!outros.length){ mostrarToast('Ainda não há outro grupo cadastrado pra convidar.', 'erro'); return; }
-  finAbrirModal('🤝 Convidar para amistoso', `
-    <label class="fin-campo">Grupo<select id="ami-m-grupo">${outros.map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.nome)}</option>`).join('')}</select></label>
+  const { naCidade, outras, ufs } = amiGruposParaConvite(LIGA, '');
+  if(!naCidade.length && !outras.length){ mostrarToast('Ainda não há outro grupo cadastrado pra convidar.', 'erro'); return; }
+  // filtro por estado só faz sentido quando há grupos de 2+ estados
+  const filtroUf = ufs.length > 1
+    ? `<label class="fin-campo">Estado<select id="ami-m-uf"><option value="">Todos os estados</option>${ufs.map(uf => `<option value="${escapeHtml(uf)}">${escapeHtml(uf)}</option>`).join('')}</select></label>` : '';
+  const ov = finAbrirModal('🤝 Convidar para amistoso', `
+    ${filtroUf}
+    <label class="fin-campo">Grupo<select id="ami-m-grupo">${amiOpcoesConvite('')}</select></label>
     ${amiCamposHtml({})}`, async (ov)=>{
     const c = amiLerCampos(ov);
+    const grupo = ov.querySelector('#ami-m-grupo').value;
+    if(!grupo){ mostrarToast('Escolha o grupo que vai receber o convite.', 'erro'); return false; }
     if(!c.data){ mostrarToast('Escolha a data do amistoso.', 'erro'); return false; }
-    return amiPost('convidarGrupo', { convite: { grupo: ov.querySelector('#ami-m-grupo').value, ...c } });
+    return amiPost('convidarGrupo', { convite: { grupo, ...c } });
   }, 'Enviar convite');
+  const selUf = ov.querySelector('#ami-m-uf');
+  if(selUf) selUf.addEventListener('change', ()=>{ ov.querySelector('#ami-m-grupo').innerHTML = amiOpcoesConvite(selUf.value); });
 });
 
 // "Vou jogar": escolhe o jogador da lista do grupo (já vem marcado quem está vinculado à conta), igual ao check-in
