@@ -734,6 +734,17 @@
     padding:26px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;
     box-shadow:0 24px 60px rgba(0,0,0,0.6);position:relative;
   }
+  /* termos de uso (v18.2): acima das janelas do app (300) e abaixo dos avisos (501) e do "Salvando..." (500) */
+  .termos-overlay{z-index:350;}
+  .termos-card{max-width:520px;padding:22px 22px 0;}
+  .termos-texto{font-size:13px;line-height:1.55;color:var(--chalk);text-align:left;}
+  .termos-texto h2{font-family:'Anton',sans-serif;font-size:18px;text-transform:uppercase;margin:0 0 2px;}
+  .termos-texto .termos-versao{color:var(--muted);font-size:12px;margin:0 0 14px;}
+  .termos-texto h3{font-size:13px;margin:14px 0 4px;color:var(--ball-yellow);}
+  .termos-texto p, .termos-texto ul{margin:0 0 6px;}
+  .termos-texto ul{padding-left:20px;}
+  .termos-acoes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:sticky;bottom:0;
+    background:var(--court-navy-2);padding:14px 0 18px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);}
   .profile-close{position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
   .profile-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
   .profile-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--ball-yellow);}
@@ -2929,9 +2940,9 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
-    <div class="footer-line"><span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
+    <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
 </div>
 
@@ -2960,7 +2971,7 @@ let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a 
 let AUTH = {
   idToken: '', exp: 0, email: '', nome: '', foto: '',
   perfil: '', jogadorId: '', jogadorIdPendente: '', logado: false,
-  sessao: '', sessaoExpiraEm: '',
+  sessao: '', sessaoExpiraEm: '', termosVersao: '',
   aoRenovar: null // callback temporário usado pela renovação silenciosa do token
 };
 
@@ -2970,6 +2981,7 @@ let AUTH = {
 const PERMISSOES_UI = {
   ping:               ['jogador','organizador','admin'],
   uploadPhoto:        ['jogador','organizador','admin'],
+  aceitarTermos:      ['jogador','organizador','admin'],
   addPlayer:          ['organizador','admin'],
   updatePlayer:       ['organizador','admin'],
   addRound:           ['organizador','admin'],
@@ -3965,6 +3977,7 @@ async function loginComGoogle(idToken){
     AUTH.nome = json.nome || AUTH.nome;
     AUTH.sessao = json.sessao || '';                 // a partir daqui a identidade é a sessão do app (90 dias)
     AUTH.sessaoExpiraEm = json.sessaoExpiraEm || '';
+    if(typeof json.termosVersao === 'string') AUTH.termosVersao = json.termosVersao;
     salvarSessaoAuth();
     if(loginSemSessao(json)) avisarSessaoNaoCriada();
     atualizarStatusAuth();
@@ -3975,13 +3988,112 @@ async function loginComGoogle(idToken){
     // sem jogador vinculado ainda (aprovado ou pendente): sempre pergunta "esse é você?" —
     // com um palpite de nome pronto (sugestao) OU, se não achou ninguém parecido, abrindo
     // direto no modo "escolher da lista" (perguntarVinculoJogador já trata sugestao=null)
-    if(!AUTH.jogadorId && !AUTH.jogadorIdPendente && typeof perguntarVinculoJogador === 'function'){
-      perguntarVinculoJogador(json.sugestao);
-    }
+    const perguntarVinculo = () => {
+      if(AUTH.logado && !AUTH.jogadorId && !AUTH.jogadorIdPendente && typeof perguntarVinculoJogador === 'function'){
+        perguntarVinculoJogador(json.sugestao);
+      }
+    };
+    // termos de uso primeiro (conta nova ou que ainda não aceitou esta versão); o convite de vínculo só depois do aceite
+    if(precisaAceitarTermos(json, TERMOS_VERSAO)) mostrarTermos({ aoAceitar: perguntarVinculo });
+    else perguntarVinculo();
   }catch(e){
     console.error('Falha ao confirmar o login no servidor', e);
     alert('Entrou no Google, mas não foi possível falar com o servidor agora. Recarregue a página.');
   }
+}
+
+// <termos-puro>
+/* Termos de uso e privacidade (v18.2). Para MUDAR o texto: edite TERMOS_HTML e suba TERMOS_VERSAO — todo mundo que
+   já aceitou vê o popup de novo. A versão aceita fica gravada na conta, no servidor (ação aceitarTermos). */
+const TERMOS_VERSAO = '1';
+const TERMOS_HTML = `
+  <h2>Termos de Uso e Privacidade</h2>
+  <p class="termos-versao">versão 1 · 14/10/2026</p>
+  <h3>1. O que é</h3>
+  <p>Este app é uma ferramenta gratuita para organizar jogos recreativos de vôlei (check-in, sorteio de times, ranking, amistosos). É mantido por Heleno Vilela.</p>
+  <h3>2. Dados que guardamos</h3>
+  <p>Nome, e-mail e foto da sua conta Google. O jogador vinculado à sua conta e a foto que você enviar. Presenças, resultados, estatísticas e pagamentos registrados pelo organizador. O seu aparelho, se você ativar as notificações.</p>
+  <h3>3. Para que usamos</h3>
+  <p>Só para o app e o seu grupo funcionarem. Não vendemos seus dados nem os usamos para propaganda. Nome, foto e estatísticas dos jogadores ficam visíveis para quem acessa o app do grupo.</p>
+  <h3>4. Onde ficam</h3>
+  <p>Em serviços de nuvem (Supabase, Google, Vercel e GitHub), que podem guardar os dados fora do Brasil.</p>
+  <h3>5. Seus direitos (LGPD – Lei 13.709/2018)</h3>
+  <p>Você pode pedir para ver, corrigir ou apagar seus dados, ou retirar este consentimento, pelo e-mail abaixo.</p>
+  <h3>6. Responsabilidade</h3>
+  <p>O app é apenas uma ferramenta de organização. O criador do app não organiza os jogos e não tem vínculo com os jogadores. Por isso não se responsabiliza por:</p>
+  <ul>
+    <li>atos e condutas dos jogadores, dentro ou fora da quadra;</li>
+    <li>lesões ou acidentes;</li>
+    <li>acordos de pagamento entre os participantes;</li>
+    <li>conteúdo publicado pelos usuários;</li>
+    <li>falhas, indisponibilidade ou perda de dados do app.</li>
+  </ul>
+  <p>Cada participante responde pelos próprios atos, e os organizadores respondem pelo seu grupo.</p>
+  <h3>7. Convivência</h3>
+  <p>Use com respeito. Contas usadas para abuso podem ser removidas.</p>
+  <h3>8. Mudanças</h3>
+  <p>Se este termo mudar, avisaremos no app e pediremos um novo aceite.</p>
+  <h3>Contato</h3>
+  <p>Heleno Vilela — <a href="mailto:kingnabucodonosor@gmail.com" class="footer-link">kingnabucodonosor@gmail.com</a></p>
+`;
+// Mostra o popup só quando o SERVIDOR respondeu a versão aceita e ela não é a atual. Resposta sem "termosVersao" =
+// função ainda não atualizada: não mostra, senão o aceite falharia e o popup voltaria a cada abertura do app.
+function precisaAceitarTermos(json, versaoAtual){
+  return !!json && !json.error && typeof json.termosVersao === 'string' && json.termosVersao !== versaoAtual;
+}
+// </termos-puro>
+
+// Popup dos termos. Para aceitar: obrigatório escolher (clicar fora não fecha). "Não aceito" sai da conta e a pessoa
+// segue como visitante (vê tudo e faz check-in, como sempre). somenteLeitura = aberto pelo link do rodapé.
+let TERMOS_ABERTO = false;
+function mostrarTermos(op){
+  op = op || {};
+  if(TERMOS_ABERTO) return;
+  TERMOS_ABERTO = true;
+  const ov = document.createElement('div');
+  ov.className = 'profile-overlay termos-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Termos de Uso e Privacidade');
+  const botoes = op.somenteLeitura
+    ? '<button type="button" class="btn" data-termos-fechar>Fechar</button>'
+    : '<button type="button" class="btn" data-termos-aceitar>Li e aceito</button><button type="button" class="btn secondary" data-termos-recusar>Não aceito</button>';
+  ov.innerHTML = `<div class="profile-card termos-card"><div class="termos-texto">${TERMOS_HTML}</div><div class="termos-acoes">${botoes}</div></div>`;
+  document.body.appendChild(ov);
+  const fechar = () => { ov.remove(); TERMOS_ABERTO = false; };
+  ov.addEventListener('click', async (e)=>{
+    if(op.somenteLeitura){
+      if(e.target === ov || e.target.closest('[data-termos-fechar]')) fechar();
+      return;
+    }
+    if(e.target.closest('[data-termos-recusar]')){
+      fechar();
+      sairDaConta();
+      mostrarToast('Você saiu da conta. Pode continuar usando o app como visitante.', 'sucesso', 6000);
+      return;
+    }
+    const btn = e.target.closest('[data-termos-aceitar]');
+    if(!btn || btn.disabled) return;
+    btn.disabled = true;
+    const ok = await aceitarTermosNoServidor();
+    btn.disabled = false;
+    if(ok){
+      fechar();
+      mostrarToast('Termos aceitos. Bom jogo!', 'sucesso');
+      if(op.aoAceitar) op.aoAceitar();
+    } else if(!AUTH.logado){
+      fechar(); // a sessão caiu no meio (postAction já avisou e saiu da conta)
+    }
+  });
+}
+async function aceitarTermosNoServidor(){
+  const cred = await credencialLogada();
+  if(!cred){ mostrarToast('Seu login expirou. Toque em "Entrar com Google" e tente de novo.', 'erro'); sairDaConta(true); return false; }
+  const ok = await postAction('aceitarTermos', { versao: TERMOS_VERSAO }, cred);
+  if(!ok) return false;
+  AUTH.termosVersao = TERMOS_VERSAO;
+  salvarSessaoAuth();
+  return true;
 }
 
 // <sessao-front>
@@ -4025,6 +4137,7 @@ function aplicarDadosDaConta(json){
   AUTH.nome = json.nome || AUTH.nome;
   if(json.sessao) AUTH.sessao = json.sessao;
   if(json.sessaoExpiraEm) AUTH.sessaoExpiraEm = json.sessaoExpiraEm;
+  if(typeof json.termosVersao === 'string') AUTH.termosVersao = json.termosVersao;
   salvarSessaoAuth();
   if(mudou){ atualizarStatusAuth(); aplicarPermissoesUI(); renderAll(); }
 }
@@ -4041,7 +4154,8 @@ function sincronizarContaSeFazTempo(){
 /* Reconfere a conta com o servidor ao abrir o app (perfil/vínculo podem ter mudado em outro aparelho — bug real de
    2026-09: o vínculo gravado no aparelho nunca era reconferido). Com sessão: ação minhaConta. Sem sessão mas com token
    do Google ainda válido: loginGoogle, que devolve uma sessão (migração silenciosa de quem logou antes da v14.0).
-   Nunca abre popup (convite de vínculo, oferta de bootstrap: só no primeiro login de verdade); só sai da conta se o
+   Não abre o convite de vínculo (só no primeiro login de verdade) — a ÚNICA janela daqui é a dos termos de uso, para
+   quem ainda não aceitou a versão atual (é assim que conta antiga vê o termo "no próximo uso"); só sai da conta se o
    SERVIDOR disser que a sessão expirou — falha de rede ou do banco mantém a pessoa logada. */
 async function sincronizarContaComServidor(){
   if(!AUTH.logado || !sheetReady) return;
@@ -4059,6 +4173,7 @@ async function sincronizarContaComServidor(){
     }
     if(json) aplicarDadosDaConta(json);
     if(corpo.action === 'loginGoogle' && loginSemSessao(json)) avisarSessaoNaoCriada();
+    if(precisaAceitarTermos(json, TERMOS_VERSAO)) mostrarTermos({});
   }catch(e){
     console.error('Falha ao sincronizar a conta (silencioso; tenta de novo ao reabrir)', e);
   }
@@ -4090,7 +4205,7 @@ function salvarSessaoAuth(){
   localStorage.setItem(CHAVE_LOGIN_LOCAL, JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
     foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente,
-    sessao: AUTH.sessao, sessaoExpiraEm: AUTH.sessaoExpiraEm
+    sessao: AUTH.sessao, sessaoExpiraEm: AUTH.sessaoExpiraEm, termosVersao: AUTH.termosVersao
   }));
 }
 function restaurarSessaoAuth(){
@@ -4112,7 +4227,7 @@ function sairDaConta(silencioso){
   if(AUTH.sessao && sheetReady){
     fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
   }
-  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'' };
+  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'', termosVersao:'' };
   localStorage.removeItem(CHAVE_LOGIN_LOCAL);
   if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
@@ -4787,6 +4902,7 @@ function abrirRelatarBug(){
   });
 }
 document.getElementById('report-bug-btn').addEventListener('click', abrirRelatarBug);
+document.getElementById('termos-link').addEventListener('click', ()=> mostrarTermos({ somenteLeitura: true }));
 
 function pedirDuracaoModal(){
   return new Promise((resolve)=>{
