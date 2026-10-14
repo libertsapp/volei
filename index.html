@@ -157,6 +157,8 @@
   /* modo grupo: a bola vira um círculo com as iniciais do grupo, na cor dele */
   .brand .ball.ball-iniciais{background:var(--ball-yellow);background-image:none;display:flex;align-items:center;justify-content:center;
     color:#101b33;font-weight:800;font-size:15px;letter-spacing:.5px;}
+  /* logo do grupo (v18.3): a imagem entra por background-image (inline) no lugar da bola/iniciais */
+  .brand .ball.ball-logo{background-color:#fff;background-size:cover;background-position:center;background-repeat:no-repeat;}
   .brand .ball{
     width:38px;height:38px;border-radius:50%;
     background: conic-gradient(var(--ball-yellow) 0 25%, var(--ball-blue) 0 50%, var(--ball-yellow) 0 75%, var(--ball-blue) 0);
@@ -677,11 +679,6 @@
     margin-left:4px;vertical-align:middle;flex-shrink:0;
   }
   .info-icon:hover{border-color:var(--ball-yellow);color:var(--ball-yellow);}
-  .paleta-popup{
-    position:fixed;z-index:400;display:flex;gap:10px;padding:10px;
-    background:var(--court-navy-2);border:1px solid var(--ball-yellow);border-radius:14px;
-    box-shadow:0 10px 26px rgba(0,0,0,0.5);
-  }
   .paleta-swatch{
     width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
   }
@@ -745,6 +742,18 @@
   .termos-texto ul{padding-left:20px;}
   .termos-acoes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:sticky;bottom:0;
     background:var(--court-navy-2);padding:14px 0 18px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);}
+  /* janela ⚙️ Configurações (v18.3) */
+  .config-card{max-width:420px;}
+  .config-secao{padding:14px 0;border-top:1px solid var(--line);}
+  .config-rotulo{font-weight:700;margin-bottom:10px;}
+  .config-nota{color:var(--muted);font-size:12px;font-weight:400;margin:8px 0 0;}
+  .config-rotulo .config-nota{margin:0 0 0 6px;}
+  .config-cores{display:flex;gap:10px;flex-wrap:wrap;}
+  .config-logo-linha{display:flex;align-items:center;gap:14px;}
+  .config-logo-previa{width:64px;height:64px;border-radius:50%;flex-shrink:0;border:2px solid var(--chalk);
+    background:conic-gradient(var(--ball-yellow) 0 25%, var(--ball-blue) 0 50%, var(--ball-yellow) 0 75%, var(--ball-blue) 0);}
+  .config-logo-previa.tem-logo{background-color:#fff;background-size:cover;background-position:center;background-repeat:no-repeat;}
+  .config-logo-botoes{display:flex;flex-direction:column;gap:8px;}
   .profile-close{position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
   .profile-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
   .profile-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--ball-yellow);}
@@ -1534,7 +1543,7 @@
   }
 
 
-  /* celular: o botão do Google (~220px) + 3 ícones não cabem em 390px — quebra de linha em vez de cortar o 🔒 */
+  /* celular: o botão do Google (~220px) + os ícones não cabem em 390px — quebra de linha em vez de cortar o último */
   .header-right{flex-wrap:wrap;}
   /* ===== CARTÃO REDUZIDO (Check-in, Sorteio, Histórico, Nova Rodada) ===== */
   /* sem animação de entrada de propósito: essas listas re-renderizam inteiras a cada clique */
@@ -1919,8 +1928,7 @@
       <button type="button" id="push-notif-btn" class="admin-status admin-status-icone" title="Ativar notificações" aria-label="Ativar notificações" style="display:none;">🔕</button>
       <button type="button" id="theme-toggle-btn" class="admin-status admin-status-icone" title="Alternar modo claro/escuro (bom pra usar ao ar livre, sob sol)" aria-label="Alternar modo claro/escuro">☀️</button>
       <button type="button" id="som-toggle-btn" class="admin-status admin-status-icone" aria-pressed="true" title="Ligar/desligar os sons do app" aria-label="Ligar/desligar os sons do app">🔊</button>
-      <button type="button" id="admin-status-btn" class="admin-status admin-status-icone" title="Visitante" aria-label="Visitante">🔒</button>
-      <button type="button" id="paleta-btn" class="admin-status admin-status-icone" title="Escolher cor do app" aria-label="Escolher cor do app">🎨</button>
+      <button type="button" id="config-btn" class="admin-status admin-status-icone" title="Configurações" aria-label="Configurações">⚙️</button>
       <button type="button" id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -2940,7 +2948,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -2981,6 +2989,7 @@ let AUTH = {
 const PERMISSOES_UI = {
   ping:               ['jogador','organizador','admin'],
   uploadPhoto:        ['jogador','organizador','admin'],
+  salvarLogo:         ['admin'],
   aceitarTermos:      ['jogador','organizador','admin'],
   addPlayer:          ['organizador','admin'],
   updatePlayer:       ['organizador','admin'],
@@ -3820,6 +3829,7 @@ function aplicarDados(json){
   FINANCEIRO = finNormalizar(json.financeiro);
   LIGA = amiNormalizar(json.liga);
   if(json.grupo) aplicarIdentidade(json.grupo);
+  aplicarLogo(SETTINGS.logoUrl); // depois da identidade do grupo: com logo, a imagem fica no lugar das iniciais
   reconstituirConvidadosDosCheckins();
   JOGO_ATIVO = (jogosDoDia(SETTINGS, CHECKINS, SETTINGS.checkinDataAberta)[0] || { numero: 1 }).numero;
 }
@@ -4834,14 +4844,8 @@ function aplicarPermissoesUI(){
 try{ sessionStorage.removeItem('volei-admin-pwd'); }catch(e){ /* sessionStorage bloqueado: nada a limpar */ }
 
 function updateAdminStatusBtn(){
-  const btn = document.getElementById('admin-status-btn');
-  // o botão é só um indicador do perfil — a identidade individual mora no chip do Google, ao lado
-  // só o ícone no botão (cabeçalho enxuto); o texto completo vai no tooltip e no aria-label
-  const rotulo = AUTH.logado ? 'Perfil: ' + (AUTH.perfil || 'jogador') : 'Visitante';
-  btn.textContent = AUTH.logado ? '🔓' : '🔒';
-  btn.title = rotulo;
-  btn.setAttribute('aria-label', rotulo);
-  btn.classList.toggle('is-admin', ehAdminAgora());
+  // o cadeado do cabeçalho saiu na v18.3 (virou a engrenagem de configurações): quem está logado e com qual perfil
+  // já aparece no chip da conta Google, ao lado
   atualizarStatusAuth();
   aplicarPermissoesUI();
   renderPlayers(); // reaplica a visibilidade das estrelas e dos botões de editar/remover
@@ -4864,13 +4868,6 @@ document.getElementById('star-visibility-checkbox').addEventListener('change', a
     checkbox.checked = previous;
     renderPlayers();
   }
-});
-document.getElementById('admin-status-btn').addEventListener('click', ()=>{
-  if(AUTH.logado){
-    alert('Você está logado como ' + (AUTH.perfil || 'jogador') + ' (' + AUTH.email + ').');
-    return;
-  }
-  mostrarToast('Toque em "Entrar com Google" pra identificar sua conta.', 'info');
 });
 
 /* pop-up de relatar bug / sugerir funcionalidade — manda a mensagem digitada pro
@@ -10935,38 +10932,151 @@ function aplicarPaleta(){
   if(paleta === 'neon') delete document.body.dataset.paleta; // paleta padrão já é o :root, não precisa de atributo
   else document.body.dataset.paleta = paleta;
 }
-function fecharPopupPaleta(){
-  const popup = document.getElementById('paleta-popup');
-  if(popup) popup.remove();
-  document.removeEventListener('click', fecharPopupPaletaFora, true);
+// <logo-puro>
+// O endereço do logo vem do banco e entra num url("...") do CSS: só https sem aspas, parênteses, espaço nem barra
+// invertida (qualquer um deles fugiria do url() e quebraria o estilo ou injetaria CSS).
+function logoValido(url){
+  return typeof url === 'string' && /^https:\/\/[^\s"'()\\]+$/.test(url);
 }
-function fecharPopupPaletaFora(e){
-  const popup = document.getElementById('paleta-popup');
-  if(popup && !popup.contains(e.target) && e.target.id !== 'paleta-btn') fecharPopupPaleta();
+// </logo-puro>
+
+/* ---------- LOGO DO GRUPO (v18.3) ----------
+   Fica no lugar da bola do cabeçalho, para todo mundo que abre o app do grupo. Sem logo volta ao padrão: a bola no
+   Terça/Meme, as iniciais nos grupos independentes. Só admin troca (ação salvarLogo; o backend confere). */
+function aplicarLogo(url){
+  const bola = document.querySelector('header .brand .ball');
+  if(!bola) return;
+  if(logoValido(url)){
+    bola.classList.add('ball-logo');
+    bola.style.backgroundImage = 'url("' + url + '")';
+    bola.textContent = '';
+    bola.setAttribute('role', 'img');
+    bola.setAttribute('aria-label', 'Logo do grupo');
+  } else {
+    bola.classList.remove('ball-logo');
+    bola.style.backgroundImage = '';
+    bola.removeAttribute('role');
+    bola.removeAttribute('aria-label');
+    if(GRUPO_ATUAL) bola.textContent = iniciaisDoGrupo(GRUPO_ATUAL.nome);
+  }
 }
-document.getElementById('paleta-btn').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  if(document.getElementById('paleta-popup')){ fecharPopupPaleta(); return; }
-  const atual = localStorage.getItem('volei-paleta') || 'neon';
-  const popup = document.createElement('div');
-  popup.id = 'paleta-popup';
-  popup.className = 'paleta-popup';
-  popup.innerHTML = PALETAS.map(p =>
-    `<button type="button" class="paleta-swatch${p.id === atual ? ' ativo' : ''}" data-paleta-id="${p.id}" style="background:${p.cor};" title="${p.nome}" aria-label="${p.nome}"></button>`
-  ).join('');
-  document.body.appendChild(popup);
-  const btnRect = document.getElementById('paleta-btn').getBoundingClientRect();
-  popup.style.top = (btnRect.bottom + 6) + 'px';
-  popup.style.right = (window.innerWidth - btnRect.right) + 'px';
-  popup.addEventListener('click', (ev)=>{
-    const id = ev.target.dataset && ev.target.dataset.paletaId;
-    if(!id) return;
-    localStorage.setItem('volei-paleta', id);
-    aplicarPaleta();
-    fecharPopupPaleta();
+// recorta o quadrado do CENTRO da imagem e reduz para lado×lado em JPEG (fundo branco: PNG transparente não fica preto)
+function recortarQuadradoBase64(file, lado, qualidade){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const corte = Math.min(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = lado; canvas.height = lado;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, lado, lado);
+        ctx.drawImage(img, (img.width - corte) / 2, (img.height - corte) / 2, corte, corte, 0, 0, lado, lado);
+        resolve(canvas.toDataURL('image/jpeg', qualidade).split(',')[1]);
+      };
+      img.onerror = ()=> reject(new Error('Não foi possível ler a imagem'));
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-  setTimeout(()=> document.addEventListener('click', fecharPopupPaletaFora, true), 0);
-});
+}
+async function enviarLogo(payload){
+  const cred = await requireAuth('salvarLogo');
+  if(!cred) return false;
+  ULTIMA_RESPOSTA_POST = null;
+  const ok = await postAction('salvarLogo', payload, cred);
+  if(!ok) return false;
+  const url = (ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.logoUrl) || '';
+  if(url) SETTINGS.logoUrl = url; else delete SETTINGS.logoUrl;
+  aplicarLogo(SETTINGS.logoUrl);
+  return true;
+}
+
+/* ---------- ⚙️ CONFIGURAÇÕES (v18.3) ----------
+   Junta o que antes eram botões soltos no cabeçalho: a cor do tema (de cada aparelho, qualquer um) e o logo do grupo
+   (só admin vê essa parte). */
+function abrirConfiguracoes(){
+  if(document.getElementById('config-overlay')) return;
+  const admin = AUTH.logado && podePerfil('salvarLogo', AUTH.perfil);
+  const atual = localStorage.getItem('volei-paleta') || 'neon';
+  const ov = document.createElement('div');
+  ov.id = 'config-overlay';
+  ov.className = 'profile-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Configurações');
+  ov.innerHTML = `<div class="profile-card config-card">
+    <button type="button" class="profile-close" data-config-fechar aria-label="Fechar">✕</button>
+    <p class="password-title">⚙️ Configurações</p>
+    <div class="config-secao">
+      <div class="config-rotulo">Cor do tema <span class="config-nota">só neste aparelho</span></div>
+      <div class="config-cores">${PALETAS.map(p =>
+        `<button type="button" class="paleta-swatch${p.id === atual ? ' ativo' : ''}" data-paleta-id="${p.id}" style="background:${p.cor};" title="${p.nome}" aria-label="${p.nome}" aria-pressed="${p.id === atual}"></button>`
+      ).join('')}</div>
+    </div>
+    ${admin ? `<div class="config-secao" id="config-logo-secao">
+      <div class="config-rotulo">Logo do grupo <span class="config-nota">só admin · aparece para todos</span></div>
+      <div class="config-logo-linha">
+        <div class="config-logo-previa" id="config-logo-previa" role="img" aria-label="Logo atual"></div>
+        <div class="config-logo-botoes">
+          <button type="button" class="btn" id="config-logo-trocar">Trocar logo</button>
+          <input type="file" accept="image/*" id="config-logo-arquivo" hidden>
+          <button type="button" class="btn secondary" id="config-logo-padrao">Voltar ao padrão</button>
+        </div>
+      </div>
+      <p class="config-nota">A imagem é recortada em quadrado (pelo centro) e reduzida antes de enviar.</p>
+    </div>` : ''}
+  </div>`;
+  document.body.appendChild(ov);
+  const atualizarPrevia = ()=>{
+    const pv = ov.querySelector('#config-logo-previa');
+    if(!pv) return;
+    const u = SETTINGS.logoUrl;
+    pv.classList.toggle('tem-logo', logoValido(u));
+    pv.style.backgroundImage = logoValido(u) ? 'url("' + u + '")' : '';
+    ov.querySelector('#config-logo-padrao').disabled = !logoValido(u);
+  };
+  atualizarPrevia();
+  ov.addEventListener('click', async (e)=>{
+    if(e.target === ov || e.target.closest('[data-config-fechar]')){ ov.remove(); return; }
+    const cor = e.target.closest('[data-paleta-id]');
+    if(cor){
+      localStorage.setItem('volei-paleta', cor.dataset.paletaId);
+      aplicarPaleta();
+      ov.querySelectorAll('[data-paleta-id]').forEach(b => {
+        const marcado = b === cor;
+        b.classList.toggle('ativo', marcado);
+        b.setAttribute('aria-pressed', String(marcado));
+      });
+      return;
+    }
+    // os estilos de botão do app só valem para <button>: o botão abre o seletor de arquivo escondido
+    if(e.target.closest('#config-logo-trocar')){ ov.querySelector('#config-logo-arquivo').click(); return; }
+    const padrao = e.target.closest('#config-logo-padrao');
+    if(padrao && !padrao.disabled && await enviarLogo({ remover: true })){
+      atualizarPrevia();
+      mostrarToast('O logo voltou ao padrão.', 'sucesso');
+    }
+  });
+  const arquivo = ov.querySelector('#config-logo-arquivo');
+  if(arquivo) arquivo.addEventListener('change', async ()=>{
+    const file = arquivo.files[0];
+    arquivo.value = ''; // deixa escolher o mesmo arquivo de novo
+    if(!file) return;
+    let base64;
+    try{ base64 = await recortarQuadradoBase64(file, 320, 0.85); }
+    catch(err){ mostrarToast('Não foi possível ler essa imagem. Tente outra (JPG ou PNG).', 'erro'); return; }
+    if(await enviarLogo({ base64 })){
+      atualizarPrevia();
+      mostrarToast('Logo atualizado!', 'sucesso');
+    }
+  });
+}
+document.getElementById('config-btn').addEventListener('click', abrirConfiguracoes);
+
 aplicarPaleta();
 
 /* ---------- PWA (instalável na tela inicial) ---------- */
