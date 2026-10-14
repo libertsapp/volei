@@ -126,6 +126,8 @@ create table usuarios (
   criado_em timestamptz not null default now(),
   jogador_id_pendente text,
   ordem int default nextval('seq_ordem_usuarios'),
+  termos_versao text,             -- termos de uso: versão aceita e quando (LGPD); NULL = ainda não aceitou
+  termos_aceitos_em timestamptz,
   primary key (grupo_id, email),
   foreign key (grupo_id, jogador_id) references jogadores(grupo_id, id),
   foreign key (grupo_id, jogador_id_pendente) references jogadores(grupo_id, id)

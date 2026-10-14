@@ -25,7 +25,8 @@ export async function lerUsuarios(repo) {
     perfil: (texto(u.perfil) || 'jogador').trim().toLowerCase(),
     jogadorId: texto(u.jogador_id),
     criadoEm: dataSaoPaulo(u.criado_em),
-    jogadorIdPendente: texto(u.jogador_id_pendente)
+    jogadorIdPendente: texto(u.jogador_id_pendente),
+    termosVersao: texto(u.termos_versao)
   }));
 }
 
@@ -107,7 +108,7 @@ export async function loginGoogle({ repo, relogio, verificarToken, avisar = () =
       perfil: existente.perfil || 'jogador', jogadorId: existente.jogadorId, jogadorIdPendente: existente.jogadorIdPendente,
       // já vinculado OU já com pedido em análise: não repete a sugestão de vínculo
       sugestao: (existente.jogadorId || existente.jogadorIdPendente) ? null : await sugerirJogador(repo, token.nome),
-      primeiroLogin: false, totalUsuarios: usuarios.length,
+      primeiroLogin: false, totalUsuarios: usuarios.length, termosVersao: existente.termosVersao,
       ...(await sessaoOuNada({ repo, relogio, avisar }, existente.email)) // o Google provou quem é: a partir daqui vale a sessão do app
     };
   }
@@ -115,7 +116,7 @@ export async function loginGoogle({ repo, relogio, verificarToken, avisar = () =
   await gravar(repo, relogio, { email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '' });
   return {
     status: 'ok', email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
-    sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1,
+    sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1, termosVersao: '',
     ...(await sessaoOuNada({ repo, relogio, avisar }, token.email))
   };
 }
@@ -135,7 +136,8 @@ export async function bootstrapAdmin({ repo, relogio, config, verificarToken, li
 
 // Organizador recebe a lista SEM o "perfil" de ninguém (defesa em profundidade: nunca sai do backend)
 export async function listarUsuarios({ repo }, perfilDeQuemPediu) {
-  const usuarios = await lerUsuarios(repo);
+  // o aceite dos termos é assunto de cada conta: não vai na lista (nem para o admin)
+  const usuarios = (await lerUsuarios(repo)).map(({ termosVersao, ...u }) => u);
   if (perfilDeQuemPediu === 'admin') return { usuarios };
   return { usuarios: usuarios.map((u) => ({ email: u.email, nome: u.nome, jogadorId: u.jogadorId, criadoEm: u.criadoEm, jogadorIdPendente: u.jogadorIdPendente })) };
 }
@@ -226,13 +228,28 @@ export async function rejeitarVinculo({ repo, relogio }, email) {
   return { status: 'ok' };
 }
 
+// Termos de uso: grava QUAL versão a pessoa aceitou e QUANDO (registro do consentimento, LGPD), só na linha do
+// PRÓPRIO e-mail autenticado. Grava só as colunas do termo — perfil, vínculo e nome ficam como estão; e como o gravar()
+// acima nunca manda essas colunas, nenhum outro salvamento da conta apaga o aceite. A versão vem do app (o texto do
+// termo mora lá); aqui só se confere o formato.
+const VERSAO_TERMOS_VALIDA = /^[A-Za-z0-9._-]{1,20}$/;
+export async function aceitarTermos({ repo, relogio }, auth, versao) {
+  if (!auth.email) return { error: 'Essa ação precisa de login com conta Google (a chave mestra não identifica uma pessoa).' };
+  const v = texto(versao).trim();
+  if (!VERSAO_TERMOS_VALIDA.test(v)) return { error: 'Versão do termo inválida.' };
+  const atual = (await repo.lerUsuarios()).find((x) => normalizarEmail(x.email) === normalizarEmail(auth.email));
+  if (!atual) return { error: 'Usuário não encontrado. Entre de novo com sua conta Google.' };
+  await repo.gravarUsuario({ email: atual.email, termos_versao: v, termos_aceitos_em: relogio().toISOString() });
+  return { status: 'ok', termosVersao: v };
+}
+
 // Ações da própria conta (sessão do app obrigatória; a chave mestra não identifica uma pessoa).
 export async function minhaConta({ repo, relogio }, body) {
   const s = await validarSessao({ repo, relogio }, body.sessao);
   if (!s.ok) return { error: s.erro };
   const u = (await lerUsuarios(repo)).find((x) => x.email === s.email);
   if (!u) return { error: MSG_SESSAO_EXPIRADA };
-  return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, sessaoExpiraEm: s.expiraEm };
+  return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, termosVersao: u.termosVersao, sessaoExpiraEm: s.expiraEm };
 }
 // sair nunca "falha" para quem chama: se a sessão já não existe, o objetivo (não estar logado) já foi atingido
 export async function sair({ repo }, body) {

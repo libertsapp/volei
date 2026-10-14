@@ -73,6 +73,7 @@ function normalizar(x) {
     // sessão do app (2026-09-30) só existe no backend novo: o .gs não tem equivalente
     delete o.sessao;
     delete o.sessaoExpiraEm;
+    delete o.termosVersao; // termos de uso (v18.2): só no backend novo
     if ('email' in o && 'criadoEm' in o && !EMAILS_INICIAIS.has(o.email)) {
       assert.match(String(o.criadoEm), /^\d{4}-\d{2}-\d{2}$/, 'criadoEm de usuário novo deve ser yyyy-MM-dd, veio: ' + o.criadoEm);
       o.criadoEm = '<hoje>';

@@ -5,7 +5,7 @@ import {
 import { autorizar, identificar } from './porteiro.js';
 import {
   loginGoogle, bootstrapAdmin, listarUsuarios, salvarUsuario, removerUsuario,
-  solicitarVinculo, aprovarVinculo, rejeitarVinculo, minhaConta, sair, sairDeTodosOsAparelhos
+  solicitarVinculo, aprovarVinculo, rejeitarVinculo, minhaConta, sair, sairDeTodosOsAparelhos, aceitarTermos
 } from './usuarios.js';
 import { addPlayer, updatePlayer, removePlayer, restorePlayer } from './jogadores.js';
 import { addRound, updateRound, removeRound } from './rodadas.js';
@@ -125,6 +125,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'salvarUsuario': return await salvarUsuario(deps, b.usuario);
           case 'removerUsuario': return await removerUsuario(deps, b.email);
           case 'solicitarVinculo': return await solicitarVinculo(deps, auth, b.jogadorId);
+          case 'aceitarTermos': return await aceitarTermos(deps, auth, b.versao);
           case 'aprovarVinculo': return await aprovarVinculo(deps, b.email, b.jogadorId);
           case 'rejeitarVinculo': return await rejeitarVinculo(deps, b.email);
           case 'uploadPhoto': return await uploadPhoto(deps, auth, b);

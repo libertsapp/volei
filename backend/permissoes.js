@@ -17,6 +17,7 @@ export const PERMISSOES = {
   salvarUsuario:    ['admin'],
   removerUsuario:   ['admin'],
   solicitarVinculo: ['jogador', 'organizador', 'admin'],
+  aceitarTermos:    ['jogador', 'organizador', 'admin'], // termos de uso (v18.2): cada um aceita pela própria conta
   aprovarVinculo:   ['organizador', 'admin'],
   rejeitarVinculo:  ['organizador', 'admin'],
   salvarEstrelasAjustadas: ['organizador', 'admin'],

@@ -31,7 +31,7 @@ await ta('login de conta existente: devolve perfil e vínculo, sem sugestão', a
   assert.match(sessao, /^[A-Za-z0-9_-]{43}$/);
   assert.deepEqual(resto, {
     status: 'ok', email: 'a@exemplo.com', nome: 'A', perfil: 'admin', jogadorId: 'p1', jogadorIdPendente: '',
-    sugestao: null, primeiroLogin: false, totalUsuarios: 3, sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
+    sugestao: null, primeiroLogin: false, totalUsuarios: 3, termosVersao: '', sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
   });
 });
 
@@ -41,7 +41,7 @@ await ta('login de conta nova: cria como jogador no fim da lista, com sugestão 
   assert.match(sessao, /^[A-Za-z0-9_-]{43}$/);
   assert.deepEqual(r, {
     status: 'ok', email: 'n@exemplo.com', nome: 'Carla Souza', perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
-    sugestao: { id: 'p3', nome: 'Carla Souza', motivo: 'exato' }, primeiroLogin: true, totalUsuarios: 4,
+    sugestao: { id: 'p3', nome: 'Carla Souza', motivo: 'exato' }, primeiroLogin: true, totalUsuarios: 4, termosVersao: '',
     sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
   });
   const us = await usuariosNoBanco(deps);
