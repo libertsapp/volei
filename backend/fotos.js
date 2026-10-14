@@ -3,14 +3,14 @@
 // O armazenamento entra por injeção (deps.armazenamento = { enviar, apagar }), como o repositório.
 import { texto } from './mapeadores.js';
 
-const LIMITE_BYTES = 300 * 1024;
+export const LIMITE_BYTES = 300 * 1024;
 // só nomes que NÓS geramos; barra, ponto-ponto e ids antigos do Drive (maiúsculas, "_") não passam
-const CAMINHO_VALIDO = /^[0-9a-z-]+\.jpg$/;
+export const CAMINHO_VALIDO = /^[0-9a-z-]+\.jpg$/;
 
 // o Drive não confere o conteúdo, mas o bucket é PÚBLICO: só JPEG de verdade (magic bytes), não o mimeType que o cliente diz
-const ehJpeg = (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+export const ehJpeg = (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 
-function decodificar(base64) {
+export function decodificar(base64) {
   if (typeof base64 !== 'string' || !base64) return null;
   // recusa antes de decodificar: evita alocar megabytes só para dizer "grande demais"
   if (base64.length > Math.ceil(LIMITE_BYTES / 3) * 4 + 4) return 'grande';
@@ -24,7 +24,7 @@ function decodificar(base64) {
 }
 
 // nome único: carimbo + 8 caracteres aleatórios (criptográficos, nunca Math.random)
-function novoCaminho(agora) {
+export function novoCaminho(agora) {
   const rnd = crypto.getRandomValues(new Uint8Array(4));
   const hex = Array.from(rnd, (n) => n.toString(16).padStart(2, '0')).join('');
   return agora.getTime() + '-' + hex + '.jpg';

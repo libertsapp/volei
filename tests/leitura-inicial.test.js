@@ -27,6 +27,7 @@ function ambiente(respostas) {
     const finNormalizar = f => f || {}; const reconstituirConvidadosDosCheckins = () => {};
     const amiNormalizar = l => l || {}; // amistosos (v17.0): aplicarDados guarda o bloco "liga
     const jogosDoDia = () => [{ numero: 1 }];
+    const aplicarLogo = () => {}; // logo do grupo (v18.3): mexe no cabeçalho, fora do escopo deste teste
     ${bloco}
     return { buscarDadosComNovasTentativas, salvarCopiaDosDados, lerCopiaDosDados, aplicarDados, dados: () => ({ DATA, CHECKINS }), chaveCopia: CHAVE_COPIA_DADOS };`);
   return { ...F(fetch, localStorage, setTimeout), chamadas: () => chamadas, esperas, guardado };

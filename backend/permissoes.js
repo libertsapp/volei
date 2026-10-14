@@ -12,6 +12,7 @@ export const PERMISSOES = {
   restorePlayer:    ['organizador', 'admin'], // só existe no backend novo: o .gs apaga a linha e não tem como restaurar
   removeRound:      ['admin'],
   saveSettings:       ['admin'],
+  salvarLogo:         ['admin'], // logo do grupo (v18.3): só admin troca
   saveCheckinSettings: ['organizador', 'admin'],
   listarUsuarios:   ['organizador', 'admin'],
   salvarUsuario:    ['admin'],

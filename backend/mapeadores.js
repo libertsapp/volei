@@ -81,6 +81,8 @@ export function mapearConfig(linhas) {
     if (chave === 'checkinHorario') s.checkinHorario = texto(valor) || '20:00';
     if (chave === 'checkinMensagemTemplate') s.checkinMensagemTemplate = texto(valor) || CHECKIN_MENSAGEM_PADRAO;
     if (chave === 'contadorAcessos') s.contadorAcessos = Number(valor) || 0;
+    // logo do grupo (v18.3): só aparece quando existe — sem logo a resposta fica idêntica à de antes (o app mostra o padrão)
+    if (chave === 'logoUrl' && texto(valor)) s.logoUrl = texto(valor);
     if (chave === 'checkinJogo2Data') jogo2.data = texto(valor);
     if (chave === 'checkinJogo2Horario') jogo2.horario = texto(valor);
     if (chave === 'checkinJogo2Vagas') jogo2.vagas = Number(valor) || 16;

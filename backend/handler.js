@@ -11,6 +11,7 @@ import { addPlayer, updatePlayer, removePlayer, restorePlayer } from './jogadore
 import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
+import { salvarLogo } from './logo.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin } from './checkins.js';
 import { inscreverPush, enviarNotificacao } from './notificacoes.js';
 import { salvarJogo2, removerJogo2 } from './jogos2.js';
@@ -136,6 +137,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'addRound': return await addRound(deps, b.round);
           case 'updateRound': return await updateRound(deps, b.round);
           case 'removeRound': return await removeRound(deps, b.id);
+          case 'salvarLogo': return await salvarLogo(deps, b);
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
