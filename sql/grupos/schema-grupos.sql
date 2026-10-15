@@ -128,6 +128,7 @@ create table usuarios (
   ordem int default nextval('seq_ordem_usuarios'),
   termos_versao text,             -- termos de uso: versão aceita e quando (LGPD); NULL = ainda não aceitou
   termos_aceitos_em timestamptz,
+  ultimo_acesso timestamptz,      -- último acesso (v18.4), mostrado a organizador/admin na tela Contas
   primary key (grupo_id, email),
   foreign key (grupo_id, jogador_id) references jogadores(grupo_id, id),
   foreign key (grupo_id, jogador_id_pendente) references jogadores(grupo_id, id)

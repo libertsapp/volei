@@ -26,8 +26,26 @@ export async function lerUsuarios(repo) {
     jogadorId: texto(u.jogador_id),
     criadoEm: dataSaoPaulo(u.criado_em),
     jogadorIdPendente: texto(u.jogador_id_pendente),
-    termosVersao: texto(u.termos_versao)
+    termosVersao: texto(u.termos_versao),
+    ultimoAcesso: u.ultimo_acesso ? new Date(u.ultimo_acesso).toISOString() : ''
   }));
+}
+
+// Último acesso (v18.4): login e minhaConta (abrir/voltar ao app) registram, no máximo uma gravação a cada 5 min por
+// conta. Grava só a coluna ultimo_acesso (perfil, vínculo e termos ficam como estão). É informação de apoio: se falhar
+// (banco piscou, coluna ainda não criada), o motivo vai para o log e o login segue normal.
+const ACESSO_A_CADA_MS = 5 * 60 * 1000;
+export async function registrarAcesso({ repo, relogio, avisar = () => {} }, email) {
+  try {
+    const alvo = normalizarEmail(email);
+    const atual = (await repo.lerUsuarios()).find((x) => normalizarEmail(x.email) === alvo);
+    if (!atual) return;
+    const agora = relogio();
+    if (atual.ultimo_acesso && agora.getTime() - new Date(atual.ultimo_acesso).getTime() < ACESSO_A_CADA_MS) return;
+    await repo.gravarUsuario({ email: atual.email, ultimo_acesso: agora.toISOString() });
+  } catch (e) {
+    avisar('último acesso não registrado: ' + (e && e.message ? e.message : e));
+  }
 }
 
 // Mesma regra do upsertUsuario_ do .gs: mexe só em nome, perfil e jogadorId (a data de criação nunca é
@@ -99,6 +117,7 @@ export async function loginGoogle({ repo, relogio, verificarToken, avisar = () =
   const existente = usuarios.find((u) => u.email === token.email);
 
   if (existente) {
+    await registrarAcesso({ repo, relogio, avisar }, existente.email);
     // o nome da conta Google pode ter mudado: mantém a planilha atualizada, sem tocar no perfil
     if (existente.nome !== token.nome && token.nome) {
       await gravar(repo, relogio, { email: existente.email, nome: token.nome, perfil: existente.perfil, jogadorId: existente.jogadorId });
@@ -114,6 +133,7 @@ export async function loginGoogle({ repo, relogio, verificarToken, avisar = () =
   }
 
   await gravar(repo, relogio, { email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '' });
+  await registrarAcesso({ repo, relogio, avisar }, token.email);
   return {
     status: 'ok', email: token.email, nome: token.nome, perfil: 'jogador', jogadorId: '', jogadorIdPendente: '',
     sugestao: await sugerirJogador(repo, token.nome), primeiroLogin: true, totalUsuarios: usuarios.length + 1, termosVersao: '',
@@ -139,7 +159,7 @@ export async function listarUsuarios({ repo }, perfilDeQuemPediu) {
   // o aceite dos termos é assunto de cada conta: não vai na lista (nem para o admin)
   const usuarios = (await lerUsuarios(repo)).map(({ termosVersao, ...u }) => u);
   if (perfilDeQuemPediu === 'admin') return { usuarios };
-  return { usuarios: usuarios.map((u) => ({ email: u.email, nome: u.nome, jogadorId: u.jogadorId, criadoEm: u.criadoEm, jogadorIdPendente: u.jogadorIdPendente })) };
+  return { usuarios: usuarios.map((u) => ({ email: u.email, nome: u.nome, jogadorId: u.jogadorId, criadoEm: u.criadoEm, jogadorIdPendente: u.jogadorIdPendente, ultimoAcesso: u.ultimoAcesso })) };
 }
 
 export async function salvarUsuario({ repo, relogio }, u) {
@@ -244,9 +264,10 @@ export async function aceitarTermos({ repo, relogio }, auth, versao) {
 }
 
 // Ações da própria conta (sessão do app obrigatória; a chave mestra não identifica uma pessoa).
-export async function minhaConta({ repo, relogio }, body) {
+export async function minhaConta({ repo, relogio, avisar }, body) {
   const s = await validarSessao({ repo, relogio }, body.sessao);
   if (!s.ok) return { error: s.erro };
+  await registrarAcesso({ repo, relogio, avisar }, s.email);
   const u = (await lerUsuarios(repo)).find((x) => x.email === s.email);
   if (!u) return { error: MSG_SESSAO_EXPIRADA };
   return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, termosVersao: u.termosVersao, sessaoExpiraEm: s.expiraEm };

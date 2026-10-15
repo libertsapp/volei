@@ -45,7 +45,7 @@ await ta('login de conta nova: cria como jogador no fim da lista, com sugestão 
     sessaoExpiraEm: '2026-12-22T15:00:00.000Z'
   });
   const us = await usuariosNoBanco(deps);
-  assert.deepEqual(us[3], { email: 'n@exemplo.com', nome: 'Carla Souza', perfil: 'jogador', jogador_id: null, criado_em: '2026-09-23T15:00:00.000Z', jogador_id_pendente: null, ordem: 4 });
+  assert.deepEqual(us[3], { email: 'n@exemplo.com', nome: 'Carla Souza', perfil: 'jogador', jogador_id: null, criado_em: '2026-09-23T15:00:00.000Z', jogador_id_pendente: null, ordem: 4, ultimo_acesso: '2026-09-23T15:00:00.000Z' });
 });
 
 await ta('login com token inválido devolve o erro do verificador', async () => {
@@ -81,7 +81,7 @@ await ta('bootstrapAdmin: sem chave mestra configurada, a chave fica desativada'
 await ta('listarUsuarios: admin vê o cargo; organizador recebe a lista SEM perfil; criadoEm só a data', async () => {
   const deps = novo();
   const adm = await listarUsuarios(deps, 'admin');
-  assert.deepEqual(adm.usuarios[0], { email: 'a@exemplo.com', nome: 'A', perfil: 'admin', jogadorId: 'p1', criadoEm: '2026-09-01', jogadorIdPendente: '' });
+  assert.deepEqual(adm.usuarios[0], { email: 'a@exemplo.com', nome: 'A', perfil: 'admin', jogadorId: 'p1', criadoEm: '2026-09-01', jogadorIdPendente: '', ultimoAcesso: '' });
   const org = await listarUsuarios(deps, 'organizador');
   assert.deepEqual(org.usuarios.map((u) => u.email), ['a@exemplo.com', 'b@exemplo.com', 'c@exemplo.com']);
   assert.equal(org.usuarios.some((u) => 'perfil' in u), false);
