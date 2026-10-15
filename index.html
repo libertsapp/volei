@@ -813,7 +813,19 @@
   .vinculo-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
   .vinculo-select{width:100%;margin-bottom:14px;}
 
-  /* tela "Gerenciar usuários" */
+  /* tela "Gerenciar contas" (antes "Usuários"; v18.4) */
+  .icone-google{width:1em;height:1em;vertical-align:-0.15em;}
+  /* o ícone do menu é um item flex (vira bloco): o G ocupa a mesma altura da linha dos emojis de 22px ao lado */
+  .mais-item-icon .icone-google{display:block;width:24px;height:24px;margin:2px 0;}
+  .contas-online{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+  .contas-online-titulo{font-weight:700;margin:0 0 6px;}
+  .contas-online-titulo + .contas-online-titulo, .contas-online-bloco + .contas-online-titulo{margin-top:12px;}
+  .contas-online-qtd{color:var(--muted);font-weight:400;}
+  .contas-online-vazio{color:var(--muted);font-size:13px;}
+  .contas-recentes{list-style:none;margin:0;padding:0;}
+  .contas-recentes li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px;border-bottom:1px dashed var(--line);}
+  .contas-recentes li:last-child{border-bottom:none;}
+  .contas-recentes .contas-quando{color:var(--muted);white-space:nowrap;}
   .usuario-row{
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
     background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;
@@ -1909,7 +1921,7 @@
       <button data-view="historico">Histórico</button>
       <button data-view="amistosos" id="nav-amistosos-btn" style="display:none;">Amistosos 🤝<span class="badge-count" id="nav-amistosos-badge" style="display:none;"></span></button>
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
-      <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Usuários 👤<span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
+      <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Contas <svg class="icone-google" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
       <button data-view="aovivo">Ao Vivo 🔴<span class="badge-count" id="nav-aovivo-badge" style="display:none;"></span></button>
       <button data-view="financeiro" id="nav-financeiro-btn" style="display:none;">Financeiro 💲</button>
@@ -1958,7 +1970,7 @@
         <button class="mais-item" data-view="historico"><span class="mais-item-icon">📜</span>Histórico</button>
         <button class="mais-item" data-view="amistosos" id="mais-amistosos-btn" style="display:none;"><span class="mais-item-icon">🤝</span>Amistosos<span class="badge-count" id="mais-amistosos-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
-        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon">👤</span>Usuários<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
+        <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon"><svg class="icone-google" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg></span>Contas<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
         <button class="mais-item" data-view="aovivo"><span class="mais-item-icon">🔴</span>Ao Vivo<span class="badge-count" id="mais-aovivo-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="financeiro" id="mais-financeiro-btn" style="display:none;"><span class="mais-item-icon">💲</span>Financeiro</button>
@@ -2008,7 +2020,7 @@
         <strong id="rascunho-alerta-texto"></strong>
         <span class="aovivo-alerta-ir">Ver times ›</span>
       </div>
-      <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar usuários">
+      <div id="usuarios-pendentes-alerta" style="display:none;background:#3a2333;border:1px solid var(--ball-yellow);color:var(--chalk);padding:14px 18px;border-radius:10px;margin-bottom:14px;font-size:14px;line-height:1.6;cursor:pointer;" title="Clique para ir em Gerenciar contas">
         🔔 <strong id="usuarios-pendentes-texto"></strong>
       </div>
       <!-- amistosos: um aviso pro organizador (tem algo pra responder) e um pra todos (amistoso marcado) — ver atualizarAvisosAmistosos -->
@@ -2928,7 +2940,7 @@
     </section>
 
     <section id="view-usuarios">
-      <h2 class="section-title">Gerenciar usuários</h2>
+      <h2 class="section-title">Gerenciar contas</h2>
       <p style="color:var(--muted);font-size:13px;margin:-8px 0 16px;">
         Cada linha é uma conta Google que já entrou no app. O <strong>perfil</strong> define o que a pessoa pode fazer;
         o <strong>jogador vinculado</strong> liga a conta ao cadastro dela (foto, histórico). Quem está marcado como
@@ -2948,7 +2960,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4305,6 +4317,9 @@ window.addEventListener('focus', tentarRenovarSeNecessario);
 // renovação preventiva: a cada 45 min pede um token novo em silêncio, pra quem deixa
 // a aba aberta a tarde inteira não travar na hora de salvar a rodada
 setInterval(()=>{ if(AUTH.logado && AUTH.sessao) sincronizarContaSeFazTempo(); else if(AUTH.logado && tokenExpirado(900)) renovarTokenGoogle(); }, 45 * 60 * 1000);
+// "Online agora" da tela Contas (v18.4): com o app NA TELA, reconfere a conta a cada 5 min — é isso que registra o
+// acesso no servidor. Aba no fundo não conta (o navegador nem roda o timer direito) e não gasta requisição.
+setInterval(()=>{ if(document.visibilityState === 'visible' && AUTH.logado && AUTH.sessao) sincronizarContaSeFazTempo(); }, 5 * 60 * 1000);
 
 /* Primeiro login de um e-mail novo: o backend tenta casar o nome da conta Google com
    um jogador já cadastrado e manda um palpite. Quem decide é a pessoa — a gente nunca
@@ -4386,18 +4401,69 @@ async function carregarUsuarios(silencioso){
       body: JSON.stringify({ action:'listarUsuarios', idToken: cred.idToken || '', sessao: cred.sessao || '' })
     });
     const json = await res.json();
-    if(json && json.error){ alert('Não foi possível carregar os usuários: ' + json.error); return null; }
+    if(json && json.error){ alert('Não foi possível carregar as contas: ' + json.error); return null; }
     return json.usuarios || [];
   }catch(e){
-    console.error('Falha ao carregar usuários', e);
-    alert('Não foi possível carregar os usuários. Verifique sua conexão.');
+    console.error('Falha ao carregar as contas', e);
+    alert('Não foi possível carregar as contas. Verifique sua conexão.');
     return null;
   }
 }
 
+// <contas-puro>
+/* Último acesso das contas (v18.4). O servidor registra quando a pessoa logada abre ou volta ao app (no máximo a cada
+   5 min, e a cada 5 min enquanto o app está na tela); só organizador e admin recebem esse dado (tela Contas). */
+const ONLINE_MINUTOS = 10; // "Online agora": acesso nos últimos 10 min (o registro acontece a cada ~5 min)
+const RECENTES_MAX = 10;   // "Últimos online": as 10 contas mais recentes fora do "online agora"
+// dia do calendário em Brasília (-03:00), para "ontem" ser o dia anterior de verdade e não "há 24 h"
+function diaBrasilia(ms){ return Math.floor((ms - 3 * 3600000) / 86400000); }
+function tempoDesde(iso, agoraMs){
+  const t = iso ? Date.parse(iso) : NaN;
+  if(!Number.isFinite(t)) return 'sem registro ainda';
+  const min = Math.floor((agoraMs - t) / 60000);
+  if(min < 1) return 'agora mesmo'; // inclui relógio do aparelho adiantado (acesso "no futuro")
+  if(min < 60) return 'há ' + min + ' min';
+  const dias = diaBrasilia(agoraMs) - diaBrasilia(t);
+  if(dias <= 0) return 'há ' + Math.floor(min / 60) + ' h';
+  if(dias === 1) return 'ontem';
+  if(dias < 30) return 'há ' + dias + ' dias';
+  const d = new Date(t - 3 * 3600000);
+  return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear();
+}
+function resumoOnline(contas, agoraMs){
+  const comAcesso = (contas || []).filter(u => Number.isFinite(Date.parse(u.ultimoAcesso || '')))
+    .sort((a, b) => Date.parse(b.ultimoAcesso) - Date.parse(a.ultimoAcesso));
+  const limite = agoraMs - ONLINE_MINUTOS * 60000;
+  return {
+    online: comAcesso.filter(u => Date.parse(u.ultimoAcesso) >= limite),
+    recentes: comAcesso.filter(u => Date.parse(u.ultimoAcesso) < limite).slice(0, RECENTES_MAX)
+  };
+}
+// </contas-puro>
+
+// nome que aparece no "Online agora": o jogador vinculado à conta; sem vínculo, o nome da conta Google
+function nomeDaConta(u){
+  const p = u.jogadorId ? getPlayer(u.jogadorId) : null;
+  return (p && (p.apelido || p.nome)) || u.nome || u.email;
+}
+function htmlResumoOnline(contas, agoraMs){
+  const { online, recentes } = resumoOnline(contas, agoraMs);
+  const semNinguem = !online.length && !recentes.length;
+  return `<div class="contas-online" role="group" aria-label="Quem esteve online">
+    <p class="contas-online-titulo">🟢 Online agora <span class="contas-online-qtd">(${online.length})</span></p>
+    <div class="contas-online-bloco">${online.length
+      ? escapeHtml(online.map(nomeDaConta).join(' · '))
+      : '<span class="contas-online-vazio">Ninguém no momento.</span>'}</div>
+    <p class="contas-online-titulo">Últimos online</p>
+    ${recentes.length
+      ? `<ul class="contas-recentes">${recentes.map(u => `<li><span>${escapeHtml(nomeDaConta(u))}</span><span class="contas-quando">${escapeHtml(tempoDesde(u.ultimoAcesso, agoraMs))}</span></li>`).join('')}</ul>`
+      : `<span class="contas-online-vazio">${semNinguem ? 'Ainda sem registros: a contagem começou na versão 18.4, cada um aparece quando abrir o app.' : 'Ninguém além de quem está online agora.'}</span>`}
+  </div>`;
+}
+
 async function renderUsuarios(){
   const list = document.getElementById('usuarios-list');
-  list.innerHTML = '<div class="empty">Carregando usuários...</div>';
+  list.innerHTML = '<div class="empty">Carregando contas...</div>';
   const usuarios = await carregarUsuarios();
   if(!usuarios){
     list.innerHTML = '<div class="empty">Sem permissão pra ver esta lista, ou falha ao carregar. Entre como administrador.</div>';
@@ -4411,7 +4477,8 @@ async function renderUsuarios(){
   // organizador vê a lista e aprova/rejeita vínculo, mas nunca vê nem muda o CARGO
   // (perfil) de ninguém — o backend nem manda esse campo pra quem não é admin
   const souAdmin = temPermissao('salvarUsuario');
-  list.innerHTML = usuarios.map(u=>{
+  const agoraMs = Date.now();
+  list.innerHTML = htmlResumoOnline(usuarios, agoraMs) + usuarios.map(u=>{
     const aguardandoAprovacao = !u.jogadorId && !!u.jogadorIdPendente;
     // se tem pedido pendente, o select já vem pré-selecionado nele — "Salvar" sozinho
     // já aprova; ainda assim mostramos os botões explícitos de Aprovar/Rejeitar abaixo
@@ -4426,7 +4493,7 @@ async function renderUsuarios(){
       <div class="usuario-email">
         ${escapeHtml(u.email)} ${pendente && !aguardandoAprovacao ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
         ${aguardandoAprovacao ? `<span class="usuario-pendente-tag">aguardando aprovação: ${escapeHtml(jogadorSolicitado ? jogadorSolicitado.nome : '?')}</span>` : ''}
-        <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(formatDate(u.criadoEm)) : ''}</div>
+        <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(formatDate(u.criadoEm)) : ''} · visto ${escapeHtml(tempoDesde(u.ultimoAcesso, agoraMs))}</div>
       </div>
       ${souAdmin ? `
       <select class="usuario-perfil-select">
@@ -4481,7 +4548,7 @@ async function renderUsuarios(){
   list.querySelectorAll('[data-remover-usuario]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const email = btn.dataset.removerUsuario;
-      if(!confirm('Remover ' + email + ' da lista de usuários? Ela volta a ser tratada como jogador comum se entrar de novo.')) return;
+      if(!confirm('Remover ' + email + ' da lista de contas? Ela volta a ser tratada como jogador comum se entrar de novo.')) return;
       const cred = await requireAuth('removerUsuario');
       if(!cred) return;
       const ok = await postAction('removerUsuario', { email: email }, cred);
