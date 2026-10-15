@@ -14,6 +14,7 @@ function clienteMemoria(tabelas, { falhar } = {}) {
         select() { return q; },
         eq(c, v) { filtros.push((r) => r[c] === v); return q; },
         gte(c, v) { filtros.push((r) => String(r[c]) >= v); return q; },
+        lte(c, v) { filtros.push((r) => String(r[c]) <= v); return q; },
         in(c, vs) { filtros.push((r) => vs.includes(r[c])); return q; },
         limit(n) { limite = n; return q; },
         then(res, rej) {
@@ -72,7 +73,10 @@ function bancos() {
       { grupo_id: 'g2', data: '2026-09-13', rascunho: false },   // há 31 dias: não conta
       { grupo_id: 'g4', data: '2026-10-10', rascunho: false }    // suspenso: nem entra
     ],
-    checkins: [{ grupo_id: 'g3', data: '2026-10-13' }]
+    checkins: [
+      { grupo_id: 'g3', data: '2026-10-13' },
+      { grupo_id: 'g2', data: '2026-10-20' }   // check-in para o jogo da semana que vem: ainda não jogou
+    ]
   });
   const liga = clienteMemoria({ grupos: [
     { id: 'terca', nome: 'Vôlei de Terça', cidade: 'Santa Luzia', uf: 'MG', cor: '#ffd700', logo_url: null, ativo: true },
@@ -80,7 +84,7 @@ function bancos() {
     { id: 'quinta', nome: 'Vôlei de Quinta', ativo: true }   // grupo novo também mora na liga: não pode contar duas vezes
   ] });
   const terca = clienteMemoria({ rodadas: [{ data: '2026-10-07', rascunho: false }], checkins: [] });
-  const meme = clienteMemoria({ rodadas: [{ data: '2026-08-01', rascunho: false }], checkins: [] });
+  const meme = clienteMemoria({ rodadas: [{ data: '2026-08-01', rascunho: false }, { data: '2026-10-21', rascunho: false }], checkins: [{ data: '2026-10-21' }] });   // só jogo futuro
   return { grupos, liga, terca, meme };
 }
 
