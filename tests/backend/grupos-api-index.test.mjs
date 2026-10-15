@@ -30,4 +30,13 @@ t('a pasta gerada pelo preparar-edge (backend/) fica fora do git, como nas outra
   assert.ok(/supabase\/functions\/\*\/backend|supabase\/functions\/grupos-api\/backend/.test(gi), '.gitignore não cobre supabase/functions/grupos-api/backend');
 });
 
+t('grupos-api: vitrine pública lê grupos, liga e os schemas do Terça (public) e do Meme (meme)', () => {
+  const c = semComentarios(ler('supabase/functions/grupos-api/index.ts'));
+  assert.match(c, /criarLeitorVitrine\(/);
+  assert.match(c, /opcoes\('public'\)/);
+  assert.match(c, /opcoes\('meme'\)/);
+  assert.match(c, /clientesLegados: \{ terca: clientePublico, meme: clienteMeme \}/);
+  assert.match(c, /lerVitrine/);
+});
+
 fim();

@@ -136,6 +136,10 @@ Spec: `docs/superpowers/specs/2026-10-12-grupos-independentes-design.md`. Qualqu
 `HOSTS_MODO_GRUPO`; fora dele tudo é o Terça de sempre (teste `tests/grupo-puro.test.js`). Teste local:
 `npm run servidor-grupos` (memória, login `dev:<email>`). Publicação: `docs/superpowers/grupos-deploy.md`.
 
+Vitrine pública: `GET grupos-api?lista=grupos` (`backend/vitrine-grupos.js`), usada por memberstars.com. Só nome,
+cidade/UF, cor, logo, `desde` e `jogouNoMes`, mais os totais; 5 min em memória. `GRUPOS_ORIGENS_PERMITIDAS` inclui
+`https://memberstars.com` (o primeiro item continua `https://volei.memberstars.com`, usado pelo web push).
+
 ## Erros já vividos neste projeto (não repetir)
 
 - **Cache de GET no Apps Script**: nunca confiar em `fetch()` simples pra

@@ -16,7 +16,7 @@ const SUSPENSO = { error: 'Grupo indisponível.', codigo: 'grupo_suspenso' };
 
 export function criarGruposApi({
   cadastro, criarRepoDoGrupo, armazenamentoBase, repoLiga, verificarToken, relogio = () => new Date(),
-  enviarPush, avisar = () => {}, registrar = () => {}, ocultarErrosInternos = false, cacheMs = 60000
+  enviarPush, avisar = () => {}, registrar = () => {}, ocultarErrosInternos = false, cacheMs = 60000, lerVitrine = null
 }) {
   // cache curto só de grupos ACHADOS (nunca de "não existe"): um grupo recém-criado responde na hora
   const cache = new Map();
@@ -37,6 +37,18 @@ export function criarGruposApi({
   }
 
   const publico = (g) => ({ apelido: g.apelido, nome: g.nome, cidade: g.cidade, uf: g.uf, cor: g.cor_destaque, logoUrl: g.logo_url || '', plano: g.plano });
+
+  // vitrine pública (memberstars.com, "Grupos em quadra"): 5 minutos em memória; falha não fica guardada
+  const VITRINE_MS = 5 * 60 * 1000;
+  let vitrineGuardada = null;
+  async function vitrine() {
+    if (!lerVitrine) return { error: 'Lista de grupos indisponível.' };
+    const agora = relogio().getTime();
+    if (vitrineGuardada && vitrineGuardada.ate > agora) return vitrineGuardada.dados;
+    const dados = await lerVitrine();
+    vitrineGuardada = { dados, ate: agora + VITRINE_MS };
+    return dados;
+  }
 
   // um handler por requisição: barato (só monta objetos) e sem estado compartilhado entre grupos
   const handlerDo = (g) => criarHandler({
@@ -105,7 +117,9 @@ export function criarGruposApi({
   return {
     async get(contexto = {}) {
       try {
-        const r = await resolver(contexto.consulta && contexto.consulta.g);
+        const consulta = contexto.consulta || {};
+        if (consulta.lista === 'grupos') return await vitrine();
+        const r = await resolver(consulta.g);
         if (r.erro) return r.erro;
         const dados = await handlerDo(r.grupo).get();
         if (dados.error) return dados;

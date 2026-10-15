@@ -150,4 +150,39 @@ await ta('recusa de apelido vem sempre com código (validação JS e verificarAp
   assert.deepEqual(v, { status: 'ok', disponivel: false, motivo: 'Esse endereço é reservado. Escolha outro.', codigo: 'apelido_reservado' });
 });
 
+await ta('GET ?lista=grupos: devolve a vitrine e guarda 5 minutos; falha não fica guardada', async () => {
+  let agora = new Date('2026-10-14T15:00:00.000Z');
+  let leituras = 0, quebrar = false;
+  const vitrine = { cadastrados: 2, jogaramNoMes: 1, grupos: [] };
+  const repoLiga = criarRepoLigaMemoria({ grupos: [] });
+  const cadastro = criarCadastroMemoria({ repoLiga });
+  const api = criarGruposApi({
+    cadastro, repoLiga, verificarToken, criarRepoDoGrupo: (id) => cadastro.repoDoGrupo(id), relogio: () => agora,
+    lerVitrine: async () => { leituras++; if (quebrar) throw new Error('banco fora'); return vitrine; },
+    ocultarErrosInternos: true
+  });
+  assert.deepEqual(await api.get({ consulta: { lista: 'grupos' } }), vitrine);
+  await api.get({ consulta: { lista: 'grupos' } });
+  assert.equal(leituras, 1, 'segunda chamada sai do cache');
+  agora = new Date(agora.getTime() + 5 * 60 * 1000 + 1);
+  quebrar = true;
+  const r = await api.get({ consulta: { lista: 'grupos' } });
+  assert.ok(r.error, 'falha vira { error }');
+  assert.ok(!String(r.error).includes('banco fora'), 'texto interno não vaza');
+  quebrar = false;
+  assert.deepEqual(await api.get({ consulta: { lista: 'grupos' } }), vitrine, 'depois da falha tenta de novo');
+  assert.equal(leituras, 3);
+});
+
+await ta('GET ?lista=grupos sem leitor configurado: { error }, sem quebrar', async () => {
+  const { api } = mundo();
+  const r = await api.get({ consulta: { lista: 'grupos' } });
+  assert.ok(r.error);
+});
+
+await ta('GET ?g= continua igual com a vitrine ligada', async () => {
+  const { api } = mundo();
+  assert.equal((await api.get({ consulta: { g: 'naoexiste' } })).codigo, 'grupo_inexistente');
+});
+
 fim();
