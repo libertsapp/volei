@@ -10,6 +10,7 @@ import { criarCadastroSupabase } from './backend/cadastro-grupos.js';
 import { criarRepoLigaSupabase } from './backend/repo-liga-supabase.js';
 import { criarArmazenamentoSupabase } from './backend/armazenamento-supabase.js';
 import { criarVerificadorGoogle } from './backend/auth.js';
+import { criarLeitorVitrine } from './backend/vitrine-grupos.js';
 
 const NOMES = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_CLIENT_ID', 'GRUPOS_ORIGENS_PERMITIDAS'];
 const env = (nome: string): string => (Deno.env.get(nome) ?? '').trim();
@@ -26,6 +27,9 @@ if (faltando.length) {
   const opcoes = (schema: string) => ({ auth: { persistSession: false, autoRefreshToken: false }, db: { schema } });
   const clienteGrupos = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), opcoes('grupos'));
   const clienteLiga = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), opcoes('liga'));
+  // vitrine pública: os grupos antigos têm schema próprio (Terça no public, Meme no meme)
+  const clientePublico = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), opcoes('public'));
+  const clienteMeme = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), opcoes('meme'));
   const registrar = (erro: unknown) => console.error('erro inesperado:', erro instanceof Error ? erro.message : 'desconhecido');
   // notificações push: opcionais (mesmas chaves VAPID do Terça e do Meme); sem elas o resto funciona normal
   const vapidPub = env('VAPID_PUBLIC_KEY'), vapidPriv = env('VAPID_PRIVATE_KEY');
@@ -43,7 +47,8 @@ if (faltando.length) {
     enviarPush,
     avisar: (...a: unknown[]) => console.error(...a),
     ocultarErrosInternos: true, // cliente anônimo nunca vê texto de banco
-    registrar
+    registrar,
+    lerVitrine: criarLeitorVitrine({ clienteGrupos, clienteLiga, clientesLegados: { terca: clientePublico, meme: clienteMeme } })
   });
   Deno.serve(criarEdge({ handler: api, origensPermitidas: env('GRUPOS_ORIGENS_PERMITIDAS').split(','), registrar }));
 }
