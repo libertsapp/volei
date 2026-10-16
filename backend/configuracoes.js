@@ -8,8 +8,12 @@
 // de data, leva o 2º jogo junto") — corrigida na revisão final: antes disso, trocar a data deixava o 2º jogo preso
 // na data antiga, sumindo em silêncio da tela.
 import { texto, CHECKIN_MENSAGEM_PADRAO, mapearConfig } from './mapeadores.js';
+import { dentroPorJogo, avisarQuemEntrouNaLista, avisarCheckinAberto } from './avisos-push.js';
 
-export async function saveSettings({ repo }, settings) {
+// avisos por push (v18.7): abrir o check-in avisa todo mundo (uma vez por data); aumentar as vagas do dia já aberto
+// avisa quem saiu da reserva. Ver backend/avisos-push.js
+export async function saveSettings(deps, settings) {
+  const { repo } = deps;
   const s = settings || {};
   const horario = String(s.checkinHorario || '20:00');
   const dataAberta = texto(s.checkinDataAberta);
@@ -31,6 +35,11 @@ export async function saveSettings({ repo }, settings) {
       atual.checkinJogo2 && texto(atual.checkinJogo2.data) === atual.checkinDataAberta) {
     linhas.push({ chave: 'checkinJogo2Data', valor: dataAberta });
   }
+  const vagasNovas = Number(s.checkinVagas || 16);
+  const ganhouVagas = dataAberta && atual.checkinDataAberta === dataAberta && vagasNovas > atual.checkinVagas;
+  const antes = ganhouVagas ? dentroPorJogo(await repo.lerTudo(), dataAberta) : null;
   await repo.gravarConfig(linhas);
+  if (antes) await avisarQuemEntrouNaLista(deps, dataAberta, antes);
+  await avisarCheckinAberto(deps);
   return { status: 'ok' };
 }

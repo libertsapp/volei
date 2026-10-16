@@ -161,6 +161,7 @@ create table push_inscricoes (
   p256dh text not null,
   auth text not null,
   criado_em timestamptz,
+  email text null, -- conta logada no aparelho (v18.7): aviso pessoal "você entrou na lista"
   primary key (grupo_id, id),
   unique (grupo_id, endpoint)
 );

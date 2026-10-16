@@ -40,6 +40,7 @@ function pagina({ auth = {}, guardado = {}, respostas = [], senhaCacheada = '', 
     const fetch = async (u, o) => { posts.push(JSON.parse(o.body)); const r = respostas.shift(); if (r === 'rede') throw new TypeError('Failed to fetch'); return { json: async () => r || { status: 'ok' } }; };
     const mostrarToast = (m) => toasts.push(m); const alert = (m) => espioes.alert.push(m); const confirm = () => true;
     const atualizarStatusAuth = () => {}; const aplicarPermissoesUI = () => {}; const renderAll = () => {};
+    const sincronizarPushComConta = () => {}; // v18.7: reenvia a inscrição de push sem a conta (testada à parte)
     const updateAdminStatusBtn = () => {}; const clearCachedPassword = () => {}; const setCachedPassword = () => {};
     const getCachedPassword = () => ctx.senhaCacheada; const podePerfil = ctx.podePerfil;
     const garantirTokenFresco = async () => { espioes.garantir++; return ctx.garantir(); };

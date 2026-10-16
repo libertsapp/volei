@@ -282,7 +282,8 @@ await ta('ganchos nunca quebram o check-in: erro no gancho de entrada e no de sa
   d2.repo.lerTudo = async () => { if (++chamadas > 1) throw new Error('lerTudo: caiu'); return original(); }; // a 1ª leitura (do removeCheckin) passa; a do gancho falha
   assert.deepEqual(await removeCheckin(d2, 'c1'), { status: 'ok' });
   assert.equal((await mapearCheckins(await (async () => { d2.repo.lerTudo = original; return (await original()).checkins; })())).some((c) => c.id === 'c1'), false);
-  assert.deepEqual(d2.avisos, ['aposRemoverCheckin: lerTudo: caiu']);
+  // o aviso de push "entrou na lista" (v18.7) também relê o banco depois de apagar — e também engole o erro
+  assert.deepEqual(d2.avisos, ['aposRemoverCheckin: lerTudo: caiu', 'avisarQuemEntrouNaLista: lerTudo: caiu']);
   // sem deps.avisar e sem relogio: o gancho engole calado, o check-in continua ok
   const d3 = { repo: criarRepoMemoria(fixture) };
   assert.deepEqual(await addCheckin(d3, { id: 'z', data: '2026-09-22', jogadorId: 'p-novo' }), { status: 'ok' });

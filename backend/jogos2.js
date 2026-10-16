@@ -4,6 +4,7 @@
 import { texto, mapearConfig } from './mapeadores.js';
 import { removeCheckin } from './checkins.js';
 import { aplicarCreditosDoDia } from './financeiro.js';
+import { dentroPorJogo, avisarQuemEntrouNaLista } from './avisos-push.js';
 
 export function dataValida(s) {
   const v = String(s || '');
@@ -24,12 +25,16 @@ export async function salvarJogo2(deps, jogo2, auth) {
   const cfg = mapearConfig(await repo.lerConfig());
   if (cfg.checkinDataAberta !== texto(jogo2.data)) return { error: 'Abra o check-in para essa data antes de adicionar o 2º jogo.' };
   if (texto(jogo2.horario) === cfg.checkinHorario) return { error: 'Os dois jogos não podem ter o mesmo horário.' };
+  // só quando o 2º jogo JÁ existia e ganhou vagas: quem estava na reserva dele pode ter entrado
+  const ganhouVagas = cfg.checkinJogo2 && texto(cfg.checkinJogo2.data) === texto(jogo2.data) && vagas > cfg.checkinJogo2.vagas;
+  const antes = ganhouVagas ? dentroPorJogo(await repo.lerTudo(), texto(jogo2.data)) : null;
   await repo.gravarConfig([
     { chave: 'checkinJogo2Data', valor: texto(jogo2.data) },
     { chave: 'checkinJogo2Horario', valor: texto(jogo2.horario) },
     { chave: 'checkinJogo2Vagas', valor: String(vagas) },
     { chave: 'checkinJogo2Travado', valor: jogo2.travado ? 'TRUE' : 'FALSE' }
   ]);
+  if (antes) await avisarQuemEntrouNaLista(deps, texto(jogo2.data), antes);
   return { status: 'ok' };
 }
 
@@ -67,7 +72,7 @@ export async function removerJogo2(deps, { data, destino, manter } = {}, auth) {
     // "desconfirmar": passa pelo removeCheckin de verdade (não pelo repo direto) — é ele quem aciona o gancho
     // financeiro (devolve crédito de quem tinha pago por crédito, etc.), igual ao "Desconfirmar todos" do check-in
     for (const c of t.checkins.filter((c) => c.data === texto(data) && (Number(c.jogo) || 1) === jogoRemovido)) {
-      await removeCheckin(deps, texto(c.id));
+      await removeCheckin(deps, texto(c.id), { semAviso: true }); // em lote: ninguém "entra na lista" de um jogo que está sumindo
     }
   }
   if (manter === 2) {

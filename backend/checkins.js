@@ -6,6 +6,7 @@
 import { texto } from './mapeadores.js';
 import { aposAdicionarCheckin, aposRemoverCheckin } from './financeiro.js';
 import { mapearConfig } from './mapeadores.js';
+import { dentroPorJogo, avisarQuemEntrouNaLista } from './avisos-push.js';
 
 // nome de check-in maior que isto não é nome: corta (o app usa nomes curtos) para um login qualquer do Google não encher o banco
 const MAX_NOME = 120;
@@ -59,12 +60,18 @@ export async function addCheckin(deps, c) {
   return { status: 'ok' };
 }
 
-export async function removeCheckin(deps, id) {
+// semAviso: tirada em lote ("Desconfirmar todos", remover o 2º jogo desconfirmando) — cada saída "abriria vaga" para
+// alguém da reserva que vai ser tirado logo em seguida, então ninguém recebe o push "você entrou na lista"
+export async function removeCheckin(deps, id, { semAviso = false } = {}) {
   const { repo } = deps;
   // data e jogador são lidos ANTES de apagar (o gancho precisa deles), como no .gs
-  const alvo = (await repo.lerTudo()).checkins.find((c) => c.id === texto(id));
+  const tudo = await repo.lerTudo();
+  const alvo = tudo.checkins.find((c) => c.id === texto(id));
   if (!(await repo.removerCheckin(texto(id)))) return { error: 'Check-in não encontrado (pode já ter sido desmarcado).' };
-  if (alvo) await aposRemoverCheckin(deps, texto(alvo.data), texto(alvo.jogador_id)); // devolve crédito de quem saiu e sobe a espera
+  if (alvo) {
+    await aposRemoverCheckin(deps, texto(alvo.data), texto(alvo.jogador_id)); // devolve crédito de quem saiu e sobe a espera
+    if (!semAviso) await avisarQuemEntrouNaLista(deps, texto(alvo.data), dentroPorJogo(tudo, texto(alvo.data)));
+  }
   return { status: 'ok' };
 }
 
@@ -98,10 +105,12 @@ export async function moverCheckin(deps, { id, paraJogo } = {}, auth) {
   // ordem importa: move de verdade PRIMEIRO, só então chama os ganchos — depois do UPDATE a chave de origem já
   // não tem mais a pessoa, então aposRemoverCheckin vê o estado certo (ver nota no plano sobre a 1ª tentativa, que
   // chamava o gancho antes e ficava com a leitura velha)
+  const antes = dentroPorJogo(tudo, data);
   const moveu = await repo.moverCheckinDeJogo(texto(id), destino);
   if (moveu) {
     await aposRemoverCheckin(deps, data, jogadorId); // chave de origem já sem a pessoa: devolve crédito/sinaliza se for o caso
     await aposAdicionarCheckin(deps, data); // crédito disponível no destino, se houver
+    await avisarQuemEntrouNaLista(deps, data, antes, [jogadorId]); // a vaga que ela deixou na origem
   }
   return { status: 'ok', moveu };
 }

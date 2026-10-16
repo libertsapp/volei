@@ -347,6 +347,14 @@
 
   .player-list{display:flex;flex-direction:column;gap:8px;}
   .removidos-aviso{color:var(--muted);font-size:12px;margin:0 0 10px;}
+  /* 🎁 Retrospectiva (v18.7): chamada no Meu Perfil + janela com a imagem gerada */
+  .retro-chamada{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:12px 14px;border-radius:14px;
+    border:1px solid var(--ball-yellow);background:linear-gradient(135deg, rgba(255,215,0,0.12), rgba(0,243,255,0.08));}
+  .retro-chamada .retro-texto{flex:1;min-width:0;font-size:12px;color:var(--chalk-dim);line-height:1.4;}
+  .retro-chamada .retro-texto strong{display:block;font-family:'Anton',sans-serif;font-size:16px;text-transform:uppercase;color:var(--chalk);letter-spacing:.5px;}
+  .retro-card{max-width:420px;text-align:center;}
+  .retro-imagem{width:100%;height:auto;border-radius:12px;display:block;margin:0 auto 14px;aspect-ratio:9/16;background:var(--court-navy);}
+  .retro-acoes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
   .removido-linha{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
   .removido-linha .removido-info{flex:1;min-width:0;}
   .removido-linha .removido-nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -2265,6 +2273,14 @@
           <button class="btn" id="add-player-btn">Adicionar</button>
         </div>
       </details>
+      <!-- 👻 Sumidos (v18.7): só organizador/admin (renderSumidos); começa fechado -->
+      <details class="dash-accordion" id="sumidos-sec" style="display:none;margin-bottom:14px;">
+        <summary id="sumidos-titulo">👻 Sumidos</summary>
+        <div>
+          <p class="removidos-aviso">Jogavam com frequência e faltaram as últimas 3 datas de jogo ou mais (até 6 meses). Só organizadores e admins veem esta lista — “Chamar” abre o WhatsApp com um convite pronto.</p>
+          <div id="sumidos-lista"></div>
+        </div>
+      </details>
       <div class="player-list" id="player-list"></div>
       <!-- jogadores removidos que têm jogos: começa fechado; visível (mesmo vazio) só pra quem pode reativar (renderJogadoresRemovidos) -->
       <details class="dash-accordion" id="removidos-sec" style="display:none;margin-top:14px;">
@@ -2522,6 +2538,15 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>16/10/2026 — v18.7: Avisos automáticos, Sumidos e Retrospectiva do ano</summary>
+          <div>
+            <p style="line-height:1.6;"><strong>🔔 Avisos automáticos no celular</strong> (para quem ativou as notificações): quando o check-in abre, todo mundo recebe <strong>"Check-in aberto!"</strong>. E quem está na <strong>reserva</strong> recebe <strong>"Você entrou na lista!"</strong> assim que abre uma vaga pra ele (alguém desistiu ou as vagas aumentaram). O aviso pessoal precisa da conta Google logada no aparelho e vinculada ao jogador.</p>
+            <p style="line-height:1.6;"><strong>👻 Sumidos</strong> (só organizadores e admins, na aba Jogadores): quem jogava com frequência e faltou as últimas 3 datas de jogo, com um botão <strong>💬 Chamar</strong> que abre o WhatsApp com um convite pronto.</p>
+            <p style="line-height:1.6;"><strong>🎁 Retrospectiva do ano</strong> no <strong>Meu Perfil</strong>: seus números do ano (rodadas, títulos, aproveitamento, posição no ranking, parceiro de quadra, dupla de ouro, maior sequência e mês mais animado) numa imagem pronta pra compartilhar ou baixar.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>05/10/2026 — v15.1: Convidado recolhido e abas de jogo reposicionadas</summary>
           <div>
             <p style="line-height:1.6;">No <strong>Check-in</strong>, o bloco <strong>➕ Adicionar convidado</strong> agora fica recolhido por padrão (toque pra abrir), no mesmo formato já usado no Sorteio/Nova rodada. As <strong>abas de jogo</strong> (quando há 2) passam a ficar logo abaixo dele, em vez de logo abaixo do aviso de check-in aberto.</p>
@@ -2960,7 +2985,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.6 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.7 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4008,6 +4033,7 @@ async function loginComGoogle(idToken){
     salvarSessaoAuth();
     if(loginSemSessao(json)) avisarSessaoNaoCriada();
     atualizarStatusAuth();
+    sincronizarPushComConta(); // o aparelho passa a receber o aviso pessoal desta conta
     aplicarPermissoesUI();
     renderCheckinStatus();
     renderCheckinList();
@@ -4261,6 +4287,7 @@ function sairDaConta(silencioso){
   }
   atualizarStatusAuth();
   aplicarPermissoesUI();
+  sincronizarPushComConta(); // tira a conta da inscrição: o aparelho para de receber o aviso pessoal dela
   if(!silencioso) renderAll();
 }
 
@@ -4633,6 +4660,164 @@ document.getElementById('usuarios-pendentes-alerta').addEventListener('click', (
 document.getElementById('usuarios-reload-btn').addEventListener('click', renderUsuarios);
 
 /* ---------- MEU PERFIL (pessoal — qualquer perfil logado e vinculado) ---------- */
+/* ---------- 🎁 Retrospectiva do ano (v18.7) ----------
+   Desenha num <canvas> 1080x1920 (formato de status/story) os números de computeRetrospectiva e mostra a imagem numa
+   janela com "Compartilhar" (menu do aparelho, com o arquivo) e "Baixar". Cores FIXAS do tema escuro (a imagem é a
+   mesma em qualquer tema do app); o dourado vira a cor do grupo, quando o grupo tem uma. A foto só entra se o servidor
+   dela permitir (crossOrigin): sem isso o canvas ficaria "contaminado" e não daria pra exportar — aí vai a inicial. */
+const RETRO_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function retroCarregarImagem(url){
+  return new Promise((resolve)=>{
+    if(!url) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=> resolve(img);
+    img.onerror = ()=> resolve(null);
+    setTimeout(()=> resolve(null), 5000); // foto lenta não segura a imagem
+    img.src = url;
+  });
+}
+// escreve centralizado, diminuindo a fonte até caber na largura
+function retroTexto(ctx, texto, x, y, maxLarg, tamanho, fonte){
+  let t = tamanho;
+  do { ctx.font = fonte.replace('{t}', t + 'px'); t -= 2; } while(ctx.measureText(texto).width > maxLarg && t > 12);
+  ctx.fillText(texto, x, y);
+}
+async function desenharRetrospectiva(player, r){
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const OURO = GRUPO_ATUAL && /^#[0-9a-f]{6}$/i.test(GRUPO_ATUAL.cor || '') ? GRUPO_ATUAL.cor : '#ffd700';
+  const NEON = '#00f3ff', GIZ = '#f4f1e6', GIZ2 = '#b9c0d6', APAGADO = '#7c88ac';
+  try{
+    await Promise.all(["900 40px Orbitron", "40px Anton", "600 40px 'Work Sans'", "40px 'Space Mono'"].map(f=> document.fonts.load(f)));
+  }catch(e){ /* sem as fontes, o navegador usa a padrão */ }
+  const foto = await retroCarregarImagem(player.foto);
+
+  // fundo: quadra à noite (gradiente + brilho atrás da foto + linhas da quadra bem apagadas)
+  const fundo = ctx.createLinearGradient(0, 0, 0, H);
+  fundo.addColorStop(0, '#16264a'); fundo.addColorStop(1, '#050a18');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
+  const brilho = ctx.createRadialGradient(W/2, 590, 40, W/2, 590, 520);
+  brilho.addColorStop(0, 'rgba(0,243,255,0.28)'); brilho.addColorStop(1, 'rgba(0,243,255,0)');
+  ctx.fillStyle = brilho; ctx.fillRect(0, 0, W, 1100);
+  ctx.strokeStyle = 'rgba(244,241,230,0.06)'; ctx.lineWidth = 6;
+  ctx.strokeRect(60, 60, W-120, H-120);
+  ctx.beginPath(); ctx.moveTo(60, 1440); ctx.lineTo(W-60, 1440); ctx.stroke();
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = NEON;
+  retroTexto(ctx, 'RETROSPECTIVA', W/2, 170, 900, 60, "900 {t} Orbitron, sans-serif");
+  ctx.fillStyle = OURO;
+  retroTexto(ctx, r.ano, W/2, 320, 900, 150, "{t} Anton, sans-serif");
+  ctx.fillStyle = GIZ2;
+  retroTexto(ctx, nomeDoApp(), W/2, 380, 900, 38, "600 {t} 'Work Sans', sans-serif");
+
+  // avatar: foto recortada em círculo (centro do quadrado) ou a inicial
+  const cx = W/2, cy = 590, raio = 150;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI*2); ctx.closePath();
+  ctx.fillStyle = '#101b33'; ctx.fill();
+  if(foto){
+    ctx.clip();
+    const lado = Math.min(foto.width, foto.height);
+    ctx.drawImage(foto, (foto.width-lado)/2, (foto.height-lado)/2, lado, lado, cx-raio, cy-raio, raio*2, raio*2);
+  } else {
+    ctx.fillStyle = OURO; ctx.textBaseline = 'middle';
+    ctx.font = "170px Anton, sans-serif";
+    ctx.fillText((player.apelido || player.nome || '?').charAt(0).toUpperCase(), cx, cy + 8);
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.restore();
+  ctx.lineWidth = 12; ctx.strokeStyle = OURO;
+  ctx.beginPath(); ctx.arc(cx, cy, raio + 8, 0, Math.PI*2); ctx.stroke();
+
+  ctx.fillStyle = GIZ;
+  retroTexto(ctx, String(player.apelido || player.nome || '').toUpperCase(), W/2, 860, 940, 100, "{t} Anton, sans-serif");
+
+  // os 4 números grandes
+  const caixas = [
+    [r.jogos, r.jogos === 1 ? 'rodada jogada' : 'rodadas jogadas'],
+    [r.titulos, r.titulos === 1 ? 'vez campeão' : 'vezes campeão'],
+    [r.pct + '%', 'de aproveitamento'],
+    [r.posicao + 'º', 'no ranking (de ' + r.noRanking + ')']
+  ];
+  caixas.forEach(([num, legenda], i)=>{
+    const x = i % 2 === 0 ? 80 : 560, y = 920 + Math.floor(i / 2) * 250;
+    ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.strokeStyle = 'rgba(0,243,255,0.25)'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(x, y, 440, 220, 28); else ctx.rect(x, y, 440, 220);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = OURO;
+    retroTexto(ctx, String(num), x + 220, y + 130, 400, 120, "{t} Anton, sans-serif");
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, legenda, x + 220, y + 188, 400, 34, "600 {t} 'Work Sans', sans-serif");
+  });
+
+  // as frases do ano (até 5), todas no MESMO tamanho (o que couber na mais longa); nome curto = apelido ou 1º nome
+  const nomeDe = (id)=>{ const p = getPlayer(id); return p ? (p.apelido || String(p.nome || '?').split(' ')[0]) : '?'; };
+  const frases = [];
+  const pf = r.parceiroFrequente, dz = r.duplaDeOuro;
+  if(pf && dz && dz.id === pf.id){
+    frases.push('🤝 Parceiro de quadra: ' + nomeDe(pf.id) + ' (' + pf.juntos + '× juntos, ' + pf.pct + '% de títulos)');
+  } else {
+    if(pf) frases.push('🤝 Parceiro de quadra: ' + nomeDe(pf.id) + ' (' + pf.juntos + '× juntos)');
+    if(dz) frases.push('🏆 Dupla de ouro: ' + nomeDe(dz.id) + ' (' + dz.pct + '% de títulos em ' + dz.juntos + ')');
+  }
+  frases.push('📅 Presença: ' + r.datas + ' de ' + r.datasDoGrupo + ' datas (' + r.presencaPct + '%)');
+  if(r.maiorSequencia > 1) frases.push('🔥 Maior sequência: ' + r.maiorSequencia + ' datas seguidas');
+  if(r.mesMaisAtivo.rodadas > 0) frases.push('🗓️ Mês mais animado: ' + RETRO_MESES[r.mesMaisAtivo.mes] + ' (' + r.mesMaisAtivo.rodadas + ')');
+  ctx.fillStyle = GIZ;
+  let tamFrase = 40;
+  ctx.font = "600 40px 'Work Sans', sans-serif";
+  const maisLarga = Math.max(...frases.map(f=> ctx.measureText(f).width));
+  if(maisLarga > 920) tamFrase = Math.max(24, Math.floor(40 * 920 / maisLarga));
+  ctx.font = "600 " + tamFrase + "px 'Work Sans', sans-serif";
+  frases.slice(0, 5).forEach((f, i)=> ctx.fillText(f, W/2, 1530 + i * 66));
+
+  ctx.fillStyle = APAGADO;
+  retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1850, 900, 30, "{t} 'Space Mono', monospace");
+  return canvas;
+}
+async function abrirRetrospectiva(player, r){
+  mostrarCarregando('Montando sua retrospectiva...');
+  let canvas;
+  try{ canvas = await desenharRetrospectiva(player, r); }
+  catch(e){ console.error('Falha ao montar a retrospectiva', e); mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  finally{ esconderCarregando(); }
+  const blob = await new Promise((res)=> canvas.toBlob(res, 'image/png'));
+  if(!blob){ mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  const nomeArquivo = 'retrospectiva-' + r.ano + '.png';
+  const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+  const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card retro-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <img class="retro-imagem" src="${url}" alt="Retrospectiva ${escapeHtml(r.ano)} de ${escapeHtml(player.apelido || player.nome)}">
+      <div class="retro-acoes">
+        ${podeCompartilhar ? '<button type="button" class="btn" data-acao="compartilhar">📤 Compartilhar</button>' : ''}
+        <button type="button" class="btn ${podeCompartilhar ? 'secondary' : ''}" data-acao="baixar">⬇️ Baixar imagem</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = ()=>{ overlay.remove(); URL.revokeObjectURL(url); };
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
+    if(e.target.closest('[data-acao="compartilhar"]')){
+      navigator.share({ files: [arquivo], text: 'Minha retrospectiva ' + r.ano + ' no vôlei 🏐 ' + linkDoApp(CTX_GRUPO) }).catch(()=>{}); // cancelado: ignora
+    }
+    if(e.target.closest('[data-acao="baixar"]')){
+      const a = document.createElement('a');
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+}
+
 async function renderMeuPerfil(){
   const container = document.getElementById('meuperfil-content');
   if(!AUTH.logado){
@@ -4685,6 +4870,10 @@ async function renderMeuPerfil(){
   const diferencaMedia = mediaGrupo!==null ? (stats.pct - mediaGrupo) : null;
   const radarCtx = computeRadarContexto();
   const radarDoJogador = radarCtx.porJogador[AUTH.jogadorId] || null;
+  // retrospectiva do ano corrente; no começo do ano (ainda sem rodada), a do ano que acabou
+  const anoRetro = new Date().getFullYear();
+  const retro = computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro)
+    || computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro - 1);
   const parceiroHtml = (par, rotulo)=>{
     if(!par) return '';
     const pj = getPlayer(par.id);
@@ -4701,6 +4890,12 @@ async function renderMeuPerfil(){
     <div class="usuario-sub" style="margin:-6px 0 6px;">${escapeHtml(AUTH.email)}</div>
     ${AUTH.sessaoExpiraEm ? `<div class="usuario-sub" style="margin:0 0 8px;">${escapeHtml(textoValidadeSessao(AUTH.sessaoExpiraEm))}</div>` : ''}
     <button class="btn secondary" id="meuperfil-conta-btn" style="margin-bottom:14px;">Gerenciar conta</button>
+
+    ${retro ? `
+      <div class="retro-chamada">
+        <div class="retro-texto"><strong>🎁 Sua retrospectiva ${retro.ano}</strong>Seus números do ano numa imagem pra mandar no grupo.</div>
+        <button class="btn" id="meuperfil-retro-btn">Ver</button>
+      </div>` : ''}
 
     <div style="margin:14px 0;">
       <input type="file" id="meuperfil-foto-input" accept="image/*" style="display:none;">
@@ -4771,6 +4966,8 @@ async function renderMeuPerfil(){
     document.getElementById('meuperfil-foto-input').click();
   });
   document.getElementById('meuperfil-conta-btn').addEventListener('click', abrirAreaDaConta);
+  const retroBtn = document.getElementById('meuperfil-retro-btn');
+  if(retroBtn) retroBtn.addEventListener('click', ()=> abrirRetrospectiva(player, retro));
   document.getElementById('meuperfil-foto-input').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
     if(!file) return;
@@ -6039,6 +6236,55 @@ function jogadoresRemovidosComJogos(){
   roundsOficiais().forEach(r=> r.times.forEach(t=> (t.playerIds||[]).forEach(id=>{ jogos[id] = (jogos[id]||0) + 1; })));
   return sortByName((DATA.removidos||[]).filter(p=> jogos[p.id] > 0)).map(p=> ({ jogador: p, jogos: jogos[p.id] }));
 }
+/* ---------- 👻 Sumidos (v18.7) — só organizador/admin ----------
+   Quem jogava com frequência e parou de aparecer (regra em computeSumidos). O botão "Chamar" abre o WhatsApp com um
+   convite pronto (sem número: a pessoa escolhe o contato), com o link do app e, se o check-in estiver aberto, a data. */
+function hojeLocalIso(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function textoChamarSumido(p){
+  const nome = p.apelido || p.nome;
+  const data = SETTINGS.checkinDataAberta;
+  const convite = data
+    ? `O check-in de ${formatDate(data)} já está aberto — bora? Coloca o nome aqui: ${linkDoApp(CTX_GRUPO)}`
+    : `Bora voltar? A lista do próximo jogo sai por aqui: ${linkDoApp(CTX_GRUPO)}`;
+  return `Fala, ${nome}! 👋 Sentimos sua falta no vôlei 🏐
+
+${convite}`;
+}
+function renderSumidos(){
+  const sec = document.getElementById('sumidos-sec');
+  if(!sec) return;
+  if(!temPermissao('addPlayer')){ sec.style.display = 'none'; return; }
+  const sumidos = computeSumidos(roundsOficiais(), DATA.players, hojeLocalIso());
+  sec.style.display = '';
+  document.getElementById('sumidos-titulo').textContent = `👻 Sumidos (${sumidos.length})`;
+  document.getElementById('sumidos-lista').innerHTML = sumidos.length === 0
+    ? '<div class="removido-jogos">Ninguém sumido — a turma está firme. 💪</div>'
+    : sumidos.map(x=>{
+      const p = getPlayer(x.id);
+      if(!p) return '';
+      const semanas = Math.floor(x.dias / 7);
+      const ha = semanas >= 2 ? `há ${semanas} semanas` : `há ${x.dias} dia${x.dias===1?'':'s'}`;
+      return `
+    <div class="removido-linha">
+      ${avatarHtml(p, 'sm')}
+      <div class="removido-info">
+        <div class="removido-nome">${nomeComApelidoHtml(p)}</div>
+        <div class="removido-jogos">Faltou as últimas ${x.faltas} · última vez ${formatDate(x.ultima)} (${ha}) · jogava ${x.jogosNaJanela} de ${x.janela}</div>
+      </div>
+      <button class="btn secondary" data-chamar="${escapeHtml(p.id)}" title="Abrir o WhatsApp com um convite pronto">💬 Chamar</button>
+    </div>`;
+    }).join('');
+  document.querySelectorAll('#sumidos-lista [data-chamar]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = getPlayer(btn.dataset.chamar);
+      if(p) compartilharNoWhatsApp(textoChamarSumido(p));
+    });
+  });
+}
+
 function renderJogadoresRemovidos(){
   const sec = document.getElementById('removidos-sec');
   const lista = jogadoresRemovidosComJogos();
@@ -6078,6 +6324,7 @@ async function reativarJogadorRemovido(id){
 
 function renderPlayers(){
   renderJogadoresRemovidos();
+  renderSumidos();
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador cadastrado ainda. Adicione o primeiro acima.</div>';
@@ -6286,6 +6533,100 @@ function computeSequenciaAtualPresenca(id){
   }
   return streak;
 }
+
+// <sumidos-retro>
+/* Funções PURAS (sem DATA nem DOM) das telas "👻 Sumidos" (aba Jogadores, só organizador/admin) e "🎁 Retrospectiva"
+   (Meu Perfil), v18.7. Recebem as rodadas oficiais ({ data:'aaaa-mm-dd', times:[{playerIds, vitorias}], vencedores:[idx] })
+   e os jogadores ativos. Rodada dupla (duas rodadas na mesma data) conta UMA vez nas contas de presença (é um dia de
+   vôlei só) e duas vezes nas de jogos/títulos, igual ao resto do app. Testadas em tests/sumidos-retrospectiva.test.js. */
+const SUMIDOS_MIN_FALTAS = 3;      // faltou pelo menos as últimas 3 datas de jogo do grupo
+const SUMIDOS_MIN_JOGOS = 4;       // e já jogou pelo menos 4 datas (convidado de uma vez só não é "sumido")
+const SUMIDOS_MAX_DIAS = 180;      // depois de 6 meses fora, já não é "sumiu" — é quem parou (o 🪦 do emblema)
+const SUMIDOS_JANELA = 12;         // "jogava X de 12": as 12 datas do grupo até a última vez dele
+
+function datasDeJogoDoGrupo(rodadas){
+  return [...new Set(rodadas.map(r=> r.data))].sort(); // 'aaaa-mm-dd' ordena certo como texto
+}
+function datasQueJogou(rodadas, id){
+  const datas = new Set();
+  rodadas.forEach(r=>{ if(r.times.some(t=> (t.playerIds||[]).includes(id))) datas.add(r.data); });
+  return datas;
+}
+function diasEntre(isoA, isoB){
+  const ts = (iso)=>{ const [a,m,d] = iso.split('-').map(Number); return Date.UTC(a, m-1, d); };
+  return Math.round((ts(isoB) - ts(isoA)) / 86400000);
+}
+
+// quem jogava com frequência e não aparece há SUMIDOS_MIN_FALTAS datas ou mais; hojeIso = 'aaaa-mm-dd'.
+// Ordem: quem jogava mais (na janela antes de sumir) primeiro — é quem mais vale a pena chamar de volta.
+function computeSumidos(rodadas, jogadores, hojeIso){
+  const datasGrupo = datasDeJogoDoGrupo(rodadas);
+  const out = [];
+  jogadores.forEach(p=>{
+    const jogou = datasQueJogou(rodadas, p.id);
+    if(jogou.size < SUMIDOS_MIN_JOGOS) return;
+    const ultima = [...jogou].sort().pop();
+    const idxUltima = datasGrupo.indexOf(ultima);
+    const faltas = datasGrupo.length - 1 - idxUltima;
+    const dias = diasEntre(ultima, hojeIso);
+    if(faltas < SUMIDOS_MIN_FALTAS || dias > SUMIDOS_MAX_DIAS) return;
+    const janela = datasGrupo.slice(Math.max(0, idxUltima - SUMIDOS_JANELA + 1), idxUltima + 1);
+    out.push({ id: p.id, ultima, faltas, dias, jogosNaJanela: janela.filter(d=> jogou.has(d)).length, janela: janela.length, total: jogou.size });
+  });
+  return out.sort((a,b)=> b.jogosNaJanela/b.janela - a.jogosNaJanela/a.janela || b.total - a.total || a.faltas - b.faltas);
+}
+
+// números do ano de UM jogador; null se ele não jogou nenhuma rodada no ano. "jogadores" entra só pro ranking do ano
+// (mesma ordem do computeRanking: títulos, depois vitórias de partida, depois aproveitamento)
+function computeRetrospectiva(rodadas, jogadores, id, ano){
+  const doAno = rodadas.filter(r=> String(r.data).slice(0,4) === String(ano));
+  const campeao = (r, idx)=> Array.isArray(r.vencedores) && r.vencedores.includes(idx);
+  const porJogador = {};
+  const parceiros = {}; // pid -> { juntos, titulos }
+  const porMes = new Array(12).fill(0);
+  doAno.forEach(r=> r.times.forEach((t, idx)=>{
+    const ids = (t.playerIds||[]).filter(Boolean);
+    const venceu = campeao(r, idx);
+    ids.forEach(pid=>{
+      const s = porJogador[pid] || (porJogador[pid] = { jogos:0, titulos:0, vitorias:0 });
+      s.jogos++; if(venceu) s.titulos++; s.vitorias += (t.vitorias||0);
+    });
+    if(!ids.includes(id)) return;
+    porMes[Number(String(r.data).slice(5,7)) - 1]++;
+    ids.forEach(pid=>{
+      if(pid === id) return;
+      const par = parceiros[pid] || (parceiros[pid] = { juntos:0, titulos:0 });
+      par.juntos++; if(venceu) par.titulos++;
+    });
+  }));
+  const eu = porJogador[id];
+  if(!eu) return null;
+  const pct = (a, b)=> b > 0 ? Math.round(a / b * 100) : 0;
+  const ativos = new Set(jogadores.map(p=> p.id));
+  const ranking = Object.entries(porJogador)
+    .filter(([pid])=> ativos.has(pid))
+    .map(([pid, s])=> ({ id: pid, ...s, pct: pct(s.titulos, s.jogos) }))
+    .sort((a,b)=> b.titulos - a.titulos || b.vitorias - a.vitorias || b.pct - a.pct);
+  const posicao = ranking.findIndex(x=> x.id === id) + 1;
+  const listaPar = Object.entries(parceiros).filter(([pid])=> ativos.has(pid)).map(([pid, v])=> ({ id: pid, ...v, pct: pct(v.titulos, v.juntos) }));
+  const parceiroFrequente = listaPar.slice().sort((a,b)=> b.juntos - a.juntos || b.titulos - a.titulos)[0] || null;
+  const duplaDeOuro = listaPar.filter(x=> x.juntos >= 3 && x.titulos > 0).sort((a,b)=> b.pct - a.pct || b.juntos - a.juntos)[0] || null;
+  // presença e maior sequência contam DATAS (rodada dupla = 1 dia), dentro do ano
+  const datasGrupo = datasDeJogoDoGrupo(doAno);
+  const jogou = datasQueJogou(doAno, id);
+  let maiorSequencia = 0, atual = 0;
+  datasGrupo.forEach(d=>{ atual = jogou.has(d) ? atual + 1 : 0; maiorSequencia = Math.max(maiorSequencia, atual); });
+  const maxMes = Math.max(...porMes);
+  const datasEu = [...jogou].sort();
+  return {
+    ano: String(ano), jogos: eu.jogos, titulos: eu.titulos, vitorias: eu.vitorias, pct: pct(eu.titulos, eu.jogos),
+    datas: jogou.size, datasDoGrupo: datasGrupo.length, presencaPct: pct(jogou.size, datasGrupo.length),
+    posicao, noRanking: ranking.length, parceiroFrequente, duplaDeOuro, maiorSequencia,
+    mesMaisAtivo: { mes: porMes.indexOf(maxMes), rodadas: maxMes },
+    primeira: datasEu[0], ultima: datasEu[datasEu.length - 1]
+  };
+}
+// </sumidos-retro>
 
 // Média de aproveitamento (títulos/rodadas) entre todos os jogadores que já jogaram
 // pelo menos 1 rodada — usada só pra comparação ("você está X pontos acima/abaixo").
@@ -9770,7 +10111,8 @@ async function desconfirmarTodosDoDia(aoProgresso = ()=>{}){
   for(let i = 0; i < doDia.length; i++){
     const c = doDia[i];
     aoProgresso(i + 1, doDia.length, c.jogadorNome);
-    if(await postAction('removeCheckin', { id: c.id }, cred)){ CHECKINS = CHECKINS.filter(x=> x.id !== c.id); removidos++; }
+    // semAviso: cada saída "abriria vaga" pra alguém da reserva que sai logo em seguida — ninguém recebe o push de "entrou na lista"
+    if(await postAction('removeCheckin', { id: c.id, semAviso: true }, cred)){ CHECKINS = CHECKINS.filter(x=> x.id !== c.id); removidos++; }
     else falhas.push(c.jogadorNome || '?');
   }
   return { removidos, falhas };
@@ -11355,7 +11697,7 @@ function abrirPopAutorizarNotificacoes(){
   overlay.innerHTML = `
     <div class="password-card">
       <p class="password-title">🔔 Ativar notificações?</p>
-      <p style="margin:0 0 12px;">Avisamos quando o check-in abrir e quando os times forem sorteados — direto no seu celular, sem precisar abrir o app.</p>
+      <p style="margin:0 0 12px;">Avisamos quando o check-in abrir e, se você estiver na reserva, quando abrir vaga pra você — direto no seu celular, sem precisar abrir o app.</p>
       <div class="password-actions">
         <button type="button" class="btn" data-acao="ativar">Ativar</button>
         <button type="button" class="btn secondary" data-acao="depois">Agora não</button>
@@ -11426,7 +11768,9 @@ document.getElementById('push-notif-btn').addEventListener('click', async ()=>{
       const inscricao = await registration.pushManager.subscribe({
         userVisibleOnly: true, applicationServerKey: urlBase64ParaUint8Array(VAPID_PUBLIC_KEY)
       });
-      await postAction('inscreverPush', { inscricao: inscricao.toJSON() });
+      // logado: a inscrição já vai ligada à conta (aviso pessoal "você entrou na lista")
+      await postAction('inscreverPush', { inscricao: inscricao.toJSON() }, AUTH.logado ? await credencialLogada() : null);
+      guardarPushSincronizado(inscricao.endpoint, AUTH.logado ? AUTH.email : '');
       mostrarToast('Notificações ativadas neste aparelho!', 'sucesso');
     }catch(e){
       mostrarToast('Não foi possível ativar as notificações.', 'erro');
@@ -11435,6 +11779,35 @@ document.getElementById('push-notif-btn').addEventListener('click', async ()=>{
   atualizarBotaoNotificacao();
 });
 atualizarBotaoNotificacao();
+
+/* Inscrição ligada à conta (v18.7): o backend só manda o aviso PESSOAL ("você entrou na lista") para aparelhos cuja
+   inscrição tem o e-mail da conta. Quem ativou as notificações antes disso (ou antes de logar) tem a inscrição sem
+   conta — então, ao abrir o app logado, ao entrar e ao sair da conta, o aparelho reenvia a inscrição que já existe
+   (sem pedir permissão de novo e sem o "Salvando..." na tela). A última dupla endpoint+e-mail enviada fica guardada
+   no aparelho: abrir o app de novo com a mesma conta não gera requisição nenhuma. */
+const CHAVE_PUSH_SINCRONIZADO = chaveDoAparelho('volei-push-conta', CTX_GRUPO);
+function guardarPushSincronizado(endpoint, email){
+  try{ localStorage.setItem(CHAVE_PUSH_SINCRONIZADO, endpoint + '|' + (email || '')); }catch(e){ /* bloqueado: só reenvia da próxima vez */ }
+}
+async function sincronizarPushComConta(){
+  try{
+    if(!sheetReady || !suportaPush() || Notification.permission !== 'granted') return;
+    const registration = await navigator.serviceWorker.ready;
+    const inscricao = await registration.pushManager.getSubscription();
+    if(!inscricao) return;
+    const email = AUTH.logado ? AUTH.email : '';
+    let ultimo = null;
+    try{ ultimo = localStorage.getItem(CHAVE_PUSH_SINCRONIZADO); }catch(e){ /* segue e reenvia */ }
+    if(ultimo === inscricao.endpoint + '|' + email) return;
+    const cred = AUTH.logado ? await credencialLogada() : null;
+    if(AUTH.logado && !cred) return; // login vencido: tenta de novo quando a pessoa entrar
+    const res = await fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'inscreverPush', inscricao: inscricao.toJSON(), sessao: (cred && cred.sessao) || '', idToken: (cred && cred.idToken) || '' }) });
+    const json = await res.json();
+    if(json && !json.error) guardarPushSincronizado(inscricao.endpoint, email);
+  }catch(e){ /* melhor esforço: sem internet, tenta de novo na próxima abertura */ }
+}
+setTimeout(sincronizarPushComConta, 3000); // depois do login guardado ser restaurado e da primeira carga
 
 /* ---------- Checagem de versão nova ----------
    O app instalado pode ficar "suspenso" na memória do celular (o usuário tira da

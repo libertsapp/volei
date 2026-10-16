@@ -111,7 +111,13 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
       }, esperar);
     },
     async gravarPushInscricao(linha) {
-      const { error } = await cliente.from('push_inscricoes').upsert(linha, { onConflict: 'endpoint' });
+      let { error } = await cliente.from('push_inscricoes').upsert(linha, { onConflict: 'endpoint' });
+      // coluna "email" (v18.7) ainda não criada neste schema (função publicada antes do SQL): grava sem ela, para a
+      // inscrição nunca quebrar — o aparelho só fica sem o aviso pessoal até o SQL rodar
+      if (error && 'email' in linha && /email/i.test(error.message || '')) {
+        const { email, ...semEmail } = linha;
+        ({ error } = await cliente.from('push_inscricoes').upsert(semEmail, { onConflict: 'endpoint' }));
+      }
       if (error) throw new Error('push_inscricoes: ' + error.message);
     },
     async removerPushInscricao(endpoint) {

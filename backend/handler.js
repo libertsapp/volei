@@ -103,7 +103,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           const token = await identificar(deps, b); // sessão do app ou token do Google
           if (!token.ok) return { error: token.erro };
           // os ganchos do financeiro rodam dentro de addCheckin/removeCheckin, sob a mesma trava
-          return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id)));
+          return await travar(() => (acao === 'addCheckin' ? addCheckin(deps, b.checkin) : removeCheckin(deps, b.id, { semAviso: b.semAviso === true })));
         }
 
         // "Vou jogar" num amistoso: mesma regra do check-in (só login, qualquer perfil), por isso antes do porteiro
@@ -113,8 +113,13 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           return await travar(() => (acao === 'entrarAmistoso' ? entrarAmistoso(deps, b) : sairAmistoso(deps, b)));
         }
 
-        // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app)
-        if (acao === 'inscreverPush') return await inscreverPush(deps, b.inscricao);
+        // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app). Com login
+        // (sessão ou token), a inscrição fica ligada à conta para o aviso pessoal "você entrou na lista" (v18.7); login
+        // inválido ou vencido não impede a inscrição, só a deixa sem conta
+        if (acao === 'inscreverPush') {
+          const quem = (b.sessao || b.idToken) ? await identificar(deps, b) : null;
+          return await inscreverPush(deps, b.inscricao, quem && quem.ok ? quem.email : '');
+        }
 
         // daqui pra baixo é tudo sensível: passa pelo porteiro (chave mestra OU login do Google)
         const auth = await autorizar(deps, b, contexto);
