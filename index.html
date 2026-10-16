@@ -2960,7 +2960,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -10379,7 +10379,7 @@ document.getElementById('sortear-btn').addEventListener('click', ()=>{
   const players = Array.from(SELECTED_IDS).map(id=> pool.find(p=>p.id===id)).filter(Boolean).map(comEstrelaDoCheckin);
   const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
   DRAFT_TEAMS = draftBalanced(players, numTeams);
-  renderDraftResult();
+  renderDraftResult({ animar: true });
 });
 
 /* ---------- SUB-ABAS: SORTEIO AUTOMÁTICO x MANUAL ---------- */
@@ -10671,7 +10671,7 @@ document.getElementById('sortear-com-grupos-btn').addEventListener('click', ()=>
   const numTeams = parseInt(document.getElementById('sorteio-team-count').value, 10);
   const todosOsJogadoresDosGrupos = AUTO_GROUPS.flat();
   DRAFT_TEAMS = draftBalanced(todosOsJogadoresDosGrupos, numTeams, AUTO_GROUPS);
-  renderDraftResult();
+  renderDraftResult({ animar: true });
 });
 
 function wireGroupDragAndDrop(containerId, grupos, rerenderFn){
@@ -10827,7 +10827,41 @@ function finalizarSorteioManual(){
   renderDraftResult();
 }
 
-function renderDraftResult(){
+/* Animação do sorteio (v18.6), igual à do site memberstars.com, só que mais lenta: técnica FLIP — guarda onde cada
+   jogador estava, monta os times novos e anima cada um do lugar antigo para o novo. No primeiro sorteio (ninguém na
+   tela ainda) os jogadores saem do meio da quadra e são "distribuídos" um a um, rodada por rodada, como cartas.
+   Quem pediu menos movimento no aparelho (prefers-reduced-motion) vê o resultado direto. */
+const SORTEIO_ANIM = { duracao: 1100, intervalo: 85, easing: 'cubic-bezier(0.34, 1.25, 0.64, 1)' };
+function posicoesDosChips(){
+  const pos = {};
+  document.querySelectorAll('#draft-grid .draft-chip').forEach(el=>{ pos[el.dataset.playerId] = el.getBoundingClientRect(); });
+  return pos;
+}
+function animarSorteio(antes){
+  const grid = document.getElementById('draft-grid');
+  if(!grid || typeof Element.prototype.animate !== 'function') return;
+  const g = grid.getBoundingClientRect();
+  const centroX = g.left + g.width / 2, centroY = g.top + Math.min(g.height, 260) / 2;
+  // ordem de distribuição: o 1º de cada time, depois o 2º de cada time... (como quem dá as cartas)
+  const colunas = Array.from(grid.querySelectorAll('.draft-players')).map(c=> Array.from(c.querySelectorAll('.draft-chip')));
+  const maior = Math.max(0, ...colunas.map(c=>c.length));
+  let ordem = 0;
+  for(let k = 0; k < maior; k++) colunas.forEach(col=>{
+    const el = col[k];
+    if(!el) return;
+    const depois = el.getBoundingClientRect(), a = antes[el.dataset.playerId];
+    const de = a
+      ? `translate(${a.left - depois.left}px, ${a.top - depois.top}px)`
+      : `translate(${centroX - (depois.left + depois.width / 2)}px, ${centroY - (depois.top + depois.height / 2)}px) scale(.5) rotate(${(ordem % 2 ? 1 : -1) * 8}deg)`;
+    el.animate([{ transform: de, opacity: a ? 1 : 0 }, { transform: 'none', opacity: 1 }],
+      { duration: SORTEIO_ANIM.duracao, delay: (ordem++) * SORTEIO_ANIM.intervalo, easing: SORTEIO_ANIM.easing, fill: 'backwards' });
+  });
+}
+
+function renderDraftResult(opcoes){
+  const animar = !!(opcoes && opcoes.animar);
+  const semMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const antes = animar && !semMovimento ? posicoesDosChips() : null;
   const container = document.getElementById('draft-result');
   const somas = DRAFT_TEAMS.map(somaTime);
   const diff = somas.length ? Math.max(...somas) - Math.min(...somas) : 0;
@@ -10864,6 +10898,11 @@ function renderDraftResult(){
   wireDragAndDrop();
   document.getElementById('send-to-rodada-btn').addEventListener('click', sendDraftToRodada);
   wireBotoesCompartilhar('share-teams', ()=> montarTextoWhatsApp('Times sorteados', DRAFT_TEAMS, 'Time'));
+  if(animar){
+    // leva a tela até os times sorteados (o botão fica lá em cima, depois da lista de presença)
+    container.scrollIntoView({ behavior: semMovimento ? 'auto' : 'smooth', block: 'start' });
+    if(antes) animarSorteio(antes);
+  }
 }
 
 function sendDraftToRodada(){
