@@ -9,7 +9,7 @@ const fim = html.indexOf('// </grupo-puro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <grupo-puro> não encontrado');
 const G = new Function(html.slice(ini, fim) + `
   return { GRUPOS_API_URL, HOSTS_MODO_GRUPO, NOME_PADRAO_APP, UFS_GRUPO, PALETA_GRUPO, contextoDoGrupo, urlDaApi,
-           chaveDoAparelho, caminhoCanonico, iniciaisDoGrupo, sugerirApelidoFront, sessaoParaGuardar };`)();
+           chaveDoAparelho, caminhoCanonico, iniciaisDoGrupo, sugerirApelidoFront, sessaoParaGuardar, linkDoApp };`)();
 const backend = fs.readFileSync(path.join(__dirname, '..', 'backend', 'grupos-cadastro.js'), 'utf8');
 const listaDoBackend = (nome) => new Function('return ' + backend.match(new RegExp('export const ' + nome + ' = (\\[[\\s\\S]*?\\]);'))[1])();
 
@@ -89,5 +89,10 @@ t('fix: sessão que a página de criação guarda para o dono chegar logado (mes
   assert.equal(G.sessaoParaGuardar({ status: 'ok', email: 'a@x.com' }, 'TOKEN'), null); // sem sessão do app não guarda nada
 });
 
+t('linkDoApp: link oficial do resumo da semana (Terça e cada grupo), nunca o antigo libertsapp.github.io', () => {
+  assert.equal(G.linkDoApp(null), 'https://memberstars.com/volei/');
+  assert.equal(G.linkDoApp({ pagina: 'grupo', apelido: 'quinta-bh' }), 'https://volei.memberstars.com/quinta-bh/');
+  assert.equal(G.linkDoApp({ pagina: 'criar' }), 'https://memberstars.com/volei/');
+});
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM');
 process.exit(falhas ? 1 : 0);
