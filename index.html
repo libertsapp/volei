@@ -2960,7 +2960,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3646,6 +3646,11 @@ function sessaoParaGuardar(resp, idToken){
   if(!resp || resp.error || !resp.sessao) return null;
   return { idToken: idToken || '', exp: 0, email: resp.email || '', nome: resp.nome || '', foto: '', perfil: resp.perfil || 'jogador',
     jogadorId: resp.jogadorId || '', jogadorIdPendente: resp.jogadorIdPendente || '', sessao: resp.sessao, sessaoExpiraEm: resp.sessaoExpiraEm || '' };
+}
+// link do app no resumo da semana: o oficial (o antigo libertsapp.github.io só redireciona, e app instalado por ele
+// perdeu as notificações — ver o aviso v17.1); cada grupo independente manda o PRÓPRIO endereço
+function linkDoApp(ctx){
+  return ctx && ctx.pagina === 'grupo' && ctx.apelido ? 'https://volei.memberstars.com/' + ctx.apelido + '/' : 'https://memberstars.com/volei/';
 }
 // </grupo-puro>
 const CTX_GRUPO = contextoDoGrupo(location.hostname, location.pathname, HOSTS_MODO_GRUPO);
@@ -10598,7 +10603,7 @@ function montarResumoSemanal(){
     texto += `👻🪦 ${badges.rip.size + badges.aposentado.size} jogador(es) sumido(s) há mais de 60 dias — bora chamar todo mundo de volta!\n`;
   }
 
-  texto += `\n🔗 Veja os dados completos: https://libertsapp.github.io/volei/`;
+  texto += `\n🔗 Veja os dados completos: ${linkDoApp(CTX_GRUPO)}`;
 
   return texto;
 }
