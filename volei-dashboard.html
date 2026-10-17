@@ -2556,6 +2556,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.0: Sequência conta por dia de jogo</summary>
+          <div>
+            <p style="line-height:1.6;">A <strong>Sequência 🔥</strong> (cartão do jogador, Meu Perfil e radar) agora conta <strong>datas de jogo</strong>, e não rodadas. Num dia com <strong>dois jogos</strong>, quem jogou pelo menos um deles <strong>mantém a sequência</strong>; quem jogou os dois conta aquele dia uma vez só. Os números de sequência de quem já jogou dias com dois jogos podem mudar um pouco.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v18.9: Consulta de faltas</summary>
           <div>
             <p style="line-height:1.6;">Na aba <strong>Jogadores</strong>, organizadores e admins têm a lista <strong>🚫 Faltas</strong>: quem confirmou e não apareceu nos últimos 90 dias, com as datas, quem já está com o emblema 🏃 e quem está a uma falta dele. O <strong>✕</strong> de cada data desfaz uma falta marcada por engano, mesmo depois que o check-in daquele dia já fechou.</p>
@@ -3017,7 +3024,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.9 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.0 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4968,7 +4975,7 @@ async function renderMeuPerfil(){
           <li><strong>Fase atual:</strong> títulos nas suas últimas 5 rodadas.</li>
           <li><strong>Títulos e Vitórias:</strong> comparado a quem mais tem no grupo (100 = o líder).</li>
           <li><strong>Presença:</strong> rodadas que você jogou ÷ rodadas do grupo.</li>
-          <li><strong>Sequência:</strong> rodadas seguidas sem faltar, comparada à maior do grupo.</li>
+          <li><strong>Sequência:</strong> datas de jogo seguidas sem faltar (num dia com dois jogos, jogar um já conta), comparada à maior do grupo.</li>
         </ul>
       </details>
     ` : '<div style="color:var(--muted);font-size:12px;margin-bottom:16px;">O radar aparece depois da sua primeira rodada.</div>'}
@@ -6165,7 +6172,7 @@ function jogadorCardHtml(d, opcoes){
       jcMetricaHtml('ti-calendar', 'jc-cor-accent', 'Partidas', `<span class="jc-valor">${m.partidas}</span>`),
       jcMetricaHtml('ti-trophy', 'jc-cor-ouro', 'Títulos', titulo)
     ];
-    // rodadas seguidas sem faltar (0 = faltou a mais recente). Sem "sequencia" (chamador antigo) a coluna não existe.
+    // datas de jogo seguidas sem faltar (0 = faltou a mais recente). Sem "sequencia" (chamador antigo) a coluna não existe.
     if(m.sequencia != null){
       colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-laranja', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
     }
@@ -6605,14 +6612,16 @@ function computeMelhorPiorParceiroPorAproveitamento(id, minJogos){
   return { melhor: ordenado[0], pior: ordenado[ordenado.length-1] };
 }
 
-// Quantas rodadas seguidas, contando da mais recente pra trás, o jogador participou
-// sem faltar nenhuma. Para no primeiro "buraco" (rodada oficial em que ele não aparece
-// em nenhum time). Se ele faltou a rodada mais recente, a sequência já começa em 0.
+// Quantas DATAS de jogo seguidas, contando da mais recente pra trás, o jogador participou sem faltar nenhuma.
+// Para no primeiro "buraco" (data com rodada oficial em que ele não aparece em nenhum time). Se ele faltou a data
+// mais recente, a sequência já começa em 0. Conta por data, não por rodada (v19.0, pedido do grupo): num dia com
+// dois jogos, jogar pelo menos um mantém a sequência, e jogar os dois conta uma vez só (é um dia de vôlei).
 function computeSequenciaAtualPresenca(id){
-  const todasOrdenadas = roundsOficiais().slice().sort((a,b)=> toTimestamp(b.data)-toTimestamp(a.data));
+  const rodadas = roundsOficiais();
+  const datas = [...new Set(rodadas.map(r=> r.data))].sort((a,b)=> toTimestamp(b)-toTimestamp(a));
   let streak = 0;
-  for(const r of todasOrdenadas){
-    const jogou = r.times.some(t=> (t.playerIds||[]).includes(id));
+  for(const d of datas){
+    const jogou = rodadas.some(r=> r.data === d && r.times.some(t=> (t.playerIds||[]).includes(id)));
     if(!jogou) break;
     streak++;
   }
