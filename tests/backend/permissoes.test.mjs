@@ -34,10 +34,11 @@ if (!fs.existsSync(caminhoGs)) {
     // enviarNotificacao (ajuste 11, notificações push): também só existe no backend novo.
     // amistosos entre grupos (2026-10-12): também só existem no backend novo
     // aceitarTermos (termos de uso, v18.2) e salvarLogo (logo do grupo, v18.3): também só existem no backend novo
+    // salvarFaltas (faltas, v18.8): também só existe no backend novo
     const {
       restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao,
       convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
-      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, ...resto
+      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, salvarFaltas, ...resto
     } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
@@ -47,6 +48,7 @@ if (!fs.existsSync(caminhoGs)) {
     assert.deepEqual(enviarNotificacao, ['organizador', 'admin']);
     assert.deepEqual(aceitarTermos, ['jogador', 'organizador', 'admin']);
     assert.deepEqual(salvarLogo, ['admin']);
+    assert.deepEqual(salvarFaltas, ['organizador', 'admin']);
     for (const acao of [convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
       travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar]) assert.deepEqual(acao, ['organizador', 'admin']);
   });

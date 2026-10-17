@@ -12,7 +12,7 @@ import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
 import { salvarLogo } from './logo.js';
-import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin } from './checkins.js';
+import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin, salvarFaltas } from './checkins.js';
 import { inscreverPush, enviarNotificacao } from './notificacoes.js';
 import { salvarJogo2, removerJogo2 } from './jogos2.js';
 import {
@@ -146,6 +146,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
+          case 'salvarFaltas': return await travar(() => salvarFaltas(deps, b));
           // dois jogos no mesmo dia (2026-10-03): b.jogo vindo do app é 1, 2 ou ausente/null — normaliza pra "chave de
           // cobrança" (null = o dia; 1/2 = um jogo) antes de chamar o financeiro
           case 'moverCheckin': return await travar(() => moverCheckin(deps, b, auth));

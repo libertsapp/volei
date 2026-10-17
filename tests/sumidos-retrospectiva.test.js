@@ -1,4 +1,4 @@
-// 👻 Sumidos (aba Jogadores, organizador/admin) e 🎁 Retrospectiva (Meu Perfil), v18.7. Extrai o bloco <sumidos-retro>.
+// 👻 Sumidos (aba Jogadores, organizador/admin) e 🎁 Retrospectiva (Meu Perfil), v18.7; 🚫 Faltas, v18.8. Extrai o bloco <sumidos-retro>.
 // Rodar: node tests/sumidos-retrospectiva.test.js   (HTML_ARQUIVO=<caminho> roda contra outra página, ex. o Meme)
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -7,7 +7,7 @@ const html = fs.readFileSync(process.env.HTML_ARQUIVO || path.join(__dirname, '.
 const ini = html.indexOf('// <sumidos-retro>');
 const fim = html.indexOf('// </sumidos-retro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <sumidos-retro> não encontrado');
-const { computeSumidos, computeRetrospectiva } = new Function(html.slice(ini, fim) + '; return { computeSumidos, computeRetrospectiva };')();
+const { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA } = new Function(html.slice(ini, fim) + '; return { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA };')();
 
 // 8 terças seguidas de 2026
 const D = ['2026-08-04', '2026-08-11', '2026-08-18', '2026-08-25', '2026-09-01', '2026-09-08', '2026-09-15', '2026-09-22'];
@@ -124,6 +124,24 @@ caso('retrospectiva: dupla de ouro exige título junto (3 jogos e 0 títulos nã
   const r = computeRetrospectiva(rods, J('ana', 'zé', 'x', 'y'), 'ana', 2026);
   assert.equal(r.duplaDeOuro, null);
   assert.equal(r.parceiroFrequente.id, 'zé');
+});
+
+// ---------------------------------------------------------------- faltas (v18.8)
+const falta = (jogadorId, data, faltou = true) => ({ jogadorId, data, faltou });
+caso('faltas: conta só quem tem faltou=true, nos últimos 90 dias', () => {
+  const r = computeFaltas([
+    falta('ana', '2026-10-13'), falta('ana', '2026-09-01'),        // 2 dentro da janela
+    falta('ana', '2026-06-01'),                                     // 137 dias antes: fora
+    falta('bia', '2026-10-13', false), { jogadorId: 'bia', data: '2026-10-06' }, // sem falta
+    falta('caio', '2026-10-06'), falta('', '2026-10-06')            // convidado sem id: ignorado
+  ], '2026-10-16');
+  assert.deepEqual(r, { ana: 2, caio: 1 });
+});
+caso('faltas: data futura (check-in de um jogo que ainda vai acontecer) não conta', () => {
+  assert.deepEqual(computeFaltas([falta('ana', '2026-10-20')], '2026-10-16'), {});
+});
+caso('faltas: o emblema exige 2 faltas', () => {
+  assert.equal(FALTAS_PARA_EMBLEMA, 2);
 });
 
 console.log(`\n${ok} casos — TODOS OS TESTES PASSARAM`);

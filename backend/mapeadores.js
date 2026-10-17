@@ -98,7 +98,9 @@ export function mapearCheckins(checkins) {
     estrelas: numero(c.estrelas), sexo: texto(c.sexo),
     // nota só pra ESTE check-in; vazia = usa a estrela do cadastro
     estrelasAjustadas: texto(c.estrelas_ajustadas),
-    jogo: Number(c.jogo) || 1
+    jogo: Number(c.jogo) || 1,
+    // falta (v18.8): só aparece quando é true — a resposta de quem nunca faltou fica idêntica à de antes
+    ...(c.faltou === true ? { faltou: true } : {})
   }));
 }
 

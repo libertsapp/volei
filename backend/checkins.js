@@ -67,6 +67,8 @@ export async function removeCheckin(deps, id, { semAviso = false } = {}) {
   // data e jogador são lidos ANTES de apagar (o gancho precisa deles), como no .gs
   const tudo = await repo.lerTudo();
   const alvo = tudo.checkins.find((c) => c.id === texto(id));
+  // falta registrada (v18.8) não some tirando o nome da lista: senão quem faltou apagaria a própria falta
+  if (alvo && alvo.faltou === true) return { error: 'Esta presença tem falta registrada. Só um organizador pode desmarcar a falta antes.' };
   if (!(await repo.removerCheckin(texto(id)))) return { error: 'Check-in não encontrado (pode já ter sido desmarcado).' };
   if (alvo) {
     await aposRemoverCheckin(deps, texto(alvo.data), texto(alvo.jogador_id)); // devolve crédito de quem saiu e sobe a espera
@@ -113,4 +115,29 @@ export async function moverCheckin(deps, { id, paraJogo } = {}, auth) {
     await avisarQuemEntrouNaLista(deps, data, antes, [jogadorId]); // a vaga que ela deixou na origem
   }
   return { status: 'ok', moveu };
+}
+
+// Faltas (v18.8): o organizador marca quem CONFIRMOU e não apareceu. A falta mora no próprio check-in (coluna
+// "faltou"), então não precisa de tabela nova e some junto se o check-in for apagado. "faltaram" é a lista COMPLETA de
+// ids de check-in com falta naquela data+jogo: quem está na lista ganha a falta, quem não está perde (desmarcar = tirar
+// da lista). Só mexe nas linhas que mudaram. Tirar o nome da lista NÃO é falta (decisão do grupo, 2026-10-16).
+export async function salvarFaltas(deps, { data, jogo, faltaram } = {}) {
+  const { repo } = deps;
+  const dia = texto(data);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return { error: 'Data inválida.' };
+  const numJogo = jogo === undefined || jogo === null ? 1 : Number(jogo);
+  if (numJogo !== 1 && numJogo !== 2) return { error: 'Jogo inválido.' };
+  if (!Array.isArray(faltaram)) return { error: 'Lista de faltas inválida.' };
+  const marcados = new Set(faltaram.map(texto));
+  const doJogo = (await repo.lerTudo()).checkins.filter((c) => texto(c.data) === dia && (Number(c.jogo) || 1) === numJogo);
+  const desconhecidos = [...marcados].filter((id) => !doJogo.some((c) => texto(c.id) === id));
+  if (desconhecidos.length) return { error: 'Algum check-in não existe mais nesse jogo. Recarregue a página.' };
+  let alterados = 0;
+  for (const c of doJogo) {
+    const quer = marcados.has(texto(c.id));
+    if ((c.faltou === true) === quer) continue;
+    await repo.atualizarCheckin(texto(c.id), { faltou: quer });
+    alterados++;
+  }
+  return { status: 'ok', alterados };
 }

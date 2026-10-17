@@ -112,6 +112,7 @@ create table checkins (
   sexo text,
   estrelas_ajustadas numeric(3,1),
   jogo smallint not null default 1 check (jogo in (1, 2)),
+  faltou boolean not null default false, -- v18.8: confirmou e não apareceu (marcado pelo organizador)
   ordem int default nextval('seq_ordem_checkins'),
   primary key (grupo_id, id),
   foreign key (grupo_id, jogador_id) references jogadores(grupo_id, id)
