@@ -2588,6 +2588,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.6: Falta pesa mais no Aproveitamento</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>🤝 Compromisso</strong>, cada falta 🚫 nos últimos 90 dias agora tira <strong>5 pontos</strong> do Aproveitamento (antes era 1). Com 2 faltas, o Compromisso zera.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.5: Aproveitamento ponderado</summary>
           <div>
             <p style="line-height:1.6;">O <strong>Aproveitamento</strong> agora junta <strong>🏆 Títulos</strong> (35%), <strong>🥈 Colocação</strong> do time na rodada (25%), <strong>📅 Presença</strong> (30%) e <strong>🤝 Compromisso</strong>, que é não ter falta 🚫 (10%). Toque no número em qualquer cartão de jogador pra ver a tabela com a conta. Quem tem menos de 5 rodadas fica perto do esperado até jogar mais. O gráfico do perfil, que continua medindo só títulos, passou a se chamar "Evolução nos títulos". A ordem do Ranking não mudou.</p>
@@ -3067,7 +3074,7 @@
             <li><strong>🏆 Títulos (35%)</strong>: títulos ÷ rodadas jogadas.</li>
             <li><strong>🥈 Colocação (25%)</strong>: a posição do time em cada rodada pelas vitórias de partida (campeão 100, último 0), em média. Quem fica em 2º também é valorizado.</li>
             <li><strong>📅 Presença (30%)</strong>: datas que jogou ÷ datas de jogo do grupo, contando só a partir da primeira vez dele (quem chegou agora não é punido).</li>
-            <li><strong>🤝 Compromisso (10%)</strong>: começa em 100 e perde 10 por falta 🚫 nos últimos 90 dias.</li>
+            <li><strong>🤝 Compromisso (10%)</strong>: vale 10 pontos do Aproveitamento; cada falta 🚫 nos últimos 90 dias tira 5 (com 2 faltas, zera).</li>
           </ul>
           <p style="line-height:1.6;">Com menos de 5 rodadas, Títulos e Colocação ficam perto do "esperado" (a chance de cair num time campeão e o meio da tabela), pra uma rodada de sorte não virar 100%. No Ranking, o número é o do ano escolhido; nos outros cartões, o de todas as rodadas. A ordem do Ranking não mudou: títulos, depois vitórias de partida.</p>
         </div>
@@ -3110,7 +3117,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.5 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.6 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6967,13 +6974,13 @@ function computeAproveitamentoSeries(stats){
      🏆 Títulos      35%  títulos ÷ rodadas jogadas
      🥈 Colocação    25%  posição do time em cada rodada pelas vitórias de partida (campeão 100, último 0), em média
      📅 Presença     30%  datas que jogou ÷ datas de jogo do grupo DESDE a 1ª vez dele (quem chegou agora não é punido)
-     🤝 Compromisso  10%  100 − 10 por 🚫 falta nos 90 dias até a última data do período
+     🤝 Compromisso  10%  100 − 50 por 🚫 falta nos 90 dias até a última data do período (= −5 no total; 2 faltas zeram)
    Com menos de INDICE_RODADAS_CHEIAS rodadas, Títulos e Colocação são puxados pro "esperado" (títulos: a chance de
    sorteio, 1 ÷ nº de times; colocação: 50), pra 1 rodada com 1 título não virar 100. PURA: recebe as rodadas oficiais
    do período (já sem os faltosos, ver tirarFaltosos) e os check-ins. Testada em tests/indice-aproveitamento.test.js. */
 const INDICE_PESOS = { titulos: 35, colocacao: 25, presenca: 30, compromisso: 10 };
 const INDICE_RODADAS_CHEIAS = 5;
-const INDICE_FALTA_DESCONTA = 10;
+const INDICE_FALTA_DESCONTA = 50; // na nota do Compromisso: com o peso de 10%, cada falta tira 5 pontos do Aproveitamento (v19.6)
 const INDICE_FALTAS_JANELA_DIAS = 90;
 function computeIndice(rodadas, checkins, id){
   let jogos = 0, titulos = 0, somaColoc = 0, somaChance = 0;
@@ -7032,7 +7039,7 @@ function abrirIndice(id, periodo){
       + (ind.poucas ? ` (${Math.round(P.colocacao.real)}, ajustado por poucas rodadas)` : '')],
     ['📅 Presença', P.presenca, INDICE_PESOS.presenca, `jogou ${P.presenca.jogadas} de ${P.presenca.datas} data${P.presenca.datas===1?'':'s'} de jogo desde ${formatDate(P.presenca.desde)}`],
     ['🤝 Compromisso', P.compromisso, INDICE_PESOS.compromisso, P.compromisso.faltas
-      ? `${P.compromisso.faltas} falta${P.compromisso.faltas===1?'':'s'} 🚫 nos ${INDICE_FALTAS_JANELA_DIAS} dias até ${formatDate(P.compromisso.ate)} (−${INDICE_FALTA_DESCONTA} cada)`
+      ? `${P.compromisso.faltas} falta${P.compromisso.faltas===1?'':'s'} 🚫 nos ${INDICE_FALTAS_JANELA_DIAS} dias até ${formatDate(P.compromisso.ate)} (cada uma tira ${INDICE_FALTA_DESCONTA * INDICE_PESOS.compromisso / 100} pontos do Aproveitamento)`
       : `nenhuma falta 🚫 nos ${INDICE_FALTAS_JANELA_DIAS} dias até ${formatDate(P.compromisso.ate)}`]
   ];
   const overlay = document.createElement('div');
