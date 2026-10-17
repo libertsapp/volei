@@ -349,6 +349,10 @@
   .removidos-aviso{color:var(--muted);font-size:12px;margin:0 0 10px;}
   /* faltas (v18.8) */
   .tag-faltou{color:var(--danger);border-color:var(--danger);}
+  .falta-datas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .falta-data{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 4px 2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--chalk-dim);}
+  .falta-data button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:4px 6px;border-radius:999px;}
+  .falta-data button:hover{color:var(--danger);}
   .faltas-linha{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;}
   .faltas-linha input{width:20px;height:20px;accent-color:var(--danger);flex:0 0 auto;}
   .faltas-linha .faltas-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -2287,6 +2291,14 @@
           <div id="sumidos-lista"></div>
         </div>
       </details>
+      <!-- 🚫 Faltas (v18.9): só organizador/admin (renderListaFaltas); começa fechado -->
+      <details class="dash-accordion" id="faltas-sec" style="display:none;margin-bottom:14px;">
+        <summary id="faltas-titulo">🚫 Faltas</summary>
+        <div>
+          <p class="removidos-aviso">Quem confirmou e não apareceu nos últimos 90 dias. Com 2 faltas, o jogador ganha o emblema 🏃 (visível pra todos). Toque no ✕ de uma data pra desfazer uma falta marcada por engano.</p>
+          <div id="faltas-lista"></div>
+        </div>
+      </details>
       <div class="player-list" id="player-list"></div>
       <!-- jogadores removidos que têm jogos: começa fechado; visível (mesmo vazio) só pra quem pode reativar (renderJogadoresRemovidos) -->
       <details class="dash-accordion" id="removidos-sec" style="display:none;margin-top:14px;">
@@ -2544,6 +2556,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v18.9: Consulta de faltas</summary>
+          <div>
+            <p style="line-height:1.6;">Na aba <strong>Jogadores</strong>, organizadores e admins têm a lista <strong>🚫 Faltas</strong>: quem confirmou e não apareceu nos últimos 90 dias, com as datas, quem já está com o emblema 🏃 e quem está a uma falta dele. O <strong>✕</strong> de cada data desfaz uma falta marcada por engano, mesmo depois que o check-in daquele dia já fechou.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>16/10/2026 — v18.8: Faltas (quem confirmou e não apareceu)</summary>
           <div>
             <p style="line-height:1.6;">No <strong>Check-in</strong>, a partir do dia do jogo, organizadores e admins têm o botão <strong>🚫 Faltas</strong> para marcar quem <strong>confirmou e não apareceu</strong>. Tirar o nome da lista <strong>não</strong> conta como falta. Quem leva <strong>2 faltas em 90 dias</strong> ganha o emblema <strong>🏃 Furão</strong>, visível para todos; ele some sozinho quando as faltas ficam mais antigas que 90 dias. Cada jogador vê as próprias faltas no <strong>Meu Perfil</strong>. A falta só pode ser desmarcada por um organizador: tirar o nome da lista depois não apaga a falta.</p>
@@ -2998,7 +3017,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.8 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.9 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -6301,6 +6320,55 @@ function renderSumidos(){
   });
 }
 
+/* ---------- 🚫 Faltas (v18.9) — consulta de organizador/admin ----------
+   Até aqui a falta só aparecia no check-in ABERTO: abrindo a semana seguinte, sumia da vista (e uma falta marcada por
+   engano não tinha mais como ser desfeita). Esta lista mostra as faltas dos últimos 90 dias de qualquer data, e o ✕
+   reenvia a lista de faltas daquele jogo sem a falta desfeita (mesma ação salvarFaltas do check-in). */
+function renderListaFaltas(){
+  const sec = document.getElementById('faltas-sec');
+  if(!sec) return;
+  if(!temPermissao('salvarFaltas')){ sec.style.display = 'none'; return; }
+  const lista = listarFaltas(CHECKINS, hojeLocalIso());
+  sec.style.display = '';
+  document.getElementById('faltas-titulo').textContent = `🚫 Faltas (${lista.length})`;
+  document.getElementById('faltas-lista').innerHTML = lista.length === 0
+    ? '<div class="removido-jogos">Nenhuma falta nos últimos 90 dias. 👏</div>'
+    : lista.map(({ jogadorId, faltas })=>{
+      const p = getPlayer(jogadorId);
+      const nome = p ? nomeComApelidoHtml(p) : escapeHtml((CHECKINS.find(c=> c.jogadorId === jogadorId) || {}).jogadorNome || '?');
+      const situacao = faltas.length >= FALTAS_PARA_EMBLEMA ? ' · <strong style="color:var(--danger);">com emblema 🏃</strong>'
+        : (faltas.length === FALTAS_PARA_EMBLEMA - 1 ? ' · a 1 falta do 🏃' : '');
+      const datas = faltas.map(f=> `<span class="falta-data">${formatDate(f.data)}${f.jogo === 2 ? ' (2º jogo)' : ''}<button type="button" data-desfazer-falta="${escapeHtml(f.id)}" title="Desfazer esta falta" aria-label="Desfazer a falta de ${formatDate(f.data)}">✕</button></span>`).join('');
+      return `
+    <div class="removido-linha">
+      ${p ? avatarHtml(p, 'sm') : ''}
+      <div class="removido-info">
+        <div class="removido-nome">${nome}</div>
+        <div class="removido-jogos">${faltas.length} falta${faltas.length===1?'':'s'}${situacao}</div>
+        <div class="falta-datas">${datas}</div>
+      </div>
+    </div>`;
+    }).join('');
+  document.querySelectorAll('#faltas-lista [data-desfazer-falta]').forEach(btn=>{
+    btn.addEventListener('click', ()=> desfazerFalta(btn.dataset.desfazerFalta));
+  });
+}
+async function desfazerFalta(checkinId){
+  const alvo = CHECKINS.find(c=> c.id === checkinId);
+  if(!alvo) return;
+  const p = getPlayer(alvo.jogadorId);
+  if(!confirm(`Desfazer a falta de ${p ? (p.apelido || p.nome) : (alvo.jogadorNome || 'jogador')} em ${formatDate(alvo.data)}?`)) return;
+  const cred = await requireAuth('salvarFaltas');
+  if(!cred) return;
+  const jogo = Number(alvo.jogo) || 1;
+  const faltaram = CHECKINS.filter(c=> c.data === alvo.data && (Number(c.jogo)||1) === jogo && c.faltou && c.id !== checkinId).map(c=> c.id);
+  const ok = await postAction('salvarFaltas', { data: alvo.data, jogo, faltaram }, cred);
+  if(!ok) return;
+  delete alvo.faltou;
+  mostrarToast('Falta desfeita.', 'sucesso');
+  renderAll(); // o emblema 🏃 pode sumir
+}
+
 function renderJogadoresRemovidos(){
   const sec = document.getElementById('removidos-sec');
   const lista = jogadoresRemovidosComJogos();
@@ -6341,6 +6409,7 @@ async function reativarJogadorRemovido(id){
 function renderPlayers(){
   renderJogadoresRemovidos();
   renderSumidos();
+  renderListaFaltas();
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
     list.innerHTML = '<div class="empty"><i class="ti ti-users"></i>Nenhum jogador cadastrado ainda. Adicione o primeiro acima.</div>';
@@ -6655,6 +6724,20 @@ function computeFaltas(checkins, hojeIso){
     porJogador[c.jogadorId] = (porJogador[c.jogadorId] || 0) + 1;
   });
   return porJogador;
+}
+// lista das faltas na janela, por jogador: [{ jogadorId, faltas:[{ id, data, jogo }] (mais recente primeiro) }],
+// quem tem mais faltas primeiro (empate: a falta mais recente primeiro)
+function listarFaltas(checkins, hojeIso){
+  const porJogador = {};
+  checkins.forEach(c=>{
+    if(!c.faltou || !c.jogadorId) return;
+    const dias = diasEntre(c.data, hojeIso);
+    if(dias < 0 || dias > FALTAS_JANELA_DIAS) return;
+    (porJogador[c.jogadorId] = porJogador[c.jogadorId] || []).push({ id: c.id, data: c.data, jogo: Number(c.jogo) || 1 });
+  });
+  return Object.entries(porJogador)
+    .map(([jogadorId, faltas])=> ({ jogadorId, faltas: faltas.sort((a,b)=> b.data.localeCompare(a.data)) }))
+    .sort((a,b)=> b.faltas.length - a.faltas.length || b.faltas[0].data.localeCompare(a.faltas[0].data));
 }
 // </sumidos-retro>
 

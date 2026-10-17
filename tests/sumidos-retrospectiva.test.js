@@ -7,7 +7,7 @@ const html = fs.readFileSync(process.env.HTML_ARQUIVO || path.join(__dirname, '.
 const ini = html.indexOf('// <sumidos-retro>');
 const fim = html.indexOf('// </sumidos-retro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <sumidos-retro> não encontrado');
-const { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA } = new Function(html.slice(ini, fim) + '; return { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA };')();
+const { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA, listarFaltas } = new Function(html.slice(ini, fim) + '; return { computeSumidos, computeRetrospectiva, computeFaltas, FALTAS_PARA_EMBLEMA, listarFaltas };')();
 
 // 8 terças seguidas de 2026
 const D = ['2026-08-04', '2026-08-11', '2026-08-18', '2026-08-25', '2026-09-01', '2026-09-08', '2026-09-15', '2026-09-22'];
@@ -142,6 +142,28 @@ caso('faltas: data futura (check-in de um jogo que ainda vai acontecer) não con
 });
 caso('faltas: o emblema exige 2 faltas', () => {
   assert.equal(FALTAS_PARA_EMBLEMA, 2);
+});
+
+caso('listarFaltas: por jogador, datas da mais recente, quem tem mais faltas primeiro', () => {
+  const r = listarFaltas([
+    { id: 'a1', jogadorId: 'ana', data: '2026-09-01', faltou: true },
+    { id: 'c1', jogadorId: 'caio', data: '2026-10-13', faltou: true, jogo: 2 },
+    { id: 'a2', jogadorId: 'ana', data: '2026-10-06', faltou: true },
+    { id: 'a3', jogadorId: 'ana', data: '2026-05-01', faltou: true }, // fora dos 90 dias
+    { id: 'b1', jogadorId: 'bia', data: '2026-10-13' }                // sem falta
+  ], '2026-10-16');
+  assert.deepEqual(r, [
+    { jogadorId: 'ana', faltas: [{ id: 'a2', data: '2026-10-06', jogo: 1 }, { id: 'a1', data: '2026-09-01', jogo: 1 }] },
+    { jogadorId: 'caio', faltas: [{ id: 'c1', data: '2026-10-13', jogo: 2 }] }
+  ]);
+});
+caso('listarFaltas: empate no número de faltas desempata pela mais recente', () => {
+  const r = listarFaltas([
+    { id: 'x', jogadorId: 'ana', data: '2026-10-01', faltou: true },
+    { id: 'y', jogadorId: 'bia', data: '2026-10-13', faltou: true }
+  ], '2026-10-16');
+  assert.deepEqual(r.map((x) => x.jogadorId), ['bia', 'ana']);
+  assert.deepEqual(listarFaltas([], '2026-10-16'), []);
 });
 
 console.log(`\n${ok} casos — TODOS OS TESTES PASSARAM`);
