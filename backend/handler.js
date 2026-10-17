@@ -14,6 +14,7 @@ import { uploadPhoto } from './fotos.js';
 import { salvarLogo } from './logo.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin, salvarFaltas } from './checkins.js';
 import { inscreverPush, enviarNotificacao } from './notificacoes.js';
+import { cobrarPagamento, lembreteDoDia } from './avisos-push.js';
 import { salvarJogo2, removerJogo2 } from './jogos2.js';
 import {
   salvarFinDia, marcarPagamento, estornarPagamento, marcarTodosPagamentos, estornarTodosPagamentos,
@@ -119,6 +120,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
         // votação do Craque/Bola Murcha (v19.1): como o check-in, só pede login (qualquer perfil); quem pode votar é decidido
         // lá dentro (precisa ter jogado no dia, pela conta vinculada)
         if (acao === 'votar') return await travar(() => votar(deps, b));
+        // ⏰ lembrete do dia (v19.2): chamado pelo agendador (pg_cron), sem login; só age na janela e uma vez por jogo
+        if (acao === 'lembreteDoDia') return await travar(() => lembreteDoDia(deps));
         if (acao === 'meusVotos') return await meusVotos(deps, b);
 
         // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app). Com login
@@ -155,6 +158,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);
           case 'salvarFaltas': return await travar(() => salvarFaltas(deps, b));
+          case 'cobrarPagamento': return await cobrarPagamento(deps, b);
           // dois jogos no mesmo dia (2026-10-03): b.jogo vindo do app é 1, 2 ou ausente/null — normaliza pra "chave de
           // cobrança" (null = o dia; 1/2 = um jogo) antes de chamar o financeiro
           case 'moverCheckin': return await travar(() => moverCheckin(deps, b, auth));

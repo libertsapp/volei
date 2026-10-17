@@ -64,13 +64,15 @@ export async function enviarNotificacao(deps, msg, auth) {
 // aviso pessoal (v18.7): só para os aparelhos em que a CONTA de cada jogador está logada. O jogador chega à conta
 // pelo vínculo APROVADO (usuarios.jogador_id) — pedido pendente não conta, senão um estranho que pediu o vínculo
 // receberia o aviso do outro. Jogador sem conta, ou conta sem aparelho inscrito, simplesmente não recebe.
+// "alcancados": ids dos jogadores que têm pelo menos um aparelho inscrito com a conta (quem chamou sabe quem NÃO recebeu)
 export async function enviarParaJogadores(deps, jogadorIds, msg) {
   const m = montarPayload(msg);
   const ids = new Set((jogadorIds || []).map(String).filter(Boolean));
-  if (!m || ids.size === 0) return { enviados: 0, removidas: 0, falharam: 0 };
-  const emails = new Set((await deps.repo.lerUsuarios())
+  if (!m || ids.size === 0) return { enviados: 0, removidas: 0, falharam: 0, alcancados: [] };
+  const jogadorDoEmail = new Map((await deps.repo.lerUsuarios())
     .filter((u) => u.jogador_id && ids.has(String(u.jogador_id)))
-    .map((u) => String(u.email || '').toLowerCase()));
-  const inscricoes = (await deps.repo.lerPushInscricoes()).filter((i) => i.email && emails.has(String(i.email).toLowerCase()));
-  return enviarParaInscricoes(deps, inscricoes, m.payload);
+    .map((u) => [String(u.email || '').toLowerCase(), String(u.jogador_id)]));
+  const inscricoes = (await deps.repo.lerPushInscricoes()).filter((i) => i.email && jogadorDoEmail.has(String(i.email).toLowerCase()));
+  const alcancados = [...new Set(inscricoes.map((i) => jogadorDoEmail.get(String(i.email).toLowerCase())))];
+  return { ...(await enviarParaInscricoes(deps, inscricoes, m.payload)), alcancados };
 }

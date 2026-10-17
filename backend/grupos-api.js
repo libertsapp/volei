@@ -135,6 +135,18 @@ export function criarGruposApi({
         const acao = String(b.action || '');
         if (acao === 'verificarApelido') return await verificarApelido(b, contexto);
         if (acao === 'criarGrupo') return await criarGrupo(b, contexto);
+        // ⏰ lembrete do dia (v19.2): o agendador chama UMA vez para todos os grupos. Público como o lembreteDoDia, mas
+        // passa por todos os grupos: limite global de 12 chamadas por hora (o agendador faz 4) para ninguém usar de martelo
+        if (acao === 'lembretesAgendados') {
+          if (!(await cadastro.registrarTentativaGlobal('lembretes', 12, 3600, 3600))) return { error: MSG_MUITAS_CRIACOES };
+          const grupos = await cadastro.listarGruposAtivos();
+          let lembretes = 0;
+          for (const g of grupos) {
+            try { lembretes += (await handlerDo(g).post({ action: 'lembreteDoDia' })).lembretes || 0; }
+            catch (e) { try { avisar('lembrete do grupo ' + g.apelido + ': ' + (e && e.message)); } catch { /* nada */ } }
+          }
+          return { status: 'ok', grupos: grupos.length, lembretes };
+        }
         const r = await resolver(b.grupo || (contexto.consulta && contexto.consulta.g));
         if (r.erro) return r.erro;
         // reativar um removido também aumenta os ativos: sem isso, remover/cadastrar/reativar furava o teto

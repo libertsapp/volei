@@ -23,6 +23,7 @@ export const PERMISSOES = {
   rejeitarVinculo:  ['organizador', 'admin'],
   salvarEstrelasAjustadas: ['organizador', 'admin'],
   salvarFaltas:       ['organizador', 'admin'], // v18.8: quem confirmou e não apareceu
+  cobrarPagamento:    ['organizador', 'admin'], // v19.2: aviso no celular de quem não pagou
   iniciarTransmissaoAoVivo:  ['organizador', 'admin'],
   salvarParcialAoVivo:       ['organizador', 'admin'],
   cancelarTransmissaoAoVivo: ['organizador', 'admin'],

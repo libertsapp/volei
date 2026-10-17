@@ -23,6 +23,7 @@ export function criarCadastroMemoria({ grupos = [], limites = {}, repoLiga, agor
       return repos.get(grupoId);
     },
     async lerGrupoPorApelido(apelido) { const g = lista.find((x) => x.apelido === apelido); return g ? { ...g } : null; },
+    async listarGruposAtivos() { return lista.filter((g) => g.status === 'ativo').map((g) => ({ ...g })); },
     async lerLimites() { return { ...lim }; },
     async apelidoDisponivel(apelido) {
       const a = String(apelido || '').trim().toLowerCase();

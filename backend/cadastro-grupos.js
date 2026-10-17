@@ -27,6 +27,12 @@ export function criarCadastroSupabase(cliente) {
       if (error) throw falha('grupos', error);
       return data && !Array.isArray(data) ? data : null;
     },
+    // lembrete do dia (v19.2): o agendador passa por todos os grupos ativos
+    async listarGruposAtivos() {
+      const { data, error } = await cliente.from('grupos').select('*').eq('status', 'ativo');
+      if (error) throw falha('grupos', error);
+      return data || [];
+    },
     async lerLimites() {
       const { data, error } = await cliente.from('limites').select('*').limit(1).maybeSingle();
       if (error) throw falha('limites', error);

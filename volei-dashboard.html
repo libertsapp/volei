@@ -1400,6 +1400,11 @@
     70%{box-shadow:0 0 0 9px rgba(255,215,0,0);}
     100%{box-shadow:0 0 0 0 rgba(255,215,0,0);}
   }
+  /* v19.2: agenda, adversários e cobrança */
+  .agenda-opcoes{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+  .vs-resultado{font-size:13px;line-height:1.6;color:var(--chalk-dim);margin-top:8px;}
+  .vs-placar{font-family:'Anton',sans-serif;font-size:22px;color:var(--chalk);letter-spacing:.5px;}
+  .cobrar-pendentes-btn{margin:2px 0 10px;}
   /* 🗳️ votação do Craque/Bola Murcha (v19.1) */
   .votacao-card{margin-bottom:14px;padding:14px 16px;border-radius:12px;background:var(--glass-bg);
     border:1px solid var(--ball-yellow);box-shadow:0 0 14px rgba(255,215,0,0.14);font-size:14px;}
@@ -2226,6 +2231,7 @@
       <div class="acoes-linha" style="margin-top:12px;">
         <button class="btn secondary" id="ajustar-estrelas-checkin-btn" style="display:none;">⭐ Ajustar estrelas deste check-in</button>
         <button class="btn secondary" id="marcar-faltas-btn" style="display:none;" title="Marcar quem confirmou e não apareceu">🚫 Faltas</button>
+        <button class="btn secondary" id="agenda-checkin-btn" style="display:none;" title="Salvar o jogo na agenda do celular">📅 Agenda</button>
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
         <span id="share-checkins-whatsapp-area"></span>
       </div>
@@ -2572,6 +2578,16 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.2: Agenda, adversários, cobrança e lembrete do dia</summary>
+          <div>
+            <p style="line-height:1.6;"><strong>📅 Agenda:</strong> no Check-in e nos amistosos marcados, o botão <strong>Agenda</strong> salva o jogo na Google Agenda ou em qualquer outra (arquivo do iPhone/Outlook), com lembrete 2h antes.</p>
+            <p style="line-height:1.6;"><strong>⚔️ Adversários:</strong> no Meu Perfil, o seu <strong>carrasco</strong> (quem mais vezes foi campeão contra você) e o seu <strong>freguês</strong> (contra quem você mais foi campeão), com pelo menos 3 rodadas em times diferentes. E o <strong>Eu × ...</strong>: escolha alguém e veja o placar de vocês dois, contra e juntos.</p>
+            <p style="line-height:1.6;"><strong>📲 Cobrança no celular:</strong> abaixo da lista de confirmados, quem marca pagamento tem o botão <strong>Cobrar pendentes no celular</strong>: quem está confirmado e não pagou recebe "💰 Falta pagar o vôlei", com o valor e o Pix. O app diz quem não tem o app instalado, pra cobrar pelo WhatsApp.</p>
+            <p style="line-height:1.6;"><strong>⏰ Lembrete do dia:</strong> umas 3 horas antes do jogo, quem está na lista recebe "Hoje tem vôlei!". Quem não puder ir tira o nome, e a reserva recebe na hora o aviso de que entrou.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.1: Votação do Craque e do Bola Murcha</summary>
           <div>
             <p style="line-height:1.6;">Quando a rodada do dia é salva, abre a <strong>🗳️ votação do Craque e do Bola Murcha</strong>, por <strong>24 horas</strong>. Vota só <strong>quem jogou naquele dia</strong> (conta Google vinculada ao jogador): um voto pra cada, secreto, sem votar em si mesmo nem na mesma pessoa pros dois. Dá pra mudar o voto até fechar. Num dia com dois jogos, a votação é uma só, com todo mundo que jogou. Quem jogou recebe o aviso no celular.</p>
@@ -3048,7 +3064,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.1 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.2 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3113,6 +3129,7 @@ const PERMISSOES_UI = {
   rejeitarVinculo:    ['organizador','admin'],
   salvarEstrelasAjustadas: ['organizador','admin'],
   salvarFaltas:       ['organizador','admin'], // v18.8
+  cobrarPagamento:    ['organizador','admin'], // v19.2
   salvarFinDia:        ['organizador','admin'],
   marcarPagamento:     ['organizador','admin'],
   estornarPagamento:   ['organizador','admin'], // backend: quem saiu da lista só admin (o botão só aparece pro admin)
@@ -4945,6 +4962,17 @@ async function renderMeuPerfil(){
   const anoRetro = new Date().getFullYear();
   const retro = computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro)
     || computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro - 1);
+  // ⚔️ adversários e "Eu × Fulano" (v19.2)
+  const confrontos = computeConfrontos(roundsOficiais(), AUTH.jogadorId);
+  const adversarios = computeCarrascoFregues(roundsOficiais(), AUTH.jogadorId, 3);
+  const opcoesVs = DATA.players.filter(p=> p.id !== AUTH.jogadorId && confrontos[p.id])
+    .sort((a,b)=> (a.apelido||a.nome).localeCompare(b.apelido||b.nome, 'pt-BR'));
+  const adversarioHtml = (c, rotulo, texto)=>{
+    if(!c) return '';
+    const pj = getPlayer(c.id);
+    if(!pj) return '';
+    return `<div class="profile-partner">${avatarHtml(pj,'sm')} <span><strong>${rotulo}:</strong> ${escapeHtml(pj.apelido||pj.nome)}</span> <span style="margin-left:auto;color:var(--muted);font-size:12px;text-align:right;">${texto(c)}</span></div>`;
+  };
   const parceiroHtml = (par, rotulo)=>{
     if(!par) return '';
     const pj = getPlayer(par.id);
@@ -5026,7 +5054,37 @@ async function renderMeuPerfil(){
       <div class="profile-section-title">Menor aproveitamento jogando junto</div>
       ${parceiroHtml(pior)}
     ` : ''}
+
+    ${adversarios.carrasco || adversarios.fregues ? `
+      <div class="profile-section-title">⚔️ Adversários</div>
+      ${adversarioHtml(adversarios.carrasco, '😈 Seu carrasco', (c)=> `campeão em ${c.derrotas} de ${c.contra} rodadas contra você`)}
+      ${adversarioHtml(adversarios.fregues, '😎 Seu freguês', (c)=> `você foi campeão em ${c.vitorias} de ${c.contra} rodadas contra`)}
+    ` : ''}
+
+    ${opcoesVs.length ? `
+      <div class="profile-section-title">🆚 Eu × ...</div>
+      <select id="meuperfil-vs-select" class="campo-cheio" aria-label="Comparar com outro jogador">
+        <option value="">Escolha alguém pra comparar</option>
+        ${opcoesVs.map(p=> `<option value="${escapeHtml(p.id)}">${escapeHtml(p.apelido || p.nome)}</option>`).join('')}
+      </select>
+      <div id="meuperfil-vs-resultado" class="vs-resultado"></div>
+    ` : ''}
   `;
+
+  const vsSelect = document.getElementById('meuperfil-vs-select');
+  if(vsSelect) vsSelect.addEventListener('change', ()=>{
+    const alvo = document.getElementById('meuperfil-vs-resultado');
+    const c = confrontos[vsSelect.value];
+    const outro = getPlayer(vsSelect.value);
+    if(!c || !outro){ alvo.innerHTML = ''; return; }
+    const nome = escapeHtml(outro.apelido || outro.nome);
+    const semVencedor = c.contra - c.vitorias - c.derrotas;
+    alvo.innerHTML = `
+      ${c.contra ? `<div class="vs-placar">Você ${c.vitorias} × ${c.derrotas} ${nome}</div>
+        <div>Em ${c.contra} rodada${c.contra===1?'':'s'} em times diferentes: você foi campeão em ${c.vitorias}, ${nome} em ${c.derrotas}${semVencedor ? ` e em ${semVencedor} nenhum dos dois (ou os dois)` : ''}.</div>`
+        : `<div>Vocês nunca jogaram em times diferentes.</div>`}
+      <div>Juntos no mesmo time: ${c.juntos} rodada${c.juntos===1?'':'s'}${c.juntos ? `, ${c.titulosJuntos} título${c.titulosJuntos===1?'':'s'} (${Math.round(c.titulosJuntos / c.juntos * 100)}%)` : ''}.</div>`;
+  });
 
   const titulosEl = document.getElementById('meuperfil-titulos-clicavel');
   if(titulosEl) titulosEl.addEventListener('click', ()=>{
@@ -5610,6 +5668,7 @@ function amiCartaoHtml(a){
   if(org && a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo !== LIGA.grupoId) acoes += amiBotao('confirmarPlacar', 'Confirmar placar', a.id) + amiBotao('contestarPlacar', 'Contestar', a.id, { secundario: true });
   if(org && AMI_ATIVOS.indexOf(a.status) > -1) acoes += amiBotao('recado', '💬 Recado', a.id, { secundario: true });
   if(org && (a.status === 'pendente' || a.status === 'marcado')) acoes += amiBotao('cancelar', 'Cancelar', a.id, { secundario: true });
+  if(a.status === 'marcado') acoes += `<button type="button" class="btn secondary" data-agenda-ami="${escapeHtml(a.id)}" title="Salvar o amistoso na agenda do celular">📅 Agenda</button>`;
   const esperandoOutro = a.status === 'pendente' && !nossaVez ? `<div class="ami-info">Esperando ${escapeHtml(adv.nome)} responder</div>` : '';
   const esperandoPlacar = a.status === 'aguardando_confirmacao' && a.placarLancadoPorGrupo === LIGA.grupoId ? `<div class="ami-info">Esperando ${escapeHtml(adv.nome)} confirmar o placar</div>` : '';
   let placar = '';
@@ -9026,6 +9085,63 @@ function renderAll(){
   if(boasVindas) boasVindas.style.display = (GRUPO_ATUAL && temPermissao('addPlayer') && !DATA.players.length) ? '' : 'none';
 }
 
+// <extras-puro>
+/* v19.2 — partes PURAS de 📅 "Adicionar à agenda" e ⚔️ Adversários (testadas em tests/extras-v19-2.test.js). */
+// 📅 horário do jogo em Brasília (-03:00, sem horário de verão desde 2019) -> instante; a agenda recebe em UTC ("Z")
+function inicioDoEvento(data, horario){ return Date.parse(data + 'T' + (horario || '20:00') + ':00-03:00'); }
+function utcCompacto(ms){ return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+function escaparIcs(t){ return String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+// ev: { uid, titulo, data, horario, duracaoMin, local, descricao }
+function gerarIcs(ev, agoraMs){
+  const ini = inicioDoEvento(ev.data, ev.horario), fim = ini + (ev.duracaoMin || 120) * 60000;
+  const linhas = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MemberStars//Volei//PT-BR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'UID:' + ev.uid, 'DTSTAMP:' + utcCompacto(agoraMs), 'DTSTART:' + utcCompacto(ini), 'DTEND:' + utcCompacto(fim),
+    'SUMMARY:' + escaparIcs(ev.titulo)
+  ];
+  if(ev.local) linhas.push('LOCATION:' + escaparIcs(ev.local));
+  if(ev.descricao) linhas.push('DESCRIPTION:' + escaparIcs(ev.descricao));
+  linhas.push('BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + escaparIcs(ev.titulo), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
+  return linhas.join('\r\n') + '\r\n';
+}
+function linkGoogleAgenda(ev){
+  const ini = inicioDoEvento(ev.data, ev.horario), fim = ini + (ev.duracaoMin || 120) * 60000;
+  const q = (k, v)=> '&' + k + '=' + encodeURIComponent(v);
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE' + q('text', ev.titulo) + q('dates', utcCompacto(ini) + '/' + utcCompacto(fim))
+    + (ev.descricao ? q('details', ev.descricao) : '') + (ev.local ? q('location', ev.local) : '');
+}
+
+// ⚔️ por adversário (quem estava em OUTRO time da mesma rodada): rodadas contra, quantas VOCÊ foi campeão e ele não
+// (vitórias) e quantas ELE foi campeão e você não (derrotas); juntos = mesmo time. Rodadas oficiais, histórico todo.
+function computeConfrontos(rodadas, id){
+  const por = {};
+  const de = (pid)=> por[pid] || (por[pid] = { contra:0, vitorias:0, derrotas:0, juntos:0, titulosJuntos:0 });
+  rodadas.forEach(r=>{
+    if(r.rascunho) return;
+    const meu = r.times.findIndex(t=> (t.playerIds||[]).includes(id));
+    if(meu < 0) return;
+    const campeao = (i)=> Array.isArray(r.vencedores) && r.vencedores.includes(i);
+    r.times.forEach((t, i)=> (t.playerIds||[]).forEach(pid=>{
+      if(!pid || pid === id) return;
+      const c = de(pid);
+      if(i === meu){ c.juntos++; if(campeao(meu)) c.titulosJuntos++; return; }
+      c.contra++;
+      if(campeao(meu) && !campeao(i)) c.vitorias++;
+      if(campeao(i) && !campeao(meu)) c.derrotas++;
+    }));
+  });
+  return por;
+}
+// carrasco = quem mais vezes foi campeão contra você (proporcional); freguês = contra quem você mais foi campeão.
+// Só adversários com pelo menos "min" rodadas contra, pra 1 jogo de sorte não virar carrasco
+function computeCarrascoFregues(rodadas, id, min){
+  const lista = Object.entries(computeConfrontos(rodadas, id)).filter(([, c])=> c.contra >= (min || 3))
+    .map(([pid, c])=> ({ id: pid, ...c, pctDerrota: c.derrotas / c.contra, pctVitoria: c.vitorias / c.contra }));
+  const melhor = (campo, qtd)=> lista.filter(x=> x[qtd] > 0).sort((a,b)=> b[campo] - a[campo] || b[qtd] - a[qtd] || b.contra - a.contra)[0] || null;
+  return { carrasco: melhor('pctDerrota', 'derrotas'), fregues: melhor('pctVitoria', 'vitorias') };
+}
+// </extras-puro>
 // <votacao-puro>
 /* Votação do Craque e do Bola Murcha (v19.1) — partes PURAS (testadas em tests/votacao-front.test.js).
    Uma votação por DIA: vale quem jogou qualquer rodada oficial da data. */
@@ -9185,6 +9301,86 @@ function abrirVotacao(v){
   });
 }
 function jaTinhaVotado(meu){ return !!(meu && (meu.craque || meu.murcha)); }
+
+/* ---------- 📅 Adicionar à agenda (v19.2) ----------
+   Duas saídas: Google Agenda (link que abre o evento pronto) e um arquivo .ics (iPhone/Outlook/qualquer agenda abre),
+   com lembrete 2h antes. O jogo dura 2h por padrão (a agenda deixa ajustar). */
+function abrirAgenda(ev){
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <p class="profile-name" style="margin-bottom:4px;">📅 ${escapeHtml(ev.titulo)}</p>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">${formatDate(ev.data)} às ${escapeHtml(ev.horario)}${ev.local ? ' · ' + escapeHtml(ev.local) : ''} · lembrete 2h antes</div>
+      <div class="agenda-opcoes">
+        <button type="button" class="btn" data-acao="google">Google Agenda</button>
+        <button type="button" class="btn secondary" data-acao="ics">Outra agenda (iPhone, Outlook...)</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')){ overlay.remove(); return; }
+    if(e.target.closest('[data-acao="google"]')){ window.open(linkGoogleAgenda(ev), '_blank'); overlay.remove(); return; }
+    if(e.target.closest('[data-acao="ics"]')){
+      const blob = new Blob([gerarIcs(ev, Date.now())], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'volei-' + ev.data + '.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 10000);
+      overlay.remove();
+    }
+  });
+}
+document.getElementById('agenda-checkin-btn').addEventListener('click', ()=>{
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const jogo = jogosDoDia(SETTINGS, CHECKINS, data).find(j=> j.numero === JOGO_ATIVO) || { horario: SETTINGS.checkinHorario || '20:00' };
+  abrirAgenda({ uid: 'checkin-' + data + '-' + JOGO_ATIVO + '@memberstars', titulo: nomeDoApp(), data, horario: jogo.horario,
+    duracaoMin: 120, descricao: 'Lista e check-in: ' + linkDoApp(CTX_GRUPO) });
+});
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-agenda-ami]');
+  if(!b) return;
+  const a = LIGA.amistosos.find(x=> x.id === b.dataset.agendaAmi);
+  if(!a) return;
+  const adv = LIGA.grupos.find(g => g.id === a.adversario) || { nome: a.adversario };
+  abrirAgenda({ uid: 'amistoso-' + a.id + '@memberstars', titulo: 'Amistoso: ' + amiNomeGrupo(LIGA, LIGA.grupoId) + ' × ' + adv.nome,
+    data: a.data, horario: a.horario, duracaoMin: 120, local: a.local || '', descricao: linkDoApp(CTX_GRUPO) });
+});
+
+/* ---------- 📲 Cobrar pendentes no celular (v19.2) ----------
+   Mesma conta da lista de confirmados do check-in (jogo da aba ativa, chave de cobrança atual): quem está dentro das vagas
+   e ainda não tem marca de pagamento. O backend avisa quem tem o app com a conta e devolve quem cobrar à mão. */
+function pendentesParaCobrar(){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return { lista: [], dia: null, data };
+  const jogos = jogosDoDia(SETTINGS, CHECKINS, data);
+  const jAtivo = jogos.find(j => j.numero === JOGO_ATIVO) || jogos[0];
+  const { dentro } = dentroEReservaDoJogo(CHECKINS, data, JOGO_ATIVO, jAtivo.vagas);
+  const chave = chaveFinanceiroAtiva();
+  const view = finViewDaChave(FINANCEIRO, data, chave);
+  const dia = cfgFinDaChave(FINANCEIRO, data, chave);
+  if(!dia || finSemJogo(dia) || !(finCentavos(dia.valorPessoa) > 0)) return { lista: [], dia, data };
+  return { lista: dentro.filter(c=> c.jogadorId && DATA.players.some(p=> p.id === c.jogadorId) && !finMarcas(view, data, c.jogadorId)), dia, data };
+}
+document.addEventListener('click', async (e)=>{
+  if(!e.target.closest('[data-cobrar-pendentes]')) return;
+  const { lista, dia, data } = pendentesParaCobrar();
+  if(!lista.length) return;
+  if(!confirm(`Mandar "💰 Falta pagar o vôlei" pro celular de ${lista.length} pendente(s)?`)) return;
+  const cred = await requireAuth('cobrarPagamento');
+  if(!cred) return;
+  const ok = await postAction('cobrarPagamento', { data, jogadorIds: lista.map(c=> c.jogadorId),
+    valor: finFormatar(finCentavos(dia.valorPessoa)), pix: dia.pix || '' }, cred);
+  if(!ok) return;
+  const r = ULTIMA_RESPOSTA_POST || {};
+  const sem = (r.semAparelho || []).map(id=>{ const p = getPlayer(id); return p ? (p.apelido || p.nome) : '?'; });
+  const n = (r.alcancados || []).length;
+  mostrarToast((n ? `Aviso enviado pra ${n}.` : 'Ninguém da lista tem o app com notificações.')
+    + (sem.length ? ` Sem o app: ${sem.join(', ')} — cobre pelo WhatsApp.` : ''), n ? 'sucesso' : 'erro', sem.length ? 9000 : undefined);
+});
 
 /* ---------- CHECK-IN (livre pra ver, mas só quem logou com Google confirma presença) ---------- */
 // só é usada pra decidir se mostra os botões de confirmar/desconfirmar habilitados —
@@ -9543,6 +9739,9 @@ function renderCheckinOrdenados(){
         + tagOutroHtml(c) + botaoMoverHtml(c, outro ? outro.horario : '') + avisoPendencia + '</li>';
     });
     html += '</ol></div>';
+    // 📲 cobrança pelo celular (v19.2): só quem marca pagamento, e só se tem pendente com cadastro (convidado não tem conta)
+    const aCobrar = podeMarcar && temPermissao('cobrarPagamento') ? pendentesParaCobrar().lista.length : 0;
+    if(aCobrar) html += `<button type="button" class="btn secondary cobrar-pendentes-btn" data-cobrar-pendentes title="Avisa no celular quem está confirmado e ainda não pagou">📲 Cobrar pendentes no celular (${aCobrar})</button>`;
   }
   if(reserva.length){
     html += `<div style="margin:8px 0;"><strong style="font-size:13px;">⏳ Reserva</strong><ol style="margin:6px 0 0;padding-left:22px;font-size:13px;">`;
@@ -10208,6 +10407,7 @@ function renderCheckinList(){
   // sem data aberta não tem em quê ajustar
   document.getElementById('ajustar-estrelas-checkin-btn').style.display =
     (temPermissao('salvarEstrelasAjustadas') && data) ? 'inline-block' : 'none';
+  document.getElementById('agenda-checkin-btn').style.display = data ? 'inline-block' : 'none';
   // faltas (v18.8): só a partir do dia do jogo — antes disso ninguém "faltou" ainda
   document.getElementById('marcar-faltas-btn').style.display =
     (temPermissao('salvarFaltas') && data && data <= hojeLocalIso()) ? 'inline-block' : 'none';
@@ -12089,7 +12289,7 @@ function abrirPopAutorizarNotificacoes(){
   overlay.innerHTML = `
     <div class="password-card">
       <p class="password-title">🔔 Ativar notificações?</p>
-      <p style="margin:0 0 12px;">Avisamos quando o check-in abrir e, se você estiver na reserva, quando abrir vaga pra você — direto no seu celular, sem precisar abrir o app.</p>
+      <p style="margin:0 0 12px;">Avisamos quando o check-in abrir, no dia do jogo e, se você estiver na reserva, quando abrir vaga pra você — direto no seu celular, sem precisar abrir o app.</p>
       <div class="password-actions">
         <button type="button" class="btn" data-acao="ativar">Ativar</button>
         <button type="button" class="btn secondary" data-acao="depois">Agora não</button>

@@ -90,3 +90,64 @@ export async function avisarCheckinAberto(deps) {
     });
   } catch (e) { avisar(deps, 'avisarCheckinAberto', e); }
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 💰 Cobrança pelo celular (v19.2): o organizador toca "Cobrar pendentes" no check-in e o app manda a lista de quem está
+// confirmado sem pagamento (a MESMA conta da tela, que já sabe de dois jogos e financeiro por jogo). Aqui só confere que
+// cada id tem check-in naquela data e manda o aviso pessoal. Devolve quem não tem o app com a conta (cobrar à mão).
+export async function cobrarPagamento(deps, { data, jogadorIds, valor, pix } = {}) {
+  const dia = texto(data);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return { error: 'Data inválida.' };
+  if (!Array.isArray(jogadorIds) || jogadorIds.length === 0) return { error: 'Ninguém para cobrar.' };
+  if (jogadorIds.length > 100) return { error: 'Lista grande demais.' };
+  const noDia = new Set((await deps.repo.lerTudo()).checkins.filter((c) => texto(c.data) === dia).map((c) => texto(c.jogador_id)));
+  const ids = [...new Set(jogadorIds.map(texto))].filter((id) => id && noDia.has(id));
+  if (ids.length === 0) return { error: 'Ninguém dessa lista está no check-in desse dia.' };
+  const { diaSemana, ddmm } = diaEData(dia);
+  const v = texto(valor).trim().slice(0, 20), chave = texto(pix).trim().slice(0, 80);
+  const corpo = 'Vôlei de ' + diaSemana + ' (' + ddmm + ')' + (v ? ': ' + v : '') + '.' + (chave ? ' Pix: ' + chave + '.' : '')
+    + ' Se já pagou, é só avisar o organizador.';
+  const r = await enviarParaJogadores(deps, ids, { titulo: '💰 Falta pagar o vôlei', corpo });
+  return { status: 'ok', alcancados: r.alcancados, semAparelho: ids.filter((id) => !r.alcancados.includes(id)) };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ⏰ "Ainda vai hoje?" (v19.2): um agendador (pg_cron, a cada 15 min) chama esta ação. No dia do check-in aberto, entre
+// LEMBRETE_HORAS_ANTES horas antes do jogo e o horário do jogo, avisa UMA vez quem está dentro das vagas. Quem não puder
+// ir tira o nome e a reserva recebe o "Você entrou na lista!" na hora. Sem login (o agendador não loga): é seguro porque
+// só faz algo dentro da janela e uma vez por jogo (marca "pushLembreteEnviado" ANTES de enviar).
+export const LEMBRETE_HORAS_ANTES = 3;
+const hojeBrasil = (agora) => new Date(agora.getTime() - 3 * 3600000).toISOString().slice(0, 10);
+
+export async function lembreteDoDia(deps) {
+  const t = await deps.repo.lerTudo();
+  const cfg = mapearConfig(t.config);
+  const data = texto(cfg.checkinDataAberta);
+  const agora = deps.relogio();
+  if (!data || hojeBrasil(agora) !== data) return { status: 'ok', lembretes: 0 };
+  const jogos = [{ numero: 1, horario: cfg.checkinHorario }];
+  if (cfg.checkinJogo2 && texto(cfg.checkinJogo2.data) === data) jogos.push({ numero: 2, horario: cfg.checkinJogo2.horario });
+  const marca = (t.config.find((l) => l.chave === 'pushLembreteEnviado') || {}).valor || '';
+  const enviados = new Set(String(marca).split(',').filter((k) => k.startsWith(data + '#'))); // só as marcas de hoje ficam
+  const dentro = dentroPorJogo(t, data);
+  let lembretes = 0;
+  for (const j of jogos) {
+    const inicio = Date.parse(data + 'T' + j.horario + ':00-03:00');
+    if (!Number.isFinite(inicio)) continue;
+    if (agora.getTime() < inicio - LEMBRETE_HORAS_ANTES * 3600000 || agora.getTime() >= inicio) continue;
+    const chave = data + '#' + j.numero;
+    if (enviados.has(chave)) continue;
+    enviados.add(chave);
+    await deps.repo.gravarConfig([{ chave: 'pushLembreteEnviado', valor: [...enviados].join(',') }]);
+    const ids = dentro[j.numero] ? [...dentro[j.numero].ids] : [];
+    if (!ids.length) continue;
+    try {
+      await enviarParaJogadores(deps, ids, {
+        titulo: '⏰ Hoje tem vôlei às ' + j.horario + '!',
+        corpo: 'Você está na lista. Não vai poder ir? Tire seu nome agora pra liberar a vaga pra quem está na reserva.'
+      });
+      lembretes++;
+    } catch (e) { avisar(deps, 'lembreteDoDia', e); }
+  }
+  return { status: 'ok', lembretes };
+}
