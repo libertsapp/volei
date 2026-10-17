@@ -63,6 +63,7 @@ function telaDoHistorico(admin) {
     ${pegar('function formatarNotaTotal(')}
     const dataComHorario = (r) => formatDate(r.data) + (r.horario ? ' · ' + r.horario : '');
     const atualizarAlertaRascunhos = () => {}; // aviso do Início: coberto em alerta-rascunhos.test.js
+    ${pegar('function jogadorDoHistoricoHtml(')} // nome de cada jogador no time (v19.7: removido riscado)
     ${pegar('function renderHistory(')}
     renderHistory();`);
   F(admin, elemento);
