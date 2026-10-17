@@ -440,6 +440,13 @@
   .medal{font-family:'Space Mono',monospace;color:var(--ball-yellow);}
   .ranking-titulos-clicavel{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--muted);}
   .ranking-titulos-clicavel:hover{color:var(--ball-yellow);}
+  .indice-clicavel{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--muted);}
+  .indice-tabela{width:100%;border-collapse:collapse;font-size:13px;}
+  .indice-tabela th{text-align:left;font-size:11px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);}
+  .indice-tabela td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .indice-tabela th:not(:first-child), .indice-tabela td:not(:first-child){text-align:right;white-space:nowrap;}
+  .indice-tabela tfoot td{font-weight:700;font-size:14px;border-bottom:none;}
+  .indice-detalhe{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;}
 
   /* historico */
   .history-item{background:var(--court-navy-2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
@@ -2581,6 +2588,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.5: Aproveitamento ponderado</summary>
+          <div>
+            <p style="line-height:1.6;">O <strong>Aproveitamento</strong> agora junta <strong>🏆 Títulos</strong> (35%), <strong>🥈 Colocação</strong> do time na rodada (25%), <strong>📅 Presença</strong> (30%) e <strong>🤝 Compromisso</strong>, que é não ter falta 🚫 (10%). Toque no número em qualquer cartão de jogador pra ver a tabela com a conta. Quem tem menos de 5 rodadas fica perto do esperado até jogar mais. O gráfico do perfil, que continua medindo só títulos, passou a se chamar "Evolução nos títulos". A ordem do Ranking não mudou.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.4: Votação no clima de resenha</summary>
           <div>
             <p style="line-height:1.6;">A votação de Craque e Bola Murcha agora deixa claro o intuito: <strong>é brincadeira pra descontrair</strong>. O Bola Murcha é zoeira de amigo pra quem não estava num dia inspirado, sem nenhum tom de crítica. A mensagem aparece no cartão do Início, na tela de votar, no resultado, no emblema 🎈 e no aviso do celular.</p>
@@ -3046,9 +3060,23 @@
       </details>
 
       <details class="dash-accordion">
-        <summary>📈 Evolução do aproveitamento — como o gráfico do perfil é calculado</summary>
+        <summary>🎯 Aproveitamento — como a porcentagem é calculada</summary>
         <div>
-          <p style="line-height:1.6;">No perfil de cada jogador, o gráfico de "Evolução do aproveitamento" mostra se o desempenho dele está melhorando, piorando ou estável ao longo do tempo. O cálculo funciona assim:</p>
+          <p style="line-height:1.6;">Desde a v19.5, o Aproveitamento não é só títulos: junta quatro partes, cada uma valendo de 0 a 100, com peso diferente. <strong>Toque no número do Aproveitamento</strong> em qualquer cartão de jogador pra ver a conta dele.</p>
+          <ul style="line-height:1.8;padding-left:20px;">
+            <li><strong>🏆 Títulos (35%)</strong>: títulos ÷ rodadas jogadas.</li>
+            <li><strong>🥈 Colocação (25%)</strong>: a posição do time em cada rodada pelas vitórias de partida (campeão 100, último 0), em média. Quem fica em 2º também é valorizado.</li>
+            <li><strong>📅 Presença (30%)</strong>: datas que jogou ÷ datas de jogo do grupo, contando só a partir da primeira vez dele (quem chegou agora não é punido).</li>
+            <li><strong>🤝 Compromisso (10%)</strong>: começa em 100 e perde 10 por falta 🚫 nos últimos 90 dias.</li>
+          </ul>
+          <p style="line-height:1.6;">Com menos de 5 rodadas, Títulos e Colocação ficam perto do "esperado" (a chance de cair num time campeão e o meio da tabela), pra uma rodada de sorte não virar 100%. No Ranking, o número é o do ano escolhido; nos outros cartões, o de todas as rodadas. A ordem do Ranking não mudou: títulos, depois vitórias de partida.</p>
+        </div>
+      </details>
+
+      <details class="dash-accordion">
+        <summary>📈 Evolução nos títulos — como o gráfico do perfil é calculado</summary>
+        <div>
+          <p style="line-height:1.6;">No perfil de cada jogador, o gráfico de "Evolução nos títulos" mostra se o desempenho dele está melhorando, piorando ou estável ao longo do tempo. O cálculo funciona assim:</p>
           <ol style="line-height:1.8;padding-left:20px;">
             <li>Pra cada rodada que o jogador participou, o sistema olha se o time dele foi o campeão daquele dia (venceu ou não).</li>
             <li>Em vez de mostrar cada rodada isolada (o que deixaria o gráfico "serrilhado" e difícil de ler), é calculada uma <strong>média móvel das últimas 5 rodadas</strong> — ou seja, cada ponto do gráfico representa o aproveitamento considerando aquela rodada e as 4 anteriores.</li>
@@ -3082,7 +3110,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.4 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.5 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -4973,13 +5001,15 @@ async function renderMeuPerfil(){
   const sequenciaAtual = computeSequenciaAtualPresenca(AUTH.jogadorId);
   const minhasFaltas = computeFaltas(CHECKINS, hojeLocalIso())[AUTH.jogadorId] || 0;
   const mediaGrupo = computeMediaAproveitamentoGrupo();
-  const diferencaMedia = mediaGrupo!==null ? (stats.pct - mediaGrupo) : null;
+  const meuIndice = indiceDe(AUTH.jogadorId, 'geral');
+  const diferencaMedia = mediaGrupo!==null && meuIndice ? (meuIndice.valor - mediaGrupo) : null;
   const radarCtx = computeRadarContexto();
   const radarDoJogador = radarCtx.porJogador[AUTH.jogadorId] || null;
   // retrospectiva do ano corrente; no começo do ano (ainda sem rodada), a do ano que acabou
   const anoRetro = new Date().getFullYear();
   const retro = computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro)
     || computeRetrospectiva(roundsOficiais(), DATA.players, AUTH.jogadorId, anoRetro - 1);
+  if(retro){ const indRetro = indiceDe(AUTH.jogadorId, String(retro.ano)); if(indRetro) retro.pct = indRetro.valor; } // v19.5
   // ⚔️ adversários e "Eu × Fulano" (v19.2)
   const confrontos = computeConfrontos(roundsOficiais(), AUTH.jogadorId);
   const adversarios = computeCarrascoFregues(roundsOficiais(), AUTH.jogadorId, 3);
@@ -5047,7 +5077,7 @@ async function renderMeuPerfil(){
       <details class="radar-explica">
         <summary>Como cada eixo é calculado</summary>
         <ul>
-          <li><strong>Aproveitamento:</strong> títulos ÷ rodadas jogadas.</li>
+          <li><strong>Aproveitamento:</strong> títulos, colocação, presença e compromisso juntos (toque no número do cartão pra ver a conta).</li>
           <li><strong>Fase atual:</strong> títulos nas suas últimas 5 rodadas.</li>
           <li><strong>Títulos e Vitórias:</strong> comparado a quem mais tem no grupo (100 = o líder).</li>
           <li><strong>Presença:</strong> rodadas que você jogou ÷ rodadas do grupo.</li>
@@ -5056,7 +5086,7 @@ async function renderMeuPerfil(){
       </details>
     ` : '<div style="color:var(--muted);font-size:12px;margin-bottom:16px;">O radar aparece depois da sua primeira rodada.</div>'}
 
-    <div class="profile-section-title">Evolução do aproveitamento</div>
+    <div class="profile-section-title">Evolução nos títulos</div>
     <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se piorou, cinza se ficou igual.">${renderAproveitamentoChart(serie)}</div>
 
     ${parceiros.length ? `
@@ -6330,7 +6360,10 @@ function jogadorCardHtml(d, opcoes){
     if(m.sequencia != null){
       colunas.push(jcMetricaHtml('ti-flame', 'jc-cor-laranja', 'Sequência', `<span class="jc-valor">${m.sequencia}</span>`));
     }
-    colunas.push(jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', `<span class="jc-valor">${m.pct}%</span>`));
+    // v19.5: aproveitamento ponderado (títulos, colocação, presença, compromisso); o toque abre a tabela da conta
+    colunas.push(jcMetricaHtml('ti-gauge', 'jc-cor-roxo', 'Aproveitamento', m.indicePeriodo
+      ? `<span class="jc-valor indice-clicavel" data-indice-id="${escapeHtml(d.id)}" data-indice-periodo="${escapeHtml(m.indicePeriodo)}" title="Toque para ver como é calculado">${m.pct}%</span>`
+      : `<span class="jc-valor">${m.pct}%</span>`));
     // média de vitórias por partida (ex.: 93 vitórias em 19 partidas = 4,9). Sem "vitorias" (chamador antigo) a coluna não existe.
     if(m.vitorias != null && m.partidas > 0){
       colunas.push(jcMetricaHtml('ti-ball-volleyball', 'jc-cor-verde', 'Vit./partida',
@@ -6380,7 +6413,7 @@ function montarDadosCard(p, ctx, extras){
     temConta: temContaVinculada(p.id),
     emblemasHtml: badgeIconsHtml(p.id, ctx.badges),
     posicao: ctx.posicoes[p.id] || null,                       // sem jogo no ano = sem hexágono
-    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: s.pct, vitorias: s.vitoriasPartidas, sequencia: computeSequenciaAtualPresenca(p.id) } : null,
+    metricas: s.jogos > 0 ? { partidas: s.jogos, titulos: s.titulos, pct: (indiceDe(p.id, 'geral') || { valor: 0 }).valor, indicePeriodo: 'geral', vitorias: s.vitoriasPartidas, sequencia: computeSequenciaAtualPresenca(p.id) } : null,
     estrelas: (ctx.mostrarEstrelas && nota > 0) ? nota : null, // null = oculta pelo admin ou sem nota
     estrelasHtml: (ctx.mostrarEstrelas && nota > 0) ? starsDisplay(p.estrelas) : '',
     ausenciaHtml: '', tagsExtraHtml: '', acoesHtml: ''
@@ -6904,13 +6937,14 @@ function listarFaltas(checkins, hojeIso){
 }
 // </sumidos-retro>
 
-// Média de aproveitamento (títulos/rodadas) entre todos os jogadores que já jogaram
+// Média do aproveitamento (ponderado, v19.5) entre todos os jogadores que já jogaram
 // pelo menos 1 rodada — usada só pra comparação ("você está X pontos acima/abaixo").
 function computeMediaAproveitamentoGrupo(){
+  const rodadas = roundsOficiais();
   const pcts = DATA.players
-    .map(p=> computePlayerAllTimeStats(p.id))
-    .filter(s=> s.jogos > 0)
-    .map(s=> s.pct);
+    .map(p=> computeIndice(rodadas, CHECKINS, p.id)) // aproveitamento ponderado (v19.5)
+    .filter(Boolean)
+    .map(x=> x.valor);
   if(pcts.length === 0) return null;
   const soma = pcts.reduce((a,b)=>a+b, 0);
   return Math.round(soma / pcts.length);
@@ -6927,6 +6961,108 @@ function computeAproveitamentoSeries(stats){
     return { data: r.data, pct: Math.round((vitorias / recorte.length) * 100) };
   });
 }
+
+// <indice-puro>
+/* APROVEITAMENTO ponderado (v19.5, pedido do grupo). Antes era só títulos ÷ rodadas; agora junta 4 partes (0 a 100):
+     🏆 Títulos      35%  títulos ÷ rodadas jogadas
+     🥈 Colocação    25%  posição do time em cada rodada pelas vitórias de partida (campeão 100, último 0), em média
+     📅 Presença     30%  datas que jogou ÷ datas de jogo do grupo DESDE a 1ª vez dele (quem chegou agora não é punido)
+     🤝 Compromisso  10%  100 − 10 por 🚫 falta nos 90 dias até a última data do período
+   Com menos de INDICE_RODADAS_CHEIAS rodadas, Títulos e Colocação são puxados pro "esperado" (títulos: a chance de
+   sorteio, 1 ÷ nº de times; colocação: 50), pra 1 rodada com 1 título não virar 100. PURA: recebe as rodadas oficiais
+   do período (já sem os faltosos, ver tirarFaltosos) e os check-ins. Testada em tests/indice-aproveitamento.test.js. */
+const INDICE_PESOS = { titulos: 35, colocacao: 25, presenca: 30, compromisso: 10 };
+const INDICE_RODADAS_CHEIAS = 5;
+const INDICE_FALTA_DESCONTA = 10;
+const INDICE_FALTAS_JANELA_DIAS = 90;
+function computeIndice(rodadas, checkins, id){
+  let jogos = 0, titulos = 0, somaColoc = 0, somaChance = 0;
+  const datasDele = new Set(), datasGrupo = new Set();
+  rodadas.forEach(r=>{
+    datasGrupo.add(r.data);
+    const n = r.times.length;
+    r.times.forEach((t, idx)=>{
+      if(!(t.playerIds||[]).includes(id)) return;
+      jogos++;
+      datasDele.add(r.data);
+      const campeao = Array.isArray(r.vencedores) && r.vencedores.includes(idx);
+      if(campeao) titulos++;
+      const acima = r.times.filter(o=> (o.vitorias||0) > (t.vitorias||0)).length;
+      somaColoc += (campeao || n < 2) ? 100 : 100 * (1 - acima / (n - 1));
+      somaChance += n > 0 ? 100 / n : 100;
+    });
+  });
+  if(!jogos) return null;
+  const peso = Math.min(jogos, INDICE_RODADAS_CHEIAS) / INDICE_RODADAS_CHEIAS;
+  const suaviza = (real, esperado)=> peso * real + (1 - peso) * esperado;
+  const titulosReal = 100 * titulos / jogos, colocReal = somaColoc / jogos;
+  const desde = [...datasDele].sort()[0];
+  const datasDesde = [...datasGrupo].filter(d=> d >= desde).length;
+  const ate = [...datasGrupo].sort().pop();
+  const inicioJanela = new Date(Date.parse(ate + 'T12:00:00Z') - INDICE_FALTAS_JANELA_DIAS * 86400000).toISOString().slice(0, 10);
+  const faltas = (checkins||[]).filter(c=> c.faltou && c.jogadorId === id && c.data > inicioJanela && c.data <= ate).length;
+  const partes = {
+    titulos: { valor: suaviza(titulosReal, somaChance / jogos), real: titulosReal, titulos, jogos },
+    colocacao: { valor: suaviza(colocReal, 50), real: colocReal, jogos },
+    presenca: { valor: 100 * datasDele.size / datasDesde, jogadas: datasDele.size, datas: datasDesde, desde },
+    compromisso: { valor: Math.max(0, 100 - INDICE_FALTA_DESCONTA * faltas), faltas, ate }
+  };
+  let total = 0;
+  Object.keys(INDICE_PESOS).forEach(k=>{ partes[k].pontos = partes[k].valor * INDICE_PESOS[k] / 100; total += partes[k].pontos; });
+  return { valor: Math.round(total), jogos, poucas: jogos < INDICE_RODADAS_CHEIAS, partes };
+}
+// </indice-puro>
+
+// periodo: 'geral' ou o ano ('2026')
+function indiceDe(id, periodo){
+  const rodadas = roundsOficiais();
+  return computeIndice(periodo && periodo !== 'geral' ? rodadas.filter(r=> getYearOf(r.data) === periodo) : rodadas, CHECKINS, id);
+}
+
+function abrirIndice(id, periodo){
+  const p = getPlayer(id);
+  const ind = indiceDe(id, periodo);
+  if(!p || !ind) return;
+  const fmt = (v)=> (Math.round(v * 10) / 10).toLocaleString('pt-BR');
+  const P = ind.partes;
+  const linhas = [
+    ['🏆 Títulos', P.titulos, INDICE_PESOS.titulos, `${P.titulos.titulos} título${P.titulos.titulos===1?'':'s'} em ${P.titulos.jogos} rodada${P.titulos.jogos===1?'':'s'}`
+      + (ind.poucas ? ` (${Math.round(P.titulos.real)}%, ajustado por poucas rodadas)` : '')],
+    ['🥈 Colocação', P.colocacao, INDICE_PESOS.colocacao, 'posição do time em cada rodada (campeão 100, último 0)'
+      + (ind.poucas ? ` (${Math.round(P.colocacao.real)}, ajustado por poucas rodadas)` : '')],
+    ['📅 Presença', P.presenca, INDICE_PESOS.presenca, `jogou ${P.presenca.jogadas} de ${P.presenca.datas} data${P.presenca.datas===1?'':'s'} de jogo desde ${formatDate(P.presenca.desde)}`],
+    ['🤝 Compromisso', P.compromisso, INDICE_PESOS.compromisso, P.compromisso.faltas
+      ? `${P.compromisso.faltas} falta${P.compromisso.faltas===1?'':'s'} 🚫 nos ${INDICE_FALTAS_JANELA_DIAS} dias até ${formatDate(P.compromisso.ate)} (−${INDICE_FALTA_DESCONTA} cada)`
+      : `nenhuma falta 🚫 nos ${INDICE_FALTAS_JANELA_DIAS} dias até ${formatDate(P.compromisso.ate)}`]
+  ];
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <p class="profile-name" style="margin-bottom:4px;">Aproveitamento: ${ind.valor}%</p>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">${escapeHtml(p.apelido || p.nome)} · ${periodo && periodo !== 'geral' ? 'ano de ' + escapeHtml(periodo) : 'todas as rodadas'}${ind.poucas ? ' · poucas rodadas ainda' : ''}</div>
+      <table class="indice-tabela">
+        <thead><tr><th>Parte</th><th>Nota</th><th>Peso</th><th>Pontos</th></tr></thead>
+        <tbody>${linhas.map(([nome, parte, peso, detalhe])=>`
+          <tr><td><strong>${nome}</strong><div class="indice-detalhe">${detalhe}</div></td>
+            <td>${Math.round(parte.valor)}</td><td>${peso}%</td><td>${fmt(parte.pontos)}</td></tr>`).join('')}
+        </tbody>
+        <tfoot><tr><td colspan="3">Aproveitamento</td><td>${ind.valor}%</td></tr></tfoot>
+      </table>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;">Pontos = nota × peso. Rodada em que levou 🚫 falta não conta. Com menos de ${INDICE_RODADAS_CHEIAS} rodadas, Títulos e Colocação ficam perto do esperado até o jogador ter mais jogos.</p>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) overlay.remove(); });
+}
+// o número do Aproveitamento nos cartões abre a tabela (captura: não deixa o toque abrir/fechar o cartão por baixo)
+document.addEventListener('click', (e)=>{
+  const el = e.target.closest && e.target.closest('[data-indice-id]');
+  if(!el) return;
+  e.stopPropagation();
+  e.preventDefault();
+  abrirIndice(el.dataset.indiceId, el.dataset.indicePeriodo);
+}, true);
 
 // <radar-puro>
 const RADAR_EIXOS = ['Aproveitamento', 'Fase atual', 'Títulos', 'Vitórias', 'Presença', 'Sequência'];
@@ -6992,8 +7128,9 @@ function radarSvg(valores, media){
 
 // Reúne os números de todos os jogadores que já jogaram e devolve o radar de cada um + a média do grupo.
 function computeRadarContexto(){
+  const rodadasRadar = roundsOficiais();
   const ativos = DATA.players
-    .map(p=> ({ id: p.id, s: computePlayerAllTimeStats(p.id), sequencia: computeSequenciaAtualPresenca(p.id) }))
+    .map(p=> ({ id: p.id, s: computePlayerAllTimeStats(p.id), sequencia: computeSequenciaAtualPresenca(p.id), indice: computeIndice(rodadasRadar, CHECKINS, p.id) }))
     .filter(x=> x.s.jogos > 0);
   const g = {
     maxTitulos: Math.max(0, ...ativos.map(x=> x.s.titulos)),
@@ -7004,7 +7141,7 @@ function computeRadarContexto(){
   const porJogador = {};
   ativos.forEach(x=>{
     porJogador[x.id] = radarValores({
-      pct: x.s.pct, fase: faseAtualPct(x.s.rounds), titulos: x.s.titulos,
+      pct: x.indice ? x.indice.valor : 0, fase: faseAtualPct(x.s.rounds), titulos: x.s.titulos,
       vitorias: x.s.vitoriasPartidas, jogos: x.s.jogos, sequencia: x.sequencia
     }, g);
   });
@@ -7037,7 +7174,7 @@ function renderAproveitamentoChart(pontos){
       ${coords.map(c=>`<circle cx="${c[0]}" cy="${c[1]}" r="3" fill="${cor}"/>`).join('')}
     </svg>
     <div style="text-align:center;font-size:13px;color:${cor};font-weight:700;margin-top:2px;">${textoTendencia}</div>
-    <div style="text-align:center;font-size:11px;color:var(--muted);">de ${base}% (${rotuloBase}) pra ${ultimo}% (agora) de aproveitamento — média móvel de 5 rodadas</div>
+    <div style="text-align:center;font-size:11px;color:var(--muted);">de ${base}% (${rotuloBase}) pra ${ultimo}% (agora) de títulos por rodada — média móvel de 5 rodadas</div>
   `;
 }
 
@@ -7065,7 +7202,7 @@ function openPlayerProfile(id){
       <div class="profile-stats-grid" style="grid-template-columns:1fr;">
         <div class="profile-stat"><div class="profile-stat-num">${stats.vitoriasPartidas}</div><div class="profile-stat-cap"><span class="label-destacado chart-tooltip-trigger" title="Pontos acumulados pela soma de todas as partidas vencidas em cada rodada — mesmo que o time não tenha sido o campeão daquela rodada.">Vitórias</span></div></div>
       </div>
-      <div class="profile-section-title">Evolução do aproveitamento</div>
+      <div class="profile-section-title">Evolução nos títulos</div>
       <div class="profile-chart-wrap chart-tooltip-trigger" title="Cada ponto do gráfico é a média das últimas 5 rodadas (não uma rodada isolada) — isso suaviza altos e baixos pontuais. A tendência compara o ponto de agora com o da antepenúltima rodada: verde se melhorou, vermelho se piorou, cinza se ficou igual.">${renderAproveitamentoChart(serieAproveitamento)}</div>
       ${parceiros.length ? `
         <div class="profile-section-title">Jogadores que mais jogou junto</div>
@@ -8649,7 +8786,8 @@ function animarContador(el, alvo, sufixo){
 function computeRanking(year){
   const stats = {};
   DATA.players.forEach(p=>{ stats[p.id] = { id:p.id, nome:p.nome, apelido:p.apelido, foto:p.foto, jogos:0, titulos:0, vitoriasPartidas:0, datasCampeao:[] }; });
-  roundsOficiais().filter(r=> getYearOf(r.data)===year).forEach(r=>{
+  const doAno = roundsOficiais().filter(r=> getYearOf(r.data)===year);
+  doAno.forEach(r=>{
     r.times.forEach((team, idx)=>{
       const isWinner = souCampeao(r, idx);
       team.playerIds.forEach(pid=>{
@@ -8662,8 +8800,9 @@ function computeRanking(year){
   });
   return Object.values(stats)
     .filter(s=>s.jogos>0)
-    .map(s=>({...s, pct: Math.round((s.titulos/s.jogos)*100)}))
-    .sort((a,b)=> b.titulos - a.titulos || b.vitoriasPartidas - a.vitoriasPartidas || b.pct - a.pct);
+    // pct = aproveitamento ponderado do ano (v19.5); taxa = títulos ÷ rodadas, só o 3º critério de desempate
+    .map(s=>({...s, ano: String(year), taxa: Math.round((s.titulos/s.jogos)*100), pct: (computeIndice(doAno, CHECKINS, s.id) || { valor: 0 }).valor}))
+    .sort((a,b)=> b.titulos - a.titulos || b.vitoriasPartidas - a.vitoriasPartidas || b.taxa - a.taxa);
 }
 
 function abrirDatasCampeao(nome, datas){
@@ -8880,7 +9019,7 @@ function rankingCartoesHtml(rows){
     const p = getPlayer(r.id);
     if(!p) return '';
     return cartaoDaTela('ranking', p, ctx,
-      { posicao: i + 1, metricas: { partidas: r.jogos, titulos: r.titulos, pct: r.pct, vitorias: r.vitoriasPartidas } },
+      { posicao: i + 1, metricas: { partidas: r.jogos, titulos: r.titulos, pct: r.pct, indicePeriodo: r.ano, vitorias: r.vitoriasPartidas } },
       { aberto: true, tituloAtributos: `data-ranking-titulos="${r.id}"` });
   }).join('')}</div>`;
 }
