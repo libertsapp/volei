@@ -124,6 +124,28 @@ export function criarRepoSupabase(cliente, { esperar = esperarDeVerdade } = {}) 
       const { error } = await cliente.from('push_inscricoes').delete().eq('endpoint', endpoint);
       if (error) throw new Error('push_inscricoes: ' + error.message);
     },
+    // votação do Craque/Bola Murcha (ajuste 17): fora de TABELAS — tabela ausente derruba só a votação, nunca o GET
+    async lerVotacoes() {
+      return comNovasTentativas(async () => {
+        const [v, o] = await Promise.all([cliente.from('votacoes').select('*'), cliente.from('votos').select('*')]);
+        if (v.error) throw new Error('votacoes: ' + v.error.message);
+        if (o.error) throw new Error('votos: ' + o.error.message);
+        return { votacoes: v.data, votos: o.data };
+      }, esperar);
+    },
+    async criarVotacao(linha) {
+      const { data, error } = await cliente.from('votacoes').upsert(linha, { onConflict: 'data', ignoreDuplicates: true }).select('data');
+      if (error) throw new Error('votacoes: ' + error.message);
+      return (data || []).length > 0;
+    },
+    async gravarVoto(linha) {
+      const { error } = await cliente.from('votos').upsert(linha, { onConflict: 'data,categoria,eleitor_jogador_id' });
+      if (error) throw new Error('votos: ' + error.message);
+    },
+    async removerVoto(data, categoria, eleitorJogadorId) {
+      const { error } = await cliente.from('votos').delete().eq('data', data).eq('categoria', categoria).eq('eleitor_jogador_id', eleitorJogadorId);
+      if (error) throw new Error('votos: ' + error.message);
+    },
     async inserirJogador(linha) {
       const { error } = await cliente.from('jogadores').insert(linha);
       if (error) throw new Error('jogadores: ' + error.message);

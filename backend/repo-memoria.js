@@ -17,6 +17,9 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
   const tentativas = new Map(); // chave -> { tentativas, bloqueadoAte, atualizado } (no banco é a tabela "limite_tentativas", ajuste 7)
   let sessoes = []; // tabela "sessoes" (ajuste 8): fora de TABELAS de propósito, o lerTudo (GET público) não a lê
   let pushInscricoes = (dados.push_inscricoes || []).map((l) => ({ ...l })); // "push_inscricoes" (ajuste 11): mesma ideia — fora do GET geral
+  // votação do Craque/Bola Murcha (ajuste 17): fora de TABELAS — o GET lê à parte e engole a falta das tabelas
+  const votacoes = (dados.votacoes || []).map((l) => ({ ...l }));
+  let votos = (dados.votos || []).map((l) => ({ ...l }));
   const tabelas = {};
   for (const nome of TABELAS) tabelas[nome] = (dados[nome] || []).map((linha) => ({ ...linha }));
 
@@ -74,6 +77,22 @@ export function criarRepoMemoria(dados = {}, opcoes = {}) {
       else pushInscricoes[i] = { ...pushInscricoes[i], ...linha };
     },
     async removerPushInscricao(endpoint) { pushInscricoes = pushInscricoes.filter((x) => x.endpoint !== endpoint); },
+    // votação (ajuste 17)
+    async lerVotacoes() { return { votacoes: structuredClone(votacoes), votos: structuredClone(votos) }; },
+    // cria a votação do dia se ainda não existe; devolve true só quando criou (quem chegou depois não reabre nem reavisa)
+    async criarVotacao(linha) {
+      if (votacoes.some((v) => v.data === linha.data)) return false;
+      votacoes.push({ ...linha });
+      return true;
+    },
+    // um voto por jogador em cada categoria do dia: votar de novo troca o voto
+    async gravarVoto(linha) {
+      votos = votos.filter((v) => !(v.data === linha.data && v.categoria === linha.categoria && v.eleitor_jogador_id === linha.eleitor_jogador_id));
+      votos.push({ ...linha });
+    },
+    async removerVoto(data, categoria, eleitorJogadorId) {
+      votos = votos.filter((v) => !(v.data === data && v.categoria === categoria && v.eleitor_jogador_id === eleitorJogadorId));
+    },
 
     async inserirJogador(linha) {
       if (tabelas.jogadores.some((j) => j.id === linha.id)) {

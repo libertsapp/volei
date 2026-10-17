@@ -4,6 +4,7 @@
 // editada vai para o FIM da lista (como no .gs, que apaga as linhas e insere de novo no fim).
 import { texto } from './mapeadores.js';
 import { coletarConvidados } from './convidados.js';
+import { abrirVotacaoSeFaltar } from './votacao.js';
 
 const NAO_ACHOU = 'Rodada não encontrada (pode já ter sido removida por outra pessoa).';
 
@@ -28,17 +29,20 @@ function montar(r) {
   };
 }
 
-// no .gs uma rodada sem times não deixa nenhuma linha na aba
-export async function addRound({ repo }, r) {
+// no .gs uma rodada sem times não deixa nenhuma linha na aba. Rodada OFICIAL (não rascunho) salva abre a votação do
+// Craque/Bola Murcha do dia (v19.1), se ainda não existe — salvar de novo ou o 2º jogo do dia não reabre nem reavisa
+export async function addRound(deps, r) {
   const rodada = montar(r || {});
-  if (rodada.times.length) await repo.gravarRodada(rodada);
+  if (rodada.times.length) await deps.repo.gravarRodada(rodada);
+  if (rodada.times.length && !rodada.rascunho) await abrirVotacaoSeFaltar(deps, rodada.data);
   return { status: 'ok' };
 }
 
-export async function updateRound({ repo }, r) {
+export async function updateRound(deps, r) {
   const rodada = montar(r || {});
-  if (rodada.times.length) await repo.gravarRodada(rodada);
-  else await repo.removerRodada(rodada.id);
+  if (rodada.times.length) await deps.repo.gravarRodada(rodada);
+  else await deps.repo.removerRodada(rodada.id);
+  if (rodada.times.length && !rodada.rascunho) await abrirVotacaoSeFaltar(deps, rodada.data);
   return { status: 'ok' };
 }
 

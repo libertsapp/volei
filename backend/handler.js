@@ -27,6 +27,7 @@ import {
   lancarPlacar, confirmarPlacar, contestarPlacar
 } from './amistosos.js';
 import { comTrava } from './trava.js';
+import { lerBlocoVotacao, votar, meusVotos } from './votacao.js';
 import { ErroDeNegocio, MSG_ERRO_INTERNO } from './erros.js';
 
 const naoDisponivel = (acao) => ({ error: 'Esta ação ainda não está disponível na versão Supabase (' + acao + ').' });
@@ -63,6 +64,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
       try {
         // o bloco da liga nunca lança (schema ausente = bloco vazio), então pode correr em paralelo sem risco
         const [t, liga] = await Promise.all([repo.lerTudo(), lerBlocoLiga(deps)]);
+        const votacoes = await lerBlocoVotacao(deps, t); // nunca lança: tabela ausente = lista vazia
         return {
           players: mapearJogadores(t.jogadores),
           removidos: mapearJogadoresRemovidos(t.jogadores), // arquivados: a aba Jogadores lista pra reativar; o resto do app ignora
@@ -72,7 +74,8 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           perfisPublicos: mapearPerfisPublicos(t.usuarios),
           aoVivo: mapearAoVivo(t.ao_vivo, t.ao_vivo_log),
           financeiro: mapearFinanceiro(t),
-          liga
+          liga,
+          votacoes // Craque/Bola Murcha (v19.1): sem quem votou em quem; resultado só depois que fecha
         };
       } catch (erro) {
         return falhaInesperada(erro);
@@ -112,6 +115,11 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           if (!token.ok) return { error: token.erro };
           return await travar(() => (acao === 'entrarAmistoso' ? entrarAmistoso(deps, b) : sairAmistoso(deps, b)));
         }
+
+        // votação do Craque/Bola Murcha (v19.1): como o check-in, só pede login (qualquer perfil); quem pode votar é decidido
+        // lá dentro (precisa ter jogado no dia, pela conta vinculada)
+        if (acao === 'votar') return await travar(() => votar(deps, b));
+        if (acao === 'meusVotos') return await meusVotos(deps, b);
 
         // inscrição de notificação push: igual ao check-in, livre, sem login (qualquer um que instalou o app). Com login
         // (sessão ou token), a inscrição fica ligada à conta para o aviso pessoal "você entrou na lista" (v18.7); login

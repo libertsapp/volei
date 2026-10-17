@@ -26,7 +26,7 @@ t('cada tabela que o repositório usa (mais travas e limites) existe em grupos, 
     assert.match(tabelasDoSql[tabela], /grupo_id uuid not null references grupos\(id\) on delete cascade/, tabela);
     assert.match(sql, new RegExp('alter table ' + tabela + ' enable row level security;'), tabela + ' sem RLS');
   }
-  assert.equal(tabelasDoRepo.length + INFRA.length, 20);
+  assert.equal(tabelasDoRepo.length + INFRA.length, 22); // +votacoes e votos (Craque/Bola Murcha, v19.1)
 });
 
 t('cada função do banco que o repositório chama existe com p_grupo_id como 1º parâmetro e fica só com a service_role', () => {
@@ -43,6 +43,8 @@ t('chaves primárias começam por grupo_id (e casam com os onConflict do reposit
   assert.equal(pk('jogadores'), 'grupo_id, id');
   assert.equal(pk('rodadas'), 'grupo_id, round_id');
   assert.equal(pk('checkins'), 'grupo_id, id');
+  assert.equal(pk('votacoes'), 'grupo_id, data');
+  assert.equal(pk('votos'), 'grupo_id, data, categoria, eleitor_jogador_id');
   assert.equal(pk('usuarios'), 'grupo_id, email');
   assert.equal(pk('config'), 'grupo_id, chave');
   assert.equal(pk('fin_dias'), 'grupo_id, data');

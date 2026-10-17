@@ -2,7 +2,8 @@
 // real não tem esse conceito, então as comparações byte a byte com ele (paridade-*.test.mjs) precisam ignorar esses
 // campos, em qualquer profundidade do objeto — eles aparecem dentro de arrays (checkins[], pagamentos[], creditos[]).
 // 'liga': bloco dos amistosos entre grupos (2026-10-12), só existe no backend novo (schema "liga")
-const CAMPOS_NOVOS = new Set(['jogo', 'porJogo', 'jogoOrigem', 'jogos', 'checkinJogo2', 'horario', 'liga']);
+// 'votacoes': Craque/Bola Murcha (v19.1), só existe no backend novo
+const CAMPOS_NOVOS = new Set(['jogo', 'porJogo', 'jogoOrigem', 'jogos', 'checkinJogo2', 'horario', 'liga', 'votacoes']);
 
 export function semCamposNovos(valor) {
   if (Array.isArray(valor)) return valor.map(semCamposNovos);

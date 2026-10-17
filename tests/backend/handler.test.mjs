@@ -6,10 +6,12 @@ import { criarHandler } from '../../backend/handler.js';
 
 const handler = () => criarHandler({ repo: criarRepoMemoria(fixture) });
 
-await ta('get: devolve as 9 chaves do contrato', async () => {
+await ta('get: devolve as 10 chaves do contrato', async () => {
   const r = await handler().get();
   // "liga" (amistosos entre grupos, 2026-10-12): sem liga injetada vem o bloco vazio, nunca ausente
-  assert.deepEqual(Object.keys(r).sort(), ['aoVivo', 'checkins', 'financeiro', 'liga', 'perfisPublicos', 'players', 'removidos', 'rounds', 'settings']);
+  // "votacoes" (Craque/Bola Murcha, v19.1): lista, vazia quando não há votação (ou as tabelas não existem)
+  assert.deepEqual(Object.keys(r).sort(), ['aoVivo', 'checkins', 'financeiro', 'liga', 'perfisPublicos', 'players', 'removidos', 'rounds', 'settings', 'votacoes']);
+  assert.deepEqual(r.votacoes, []);
   assert.equal(r.players.length, 2);
   assert.deepEqual(r.removidos, []); // a fixture não tem ninguém arquivado
   assert.equal(r.rounds.length, 2);

@@ -155,6 +155,26 @@ create table sessoes (
 );
 create index if not exists sessoes_grupo_email_idx on sessoes (grupo_id, email);
 
+-- votação do Craque e do Bola Murcha (v19.1): uma por dia de jogo, votos secretos
+create table votacoes (
+  grupo_id uuid not null references grupos(id) on delete cascade,
+  data date not null,
+  abre_em timestamptz not null,
+  fecha_em timestamptz not null,
+  primary key (grupo_id, data)
+);
+create table votos (
+  grupo_id uuid not null references grupos(id) on delete cascade,
+  data date not null,
+  categoria text not null check (categoria in ('craque', 'murcha')),
+  eleitor_jogador_id text not null,
+  eleitor_email text not null,
+  votado_id text not null,
+  criado_em timestamptz not null default now(),
+  primary key (grupo_id, data, categoria, eleitor_jogador_id),
+  foreign key (grupo_id, data) references votacoes(grupo_id, data) on delete cascade
+);
+
 create table push_inscricoes (
   grupo_id uuid not null references grupos(id) on delete cascade,
   id text not null,
@@ -356,6 +376,8 @@ alter table usuarios enable row level security;
 alter table config enable row level security;
 alter table sessoes enable row level security;
 alter table push_inscricoes enable row level security;
+alter table votacoes enable row level security;
+alter table votos enable row level security;
 alter table fin_dias enable row level security;
 alter table fin_pagamentos enable row level security;
 alter table fin_creditos enable row level security;

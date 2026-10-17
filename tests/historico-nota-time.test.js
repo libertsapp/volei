@@ -51,6 +51,7 @@ function telaDoHistorico(admin) {
       { id: 'r2', data: '2026-10-06', rascunho: true, vencedores: [], times: [{ nome: 'Rascunho A', vitorias: 0, playerIds: ['d'] }] }
     ], aoVivo: { rounds: [] } };
     const CHECKINS = [];
+    const VOTACOES = []; // votação do dia (v19.1): coberta em tests/votacao-front.test.js
     const jogadores = { a: { id: 'a', nome: 'A', estrelas: 4 }, b: { id: 'b', nome: 'B', estrelas: 3.5 }, c: { id: 'c', nome: 'C', estrelas: 0 }, d: { id: 'd', nome: 'D', estrelas: 5 } };
     const getPlayer = (id) => jogadores[id];
     const roundsOficiais = () => DATA.rounds.filter((r) => !r.rascunho);
