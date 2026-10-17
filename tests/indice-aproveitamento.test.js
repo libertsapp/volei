@@ -62,7 +62,8 @@ caso('exemplo da proposta: Ana ~58 e Bia ~57', () => {
   assert.equal(ana.partes.titulos.titulos, 6);
   assert.equal(ana.partes.presenca.jogadas, 20);
   assert.equal(ana.partes.compromisso.faltas, 1);
-  perto(ana.partes.compromisso.valor, 90, 'compromisso');
+  perto(ana.partes.compromisso.valor, 50, 'compromisso'); // v19.6: −50 na nota = −5 no Aproveitamento
+  perto(ana.partes.compromisso.pontos, 5, 'compromisso em pontos');
   const bia = computeIndice(rodadas, [], 'bia');
   assert.equal(bia.partes.titulos.titulos, 3);
   assert.equal(bia.partes.presenca.jogadas, 5);
@@ -91,6 +92,7 @@ caso('compromisso: só faltas nos 90 dias até a última data do período; míni
   const outra = { data: data(18), jogadorId: 'b', faltou: true };  // de outro jogador
   const naoFaltou = { data: data(18), jogadorId: 'a' };
   assert.equal(computeIndice(rodadas, [velha, outra, naoFaltou], 'a').partes.compromisso.faltas, 0);
+  perto(computeIndice(rodadas, [{ data: data(19), jogadorId: 'a', faltou: true }, { data: data(18), jogadorId: 'a', faltou: true }], 'a').partes.compromisso.valor, 0, '2 faltas zeram');
   const muitas = Array.from({ length: 12 }, (_, k) => ({ data: data(19), jogadorId: 'a', faltou: true, id: k }));
   perto(computeIndice(rodadas, muitas, 'a').partes.compromisso.valor, 0, 'mínimo 0');
 });
