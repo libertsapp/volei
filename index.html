@@ -347,6 +347,11 @@
 
   .player-list{display:flex;flex-direction:column;gap:8px;}
   .removidos-aviso{color:var(--muted);font-size:12px;margin:0 0 10px;}
+  /* faltas (v18.8) */
+  .tag-faltou{color:var(--danger);border-color:var(--danger);}
+  .faltas-linha{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .faltas-linha input{width:20px;height:20px;accent-color:var(--danger);flex:0 0 auto;}
+  .faltas-linha .faltas-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 🎁 Retrospectiva (v18.7): chamada no Meu Perfil + janela com a imagem gerada */
   .retro-chamada{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:12px 14px;border-radius:14px;
     border:1px solid var(--ball-yellow);background:linear-gradient(135deg, rgba(255,215,0,0.12), rgba(0,243,255,0.08));}
@@ -2200,6 +2205,7 @@
       <div class="select-list" id="checkin-list"></div>
       <div class="acoes-linha" style="margin-top:12px;">
         <button class="btn secondary" id="ajustar-estrelas-checkin-btn" style="display:none;">⭐ Ajustar estrelas deste check-in</button>
+        <button class="btn secondary" id="marcar-faltas-btn" style="display:none;" title="Marcar quem confirmou e não apareceu">🚫 Faltas</button>
         <button class="btn" id="use-checkins-sorteio-btn">Usar confirmados no Sorteio →</button>
         <span id="share-checkins-whatsapp-area"></span>
       </div>
@@ -2538,6 +2544,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>16/10/2026 — v18.8: Faltas (quem confirmou e não apareceu)</summary>
+          <div>
+            <p style="line-height:1.6;">No <strong>Check-in</strong>, a partir do dia do jogo, organizadores e admins têm o botão <strong>🚫 Faltas</strong> para marcar quem <strong>confirmou e não apareceu</strong>. Tirar o nome da lista <strong>não</strong> conta como falta. Quem leva <strong>2 faltas em 90 dias</strong> ganha o emblema <strong>🏃 Furão</strong>, visível para todos; ele some sozinho quando as faltas ficam mais antigas que 90 dias. Cada jogador vê as próprias faltas no <strong>Meu Perfil</strong>. A falta só pode ser desmarcada por um organizador: tirar o nome da lista depois não apaga a falta.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>16/10/2026 — v18.7: Avisos automáticos, Sumidos e Retrospectiva do ano</summary>
           <div>
             <p style="line-height:1.6;"><strong>🔔 Avisos automáticos no celular</strong> (para quem ativou as notificações): quando o check-in abre, todo mundo recebe <strong>"Check-in aberto!"</strong>. E quem está na <strong>reserva</strong> recebe <strong>"Você entrou na lista!"</strong> assim que abre uma vaga pra ele (alguém desistiu ou as vagas aumentaram). O aviso pessoal precisa da conta Google logada no aparelho e vinculada ao jogador.</p>
@@ -2985,7 +2998,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 18.7 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 18.8 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -3047,6 +3060,7 @@ const PERMISSOES_UI = {
   aprovarVinculo:     ['organizador','admin'],
   rejeitarVinculo:    ['organizador','admin'],
   salvarEstrelasAjustadas: ['organizador','admin'],
+  salvarFaltas:       ['organizador','admin'], // v18.8
   salvarFinDia:        ['organizador','admin'],
   marcarPagamento:     ['organizador','admin'],
   estornarPagamento:   ['organizador','admin'], // backend: quem saiu da lista só admin (o botão só aparece pro admin)
@@ -4866,6 +4880,7 @@ async function renderMeuPerfil(){
   const posicaoIdx = rankingAno.findIndex(r=>r.id===AUTH.jogadorId);
   const posicaoRanking = posicaoIdx > -1 ? posicaoIdx + 1 : null;
   const sequenciaAtual = computeSequenciaAtualPresenca(AUTH.jogadorId);
+  const minhasFaltas = computeFaltas(CHECKINS, hojeLocalIso())[AUTH.jogadorId] || 0;
   const mediaGrupo = computeMediaAproveitamentoGrupo();
   const diferencaMedia = mediaGrupo!==null ? (stats.pct - mediaGrupo) : null;
   const radarCtx = computeRadarContexto();
@@ -4916,6 +4931,7 @@ async function renderMeuPerfil(){
       ${posicaoRanking ? `<div class="profile-stat"><div class="profile-stat-num">${posicaoRanking}º</div><div class="profile-stat-cap">Posição no ranking ${anoAtual}</div></div>` : ''}
       <div class="profile-stat"><div class="profile-stat-num">${sequenciaAtual}</div><div class="profile-stat-cap">Sequência atual sem faltar</div></div>
     </div>
+    ${minhasFaltas ? `<p style="font-size:12px;color:var(--danger);margin:4px 0 8px;">🚫 ${minhasFaltas} falta${minhasFaltas===1?'':'s'} nos últimos ${FALTAS_JANELA_DIAS} dias (confirmou e não apareceu)${minhasFaltas >= FALTAS_PARA_EMBLEMA ? ' — por isso o emblema 🏃' : ''}.</p>` : ''}
     <p style="font-size:12px;color:var(--muted);margin:4px 0 16px;">Última participação: ${ultimaVez!==undefined ? formatDate(new Date(ultimaVez).toISOString().slice(0,10)) : 'ainda não jogou nenhuma rodada'}</p>
     ${diferencaMedia!==null ? `<p style="font-size:12px;color:var(--muted);margin:-8px 0 16px;">Sua média de aproveitamento está <strong style="color:${diferencaMedia>=0?'#5fd68a':'var(--danger)'};">${diferencaMedia>=0?diferencaMedia+' pontos acima':Math.abs(diferencaMedia)+' pontos abaixo'}</strong> da média do grupo (${mediaGrupo}%).</p>` : ''}
 
@@ -6626,6 +6642,20 @@ function computeRetrospectiva(rodadas, jogadores, id, ano){
     primeira: datasEu[0], ultima: datasEu[datasEu.length - 1]
   };
 }
+// Faltas (v18.8): quantas vezes cada jogador CONFIRMOU e não apareceu nos últimos FALTAS_JANELA_DIAS dias (contando
+// até hoje). Emblema 🏃 com FALTAS_PARA_EMBLEMA ou mais — uma falta isolada acontece com qualquer um.
+const FALTAS_JANELA_DIAS = 90;
+const FALTAS_PARA_EMBLEMA = 2;
+function computeFaltas(checkins, hojeIso){
+  const porJogador = {};
+  checkins.forEach(c=>{
+    if(!c.faltou || !c.jogadorId) return;
+    const dias = diasEntre(c.data, hojeIso);
+    if(dias < 0 || dias > FALTAS_JANELA_DIAS) return;
+    porJogador[c.jogadorId] = (porJogador[c.jogadorId] || 0) + 1;
+  });
+  return porJogador;
+}
 // </sumidos-retro>
 
 // Média de aproveitamento (títulos/rodadas) entre todos os jogadores que já jogaram
@@ -8000,7 +8030,11 @@ function computeBadges(){
   const staffAdmin = new Set(PERFIS_PUBLICOS.filter(u=>u.perfil==='admin').map(u=>u.jogadorId));
   const staffOrganizador = new Set(PERFIS_PUBLICOS.filter(u=>u.perfil==='organizador').map(u=>u.jogadorId));
 
-  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador };
+  // FURÃO (v18.8) — confirmou e não apareceu FALTAS_PARA_EMBLEMA vezes ou mais nos últimos FALTAS_JANELA_DIAS dias
+  const faltas = computeFaltas(CHECKINS, hojeLocalIso());
+  const furao = new Set(Object.keys(faltas).filter(pid=> faltas[pid] >= FALTAS_PARA_EMBLEMA));
+
+  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador, furao };
 }
 
 // ícone ANTES do nome (diferente dos badges, que vêm depois) — indica que esse
@@ -8018,6 +8052,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.grudento.has(pid)) html += `<span class="badge-icon" title="GRUDENTO — forma, junto com sua dupla, a parceria mais repetida do time">🧲</span>`;
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="DEFUNTO — mais de 100 dias sem aparecer numa rodada">🪦</span>`;
+  if(badges.furao && badges.furao.has(pid)) html += `<span class="badge-icon" title="FURÃO — confirmou e não apareceu ${FALTAS_PARA_EMBLEMA} vezes ou mais nos últimos ${FALTAS_JANELA_DIAS} dias">🏃</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   if(badges.staffAdmin && badges.staffAdmin.has(pid)) html += `<span class="badge-icon" title="ADMIN">🎖️</span>`;
   else if(badges.staffOrganizador && badges.staffOrganizador.has(pid)) html += `<span class="badge-icon" title="ORGANIZADOR">🎖️</span>`;
@@ -8395,6 +8430,59 @@ function abrirDatasCampeao(nome, datas){
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
 }
 
+/* ---------- 🚫 Faltas (v18.8): quem CONFIRMOU (dentro das vagas) e não apareceu ----------
+   Só organizador/admin, a partir do dia do jogo, no jogo da aba ativa. Tirar o nome da lista não é falta (decisão do
+   grupo). Salva a lista COMPLETA de faltas do jogo (desmarcar = tirar da lista); o backend só grava o que mudou. */
+function abrirMarcarFaltas(){
+  const data = SETTINGS.checkinDataAberta;
+  if(!data) return;
+  const { dentro } = checkinsDentroEReserva(data);
+  if(dentro.length === 0){ mostrarToast('Ninguém confirmado dentro das vagas neste jogo.', 'erro'); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <p class="profile-name" style="margin-bottom:4px;">🚫 Quem confirmou e não apareceu?</p>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:10px;">
+        Jogo de ${formatDate(data)}${jogosDoDia(SETTINGS, CHECKINS, data).length > 1 ? ' · ' + escapeHtml((jogosDoDia(SETTINGS, CHECKINS, data).find(j=>j.numero===JOGO_ATIVO)||{}).horario || '') : ''}.
+        Quem tirou o nome da lista não conta. Com 2 faltas em 90 dias, o jogador ganha o emblema 🏃 (visível pra todos).
+      </div>
+      <div>
+        ${dentro.map(c=>{
+          const p = getPlayer(c.jogadorId);
+          return `<label class="faltas-linha">
+            <input type="checkbox" data-falta="${escapeHtml(c.id)}" ${c.faltou ? 'checked' : ''}>
+            ${p ? avatarHtml(p, 'sm') : ''}
+            <span class="faltas-nome">${escapeHtml(p ? (p.apelido || p.nome) : (c.jogadorNome || 'Convidado'))}</span>
+          </label>`;
+        }).join('')}
+      </div>
+      <div class="acoes-linha" style="margin-top:16px;">
+        <button class="btn" data-acao="salvar">Salvar faltas</button>
+        <button class="btn secondary" data-acao="fechar">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', async (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')){ overlay.remove(); return; }
+    if(!e.target.closest('[data-acao="salvar"]')) return;
+    const faltaram = [...overlay.querySelectorAll('[data-falta]')].filter(i=> i.checked).map(i=> i.dataset.falta);
+    const cred = await requireAuth('salvarFaltas');
+    if(!cred) return;
+    const ok = await postAction('salvarFaltas', { data, jogo: JOGO_ATIVO, faltaram }, cred);
+    if(!ok) return;
+    const marcados = new Set(faltaram);
+    CHECKINS.forEach(c=>{
+      if(c.data !== data || (Number(c.jogo)||1) !== JOGO_ATIVO) return;
+      if(marcados.has(c.id)) c.faltou = true; else delete c.faltou;
+    });
+    overlay.remove();
+    mostrarToast(faltaram.length ? `Faltas salvas (${faltaram.length}).` : 'Nenhuma falta neste jogo.', 'sucesso');
+    renderAll(); // o emblema 🏃 aparece/some em todas as telas
+  });
+}
+
 /* ---------- ajuste de estrelas válido só pro check-in do dia (não mexe no cadastro) ---------- */
 function abrirAjustarEstrelasCheckin(){
   const data = SETTINGS.checkinDataAberta;
@@ -8502,6 +8590,7 @@ function abrirAjustarEstrelasCheckin(){
   });
 }
 document.getElementById('ajustar-estrelas-checkin-btn').addEventListener('click', abrirAjustarEstrelasCheckin);
+document.getElementById('marcar-faltas-btn').addEventListener('click', abrirMarcarFaltas);
 
 // <podio-puro>
 /* Top 3 do ranking do ano. Os rows já vêm ordenados por computeRanking (que inclui o desempate),
@@ -9821,6 +9910,9 @@ function renderCheckinList(){
   // sem data aberta não tem em quê ajustar
   document.getElementById('ajustar-estrelas-checkin-btn').style.display =
     (temPermissao('salvarEstrelasAjustadas') && data) ? 'inline-block' : 'none';
+  // faltas (v18.8): só a partir do dia do jogo — antes disso ninguém "faltou" ainda
+  document.getElementById('marcar-faltas-btn').style.display =
+    (temPermissao('salvarFaltas') && data && data <= hojeLocalIso()) ? 'inline-block' : 'none';
 
   if(!data){
     list.innerHTML = '';
@@ -9865,7 +9957,9 @@ function renderCheckinList(){
       </button>`;
     // o <label> continua em volta: tocar em qualquer ponto da linha aciona o botão, como antes.
     // O nome NÃO abre o perfil aqui (tocar na linha é pra marcar presença).
-    const tagExtra = (p.isGuest ? '<span class="badge-guest">convidado</span>' : '') + (tambem ? `<span class="tag-outro" title="Também está no jogo das ${outro.horario}">também às ${outro.horario}</span>` : '');
+    const faltouAqui = CHECKINS.some(c=> c.data===data && c.jogadorId===p.id && (Number(c.jogo)||1)===JOGO_ATIVO && c.faltou);
+    const tagExtra = (p.isGuest ? '<span class="badge-guest">convidado</span>' : '') + (tambem ? `<span class="tag-outro" title="Também está no jogo das ${outro.horario}">também às ${outro.horario}</span>` : '')
+      + (faltouAqui ? '<span class="tag-outro tag-faltou" title="Confirmou e não apareceu">🚫 faltou</span>' : '');
     return `<label class="jc-linha" data-checkin-toggle="${p.id}">${jogadorCardHtml(
       montarDadosReduzido(p, mostrarEstrelas, {
         nomeHtml: highlightMatch(p.nome, term),
