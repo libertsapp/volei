@@ -126,17 +126,19 @@
   body.light-mode::before{display:none;}
   .wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
   .app-footer{
-    text-align:center;font-size:11px;color:var(--muted);opacity:0.6;
-    padding:18px 20px 4px;max-width:1000px;margin:0 auto;
+    text-align:center;font-size:12px;color:var(--muted);
+    padding:22px 20px 6px;max-width:1000px;margin:0 auto;
   }
   @media (max-width:640px){
     .app-footer{padding-bottom:80px;} /* reserva espaço pra barra inferior fixa não tampar o rodapé */
   }
-  .footer-line{margin-bottom:4px;}
+  /* rodapé (v19.8): duas linhas — links em cima; ©, versão e acessos embaixo, mais apagados */
+  .footer-line{margin-bottom:6px;}
   .footer-line:last-child{margin-bottom:0;}
-  .footer-link{color:inherit;text-decoration:underline;text-decoration-style:dotted;}
-  .footer-link-discreto{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
-  .footer-link-discreto:hover{color:var(--ball-yellow);}
+  .footer-meta{font-size:11px;opacity:.65;}
+  .footer-sep{margin:0 8px;opacity:.5;}
+  .footer-link, .footer-link-discreto{color:inherit;text-decoration:none;cursor:pointer;}
+  .footer-link:hover, .footer-link-discreto:hover{color:var(--chalk);text-decoration:underline;text-underline-offset:3px;}
 
   /* pop-up de relatar bug / sugerir funcionalidade */
   .bugreport-card{
@@ -2589,6 +2591,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.8: Rodapé mais limpo</summary>
+          <div>
+            <p style="line-height:1.6;">O rodapé ficou em duas linhas: <strong>Termos de uso</strong> e <strong>Enviar sugestão ou problema</strong> em cima; o ©, a versão e o contador de acessos embaixo, mais discretos.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.7: Removidos com nome no Histórico</summary>
           <div>
             <p style="line-height:1.6;">No Histórico, quem foi removido do grupo deixou de aparecer como "(removido)": agora o <strong>nome continua lá, <s>riscado</s></strong>, com a foto apagadinha. As rodadas antigas ficam com a escalação completa.</p>
@@ -3125,9 +3134,9 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.7 · <span id="visit-counter"></span></div>
-    <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
-    <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
+    <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
+    <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 19.8">v19.8</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -3834,7 +3843,7 @@ function atualizarContadorAcessos(){
   const el = document.getElementById('visit-counter');
   if(!el) return;
   const total = SETTINGS.contadorAcessos || 0;
-  el.textContent = `👁️ ${total.toLocaleString('pt-BR')} acesso${total===1?'':'s'}`;
+  el.textContent = `${total.toLocaleString('pt-BR')} acesso${total===1?'':'s'}`;
 }
 
 // contador de acessos — via POST de propósito. Requisições GET podem ficar presas em
@@ -5362,6 +5371,9 @@ function abrirRelatarBug(){
 }
 document.getElementById('report-bug-btn').addEventListener('click', abrirRelatarBug);
 document.getElementById('termos-link').addEventListener('click', ()=> mostrarTermos({ somenteLeitura: true }));
+['termos-link', 'report-bug-btn'].forEach(id=> document.getElementById(id).addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.currentTarget.click(); }
+}));
 
 function pedirDuracaoModal(){
   return new Promise((resolve)=>{
@@ -12651,7 +12663,8 @@ setTimeout(sincronizarPushComConta, 3000); // depois do login guardado ser resta
    se mudou, avisa em vez de deixar o usuário sem saber que está numa versão antiga. */
 let VERSAO_ULTIMA_CHECAGEM = 0;
 function versaoAtualDoRodape(){
-  const m = document.querySelector('.footer-line') && document.querySelector('.footer-line').textContent.match(/Ver\.:\s*([0-9.]+)/);
+  const el = document.getElementById('footer-versao');
+  const m = el && (el.dataset.versao || '').match(/Ver\.:\s*([0-9.]+)/);
   return m ? m[1] : null;
 }
 async function checarVersaoNova(){
