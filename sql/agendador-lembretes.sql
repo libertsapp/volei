@@ -28,14 +28,14 @@ select cron.schedule('lembrete-volei-grupos', '*/15 * * * *', $$
   )
 $$);
 
--- Meme: só depois da replicação autorizada (descomentar e rodar de novo)
--- select cron.schedule('lembrete-volei-meme', '*/15 * * * *', $$
---   select net.http_post(
---     url := 'https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/meme-api',
---     body := '{"action":"lembreteDoDia"}'::jsonb,
---     headers := '{"Content-Type":"application/json","Origin":"https://memberstars.com"}'::jsonb
---   )
--- $$);
+-- Meme (ligado em 2026-10-17, junto com a v19.2 do Meme)
+select cron.schedule('lembrete-volei-meme', '*/15 * * * *', $$
+  select net.http_post(
+    url := 'https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/meme-api',
+    body := '{"action":"lembreteDoDia"}'::jsonb,
+    headers := '{"Content-Type":"application/json","Origin":"https://memberstars.com"}'::jsonb
+  )
+$$);
 
 -- Para conferir:   select jobname, schedule, active from cron.job;
 -- Respostas:       select status_code, content, created from net._http_response order by created desc limit 5;
