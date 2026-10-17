@@ -153,4 +153,15 @@ await ta('repositório sem as tabelas de votação: GET segue com lista vazia (a
   assert.match(d.avisos[0], /votação indisponível/);
 });
 
+await ta('v19.3: quem levou 🚫 falta no dia não vota nem é votado (faltou um jogo e foi no outro: vale)', async () => {
+  const { d } = ambiente();
+  const ck = (id, jogador, jogo, faltou) => d.repo.inserirCheckin({ id, data: DATA, jogador_id: jogador, jogador_nome: jogador, jogo, ...(faltou ? { faltou: true } : {}) });
+  await ck('c1', 'duda', 1, true);              // escalada, mas não apareceu
+  await ck('c2', 'caio', 1, true); await ck('c3', 'caio', 2, false); // faltou o 1º, foi no 2º
+  await addRound(d, rodada('r1', ['ana', 'bia'], ['caio', 'duda']));
+  assert.deepEqual(await votar(d, como('duda@x.com', { craque: 'ana' })), { error: 'Só quem jogou nesse dia pode votar.' });
+  assert.deepEqual(await votar(d, como('ana@x.com', { craque: 'duda' })), { error: 'Esse jogador não jogou nesse dia.' });
+  assert.equal((await votar(d, como('ana@x.com', { craque: 'caio' }))).status, 'ok');
+});
+
 fim();

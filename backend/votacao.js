@@ -27,13 +27,25 @@ function avisar(deps, onde, erro) {
   try { if (typeof deps.avisar === 'function') deps.avisar(onde + ': ' + (erro && erro.message ? erro.message : erro)); } catch { /* nada */ }
 }
 
-// quem jogou (em qualquer rodada OFICIAL) em cada data: { 'aaaa-mm-dd': Set(ids) }
+// quem jogou (em qualquer rodada OFICIAL) em cada data: { 'aaaa-mm-dd': Set(ids) }.
+// v19.3: quem levou 🚫 falta em TODOS os check-ins que tinha na data não jogou, mesmo escalado num time (não vota nem é
+// votado). Faltou um jogo e foi no outro: jogou o dia (a votação é por dia).
 export function jogadoresPorData(t) {
   const out = {};
   for (const r of mapearRodadas(t.rodadas, t.times_rodada, t.time_jogadores)) {
     if (r.rascunho) continue;
     const s = out[r.data] || (out[r.data] = new Set());
     for (const time of r.times) for (const id of time.playerIds || []) if (id) s.add(String(id));
+  }
+  const faltou = new Set(), foi = new Set(); // 'data|id'
+  for (const c of t.checkins || []) {
+    if (!c.jogador_id) continue;
+    (c.faltou === true ? faltou : foi).add(texto(c.data).slice(0, 10) + '|' + texto(c.jogador_id));
+  }
+  for (const k of faltou) {
+    if (foi.has(k)) continue;
+    const [data, id] = k.split('|');
+    if (out[data]) out[data].delete(id);
   }
   return out;
 }

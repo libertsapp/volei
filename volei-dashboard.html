@@ -349,6 +349,7 @@
   .removidos-aviso{color:var(--muted);font-size:12px;margin:0 0 10px;}
   /* faltas (v18.8) */
   .tag-faltou{color:var(--danger);border-color:var(--danger);}
+  .history-faltou{opacity:.6;}
   .falta-datas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
   .falta-data{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 4px 2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--chalk-dim);}
   .falta-data button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:4px 6px;border-radius:999px;}
@@ -2578,6 +2579,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.3: Quem faltou não conta na rodada</summary>
+          <div>
+            <p style="line-height:1.6;">Quem estava escalado num time mas levou <strong>🚫 falta</strong> agora aparece <s>riscado</s> no Histórico e aquela rodada <strong>não conta pra ele</strong>: quebra a sequência de presença e fica fora do ranking, das estatísticas e da votação de Craque e Bola Murcha (não vota nem é votado). Num dia com dois jogos, faltar um e jogar o outro mantém a sequência, como antes. A rodada salva não muda: desmarcar a falta devolve tudo.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.2: Agenda, adversários, cobrança e lembrete do dia</summary>
           <div>
             <p style="line-height:1.6;"><strong>📅 Agenda:</strong> no Check-in e nos amistosos marcados, o botão <strong>Agenda</strong> salva o jogo na Google Agenda ou em qualquer outra (arquivo do iPhone/Outlook), com lembrete 2h antes.</p>
@@ -3064,7 +3072,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.2 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.3 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -5803,7 +5811,54 @@ function uid(){ return Date.now().toString(36) + Math.random().toString(36).slic
 
 // Rodadas "rascunho" (times já montados, mas placar ainda não lançado) não contam em
 // nenhuma estatística/ranking/gráfico — só viram rodada de verdade quando finalizadas.
-function roundsOficiais(){ return DATA.rounds.filter(r=> !r.rascunho); }
+// v19.3: quem foi marcado com 🚫 falta sai dos times nas contas (sequência, ranking, estatísticas, votação). A rodada
+// salva NÃO muda: desmarcar a falta devolve tudo. O Histórico mostra o faltoso riscado (lista t.faltaram).
+function roundsOficiais(){ return tirarFaltosos(DATA.rounds.filter(r=> !r.rascunho), CHECKINS); }
+
+// <faltas-rodada>
+/* PURA (testada em tests/faltas-rodada.test.js). A falta é por check-in (data + jogo 1/2), a rodada só tem data e
+   horário. Regra pra casar uma com a outra:
+   - faltou TODOS os check-ins que tinha na data -> sai de todas as rodadas da data;
+   - faltou um jogo e foi no outro (dia com dois jogos) -> sai só da rodada daquele jogo, contando as rodadas da data
+     em ordem de horário (a 1ª é o jogo 1, a 2ª o jogo 2). Se a data tem uma rodada só, não dá pra saber qual jogo ela
+     foi: ele fica (jogou o jogo que teve rodada).
+   Rodada/time sem faltoso volta o MESMO objeto; com faltoso volta uma cópia (o original em DATA.rounds fica intacto). */
+function tirarFaltosos(rodadas, checkins){
+  const faltas = {}, presencas = {}; // 'data|id' -> Set(jogos)
+  (checkins||[]).forEach(c=>{
+    if(!c.jogadorId) return;
+    const alvo = c.faltou ? faltas : presencas;
+    const k = c.data + '|' + c.jogadorId;
+    (alvo[k] || (alvo[k] = new Set())).add(Number(c.jogo)||1);
+  });
+  if(!Object.keys(faltas).length) return rodadas;
+  // número do jogo de cada rodada: posição entre as rodadas da mesma data, por horário (sem horário vai pro fim)
+  const porData = {};
+  rodadas.forEach(r=> (porData[r.data] || (porData[r.data] = [])).push(r));
+  const jogoDe = new Map();
+  Object.values(porData).forEach(lista=>{
+    lista.map((r, i)=> ({ r, i })).sort((a,b)=> (a.r.horario||'99:99').localeCompare(b.r.horario||'99:99') || a.i - b.i)
+      .forEach((x, pos)=> jogoDe.set(x.r, lista.length > 1 ? pos + 1 : 0));
+  });
+  const faltouNa = (r, id)=>{
+    const k = r.data + '|' + id;
+    if(!faltas[k]) return false;
+    if(!presencas[k]) return true;
+    const jogo = jogoDe.get(r);
+    return jogo > 0 && faltas[k].has(jogo);
+  };
+  return rodadas.map(r=>{
+    let mudou = false;
+    const times = r.times.map(t=>{
+      const fora = (t.playerIds||[]).filter(id=> faltouNa(r, id));
+      if(!fora.length) return t;
+      mudou = true;
+      return { ...t, playerIds: t.playerIds.filter(id=> !fora.includes(id)), faltaram: fora };
+    });
+    return mudou ? { ...r, times } : r;
+  });
+}
+// </faltas-rodada>
 
 // uma rodada pode ter MAIS DE UM campeão — quando até 2 times empatam na maior soma
 // de vitórias de partida naquele dia, os dois são declarados campeões (ver o handler
@@ -9002,6 +9057,7 @@ function renderHistory(){
             <div class="tn">${escapeHtml(t.nome)} ${souCampeao(r, idx)?'<span class="badge-win">Campeão</span>':''}</div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:6px;">${t.vitorias||0} vitória(s) de partida${notaDoTime ? ' · ' + notaDoTime(t, r.data) : ''}</div>
             ${t.playerIds.map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar" style="margin-bottom:4px;">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}">${p?nomeComApelidoHtml(p):'(removido)'}</span></div>`; }).join('')}
+            ${(t.faltaram||[]).map(pid=>{ const p=getPlayer(pid); return `<div class="with-avatar history-faltou" style="margin-bottom:4px;" title="Estava no time e não apareceu: não conta pra ele">${avatarHtml(p,'sm')}<span class="clickable-name" data-open-profile="${pid}"><s>${p?nomeComApelidoHtml(p):'(removido)'}</s></span> <span class="tag-outro tag-faltou">🚫 faltou</span></div>`; }).join('')}
           </div>
         `).join('')}
       </div>
@@ -9189,7 +9245,7 @@ function renderVotacaoCard(){
   const agora = Date.now();
   const aberta = VOTACOES.find(v=> v.aberta && Date.parse(v.fechaEm) > agora);
   if(aberta){
-    const jogaram = jogadoresDoDia(DATA.rounds, aberta.data);
+    const jogaram = jogadoresDoDia(roundsOficiais(), aberta.data);
     const podeVotar = AUTH.logado && AUTH.jogadorId && jogaram.has(AUTH.jogadorId);
     const meu = MEUS_VOTOS[aberta.data] || {};
     const jaVotou = !!(meu.craque || meu.murcha);
@@ -9256,7 +9312,7 @@ async function carregarMeusVotos(){
 }
 
 function abrirVotacao(v){
-  const jogaram = [...jogadoresDoDia(DATA.rounds, v.data)].filter(id=> id !== AUTH.jogadorId)
+  const jogaram = [...jogadoresDoDia(roundsOficiais(), v.data)].filter(id=> id !== AUTH.jogadorId)
     .map(id=> getPlayer(id)).filter(Boolean)
     .sort((a,b)=> (a.apelido||a.nome).localeCompare(b.apelido||b.nome, 'pt-BR'));
   const meu = MEUS_VOTOS[v.data] || {};
