@@ -102,7 +102,9 @@ export async function abrirVotacaoSeFaltar(deps, data) {
     const { diaSemana, ddmm } = diaEData(dia);
     await enviarParaJogadores(deps, [...jogaram], {
       titulo: '🗳️ Votação aberta!',
-      corpo: 'Quem foi o craque e quem foi o bola murcha do vôlei de ' + diaSemana + ' (' + ddmm + ')? Você tem ' + HORAS_VOTACAO + 'h pra votar.'
+      // tom de resenha (v19.4): o Bola Murcha é zoeira de amigo, não crítica
+      corpo: 'Bora pra resenha! Quem foi o craque e quem foi o bola murcha do vôlei de ' + diaSemana + ' (' + ddmm + ')? ' +
+        'É só pra descontrair 😄 Você tem ' + HORAS_VOTACAO + 'h pra votar.'
     });
   } catch (e) { avisar(deps, 'abrirVotacaoSeFaltar', e); }
 }
