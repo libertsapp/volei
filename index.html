@@ -1414,6 +1414,8 @@
   .votacao-card .votacao-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .votacao-card .votacao-meu{font-size:13px;color:var(--chalk-dim);flex:1;min-width:0;}
   .votacao-resultado{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;}
+  .votacao-intuito{font-size:12px;color:var(--chalk-dim);line-height:1.5;margin:0 0 10px;}
+  .votacao-intuito-caixa{font-size:12.5px;line-height:1.55;color:var(--chalk-dim);background:rgba(255,255,255,.04);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:0 0 14px;}
   .history-votacao{font-size:12px;color:var(--chalk-dim);margin:-2px 0 10px;}
   .voto-grupo{margin-bottom:16px;}
   .voto-grupo-titulo{font-family:'Anton',sans-serif;text-transform:uppercase;font-size:15px;margin:0 0 6px;}
@@ -2579,6 +2581,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>17/10/2026 — v19.4: Votação no clima de resenha</summary>
+          <div>
+            <p style="line-height:1.6;">A votação de Craque e Bola Murcha agora deixa claro o intuito: <strong>é brincadeira pra descontrair</strong>. O Bola Murcha é zoeira de amigo pra quem não estava num dia inspirado, sem nenhum tom de crítica. A mensagem aparece no cartão do Início, na tela de votar, no resultado, no emblema 🎈 e no aviso do celular.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.3: Quem faltou não conta na rodada</summary>
           <div>
             <p style="line-height:1.6;">Quem estava escalado num time mas levou <strong>🚫 falta</strong> agora aparece <s>riscado</s> no Histórico e aquela rodada <strong>não conta pra ele</strong>: quebra a sequência de presença e fica fora do ranking, das estatísticas e da votação de Craque e Bola Murcha (não vota nem é votado). Num dia com dois jogos, faltar um e jogar o outro mantém a sequência, como antes. A rodada salva não muda: desmarcar a falta devolve tudo.</p>
@@ -2600,6 +2609,7 @@
           <div>
             <p style="line-height:1.6;">Quando a rodada do dia é salva, abre a <strong>🗳️ votação do Craque e do Bola Murcha</strong>, por <strong>24 horas</strong>. Vota só <strong>quem jogou naquele dia</strong> (conta Google vinculada ao jogador): um voto pra cada, secreto, sem votar em si mesmo nem na mesma pessoa pros dois. Dá pra mudar o voto até fechar. Num dia com dois jogos, a votação é uma só, com todo mundo que jogou. Quem jogou recebe o aviso no celular.</p>
             <p style="line-height:1.6;">O resultado aparece no <strong>Início</strong> por 3 dias e fica no <strong>Histórico</strong>. O eleito ganha o emblema <strong>🏅 Craque</strong> ou <strong>🎈 Bola Murcha</strong> até a próxima votação eleger outro. Empate: todos os empatados levam.</p>
+            <p style="line-height:1.6;">😄 O intuito é <strong>descontrair</strong>: o Bola Murcha é zoeira de amigo pra quem não estava num dia inspirado, sem nenhum caráter pejorativo.</p>
           </div>
         </details>
 
@@ -3072,7 +3082,7 @@
   </div>
 
   <footer class="app-footer">
-    <div class="footer-line">Ver.: 19.3 · <span id="visit-counter"></span></div>
+    <div class="footer-line">Ver.: 19.4 · <span id="visit-counter"></span></div>
     <div class="footer-line">By: <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a> — todos direitos reservados</div>
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link">Termos de uso</span> · <span class="footer-link-discreto" id="report-bug-btn">Informar bug / sugerir funcionalidade</span></div>
   </footer>
@@ -8294,7 +8304,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="DEFUNTO — mais de 100 dias sem aparecer numa rodada">🪦</span>`;
   if(badges.craque && badges.craque.has(pid)) html += `<span class="badge-icon" title="CRAQUE — eleito pelos jogadores na última votação (${formatDate(badges.dataCraque).slice(0,5)})">🏅</span>`;
-  if(badges.murcha && badges.murcha.has(pid)) html += `<span class="badge-icon" title="BOLA MURCHA — eleito pelos jogadores na última votação (${formatDate(badges.dataMurcha).slice(0,5)})">🎈</span>`;
+  if(badges.murcha && badges.murcha.has(pid)) html += `<span class="badge-icon" title="BOLA MURCHA — eleito de brincadeira pelos amigos na última votação (${formatDate(badges.dataMurcha).slice(0,5)}). Zoeira de resenha, sem ofensa: na próxima tem revanche!">🎈</span>`;
   if(badges.furao && badges.furao.has(pid)) html += `<span class="badge-icon" title="FURÃO — confirmou e não apareceu ${FALTAS_PARA_EMBLEMA} vezes ou mais nos últimos ${FALTAS_JANELA_DIAS} dias">🏃</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   if(badges.staffAdmin && badges.staffAdmin.has(pid)) html += `<span class="badge-icon" title="ADMIN">🎖️</span>`;
@@ -9202,6 +9212,9 @@ function computeCarrascoFregues(rodadas, id, min){
 /* Votação do Craque e do Bola Murcha (v19.1) — partes PURAS (testadas em tests/votacao-front.test.js).
    Uma votação por DIA: vale quem jogou qualquer rodada oficial da data. */
 const VOTACAO_MOSTRA_RESULTADO_DIAS = 3; // o resultado fica no Início por 3 dias depois de fechar
+// o tom da votação (v19.4, pedido do grupo): é resenha, pra descontrair — ninguém é diminuído por um dia ruim
+const VOTACAO_INTUITO_CURTO = '😄 É só resenha, pra descontrair: Bola Murcha é zoeira de amigo, não crítica.';
+const VOTACAO_INTUITO = '😄 <strong>É brincadeira, pra descontrair a turma.</strong> O Craque é quem brilhou no dia; o Bola Murcha é só aquela zoeira de amigo pra quem não estava num dia inspirado — acontece com todo mundo, sem nenhum tom de crítica ou ofensa. Na próxima tem revanche!';
 function jogadoresDoDia(rounds, data){
   const ids = new Set();
   rounds.forEach(r=>{ if(!r.rascunho && r.data === data) r.times.forEach(t=> (t.playerIds||[]).forEach(id=>{ if(id) ids.add(id); })); });
@@ -9267,6 +9280,7 @@ function renderVotacaoCard(){
     card.innerHTML = `
       <p class="votacao-titulo">🗳️ Craque e Bola Murcha</p>
       <div class="votacao-sub">Vôlei de ${diaDaSemanaCurto(aberta.data)} (${formatDate(aberta.data).slice(0,5)}) · ${textoFaltaFechar(aberta.fechaEm, agora)} · ${aberta.votantes} já votaram</div>
+      <p class="votacao-intuito">${VOTACAO_INTUITO_CURTO}</p>
       ${corpo}`;
     card.style.display = '';
     const btn = document.getElementById('votacao-votar-btn');
@@ -9279,7 +9293,8 @@ function renderVotacaoCard(){
     card.innerHTML = `
       <p class="votacao-titulo">🗳️ Resultado da votação</p>
       <div class="votacao-sub">Vôlei de ${diaDaSemanaCurto(fechada.data)} (${formatDate(fechada.data).slice(0,5)}) · ${fechada.votantes} votaram</div>
-      <div class="votacao-resultado">${htmlResultadoVotacao(fechada)}</div>`;
+      <div class="votacao-resultado">${htmlResultadoVotacao(fechada)}</div>
+      <p class="votacao-intuito" style="margin:10px 0 0;">😄 Parabéns ao Craque! E ao Bola Murcha, só carinho: na próxima tem revanche.</p>`;
     card.style.display = '';
     return;
   }
@@ -9328,9 +9343,10 @@ function abrirVotacao(v){
     <div class="profile-card">
       <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
       <p class="profile-name" style="margin-bottom:4px;">🗳️ Vôlei de ${diaDaSemanaCurto(v.data)} (${formatDate(v.data).slice(0,5)})</p>
-      <div style="color:var(--muted);font-size:12px;margin-bottom:14px;">Voto secreto. Dá pra mudar até a votação fechar (${textoFaltaFechar(v.fechaEm, Date.now())}).</div>
-      <div class="voto-grupo"><p class="voto-grupo-titulo">🏅 Craque do dia</p>${opcoes('craque')}</div>
-      <div class="voto-grupo"><p class="voto-grupo-titulo">🎈 Bola Murcha do dia</p>${opcoes('murcha')}</div>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Voto secreto. Dá pra mudar até a votação fechar (${textoFaltaFechar(v.fechaEm, Date.now())}).</div>
+      <p class="votacao-intuito-caixa">${VOTACAO_INTUITO}</p>
+      <div class="voto-grupo"><p class="voto-grupo-titulo">🏅 Craque do dia <span style="font-weight:400;color:var(--muted);font-size:12px;">— quem mais brilhou</span></p>${opcoes('craque')}</div>
+      <div class="voto-grupo"><p class="voto-grupo-titulo">🎈 Bola Murcha do dia <span style="font-weight:400;color:var(--muted);font-size:12px;">— na zoeira, quem não estava num dia inspirado</span></p>${opcoes('murcha')}</div>
       <div class="acoes-linha">
         <button class="btn" data-acao="salvar">Salvar voto</button>
         <button class="btn secondary" data-acao="fechar">Cancelar</button>
