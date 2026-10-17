@@ -4,7 +4,9 @@
 -- Pode rodar mais de uma vez: cron.schedule com o mesmo nome substitui o agendamento.
 --
 -- Liga duas extensões do Supabase: pg_cron (agenda) e pg_net (faz a chamada HTTP).
--- As funções foram publicadas com --no-verify-jwt, então a chamada não precisa de chave.
+-- As funções foram publicadas com --no-verify-jwt, então a chamada não precisa de chave. Mas o POST só é aceito com um
+-- cabeçalho Origin da lista de origens permitidas (backend/edge.js) — sem ele a resposta é 403 "Origem não permitida."
+-- (visto em 2026-10-17, primeira versão deste arquivo). Por isso cada chamada declara a origem oficial memberstars.com.
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
@@ -12,7 +14,8 @@ create extension if not exists pg_net;
 select cron.schedule('lembrete-volei-terca', '*/15 * * * *', $$
   select net.http_post(
     url := 'https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/terca-api-teste',
-    body := '{"action":"lembreteDoDia"}'::jsonb
+    body := '{"action":"lembreteDoDia"}'::jsonb,
+    headers := '{"Content-Type":"application/json","Origin":"https://memberstars.com"}'::jsonb
   )
 $$);
 
@@ -20,7 +23,8 @@ $$);
 select cron.schedule('lembrete-volei-grupos', '*/15 * * * *', $$
   select net.http_post(
     url := 'https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/grupos-api',
-    body := '{"action":"lembretesAgendados"}'::jsonb
+    body := '{"action":"lembretesAgendados"}'::jsonb,
+    headers := '{"Content-Type":"application/json","Origin":"https://memberstars.com"}'::jsonb
   )
 $$);
 
@@ -28,9 +32,11 @@ $$);
 -- select cron.schedule('lembrete-volei-meme', '*/15 * * * *', $$
 --   select net.http_post(
 --     url := 'https://lzwmirrjpoqucwlhgkku.supabase.co/functions/v1/meme-api',
---     body := '{"action":"lembreteDoDia"}'::jsonb
+--     body := '{"action":"lembreteDoDia"}'::jsonb,
+--     headers := '{"Content-Type":"application/json","Origin":"https://memberstars.com"}'::jsonb
 --   )
 -- $$);
 
 -- Para conferir:   select jobname, schedule, active from cron.job;
+-- Respostas:       select status_code, content, created from net._http_response order by created desc limit 5;
 -- Para desligar:   select cron.unschedule('lembrete-volei-terca');
