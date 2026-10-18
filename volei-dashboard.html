@@ -2644,6 +2644,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v20.1: Resultado da votação por 24 horas no Início</summary>
+          <div>
+            <p style="line-height:1.6;">O cartão com o resultado do Craque e do Bola Murcha agora fica <strong>24 horas</strong> no Início depois que a votação fecha (antes eram 3 dias). Os emblemas 🏅 e 🎈 continuam com os eleitos até a próxima votação, e o resultado segue no Histórico.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/10/2026 — v20.0: Quero jogar, aniversários, recrutador e avisos novos</summary>
           <div>
             <p style="line-height:1.6;"><strong>🙋 Quero jogar:</strong> quem entra com a conta Google e ainda não é do grupo pede pra entrar (no Início, no Meu Perfil ou na janela "Esse é você?"). Os organizadores recebem um aviso no celular e, em <strong>Contas</strong>, criam o jogador e aprovam de uma vez.</p>
@@ -2719,7 +2726,7 @@
           <summary>17/10/2026 — v19.1: Votação do Craque e do Bola Murcha</summary>
           <div>
             <p style="line-height:1.6;">Quando a rodada do dia é salva, abre a <strong>🗳️ votação do Craque e do Bola Murcha</strong>, por <strong>24 horas</strong>. Vota só <strong>quem jogou naquele dia</strong> (conta Google vinculada ao jogador): um voto pra cada, secreto, sem votar em si mesmo nem na mesma pessoa pros dois. Dá pra mudar o voto até fechar. Num dia com dois jogos, a votação é uma só, com todo mundo que jogou. Quem jogou recebe o aviso no celular.</p>
-            <p style="line-height:1.6;">O resultado aparece no <strong>Início</strong> por 3 dias e fica no <strong>Histórico</strong>. O eleito ganha o emblema <strong>🏅 Craque</strong> ou <strong>🎈 Bola Murcha</strong> até a próxima votação eleger outro. Empate: todos os empatados levam.</p>
+            <p style="line-height:1.6;">O resultado aparece no <strong>Início</strong> por 24 horas e fica no <strong>Histórico</strong>. O eleito ganha o emblema <strong>🏅 Craque</strong> ou <strong>🎈 Bola Murcha</strong> até a próxima votação eleger outro. Empate: todos os empatados levam.</p>
             <p style="line-height:1.6;">😄 O intuito é <strong>descontrair</strong>: o Bola Murcha é zoeira de amigo pra quem não estava num dia inspirado, sem nenhum caráter pejorativo.</p>
           </div>
         </details>
@@ -3209,7 +3216,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.0">v20.0</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.1">v20.1</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -10008,7 +10015,7 @@ function computeCarrascoFregues(rodadas, id, min){
 // <votacao-puro>
 /* Votação do Craque e do Bola Murcha (v19.1) — partes PURAS (testadas em tests/votacao-front.test.js).
    Uma votação por DIA: vale quem jogou qualquer rodada oficial da data. */
-const VOTACAO_MOSTRA_RESULTADO_DIAS = 3; // o resultado fica no Início por 3 dias depois de fechar
+const VOTACAO_MOSTRA_RESULTADO_HORAS = 24; // v20.1: o resultado fica no Início por 24h depois de fechar (era 3 dias); os emblemas seguem até a próxima votação
 // o tom da votação (v19.4, pedido do grupo): é resenha, pra descontrair — ninguém é diminuído por um dia ruim
 const VOTACAO_INTUITO_CURTO = '😄 É só resenha, pra descontrair: Bola Murcha é zoeira de amigo, não crítica.';
 const VOTACAO_INTUITO = '😄 <strong>É brincadeira, pra descontrair a turma.</strong> O Craque é quem brilhou no dia; o Bola Murcha é só aquela zoeira de amigo pra quem não estava num dia inspirado — acontece com todo mundo, sem nenhum tom de crítica ou ofensa. Na próxima tem revanche!';
@@ -10085,13 +10092,13 @@ function renderVotacaoCard(){
     return;
   }
   // fechou há pouco: mostra o resultado no Início por alguns dias
-  const fechada = VOTACOES.find(v=> !v.aberta && v.resultado && (agora - Date.parse(v.fechaEm)) < VOTACAO_MOSTRA_RESULTADO_DIAS * DIA_MS);
+  const fechada = VOTACOES.find(v=> !v.aberta && v.resultado && (agora - Date.parse(v.fechaEm)) < VOTACAO_MOSTRA_RESULTADO_HORAS * 3600000);
   if(fechada){
     card.innerHTML = `
       <p class="votacao-titulo">🗳️ Resultado da votação</p>
       <div class="votacao-sub">Vôlei de ${diaDaSemanaCurto(fechada.data)} (${formatDate(fechada.data).slice(0,5)}) · ${fechada.votantes} votaram</div>
       <div class="votacao-resultado">${htmlResultadoVotacao(fechada)}</div>
-      <p class="votacao-intuito" style="margin:10px 0 0;">😄 Parabéns ao Craque! E ao Bola Murcha, só carinho: na próxima tem revanche.</p>`;
+      <p class="votacao-intuito" style="margin:10px 0 0;">😄 Parabéns ao Craque! Ao Bola Murcha, fica nosso carinho, nosso abraço e o apoio psicológico… 😂</p>`;
     card.style.display = '';
     return;
   }
