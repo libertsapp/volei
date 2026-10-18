@@ -398,6 +398,9 @@
   .replays-player-card{max-width:760px;padding:18px;}
   .replays-player-card video{width:100%;max-height:70vh;border-radius:10px;background:#000;display:block;}
   .replays-player-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  .replays-player-nav{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px;}
+  .replays-player-nav[hidden]{display:none;}
+  .replays-player-contador{font-size:13px;color:var(--muted);white-space:nowrap;}
   .replays-player-erro{font-size:13px;color:var(--chalk-dim);margin:10px 0 0;}
   .config-replays-linha{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .config-replays-linha input,.config-replays-linha select{flex:1;min-width:0;}
@@ -2683,6 +2686,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v20.4: Navegação entre os replays e botão "Baixar vídeo"</summary>
+          <div>
+            <p style="line-height:1.6;">Vendo um replay, dá pra ir pro <strong>anterior</strong> ou pro <strong>próximo</strong> sem fechar (botões ‹ Anterior / Próximo ›, deslizar o dedo pro lado no celular ou as setas do teclado), com o contador "3 de 7". E o botão "Abrir vídeo" virou <strong>"Baixar vídeo"</strong>, que é o que ele faz: salva o vídeo no celular.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/10/2026 — v20.3: Replays com a quadra de cada dia</summary>
           <div>
             <p style="line-height:1.6;">Nem sempre o jogo é na mesma quadra: a tela <strong>🎥 Replays</strong> agora tem a escolha da <strong>quadra</strong> de cada dia (a do jogo aparece com 🏐). O organizador pode marcar em qual quadra foi o jogo daquele dia, e aí ela vira a padrão do dia pra todo mundo, inclusive no cartão do Início.</p>
@@ -3269,7 +3279,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.3">v20.3</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.4">v20.4</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -13240,15 +13250,21 @@ document.getElementById('replays-quadra-info').addEventListener('click', async (
   renderReplays();
   renderReplaysCard();
 });
-// tocar uma miniatura (na tela ou no cartão do Início) abre o vídeo; "Ver todos" do cartão abre a tela naquele dia
+// tocar uma miniatura (na tela ou no cartão do Início) abre o vídeo; "Ver todos" do cartão abre a tela naquele dia.
+// A navegação do player (v20.4) percorre as miniaturas do mesmo lugar: a tela Replays inteira ou o cartão do Início.
 document.addEventListener('click', (e)=>{
   const ver = e.target.closest('[data-replays-ver-todos]');
   if(ver){ REPLAYS_DIA_ESCOLHIDO = ver.dataset.replaysVerTodos; REPLAYS_DIA_INTEIRO = false; abrirTelaVia('replays'); return; }
   const item = e.target.closest('[data-replay-video]');
-  if(item) abrirReplay(item.dataset.replayVideo, item.dataset.replayLabel);
+  if(!item || item.closest('#replay-overlay')) return;
+  const lugar = item.closest('#replays-lista, #replays-card') || item.parentElement;
+  const itens = [...lugar.querySelectorAll('[data-replay-video]')];
+  abrirReplay(itens.map(x=> ({ url: x.dataset.replayVideo, label: x.dataset.replayLabel })), itens.indexOf(item));
 });
-function abrirReplay(url, label){
-  if(!REPLAYS_URL_VIDEO.test(url || '') || document.getElementById('replay-overlay')) return;
+function abrirReplay(lista, inicio){
+  const videos = (lista || []).filter(v=> v && REPLAYS_URL_VIDEO.test(v.url || ''));
+  if(!videos.length || document.getElementById('replay-overlay')) return;
+  let atual = Math.min(Math.max(inicio || 0, 0), videos.length - 1);
   const ov = document.createElement('div');
   ov.id = 'replay-overlay';
   ov.className = 'profile-overlay';
@@ -13257,23 +13273,66 @@ function abrirReplay(url, label){
   ov.setAttribute('aria-label', 'Replay');
   ov.innerHTML = `<div class="profile-card replays-player-card">
     <button type="button" class="profile-close" data-replay-fechar aria-label="Fechar">✕</button>
-    <p class="password-title">🎥 Replay · ${escapeHtml(label || '')}</p>
-    <video controls playsinline autoplay preload="metadata" src="${escapeHtml(url)}"></video>
-    <p class="replays-player-erro" hidden>Não deu pra tocar aqui. Toque em "Abrir vídeo" pra ver no navegador.</p>
+    <p class="password-title">🎥 Replay · <span data-replay-titulo></span></p>
+    <video controls playsinline autoplay preload="metadata"></video>
+    <p class="replays-player-erro" hidden>Não deu pra tocar aqui. Toque em "Baixar vídeo" pra assistir no celular.</p>
+    <div class="replays-player-nav">
+      <button type="button" class="btn secondary" data-replay-anterior aria-label="Vídeo anterior">‹ Anterior</button>
+      <span class="replays-player-contador" data-replay-contador aria-live="polite"></span>
+      <button type="button" class="btn secondary" data-replay-proximo aria-label="Próximo vídeo">Próximo ›</button>
+    </div>
     <div class="replays-player-acoes">
       <button type="button" class="btn" data-replay-compartilhar>Compartilhar</button>
-      <button type="button" class="btn secondary" data-replay-abrir>Abrir vídeo</button>
+      <button type="button" class="btn secondary" data-replay-abrir>Baixar vídeo</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
   const video = ov.querySelector('video');
-  video.addEventListener('error', ()=>{ ov.querySelector('.replays-player-erro').hidden = false; });
-  const fechar = ()=>{ video.pause(); video.removeAttribute('src'); video.load(); ov.remove(); document.removeEventListener('keydown', esc); };
-  const esc = (e)=>{ if(e.key === 'Escape') fechar(); };
-  document.addEventListener('keydown', esc);
+  const erro = ov.querySelector('.replays-player-erro');
+  const btnAnt = ov.querySelector('[data-replay-anterior]');
+  const btnProx = ov.querySelector('[data-replay-proximo]');
+  video.addEventListener('error', ()=>{ erro.hidden = false; });
+  const mostrar = (i)=>{
+    if(i < 0 || i >= videos.length) return;
+    atual = i;
+    erro.hidden = true;
+    video.src = videos[atual].url;
+    video.play().catch(()=>{}); // sem autoplay liberado, a pessoa toca no ▶
+    ov.querySelector('[data-replay-titulo]').textContent = videos[atual].label || '';
+    ov.querySelector('[data-replay-contador]').textContent = videos.length > 1 ? (atual + 1) + ' de ' + videos.length : '';
+    btnAnt.disabled = atual === 0;
+    btnProx.disabled = atual === videos.length - 1;
+    ov.querySelector('.replays-player-nav').hidden = videos.length < 2;
+  };
+  mostrar(atual);
+  const fechar = ()=>{ video.pause(); video.removeAttribute('src'); video.load(); ov.remove(); document.removeEventListener('keydown', teclas); };
+  const teclas = (e)=>{
+    if(e.key === 'Escape') fechar();
+    else if(e.key === 'ArrowLeft') mostrar(atual - 1);
+    else if(e.key === 'ArrowRight') mostrar(atual + 1);
+  };
+  document.addEventListener('keydown', teclas);
+  // deslizar o dedo pro lado troca de vídeo; começar o gesto na faixa de baixo do vídeo é a barra de tempo, não conta
+  let toque = null;
+  ov.addEventListener('touchstart', (e)=>{
+    const t = e.touches[0];
+    const r = video.getBoundingClientRect();
+    toque = (e.touches.length === 1 && !(t.clientY > r.bottom - 56 && t.clientY <= r.bottom)) ? { x: t.clientX, y: t.clientY } : null;
+  }, { passive: true });
+  ov.addEventListener('touchend', (e)=>{
+    if(!toque) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - toque.x, dy = t.clientY - toque.y;
+    toque = null;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) mostrar(atual + (dx < 0 ? 1 : -1));
+  }, { passive: true });
   ov.addEventListener('click', async (e)=>{
     if(e.target === ov || e.target.closest('[data-replay-fechar]')){ fechar(); return; }
-    // os estilos de botão do app só valem para <button>: o botão abre o .mp4 numa aba (saída pro iPhone que não toca aqui)
+    if(e.target.closest('[data-replay-anterior]')){ mostrar(atual - 1); return; }
+    if(e.target.closest('[data-replay-proximo]')){ mostrar(atual + 1); return; }
+    const url = videos[atual].url, label = videos[atual].label;
+    // os estilos de botão do app só valem para <button>. O RegistraAí serve o .mp4 como "arquivo" (octet-stream), então abrir
+    // o endereço faz o navegador BAIXAR o vídeo — por isso o botão se chama "Baixar vídeo" (v20.4)
     if(e.target.closest('[data-replay-abrir]')){ window.open(url, '_blank', 'noopener'); return; }
     if(e.target.closest('[data-replay-compartilhar]')){
       const texto = '🎥 Replay do vôlei (' + (label || '') + ')';
