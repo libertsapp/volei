@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Volei de Terça — Dashboard do Time</title>
+<!-- og:inicio — prévia do link no WhatsApp/Instagram/Telegram (v19.9). Esses robôs não rodam JavaScript: o que vale é
+     este HTML. No Vercel (volei.memberstars.com = grupos) o bloco é trocado por uma prévia genérica em
+     scripts/og-grupos.js, pra nenhum grupo aparecer como "Vôlei de Terça". Imagem gerada de scripts/og-imagem.html. -->
+<meta name="description" content="Confirme presença, veja os times do dia, o ranking e quem foi o craque da rodada.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="Vôlei de Terça">
+<meta property="og:title" content="Vôlei de Terça">
+<meta property="og:description" content="Confirme presença, veja os times do dia, o ranking e quem foi o craque da rodada.">
+<meta property="og:url" content="https://memberstars.com/volei/">
+<meta property="og:image" content="https://memberstars.com/volei/og-terca.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vôlei de Terça — app do grupo">
+<meta name="twitter:card" content="summary_large_image">
+<!-- og:fim -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.85em' font-size='90'%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E">
 <link rel="manifest" id="pwa-manifest-link">
 <meta name="theme-color" content="#101b33">
@@ -2326,6 +2343,14 @@
           <div id="sumidos-lista"></div>
         </div>
       </details>
+      <!-- 🌱 Convidados frequentes (v19.9): só organizador/admin (renderConvidadosFrequentes); começa fechado -->
+      <details class="dash-accordion" id="convidados-freq-sec" style="display:none;margin-bottom:14px;">
+        <summary id="convidados-freq-titulo">🌱 Convidados frequentes</summary>
+        <div>
+          <p class="removidos-aviso">Convidados que já jogaram 2 vezes ou mais (a última nos últimos 6 meses) e ainda não têm cadastro. “Cadastrar” já abre o Novo jogador com o nome; “Convidar” abre o WhatsApp com um convite pro app.</p>
+          <div id="convidados-freq-lista"></div>
+        </div>
+      </details>
       <!-- 🚫 Faltas (v18.9): só organizador/admin (renderListaFaltas); começa fechado -->
       <details class="dash-accordion" id="faltas-sec" style="display:none;margin-bottom:14px;">
         <summary id="faltas-titulo">🚫 Faltas</summary>
@@ -2591,6 +2616,15 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v19.9: Mais gente no vôlei</summary>
+          <div>
+            <p style="line-height:1.6;"><strong>🔗 Prévia do link:</strong> o link do app colado no WhatsApp (ou no Instagram e no Telegram) agora aparece com imagem, nome e uma frase, em vez de um link "seco".</p>
+            <p style="line-height:1.6;"><strong>🌱 Convidados frequentes</strong> (só organizadores e admins, na aba Jogadores): convidados que já jogaram 2 vezes ou mais e ainda não têm cadastro, com <strong>➕ Cadastrar</strong> (abre o Novo jogador já com o nome) e <strong>💬 Convidar</strong> (WhatsApp com um convite pro app).</p>
+            <p style="line-height:1.6;"><strong>📸 Cartão do campeão:</strong> no Histórico, o 📸 de cada rodada monta uma imagem com as fotos do time campeão, a data, as vitórias e o 🏅 Craque (quando a votação já fechou), pronta pra mandar no grupo ou postar no status.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>17/10/2026 — v19.8: Rodapé mais limpo</summary>
           <div>
             <p style="line-height:1.6;">O rodapé ficou em duas linhas: <strong>Termos de uso</strong> e <strong>Enviar sugestão ou problema</strong> em cima; o ©, a versão e o contador de acessos embaixo, mais discretos.</p>
@@ -3136,7 +3170,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 19.8">v19.8</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 19.9">v19.9</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -4975,6 +5009,161 @@ async function abrirRetrospectiva(player, r){
   });
 }
 
+/* ---------- 📸 Cartão do campeão (v19.9) ----------
+   Imagem 1080×1350 (feed e status) de UMA rodada: data, fotos e nomes do time campeão, vitórias de partida, o 🏅 Craque
+   da votação (se já fechou) e o link do app — propaganda espontânea: quem joga posta, quem não joga vê. Mesmo desenho
+   da 🎁 Retrospectiva (cores fixas do tema escuro; dourado = cor do grupo). Quem levou 🚫 falta não aparece
+   (roundsOficiais já tira). Botão 📸 em cada rodada do Histórico. */
+// <cartao-puro>
+// quantas fotos por linha e de que tamanho, pra caber o time inteiro na área das fotos (testado em tests/cartao-campeao.test.js)
+function gradeDeFotos(n){
+  if(n <= 3) return { porLinha: Math.max(n, 1), raio: 125 };
+  if(n <= 6) return { porLinha: 3, raio: 110 };
+  if(n <= 8) return { porLinha: 4, raio: 95 };
+  if(n <= 12) return { porLinha: 4, raio: 62 }; // 3 linhas: com 78 passava da área e cobria a linha das vitórias
+  if(n <= 15) return { porLinha: 5, raio: 62 };
+  return { porLinha: 6, raio: 52 };
+}
+// nome no cartão: apelido, senão o 1º nome; o convidado vem como "Nome (Convidado(a))" e perde o sufixo
+function nomeNoCartao(p){
+  if(!p) return '?';
+  const nome = String(p.apelido || p.nome || '?').replace(/\s*\(Convidado\(a\)\)\s*$/, '');
+  return p.apelido ? nome : nome.split(' ')[0];
+}
+// </cartao-puro>
+async function desenharCartaoCampeao(r){
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const OURO = GRUPO_ATUAL && /^#[0-9a-f]{6}$/i.test(GRUPO_ATUAL.cor || '') ? GRUPO_ATUAL.cor : '#ffd700';
+  const NEON = '#00f3ff', GIZ = '#f4f1e6', GIZ2 = '#b9c0d6', APAGADO = '#7c88ac';
+  try{
+    await Promise.all(["900 40px Orbitron", "40px Anton", "600 40px 'Work Sans'", "40px 'Space Mono'"].map(f=> document.fonts.load(f)));
+  }catch(e){ /* sem as fontes, o navegador usa a padrão */ }
+  const campeoes = (r.vencedores || []).map(i=> r.times[i]).filter(Boolean);
+  const ids = [...new Set(campeoes.flatMap(t=> t.playerIds || []))];
+  const jogadores = ids.map(id=> getPlayer(id) || { nome: '?' });
+  const fotos = await Promise.all(jogadores.map(p=> retroCarregarImagem(p.foto)));
+
+  // fundo: quadra à noite, brilho dourado atrás das fotos
+  const fundo = ctx.createLinearGradient(0, 0, 0, H);
+  fundo.addColorStop(0, '#16264a'); fundo.addColorStop(1, '#050a18');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
+  const brilho = ctx.createRadialGradient(W/2, 700, 60, W/2, 700, 560);
+  brilho.addColorStop(0, 'rgba(255,215,0,0.16)'); brilho.addColorStop(1, 'rgba(255,215,0,0)');
+  ctx.fillStyle = brilho; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(244,241,230,0.06)'; ctx.lineWidth = 6;
+  ctx.strokeRect(50, 50, W-100, H-100);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  // 🏅 Craque da votação do dia (só depois de fechar; aberta = convite pra votar no app). Sem ele, as fotos descem.
+  const v = VOTACOES.find(x=> x.data === r.data);
+  let linhaCraque = '';
+  if(v && !v.aberta && v.resultado && v.resultado.craque && v.resultado.craque.ids.length){
+    linhaCraque = '🏅 Craque do dia: ' + v.resultado.craque.ids.map(id=> nomeNoCartao(getPlayer(id))).join(', ');
+  } else if(v && v.aberta){
+    linhaCraque = '🗳️ Votação do Craque aberta no app';
+  }
+  const fimFotos = linhaCraque ? 1010 : 1110;
+
+  ctx.fillStyle = NEON; // Anton e não Orbitron: a Orbitron não tem o "Õ" de CAMPEÕES
+  retroTexto(ctx, '🏆 CAMPEÕES DA RODADA', W/2, 165, 940, 66, "{t} Anton, sans-serif");
+  ctx.fillStyle = OURO;
+  retroTexto(ctx, (diaDaSemanaCurto(r.data) + ' · ' + formatDate(r.data)).toUpperCase(), W/2, 270, 940, 96, "{t} Anton, sans-serif");
+  ctx.fillStyle = GIZ2;
+  retroTexto(ctx, nomeDoApp() + (r.horario ? ' · ' + r.horario : ''), W/2, 330, 940, 36, "600 {t} 'Work Sans', sans-serif");
+
+  // fotos em grade, centralizada na área entre 380 e fimFotos
+  const { porLinha, raio } = gradeDeFotos(jogadores.length);
+  const linhas = Math.ceil(jogadores.length / porLinha);
+  const alturaLinha = raio * 2 + 78;
+  const y0 = 380 + Math.max(0, (fimFotos - 380 - linhas * alturaLinha) / 2) + raio + 10;
+  jogadores.forEach((p, i)=>{
+    const linha = Math.floor(i / porLinha), col = i % porLinha;
+    const naLinha = Math.min(porLinha, jogadores.length - linha * porLinha);
+    const passo = Math.min(260, (W - 160) / naLinha);
+    const cx = W/2 + (col - (naLinha - 1) / 2) * passo, cy = y0 + linha * alturaLinha;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI*2); ctx.closePath();
+    ctx.fillStyle = '#101b33'; ctx.fill();
+    const foto = fotos[i];
+    if(foto){
+      ctx.clip();
+      const lado = Math.min(foto.width, foto.height);
+      ctx.drawImage(foto, (foto.width-lado)/2, (foto.height-lado)/2, lado, lado, cx-raio, cy-raio, raio*2, raio*2);
+    } else {
+      ctx.fillStyle = OURO; ctx.textBaseline = 'middle';
+      ctx.font = Math.round(raio * 1.1) + "px Anton, sans-serif";
+      ctx.fillText(nomeNoCartao(p).charAt(0).toUpperCase(), cx, cy + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+    ctx.lineWidth = 8; ctx.strokeStyle = OURO;
+    ctx.beginPath(); ctx.arc(cx, cy, raio + 5, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = GIZ;
+    retroTexto(ctx, nomeNoCartao(p).toUpperCase(), cx, cy + raio + 56, passo - 16, Math.min(46, Math.round(raio * 0.42)), "{t} Anton, sans-serif");
+  });
+
+  // vitórias de partida de cada time campeão
+  ctx.fillStyle = GIZ2;
+  const vitorias = campeoes.map(t=> (t.vitorias || 0) + ' vitória' + ((t.vitorias || 0) === 1 ? '' : 's') + ' de partida').join('  ·  ');
+  retroTexto(ctx, (campeoes.length > 1 ? 'Empate no topo — ' : '') + vitorias, W/2, fimFotos + 50, 940, 36, "600 {t} 'Work Sans', sans-serif");
+
+  if(linhaCraque){
+    ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(140, 1105, W - 280, 100, 26); else ctx.rect(140, 1105, W - 280, 100);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = GIZ;
+    retroTexto(ctx, linhaCraque, W/2, 1170, W - 340, 40, "600 {t} 'Work Sans', sans-serif");
+  }
+
+  ctx.fillStyle = APAGADO;
+  retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1280, 900, 30, "{t} 'Space Mono', monospace");
+  return canvas;
+}
+async function abrirCartaoCampeao(roundId){
+  const r = roundsOficiais().find(x=> x.id === roundId);
+  if(!r) return;
+  if(!(r.vencedores || []).length){ mostrarToast('Essa rodada ainda não tem campeão.', 'erro'); return; }
+  mostrarCarregando('Montando a imagem...');
+  let canvas;
+  try{ canvas = await desenharCartaoCampeao(r); }
+  catch(e){ console.error('Falha ao montar o cartão do campeão', e); mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  finally{ esconderCarregando(); }
+  const blob = await new Promise((res)=> canvas.toBlob(res, 'image/png'));
+  if(!blob){ mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  const nomeArquivo = 'campeoes-' + r.data + '.png';
+  const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+  const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card retro-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <img class="retro-imagem" style="aspect-ratio:4/5;" src="${url}" alt="Campeões da rodada de ${escapeHtml(formatDate(r.data))}">
+      <div class="retro-acoes">
+        ${podeCompartilhar ? '<button type="button" class="btn" data-acao="compartilhar">📤 Compartilhar</button>' : ''}
+        <button type="button" class="btn ${podeCompartilhar ? 'secondary' : ''}" data-acao="baixar">⬇️ Baixar imagem</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = ()=>{ overlay.remove(); URL.revokeObjectURL(url); };
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
+    if(e.target.closest('[data-acao="compartilhar"]')){
+      navigator.share({ files: [arquivo], text: '🏆 Campeões do vôlei de ' + formatDate(r.data) + ' 🏐 ' + linkDoApp(CTX_GRUPO) }).catch(()=>{}); // cancelado: ignora
+    }
+    if(e.target.closest('[data-acao="baixar"]')){
+      const a = document.createElement('a');
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+}
+
 async function renderMeuPerfil(){
   const container = document.getElementById('meuperfil-content');
   if(!AUTH.logado){
@@ -6557,6 +6746,56 @@ function renderSumidos(){
   });
 }
 
+/* ---------- 🌱 Convidados frequentes (v19.9) — porta de entrada de jogador novo ----------
+   Só organizador/admin (quem cadastra jogador). A conta é a computeConvidadosFrequentes (bloco <convidados-puro>). */
+function textoConvidarConvidado(x){
+  const data = SETTINGS.checkinDataAberta;
+  const lista = data ? `O check-in de ${formatDate(data)} já está aberto: ` : 'A lista dos próximos jogos sai por aqui: ';
+  return `Fala, ${x.nome}! 👋 Você já jogou ${x.vezes} vezes com a gente no vôlei 🏐 — já é da casa!
+
+Entra no app do grupo pra confirmar presença, ver os times e o ranking. ${lista}${linkDoApp(CTX_GRUPO)}`;
+}
+function renderConvidadosFrequentes(){
+  const sec = document.getElementById('convidados-freq-sec');
+  if(!sec) return;
+  if(!temPermissao('addPlayer')){ sec.style.display = 'none'; return; }
+  const lista = computeConvidadosFrequentes(roundsOficiais(), DATA.players.concat(DATA.removidos || []), hojeLocalIso());
+  sec.style.display = '';
+  document.getElementById('convidados-freq-titulo').textContent = `🌱 Convidados frequentes (${lista.length})`;
+  document.getElementById('convidados-freq-lista').innerHTML = lista.length === 0
+    ? '<div class="removido-jogos">Nenhum convidado repetindo por enquanto. Quando alguém vier 2 vezes, aparece aqui.</div>'
+    : lista.map((x, i)=> `
+    <div class="removido-linha">
+      ${avatarHtml({ nome: x.nome }, 'sm')}
+      <div class="removido-info">
+        <div class="removido-nome">${escapeHtml(x.nome)}</div>
+        <div class="removido-jogos">Jogou ${x.vezes} vezes como convidado · última vez ${formatDate(x.ultima)}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn secondary" data-convidado-cadastrar="${i}" title="Abrir o Novo jogador já com o nome">➕ Cadastrar</button>
+        <button class="btn secondary" data-convidado-convidar="${i}" title="Abrir o WhatsApp com um convite pro app">💬 Convidar</button>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('#convidados-freq-lista [data-convidado-cadastrar]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const x = lista[Number(btn.dataset.convidadoCadastrar)];
+      const form = document.getElementById('add-player-row');
+      if(!x || !form) return;
+      form.open = true;
+      const campo = document.getElementById('new-player-name');
+      campo.value = x.nome;
+      form.scrollIntoView({ behavior:'smooth', block:'center' });
+      setTimeout(()=> campo.focus(), 300);
+    });
+  });
+  document.querySelectorAll('#convidados-freq-lista [data-convidado-convidar]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const x = lista[Number(btn.dataset.convidadoConvidar)];
+      if(x) compartilharNoWhatsApp(textoConvidarConvidado(x));
+    });
+  });
+}
+
 /* ---------- 🚫 Faltas (v18.9) — consulta de organizador/admin ----------
    Até aqui a falta só aparecia no check-in ABERTO: abrindo a semana seguinte, sumia da vista (e uma falta marcada por
    engano não tinha mais como ser desfeita). Esta lista mostra as faltas dos últimos 90 dias de qualquer data, e o ✕
@@ -6646,6 +6885,7 @@ async function reativarJogadorRemovido(id){
 function renderPlayers(){
   renderJogadoresRemovidos();
   renderSumidos();
+  renderConvidadosFrequentes();
   renderListaFaltas();
   const list = document.getElementById('player-list');
   if(DATA.players.length===0){
@@ -6979,6 +7219,47 @@ function listarFaltas(checkins, hojeIso){
     .sort((a,b)=> b.faltas.length - a.faltas.length || b.faltas[0].data.localeCompare(a.faltas[0].data));
 }
 // </sumidos-retro>
+
+// <convidados-puro>
+/* 🌱 Convidados frequentes (v19.9) — PURA (testada em tests/convidados-frequentes.test.js). O convidado é a porta de
+   entrada do grupo, mas não tem cadastro: nas rodadas ele aparece como "convidado:Nome#sufixo" (um sufixo novo a cada
+   rodada). Aqui junta as aparições pelo NOME (sem acento/maiúscula/espaço sobrando) e devolve quem já jogou
+   CONVIDADO_MIN_DATAS datas ou mais (em qualquer época), com a última vez nos últimos CONVIDADO_JANELA_DIAS dias (quem
+   não aparece há mais de 6 meses já não é "quase da casa"), e ainda não tem cadastro (nome ou apelido igual a um
+   jogador ativo ou removido = já é da casa). Mais datas primeiro; empate, quem veio mais recente. */
+const CONVIDADO_MIN_DATAS = 2;
+const CONVIDADO_JANELA_DIAS = 180;
+function chaveDeNome(s){
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function nomeDoMarcadorConvidado(id){
+  if(typeof id !== 'string' || !id.startsWith('convidado:')) return null;
+  const resto = id.slice('convidado:'.length);
+  const i = resto.lastIndexOf('#');
+  return (i > -1 ? resto.slice(0, i) : resto).trim() || null;
+}
+function computeConvidadosFrequentes(rodadas, cadastrados, hojeIso){
+  const casa = new Set();
+  (cadastrados || []).forEach(p=>{ [p.nome, p.apelido].forEach(n=>{ const k = chaveDeNome(n); if(k) casa.add(k); }); });
+  const limite = new Date(Date.parse(hojeIso + 'T12:00:00Z') - CONVIDADO_JANELA_DIAS * 86400000).toISOString().slice(0, 10);
+  const porNome = {};
+  rodadas.forEach(r=>{
+    if(r.rascunho || r.data > hojeIso) return;
+    r.times.forEach(t=> (t.playerIds || []).forEach(id=>{
+      const nome = nomeDoMarcadorConvidado(id);
+      const k = chaveDeNome(nome);
+      if(!k || k === 'convidado' || casa.has(k)) return;
+      const x = porNome[k] || (porNome[k] = { nome, datas: new Set(), ultima: '' });
+      x.datas.add(r.data);
+      if(r.data >= x.ultima){ x.ultima = r.data; x.nome = nome; } // o jeito de escrever mais recente
+    }));
+  });
+  return Object.values(porNome)
+    .map(x=> ({ nome: x.nome, vezes: x.datas.size, ultima: x.ultima }))
+    .filter(x=> x.vezes >= CONVIDADO_MIN_DATAS && x.ultima >= limite)
+    .sort((a,b)=> b.vezes - a.vezes || b.ultima.localeCompare(a.ultima) || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+// </convidados-puro>
 
 // Média do aproveitamento (ponderado, v19.5) entre todos os jogadores que já jogaram
 // pelo menos 1 rodada — usada só pra comparação ("você está X pontos acima/abaixo").
@@ -9238,6 +9519,7 @@ function renderHistory(){
       <div class="history-head">
         <span class="history-date">${dataComHorario(r)}</span>
         <div style="display:flex;gap:2px;">
+          ${(r.vencedores||[]).length ? `<button class="icon-btn" data-cartao-round="${r.id}" title="Imagem dos campeões para compartilhar" aria-label="Imagem dos campeões para compartilhar">📸</button>` : ''}
           <button class="icon-btn" data-edit-round="${r.id}" title="Editar rodada" aria-label="Editar rodada">✏️</button>
           <button class="icon-btn" data-del-round="${r.id}" aria-label="Excluir rodada">✕</button>
         </div>
@@ -9260,6 +9542,9 @@ function renderHistory(){
   loadMoreBtn.textContent = `Carregar rodadas mais antigas (${sorted.length - visiveis.length} restantes)`;
   list.querySelectorAll('[data-edit-round]').forEach(btn=>{
     btn.addEventListener('click', ()=> abrirEdicaoDeRodada(btn.dataset.editRound));
+  });
+  list.querySelectorAll('[data-cartao-round]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirCartaoCampeao(btn.dataset.cartaoRound));
   });
   list.querySelectorAll('[data-del-round]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
