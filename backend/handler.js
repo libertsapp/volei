@@ -13,7 +13,7 @@ import { addRound, updateRound, removeRound } from './rodadas.js';
 import { saveSettings } from './configuracoes.js';
 import { uploadPhoto } from './fotos.js';
 import { salvarLogo } from './logo.js';
-import { salvarReplays } from './replays.js';
+import { salvarReplays, salvarQuadraDoDia } from './replays.js';
 import { addCheckin, removeCheckin, salvarEstrelasAjustadas, moverCheckin, salvarFaltas } from './checkins.js';
 import { inscreverPush, enviarNotificacao } from './notificacoes.js';
 import { cobrarPagamento, lembreteDoDia } from './avisos-push.js';
@@ -159,6 +159,7 @@ export function criarHandler({ repo, config = {}, verificarToken = semLogin, rel
           case 'removeRound': return await removeRound(deps, b.id);
           case 'salvarLogo': return await salvarLogo(deps, b);
           case 'salvarReplays': return await salvarReplays(deps, b); // 🎥 replays do RegistraAí (v20.2)
+          case 'salvarQuadraDoDia': return await travar(() => salvarQuadraDoDia(deps, b)); // v20.3: quadra de cada dia
           case 'saveSettings':
           case 'saveCheckinSettings': return await saveSettings(deps, b.settings);
           case 'salvarEstrelasAjustadas': return await salvarEstrelasAjustadas(deps, b.checkins);

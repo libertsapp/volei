@@ -10,7 +10,7 @@ const html = fs.readFileSync(arquivo, 'utf8').replace(/\r/g, '');
 const ini = html.indexOf('// <replays-puro>');
 const fim = html.indexOf('// </replays-puro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <replays-puro> não encontrado');
-const R = new Function(html.slice(ini, fim) + 'return { replaysArenaDoLink, replaysMinutos, replaysHorariosDoDia, replaysUltimoJogo, replaysJanelas, replaysHorasParaBuscar, replaysVideoValido, replaysSepararPorJogo };')();
+const R = new Function(html.slice(ini, fim) + 'return { replaysQuadraDoDia, replaysArenaDoLink,replaysMinutos, replaysHorariosDoDia, replaysUltimoJogo, replaysJanelas, replaysHorasParaBuscar, replaysVideoValido, replaysSepararPorJogo };')();
 
 let falhas = 0;
 function t(nome, fn){ try { fn(); console.log('ok    -', nome); } catch(e){ falhas++; console.log('FALHA -', nome, '\n       ', e.message); } }
@@ -94,6 +94,14 @@ t('vídeo de fora: só https terminando em .mp4, sem aspas/espaço; miniatura ru
   assert.equal(R.replaysVideoValido(null), false);
   const g = R.replaysSepararPorJogo([{ ...v('20:10'), thumb: 'javascript:alert(1)' }], R.replaysJanelas(['20:00']), false);
   assert.equal(g[0].videos[0].thumb, '');
+});
+t('quadra do dia (v20.3): a marcada naquele dia; sem marcação (ou marcação estragada), a padrão', () => {
+  const Q1 = '6973973ef60a9f8fabaa7946', Q2 = '6973976bf60a9f8fabaa7947';
+  const cfg = { arena: A, quadra: Q1, quadraNome: 'Quadra 1', dias: { '2026-10-13': { quadra: Q2, nome: 'Quadra 2' }, '2026-10-06': { quadra: 'x' } } };
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-13'), { quadra: Q2, nome: 'Quadra 2', marcada: true });
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-20'), { quadra: Q1, nome: 'Quadra 1', marcada: false });
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-06'), { quadra: Q1, nome: 'Quadra 1', marcada: false });
+  assert.deepEqual(R.replaysQuadraDoDia({ arena: A, quadra: Q1 }, '2026-10-13'), { quadra: Q1, nome: '', marcada: false });
 });
 // simulação: 200 dias aleatórios — nenhum clipe fora de todas as janelas aparece, nenhum some, nenhum repete
 t('simulação: 200 dias aleatórios respeitam a janela', () => {

@@ -383,6 +383,8 @@
   .replays-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px;}
   .replays-toolbar .fin-campo{flex:1;min-width:180px;}
   .replays-jogo-titulo{font-weight:700;font-size:14px;margin:16px 0 8px;}
+  .replays-quadra-info{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);margin:4px 0 6px;}
+  .replays-quadra-info:empty{display:none;}
   .replays-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
   .replays-grade.replays-grade-mini{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 2px;}
   .replay-item{position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
@@ -2660,8 +2662,10 @@
       <p class="replays-desc" id="replays-desc"></p>
       <div class="replays-toolbar">
         <label class="fin-campo">Dia<select id="replays-dia"></select></label>
+        <label class="fin-campo">Quadra<select id="replays-quadra"></select></label>
         <button type="button" class="btn secondary" id="replays-dia-inteiro" aria-pressed="false">Ver o dia inteiro</button>
       </div>
+      <div class="replays-quadra-info" id="replays-quadra-info"></div>
       <div id="replays-lista"></div>
     </section>
 
@@ -2679,6 +2683,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v20.3: Replays com a quadra de cada dia</summary>
+          <div>
+            <p style="line-height:1.6;">Nem sempre o jogo é na mesma quadra: a tela <strong>🎥 Replays</strong> agora tem a escolha da <strong>quadra</strong> de cada dia (a do jogo aparece com 🏐). O organizador pode marcar em qual quadra foi o jogo daquele dia, e aí ela vira a padrão do dia pra todo mundo, inclusive no cartão do Início.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/10/2026 — v20.2: 🎥 Replays do RegistraAí no app</summary>
           <div>
             <p style="line-height:1.6;">Os vídeos que o <strong>RegistraAí</strong> grava na quadra agora aparecem no app: em <strong>Mais → 🎥 Replays</strong> (escolha o dia; por padrão só os clipes do início do jogo até 2 horas depois) e num cartão no Início com os replays do último jogo, que fica até o próximo. Toque na miniatura pra assistir ou compartilhar. O admin liga na ⚙️ engrenagem, colando o link da arena e escolhendo a quadra. Os vídeos não ficam guardados no app: eles tocam direto do RegistraAí, que os mantém por algumas semanas.</p>
@@ -3258,7 +3269,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.2">v20.2</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.3">v20.3</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -3301,6 +3312,7 @@ const PERMISSOES_UI = {
   uploadPhoto:        ['jogador','organizador','admin'],
   salvarLogo:         ['admin'],
   salvarReplays:      ['admin'],
+  salvarQuadraDoDia:  ['organizador','admin'],
   aceitarTermos:      ['jogador','organizador','admin'],
   addPlayer:          ['organizador','admin'],
   updatePlayer:       ['organizador','admin'],
@@ -13048,6 +13060,12 @@ function replaysSepararPorJogo(videos, janelas, diaInteiro){
   });
   return grupos.filter(g=> g.videos.length);
 }
+// quadra de um dia (v20.3): a marcada pelo organizador naquele dia ou, sem marcação, a padrão da engrenagem
+function replaysQuadraDoDia(cfg, data){
+  const d = cfg && cfg.dias && cfg.dias[data];
+  if(d && REPLAYS_ID.test(d.quadra || '')) return { quadra: d.quadra, nome: d.nome || '', marcada: true };
+  return { quadra: (cfg && cfg.quadra) || '', nome: (cfg && cfg.quadraNome) || '', marcada: false };
+}
 // </replays-puro>
 
 /* ---------- 🎥 REPLAYS (v20.2) ----------
@@ -13074,11 +13092,15 @@ async function replaysApi(caminho){
   promessa.catch(()=>{ delete REPLAYS_CACHE[caminho]; }); // falhou: a próxima tentativa busca de novo
   return promessa;
 }
-// todos os clipes da quadra configurada num dia, só das horas pedidas (null = todas as horas gravadas)
-async function replaysBuscarVideos(cfg, data, janelas){
-  const a = encodeURIComponent(cfg.arena), q = encodeURIComponent(cfg.quadra), d = encodeURIComponent(data);
-  const conteudo = await replaysApi('/quadras?a=' + a + '&d=' + d);
-  const disponiveis = (conteudo && conteudo.horarios && conteudo.horarios[cfg.quadra]) || [];
+// as quadras que gravaram num dia (e as horas de cada uma)
+function replaysConteudoDoDia(cfg, data){
+  return replaysApi('/quadras?a=' + encodeURIComponent(cfg.arena) + '&d=' + encodeURIComponent(data));
+}
+// todos os clipes de uma quadra num dia, só das horas pedidas (null = todas as horas gravadas)
+async function replaysBuscarVideos(cfg, data, janelas, quadra){
+  const a = encodeURIComponent(cfg.arena), q = encodeURIComponent(quadra), d = encodeURIComponent(data);
+  const conteudo = await replaysConteudoDoDia(cfg, data);
+  const disponiveis = (conteudo && conteudo.horarios && conteudo.horarios[quadra]) || [];
   const horas = janelas ? replaysHorasParaBuscar(janelas, disponiveis) : disponiveis.map(Number).filter(h=> h >= 0 && h <= 23);
   const listas = await Promise.all(horas.map(h=> replaysApi('/videos?a=' + a + '&d=' + d + '&q=' + q + '&t=' + h)
     .then(c=> (c && Array.isArray(c.videos)) ? c.videos : [])));
@@ -13111,19 +13133,20 @@ async function renderReplaysCard(){
   let grupos;
   try {
     const janelas = replaysJanelas(jogo.horarios);
-    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, jogo.data, janelas), janelas, false);
+    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, jogo.data, janelas, replaysQuadraDoDia(cfg, jogo.data).quadra), janelas, false);
   } catch(e){ grupos = []; } // RegistraAí fora do ar: o cartão só não aparece
   if(pedido !== REPLAYS_CARD_PEDIDO) return; // chegou uma resposta mais nova
   const todos = [].concat(...grupos.map(g=> g.videos));
   if(!todos.length){ card.style.display = 'none'; return; }
   const ultimos = todos.slice(-4);
   card.innerHTML = `<p class="inicio-cartao-titulo">🎥 Replays do vôlei de ${diaDaSemanaCurto(jogo.data)} (${formatDate(jogo.data).slice(0, 5)})</p>
-    <p class="inicio-cartao-texto">${todos.length === 1 ? '1 vídeo' : todos.length + ' vídeos'} da ${escapeHtml(cfg.quadraNome || 'quadra')} gravados pelo RegistraAí.</p>
+    <p class="inicio-cartao-texto">${todos.length === 1 ? '1 vídeo' : todos.length + ' vídeos'} da ${escapeHtml(replaysQuadraDoDia(cfg, jogo.data).nome || 'quadra')} gravados pelo RegistraAí.</p>
     <div class="replays-grade replays-grade-mini">${ultimos.map(replaysItemHtml).join('')}</div>
     <div class="inicio-cartao-acoes"><button type="button" class="btn" data-replays-ver-todos="${escapeHtml(jogo.data)}">Ver todos ›</button></div>`;
   card.style.display = '';
 }
 var REPLAYS_DIA_ESCOLHIDO = '';
+var REPLAYS_QUADRA_VISTA = {}; // data → quadra que a pessoa escolheu só pra olhar (não grava nada)
 var REPLAYS_LISTA_PEDIDO = 0;
 async function renderReplays(){
   const cfg = replaysConfig();
@@ -13131,7 +13154,10 @@ async function renderReplays(){
   const sel = document.getElementById('replays-dia');
   const lista = document.getElementById('replays-lista');
   if(!cfg || !lista) return;
-  desc.textContent = 'Vídeos da ' + (cfg.arenaNome || 'arena') + ' · ' + (cfg.quadraNome || 'quadra') + ', gravados pelo RegistraAí. Eles ficam no site deles por algumas semanas; o app só mostra.';
+  desc.textContent = 'Vídeos da ' + (cfg.arenaNome || 'arena') + ', gravados pelo RegistraAí. Eles ficam no site deles por algumas semanas; o app só mostra.';
+  const selQuadra = document.getElementById('replays-quadra');
+  const info = document.getElementById('replays-quadra-info');
+  info.innerHTML = '';
   const btnInteiro = document.getElementById('replays-dia-inteiro');
   btnInteiro.setAttribute('aria-pressed', String(REPLAYS_DIA_INTEIRO));
   btnInteiro.textContent = REPLAYS_DIA_INTEIRO ? 'Só o horário do jogo' : 'Ver o dia inteiro';
@@ -13156,9 +13182,29 @@ async function renderReplays(){
   sel.innerHTML = dias.map(d=> `<option value="${escapeHtml(d.data)}"${d.data === REPLAYS_DIA_ESCOLHIDO ? ' selected' : ''}>${diasDeJogo.has(d.data) ? '🏐 ' : ''}${escapeHtml(d.description || formatDate(d.data))}</option>`).join('');
   const data = REPLAYS_DIA_ESCOLHIDO;
   const janelas = replaysJanelas(replaysHorariosDoDia(DATA.rounds, SETTINGS, data));
+  // quadras daquele dia (nem sempre o grupo joga na mesma): a do jogo vem marcada; a pessoa pode olhar outra
+  const doDia = replaysQuadraDoDia(cfg, data);
+  let quadras = [];
+  try {
+    const c = await replaysConteudoDoDia(cfg, data);
+    quadras = ((c && c.quadras) || []).filter(q=> q && REPLAYS_ID.test(q.hash || '')).map(q=> ({ hash: q.hash, nome: String(q.description || 'Quadra') }));
+  } catch(e){ /* sem a lista, fica só a quadra do dia */ }
+  if(pedido !== REPLAYS_LISTA_PEDIDO) return;
+  if(!quadras.some(q=> q.hash === doDia.quadra)) quadras.unshift({ hash: doDia.quadra, nome: doDia.nome || 'Quadra do jogo' });
+  quadras.sort((x, y)=> x.nome.localeCompare(y.nome, 'pt-BR', { numeric: true }));
+  const quadra = quadras.some(q=> q.hash === REPLAYS_QUADRA_VISTA[data]) ? REPLAYS_QUADRA_VISTA[data] : doDia.quadra;
+  const nomeQuadra = (quadras.find(q=> q.hash === quadra) || {}).nome || 'Quadra';
+  selQuadra.innerHTML = quadras.map(q=> `<option value="${escapeHtml(q.hash)}"${q.hash === quadra ? ' selected' : ''}>${q.hash === doDia.quadra ? '🏐 ' : ''}${escapeHtml(q.nome)}</option>`).join('');
+  if(quadra !== doDia.quadra && temPermissao('salvarQuadraDoDia')){
+    info.innerHTML = `<span>O jogo desse dia foi nessa quadra?</span><button type="button" class="btn secondary" data-replays-marcar="${escapeHtml(quadra)}" data-replays-marcar-nome="${escapeHtml(nomeQuadra)}">📌 Marcar ${escapeHtml(nomeQuadra)} como quadra do jogo</button>`;
+  } else if(quadra !== doDia.quadra){
+    info.innerHTML = `<span>🏐 = quadra do jogo desse dia (${escapeHtml(doDia.nome || 'padrão')}).</span>`;
+  } else if(doDia.marcada){
+    info.innerHTML = `<span>🏐 Quadra do jogo desse dia, marcada pelo organizador.</span>`;
+  }
   let grupos;
   try {
-    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, data, REPLAYS_DIA_INTEIRO ? null : janelas), janelas, REPLAYS_DIA_INTEIRO);
+    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, data, REPLAYS_DIA_INTEIRO ? null : janelas, quadra), janelas, REPLAYS_DIA_INTEIRO);
   } catch(e){
     if(pedido === REPLAYS_LISTA_PEDIDO) lista.innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i>Não deu pra falar com o RegistraAí agora. Tente de novo daqui a pouco.</div>';
     return;
@@ -13175,6 +13221,25 @@ async function renderReplays(){
 }
 document.getElementById('replays-dia').addEventListener('change', (e)=>{ REPLAYS_DIA_ESCOLHIDO = e.target.value; renderReplays(); });
 document.getElementById('replays-dia-inteiro').addEventListener('click', ()=>{ REPLAYS_DIA_INTEIRO = !REPLAYS_DIA_INTEIRO; renderReplays(); });
+document.getElementById('replays-quadra').addEventListener('change', (e)=>{ REPLAYS_QUADRA_VISTA[REPLAYS_DIA_ESCOLHIDO] = e.target.value; renderReplays(); });
+// organizador/admin: a quadra que está na tela vira a quadra do jogo daquele dia, pra todo mundo (e no cartão do Início)
+document.getElementById('replays-quadra-info').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('[data-replays-marcar]');
+  if(!btn) return;
+  const cred = await requireAuth('salvarQuadraDoDia');
+  if(!cred) return;
+  const data = REPLAYS_DIA_ESCOLHIDO;
+  ULTIMA_RESPOSTA_POST = null;
+  if(!await postAction('salvarQuadraDoDia', { data, quadra: btn.dataset.replaysMarcar, nome: btn.dataset.replaysMarcarNome }, cred)) return;
+  if(SETTINGS.replays){
+    const dias = ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.dias;
+    if(dias && Object.keys(dias).length) SETTINGS.replays.dias = dias; else delete SETTINGS.replays.dias;
+  }
+  delete REPLAYS_QUADRA_VISTA[data];
+  mostrarToast(btn.dataset.replaysMarcarNome + ' marcada como quadra do jogo desse dia.', 'sucesso');
+  renderReplays();
+  renderReplaysCard();
+});
 // tocar uma miniatura (na tela ou no cartão do Início) abre o vídeo; "Ver todos" do cartão abre a tela naquele dia
 document.addEventListener('click', (e)=>{
   const ver = e.target.closest('[data-replays-ver-todos]');
@@ -13259,7 +13324,7 @@ function configReplaysHtml(){
         <button type="button" class="btn" id="config-replays-salvar">Salvar</button>
       </div>
       ${c ? '<div class="config-replays-linha"><button type="button" class="btn secondary" id="config-replays-desligar">Desligar replays</button></div>' : ''}
-      <p class="config-nota">Os vídeos não ficam guardados no app: ele mostra os que o RegistraAí gravou nessa quadra, do início do jogo até 2 horas depois.</p>
+      <p class="config-nota">Os vídeos não ficam guardados no app: ele mostra os que o RegistraAí gravou na quadra, do início do jogo até 2 horas depois. Esta é a quadra padrão; num dia em que o jogo for em outra, o organizador marca na tela Replays.</p>
     </div>`;
 }
 function ligarConfigReplays(ov){

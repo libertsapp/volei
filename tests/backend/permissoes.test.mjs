@@ -38,7 +38,7 @@ if (!fs.existsSync(caminhoGs)) {
     const {
       restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao,
       convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
-      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, salvarFaltas, cobrarPagamento, solicitarEntrada, aprovarEntrada, salvarReplays, ...resto
+      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, salvarFaltas, cobrarPagamento, solicitarEntrada, aprovarEntrada, salvarReplays, salvarQuadraDoDia, ...resto
     } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
@@ -55,6 +55,7 @@ if (!fs.existsSync(caminhoGs)) {
     assert.deepEqual(aprovarEntrada, ['organizador', 'admin']);
     // 🎥 replays do RegistraAí (v20.2): só existe no backend novo
     assert.deepEqual(salvarReplays, ['admin']);
+    assert.deepEqual(salvarQuadraDoDia, ['organizador', 'admin']);
     for (const acao of [convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
       travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar]) assert.deepEqual(acao, ['organizador', 'admin']);
   });

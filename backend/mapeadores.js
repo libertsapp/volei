@@ -2,6 +2,8 @@
 // Apps Script (mesmos nomes, tipos e ordem). Funções puras: nada aqui fala com banco nem rede.
 // Fonte da verdade do formato: readPlayers/readRounds/readSettings/readCheckins/lerFinanceiro_
 // em apps-script-codigo.gs.
+// (import circular com replays.js de propósito: lerDias só roda quando a leitura acontece, depois dos dois módulos carregados)
+import { lerDias } from './replays.js';
 
 export const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 
@@ -98,12 +100,16 @@ export function mapearConfig(linhas) {
     if (chave === 'replaysQuadra') replays.quadra = texto(valor);
     if (chave === 'replaysArenaNome') replays.arenaNome = texto(valor);
     if (chave === 'replaysQuadraNome') replays.quadraNome = texto(valor);
+    if (chave === 'replaysDias') replays.dias = lerDias(texto(valor));
     if (chave === 'checkinJogo2Data') jogo2.data = texto(valor);
     if (chave === 'checkinJogo2Horario') jogo2.horario = texto(valor);
     if (chave === 'checkinJogo2Vagas') jogo2.vagas = Number(valor) || 16;
     if (chave === 'checkinJogo2Travado') jogo2.travado = String(valor).toUpperCase() === 'TRUE';
   }
-  if (replays.arena && replays.quadra) s.replays = { arena: replays.arena, quadra: replays.quadra, arenaNome: replays.arenaNome || '', quadraNome: replays.quadraNome || '' };
+  if (replays.arena && replays.quadra) {
+    s.replays = { arena: replays.arena, quadra: replays.quadra, arenaNome: replays.arenaNome || '', quadraNome: replays.quadraNome || '' };
+    if (replays.dias && Object.keys(replays.dias).length) s.replays.dias = replays.dias;
+  }
   if (jogo2.data) s.checkinJogo2 = { data: jogo2.data, horario: jogo2.horario || '21:00', vagas: jogo2.vagas || 16, travado: !!jogo2.travado };
   return s;
 }
