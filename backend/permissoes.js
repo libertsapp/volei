@@ -21,6 +21,8 @@ export const PERMISSOES = {
   aceitarTermos:    ['jogador', 'organizador', 'admin'], // termos de uso (v18.2): cada um aceita pela própria conta
   aprovarVinculo:   ['organizador', 'admin'],
   rejeitarVinculo:  ['organizador', 'admin'],
+  solicitarEntrada: ['jogador', 'organizador', 'admin'], // 🙋 Quero jogar (v20.0): só pede, não cria nada
+  aprovarEntrada:   ['organizador', 'admin'],
   salvarEstrelasAjustadas: ['organizador', 'admin'],
   salvarFaltas:       ['organizador', 'admin'], // v18.8: quem confirmou e não apareceu
   cobrarPagamento:    ['organizador', 'admin'], // v19.2: aviso no celular de quem não pagou

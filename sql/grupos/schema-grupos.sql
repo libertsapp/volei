@@ -66,6 +66,8 @@ create table jogadores (
   convidado boolean not null default false,
   removido boolean not null default false,
   ordem int default nextval('seq_ordem_jogadores'),
+  aniversario text check (aniversario ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'), -- 🎂 'MM-DD' (v20.0)
+  recrutado_por text,             -- 🤝 id de quem trouxe o jogador (v20.0); sem FK de propósito
   primary key (grupo_id, id)
 );
 
@@ -130,6 +132,7 @@ create table usuarios (
   termos_versao text,             -- termos de uso: versão aceita e quando (LGPD); NULL = ainda não aceitou
   termos_aceitos_em timestamptz,
   ultimo_acesso timestamptz,      -- último acesso (v18.4), mostrado a organizador/admin na tela Contas
+  pedido_entrada text,            -- 🙋 "Quero jogar" (v20.0): nome de quem pediu pra entrar; NULL = sem pedido
   primary key (grupo_id, email),
   foreign key (grupo_id, jogador_id) references jogadores(grupo_id, id),
   foreign key (grupo_id, jogador_id_pendente) references jogadores(grupo_id, id)

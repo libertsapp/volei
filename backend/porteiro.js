@@ -8,9 +8,9 @@ import { lerUsuarios } from './usuarios.js';
 import { mapearJogadores, texto } from './mapeadores.js';
 import { validarSessao, MSG_SESSAO_EXPIRADA } from './sessoes.js';
 
-// Única exceção da matriz: um 'jogador' pode mexer no cadastro DELE mesmo, e só para trocar/remover a foto.
-// Compara o que chegou com o que já está gravado e só libera se TODO o resto (nome, apelido, estrelas, sexo, porte)
-// estiver igualzinho; senão um jogador comum se daria 5 estrelas sozinho.
+// Única exceção da matriz: um 'jogador' pode mexer no cadastro DELE mesmo, e só para trocar/remover a foto e (v20.0)
+// o próprio aniversário. Compara o que chegou com o que já está gravado e só libera se TODO o resto (nome, apelido,
+// estrelas, sexo, porte e quem o trouxe) estiver igualzinho; senão um jogador comum se daria 5 estrelas sozinho.
 async function excecaoPropriaFoto(repo, jogadorIdDaConta, body) {
   if (String(body.action) !== 'updatePlayer' || !body.player) return false;
   if (!jogadorIdDaConta || String(jogadorIdDaConta) !== String(body.player.id)) return false;
@@ -23,7 +23,8 @@ async function excecaoPropriaFoto(repo, jogadorIdDaConta, body) {
     && texto(p.apelido) === atual.apelido
     && Number(p.estrelas || 0) === atual.estrelas
     && texto(p.sexo) === atual.sexo
-    && texto(p.porte) === atual.porte;
+    && texto(p.porte) === atual.porte
+    && (!('recrutadoPor' in p) || texto(p.recrutadoPor) === texto(atual.recrutadoPor));
 }
 
 // Quem é a pessoa. Sessão do app primeiro (banco, sem falar com o Google); senão o ID Token do Google, como antes

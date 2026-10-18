@@ -76,3 +76,28 @@ export async function enviarParaJogadores(deps, jogadorIds, msg) {
   const alcancados = [...new Set(inscricoes.map((i) => jogadorDoEmail.get(String(i.email).toLowerCase())))];
   return { ...(await enviarParaInscricoes(deps, inscricoes, m.payload)), alcancados };
 }
+
+// v20.0: envia para TODOS os aparelhos, menos os das contas destes jogadores (vínculo aprovado). Serve para "últimas
+// vagas" (quem já está na lista não precisa do aviso) e para o "check-in aberto" sem repetir o aviso pessoal dos sumidos.
+// Aparelho sem login continua recebendo (pode ser alguém que ainda não confirmou).
+export async function enviarParaTodosExceto(deps, jogadorIdsFora, msg) {
+  const m = montarPayload(msg);
+  if (!m) return { enviados: 0, removidas: 0, falharam: 0 };
+  const fora = new Set((jogadorIdsFora || []).map(String).filter(Boolean));
+  const emailsFora = new Set((fora.size ? await deps.repo.lerUsuarios() : [])
+    .filter((u) => u.jogador_id && fora.has(String(u.jogador_id)))
+    .map((u) => String(u.email || '').toLowerCase()));
+  const inscricoes = (await deps.repo.lerPushInscricoes()).filter((i) => !(i.email && emailsFora.has(String(i.email).toLowerCase())));
+  return enviarParaInscricoes(deps, inscricoes, m.payload);
+}
+
+// v20.0: só para os aparelhos das contas de organizadores e admins (ex.: "🙋 pedido de entrada no grupo")
+export async function enviarParaOrganizadores(deps, msg) {
+  const m = montarPayload(msg);
+  if (!m) return { enviados: 0, removidas: 0, falharam: 0 };
+  const emails = new Set((await deps.repo.lerUsuarios())
+    .filter((u) => ['organizador', 'admin'].includes(String(u.perfil || '').trim().toLowerCase()))
+    .map((u) => String(u.email || '').toLowerCase()));
+  const inscricoes = (await deps.repo.lerPushInscricoes()).filter((i) => i.email && emails.has(String(i.email).toLowerCase()));
+  return enviarParaInscricoes(deps, inscricoes, m.payload);
+}

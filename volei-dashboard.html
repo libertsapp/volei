@@ -370,6 +370,23 @@
   .tag-faltou{color:var(--danger);border-color:var(--danger);}
   .history-faltou{opacity:.6;}
   .history-removido{opacity:.6;}
+  /* v20.0: 🎂 aniversário (dia + mês), cartões do Início e o passo a passo da primeira vez */
+  .aniv-campos{display:flex;gap:6px;flex-wrap:wrap;}
+  .aniv-campos select{flex:1;min-width:0;}
+  .inicio-cartao{margin-bottom:14px;padding:14px 16px;border-radius:12px;background:var(--glass-bg);border:1px solid var(--line);}
+  .inicio-cartao-titulo{font-weight:700;font-size:15px;margin:0 0 4px;}
+  .inicio-cartao-texto{font-size:13px;color:var(--chalk-dim);line-height:1.5;margin:0;}
+  .inicio-cartao-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+  .aniv-avatares{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;}
+  .meuperfil-aniv{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 14px;font-size:13px;}
+  .usuario-entrada{display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;margin-top:6px;}
+  .usuario-entrada input{flex:1;min-width:140px;}
+  .tour-card{max-width:400px;text-align:center;}
+  .tour-emoji{font-size:44px;line-height:1;margin:6px 0 10px;}
+  .tour-texto{font-size:14px;line-height:1.6;color:var(--chalk-dim);margin:8px 0 16px;}
+  .tour-pontos{display:flex;gap:6px;justify-content:center;margin-bottom:14px;}
+  .tour-pontos i{width:8px;height:8px;border-radius:50%;background:var(--line);}
+  .tour-pontos i.atual{background:var(--ball-yellow);}
   .falta-datas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
   .falta-data{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 4px 2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--chalk-dim);}
   .falta-data button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:4px 6px;border-radius:999px;}
@@ -2091,6 +2108,9 @@
       </div>
       <!-- 🗳️ votação do Craque/Bola Murcha (v19.1): aberta = convite pra votar; fechada há pouco = resultado (renderVotacaoCard) -->
       <div id="votacao-card" class="votacao-card" style="display:none;"></div>
+      <!-- 🎂 aniversário do dia e 🙋 "Quero jogar" (v20.0): renderCartoesInicio -->
+      <div id="aniversario-card" class="inicio-cartao" style="display:none;"></div>
+      <div id="quero-jogar-card" class="inicio-cartao" style="display:none;"></div>
       <!-- amistosos: um aviso pro organizador (tem algo pra responder) e um pra todos (amistoso marcado) — ver atualizarAvisosAmistosos -->
       <div id="amistosos-alerta" class="rascunho-alerta" style="display:none;" role="button" tabindex="0" title="Toque para responder">
         <span class="ponto-rascunho" aria-hidden="true"></span>
@@ -2331,6 +2351,14 @@
           <div class="field-group campo-cheio">
             <label>Porte (opcional)</label>
             <div id="new-player-porte-wrap"></div>
+          </div>
+          <div class="field-group campo-cheio">
+            <label>🎂 Aniversário (opcional)</label>
+            <div id="new-player-aniv-wrap"></div>
+          </div>
+          <div class="field-group campo-cheio">
+            <label>🤝 Quem trouxe? (opcional)</label>
+            <select id="new-player-recrutador"></select>
           </div>
           <button class="btn" id="add-player-btn">Adicionar</button>
         </div>
@@ -2616,6 +2644,17 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v20.0: Quero jogar, aniversários, recrutador e avisos novos</summary>
+          <div>
+            <p style="line-height:1.6;"><strong>🙋 Quero jogar:</strong> quem entra com a conta Google e ainda não é do grupo pede pra entrar (no Início, no Meu Perfil ou na janela "Esse é você?"). Os organizadores recebem um aviso no celular e, em <strong>Contas</strong>, criam o jogador e aprovam de uma vez.</p>
+            <p style="line-height:1.6;"><strong>🎂 Aniversários:</strong> o cadastro ganhou o aniversário (só dia e mês). Cada jogador pode colocar o dele no Meu Perfil. No dia, aparece no Início, o aniversariante ganha o emblema 🎂 e todo mundo recebe o aviso no celular (às 9h).</p>
+            <p style="line-height:1.6;"><strong>🤝 Recrutador:</strong> no cadastro dá pra marcar quem trouxe o jogador. Quem trouxe alguém que já jogou 3 vezes ganha o emblema 🤝.</p>
+            <p style="line-height:1.6;"><strong>🔔 Avisos novos no celular:</strong> 🔥 <em>últimas vagas</em> (quando faltam 3, vai pra quem ainda não confirmou) e 👋 <em>sentimos sua falta</em> (quem está sumido recebe um convite pessoal quando o check-in abre, no máximo a cada 3 semanas). Pedidos de vínculo também avisam os organizadores.</p>
+            <p style="line-height:1.6;"><strong>👋 Primeira vez no app:</strong> um passo a passo rápido pra quem chega. <button type="button" class="btn secondary" style="padding:4px 10px;font-size:12px;" onclick="abrirTour()">Ver o passo a passo</button></p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/10/2026 — v19.9: Mais gente no vôlei</summary>
           <div>
             <p style="line-height:1.6;"><strong>🔗 Prévia do link:</strong> o link do app colado no WhatsApp (ou no Instagram e no Telegram) agora aparece com imagem, nome e uma frase, em vez de um link "seco".</p>
@@ -3170,7 +3209,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 19.9">v19.9</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.0">v20.0</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -3200,7 +3239,7 @@ let PERFIS_PUBLICOS = []; // [{jogadorId, perfil}] — todo jogador vinculado a 
    'logado' falso = visitante anônimo, que continua vendo tudo e fazendo check-in. */
 let AUTH = {
   idToken: '', exp: 0, email: '', nome: '', foto: '',
-  perfil: '', jogadorId: '', jogadorIdPendente: '', logado: false,
+  perfil: '', jogadorId: '', jogadorIdPendente: '', pedidoEntrada: '', logado: false,
   sessao: '', sessaoExpiraEm: '', termosVersao: '',
   aoRenovar: null // callback temporário usado pela renovação silenciosa do token
 };
@@ -3231,6 +3270,8 @@ const PERMISSOES_UI = {
   solicitarVinculo:   ['jogador','organizador','admin'],
   aprovarVinculo:     ['organizador','admin'],
   rejeitarVinculo:    ['organizador','admin'],
+  solicitarEntrada:   ['jogador','organizador','admin'], // 🙋 Quero jogar (v20.0)
+  aprovarEntrada:     ['organizador','admin'],
   salvarEstrelasAjustadas: ['organizador','admin'],
   salvarFaltas:       ['organizador','admin'], // v18.8
   cobrarPagamento:    ['organizador','admin'], // v19.2
@@ -4215,6 +4256,7 @@ async function loginComGoogle(idToken){
     AUTH.perfil = json.perfil || 'jogador';
     AUTH.jogadorId = json.jogadorId || '';
     AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
+    AUTH.pedidoEntrada = json.pedidoEntrada || ''; // 🙋 v20.0
     AUTH.nome = json.nome || AUTH.nome;
     AUTH.sessao = json.sessao || '';                 // a partir daqui a identidade é a sessão do app (90 dias)
     AUTH.sessaoExpiraEm = json.sessaoExpiraEm || '';
@@ -4227,12 +4269,13 @@ async function loginComGoogle(idToken){
     aplicarPermissoesUI();
     renderCheckinStatus();
     renderCheckinList();
+    renderCartoesInicio();
     atualizarAvisoUsuariosPendentes();
     // sem jogador vinculado ainda (aprovado ou pendente): sempre pergunta "esse é você?" —
     // com um palpite de nome pronto (sugestao) OU, se não achou ninguém parecido, abrindo
     // direto no modo "escolher da lista" (perguntarVinculoJogador já trata sugestao=null)
     const perguntarVinculo = () => {
-      if(AUTH.logado && !AUTH.jogadorId && !AUTH.jogadorIdPendente && typeof perguntarVinculoJogador === 'function'){
+      if(AUTH.logado && !AUTH.jogadorId && !AUTH.jogadorIdPendente && !AUTH.pedidoEntrada && typeof perguntarVinculoJogador === 'function'){
         perguntarVinculoJogador(json.sugestao);
       }
     };
@@ -4373,10 +4416,12 @@ function avisarSessaoNaoCriada(){
   mostrarToast('O servidor não criou a sessão do app: seu login vai cair em cerca de 1 hora. Causa provável: tabela "sessoes" faltando no banco — avise o desenvolvedor.', 'erro', 12000);
 }
 function aplicarDadosDaConta(json){
-  const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente;
+  const mudou = (json.perfil||'jogador') !== AUTH.perfil || (json.jogadorId||'') !== AUTH.jogadorId || (json.jogadorIdPendente||'') !== AUTH.jogadorIdPendente
+    || (json.pedidoEntrada||'') !== (AUTH.pedidoEntrada||'');
   AUTH.perfil = json.perfil || 'jogador';
   AUTH.jogadorId = json.jogadorId || '';
   AUTH.jogadorIdPendente = json.jogadorIdPendente || '';
+  AUTH.pedidoEntrada = json.pedidoEntrada || '';
   AUTH.nome = json.nome || AUTH.nome;
   if(json.sessao) AUTH.sessao = json.sessao;
   if(json.sessaoExpiraEm) AUTH.sessaoExpiraEm = json.sessaoExpiraEm;
@@ -4447,7 +4492,7 @@ async function sairDeTodosOsAparelhos(){
 function salvarSessaoAuth(){
   localStorage.setItem(CHAVE_LOGIN_LOCAL, JSON.stringify({
     idToken: AUTH.idToken, exp: AUTH.exp, email: AUTH.email, nome: AUTH.nome,
-    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente,
+    foto: AUTH.foto, perfil: AUTH.perfil, jogadorId: AUTH.jogadorId, jogadorIdPendente: AUTH.jogadorIdPendente, pedidoEntrada: AUTH.pedidoEntrada || '',
     sessao: AUTH.sessao, sessaoExpiraEm: AUTH.sessaoExpiraEm, termosVersao: AUTH.termosVersao
   }));
 }
@@ -4470,7 +4515,7 @@ function sairDaConta(silencioso){
   if(AUTH.sessao && sheetReady){
     fetch(URL_API, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'sair', sessao: AUTH.sessao }) }).catch(()=>{});
   }
-  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'', termosVersao:'' };
+  AUTH = { idToken:'', exp:0, email:'', nome:'', foto:'', perfil:'', jogadorId:'', jogadorIdPendente:'', pedidoEntrada:'', logado:false, aoRenovar:null, sessao:'', sessaoExpiraEm:'', termosVersao:'' };
   localStorage.removeItem(CHAVE_LOGIN_LOCAL);
   if(typeof google !== 'undefined' && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect(); // senão o One Tap reloga na hora
@@ -4558,13 +4603,14 @@ function perguntarVinculoJogador(sugestao){
       <p class="vinculo-title">👋 Esse é você?</p>
       ${sugestao
         ? `<p class="vinculo-texto">Encontramos um jogador cadastrado parecido com o nome da sua conta Google (<strong>${escapeHtml(AUTH.nome)}</strong>):<br><br>➡️ <strong>${escapeHtml(sugestao.nome)}</strong><br><br>Confirmando, sua conta fica ligada a esse cadastro (foto, histórico e estatísticas).</p>`
-        : `<p class="vinculo-texto">Não achamos nenhum jogador cadastrado com o nome <strong>${escapeHtml(AUTH.nome)}</strong>. Se você já é cadastrado com outro nome, escolha na lista abaixo. Senão, pode deixar pra depois — dá pra vincular a qualquer momento.</p>`}
+        : `<p class="vinculo-texto">Não achamos nenhum jogador cadastrado com o nome <strong>${escapeHtml(AUTH.nome)}</strong>. Se você já é cadastrado com outro nome, escolha na lista abaixo. Se ainda não joga com a gente, toque em <strong>🙋 Sou novo, quero jogar</strong>.</p>`}
       <select class="vinculo-select" id="vinculo-select" style="display:${sugestao ? 'none' : 'block'};">
         <option value="">— escolher jogador —</option>
         ${opcoes}
       </select>
       <div class="vinculo-actions">
         <button class="btn secondary" id="vinculo-depois-btn">${sugestao ? 'Não sou eu' : 'Deixar pra depois'}</button>
+        <button class="btn secondary" id="vinculo-novo-btn">🙋 Sou novo, quero jogar</button>
         <button class="btn secondary" id="vinculo-outro-btn" style="display:${sugestao ? 'inline-flex' : 'none'};">Escolher outro</button>
         <button class="btn" id="vinculo-confirmar-btn">${sugestao ? 'Sim, sou eu' : 'Vincular'}</button>
       </div>
@@ -4575,6 +4621,7 @@ function perguntarVinculoJogador(sugestao){
   function fechar(){ overlay.remove(); }
 
   overlay.querySelector('#vinculo-depois-btn').addEventListener('click', fechar);
+  overlay.querySelector('#vinculo-novo-btn').addEventListener('click', ()=>{ fechar(); abrirPedidoEntrada(); });
   overlay.querySelector('#vinculo-outro-btn').addEventListener('click', ()=>{
     // troca pro modo "escolher da lista", sem fechar e reabrir o card
     select.style.display = 'block';
@@ -4599,6 +4646,130 @@ function perguntarVinculoJogador(sugestao){
     mostrarToast('Pedido enviado! Assim que o administrador aprovar, sua conta fica vinculada a ' + nomeJogador + '.', 'sucesso');
   });
 }
+
+/* ---------- 🙋 "Quero jogar" (v20.0) ----------
+   Quem entrou com Google e ainda NÃO tem cadastro de jogador pede pra entrar no grupo. O pedido vai pra conta
+   (solicitarEntrada) e os organizadores recebem um push; na tela Contas eles criam o jogador e aprovam de uma vez. */
+function abrirPedidoEntrada(){
+  if(!AUTH.logado){ mostrarToast('Entre com sua conta Google primeiro (botão no topo).', 'erro'); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="vinculo-card">
+      <p class="vinculo-title">🙋 Quero jogar</p>
+      <p class="vinculo-texto">Diga como você quer aparecer na lista. O organizador recebe o pedido, cria seu cadastro e sua conta já fica ligada a ele (foto, estatísticas e votação).</p>
+      <input class="vinculo-select" id="entrada-nome" maxlength="60" value="${escapeHtml(AUTH.nome || '')}" placeholder="Seu nome (como o grupo te chama)">
+      <div class="vinculo-actions">
+        <button class="btn secondary" data-acao="fechar">Cancelar</button>
+        <button class="btn" data-acao="enviar">Enviar pedido</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = ()=> overlay.remove();
+  overlay.addEventListener('click', async (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
+    if(!e.target.closest('[data-acao="enviar"]')) return;
+    const nome = overlay.querySelector('#entrada-nome').value.replace(/\s+/g, ' ').trim();
+    if(nome.length < 2){ mostrarToast('Escreva seu nome.', 'erro'); return; }
+    const cred = await requireAuth('solicitarEntrada');
+    if(!cred) return;
+    const ok = await postAction('solicitarEntrada', { nome }, cred);
+    if(!ok) return;
+    AUTH.pedidoEntrada = nome;
+    salvarSessaoAuth();
+    fechar();
+    renderCartoesInicio();
+    mostrarToast('Pedido enviado! Assim que o organizador aprovar, você entra na lista do grupo. 🏐', 'sucesso');
+  });
+}
+
+// cartões do Início: 🎂 aniversariantes do dia (com os próximos da semana) e 🙋 convite pra quem ainda não é do grupo
+function renderCartoesInicio(){
+  const aniv = document.getElementById('aniversario-card');
+  if(aniv){
+    const hoje = hojeLocalIso();
+    const doDia = aniversariantesDoDia(DATA.players, hoje);
+    const proximos = proximosAniversarios(DATA.players, hoje, 7);
+    if(!doDia.length && !proximos.length){ aniv.style.display = 'none'; }
+    else {
+      const nomes = doDia.map(p=> escapeHtml(p.apelido || p.nome));
+      const lista = nomes.length <= 1 ? nomes.join('') : nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+      // a data em que o aniversário CAI (29/02 vira 28/02 fora do bissexto)
+      const prox = proximos.map(x=> escapeHtml(x.jogador.apelido || x.jogador.nome) + ' (' + formatDate(x.data).slice(0, 5) + ')').join(', ');
+      aniv.innerHTML = doDia.length
+        ? `<p class="inicio-cartao-titulo">🎂 Hoje é aniversário de ${lista}!</p>
+           <div class="aniv-avatares">${doDia.map(p=> `<span class="clickable-name" data-open-profile="${escapeHtml(p.id)}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
+           <p class="inicio-cartao-texto">Manda os parabéns no grupo 🎉${prox ? ' · Próximos: ' + prox : ''}</p>`
+        : `<p class="inicio-cartao-texto">🎂 Aniversários da semana: ${prox}</p>`;
+      aniv.style.display = '';
+    }
+  }
+  const qj = document.getElementById('quero-jogar-card');
+  if(!qj) return;
+  // só aparece pra quem ainda não é jogador do grupo (sem vínculo e sem pedido de vínculo)
+  if(PAGINA_SEM_GRUPO || (AUTH.logado && (AUTH.jogadorId || AUTH.jogadorIdPendente))){ qj.style.display = 'none'; return; }
+  if(AUTH.logado && AUTH.pedidoEntrada){
+    qj.innerHTML = `<p class="inicio-cartao-titulo">🙋 Pedido enviado</p>
+      <p class="inicio-cartao-texto">Seu pedido pra jogar como <strong>${escapeHtml(AUTH.pedidoEntrada)}</strong> está com o organizador. Enquanto isso, já dá pra confirmar presença no Check-in.</p>`;
+  } else if(AUTH.logado){
+    qj.innerHTML = `<p class="inicio-cartao-titulo">🙋 Quer jogar com a gente?</p>
+      <p class="inicio-cartao-texto">Sua conta ainda não está ligada a um jogador. Já é do grupo? Vincule seu cadastro. É novo? Peça pra entrar.</p>
+      <div class="inicio-cartao-acoes">
+        <button class="btn" data-qj="novo">🙋 Quero jogar</button>
+        <button class="btn secondary" data-qj="vincular">Já sou do grupo</button>
+      </div>`;
+  } else {
+    qj.innerHTML = `<p class="inicio-cartao-titulo">🙋 Quer jogar com a gente?</p>
+      <p class="inicio-cartao-texto">Entre com sua conta Google (botão no topo) e peça pra entrar no grupo: você ganha sua foto, suas estatísticas e vota no Craque da rodada.</p>`;
+  }
+  qj.style.display = '';
+  qj.querySelectorAll('[data-qj]').forEach(b=> b.addEventListener('click', ()=>{
+    if(b.dataset.qj === 'novo') abrirPedidoEntrada(); else perguntarVinculoJogador(null);
+  }));
+}
+
+/* ---------- 👋 Passo a passo da primeira vez (v20.0) ----------
+   Aparece uma vez por aparelho (a chave fica no navegador), alguns segundos depois de o app carregar. */
+const CHAVE_TOUR_VISTO = chaveDoAparelho('volei-tour-visto', CTX_GRUPO);
+const TOUR_PASSOS = [
+  { emoji: '🏐', titulo: 'Bem-vindo ao app do vôlei!', texto: 'Aqui você confirma presença, vê os times sorteados, o ranking e quem foi o craque da rodada.' },
+  { emoji: '✅', titulo: 'Confirme presença', texto: 'Na aba <strong>Check-in</strong>, coloque seu nome na lista. Quem chega primeiro garante a vaga; depois vem a reserva — e se abrir vaga, você é avisado.' },
+  { emoji: '👤', titulo: 'Entre com sua conta', texto: 'Com a conta Google (botão no topo) você liga seu cadastro: aparece sua foto, suas estatísticas e você vota no Craque. Ainda não é do grupo? Toque em <strong>🙋 Quero jogar</strong>.' },
+  { emoji: '🔔', titulo: 'Ative as notificações', texto: 'Instale o app na tela inicial e toque no 🔕 do topo: você fica sabendo quando o check-in abre, quando sobra vaga e quando o jogo é hoje.' }
+];
+function abrirTour(){
+  let i = 0;
+  const overlay = document.createElement('div');
+  overlay.className = 'profile-overlay';
+  const desenhar = ()=>{
+    const p = TOUR_PASSOS[i], ultimo = i === TOUR_PASSOS.length - 1;
+    overlay.innerHTML = `
+      <div class="profile-card tour-card" role="dialog" aria-label="${escapeHtml(p.titulo)}">
+        <div class="tour-emoji">${p.emoji}</div>
+        <p class="profile-name" style="margin-bottom:0;">${p.titulo}</p>
+        <p class="tour-texto">${p.texto}</p>
+        <div class="tour-pontos">${TOUR_PASSOS.map((_, k)=> `<i class="${k === i ? 'atual' : ''}"></i>`).join('')}</div>
+        <div class="acoes-linha" style="justify-content:center;">
+          ${ultimo ? '' : '<button class="btn secondary" data-acao="pular">Pular</button>'}
+          <button class="btn" data-acao="${ultimo ? 'fim' : 'proximo'}">${ultimo ? 'Bora jogar! 🏐' : 'Próximo'}</button>
+        </div>
+      </div>`;
+  };
+  const fechar = ()=>{ try{ localStorage.setItem(CHAVE_TOUR_VISTO, '1'); }catch(e){ /* navegador sem armazenamento */ } overlay.remove(); };
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="pular"]') || e.target.closest('[data-acao="fim"]')) return fechar();
+    if(e.target.closest('[data-acao="proximo"]')){ i++; desenhar(); }
+  });
+  desenhar();
+  document.body.appendChild(overlay);
+}
+setTimeout(()=>{
+  let visto = true;
+  try{ visto = !!localStorage.getItem(CHAVE_TOUR_VISTO); }catch(e){ /* sem armazenamento: não mostra */ }
+  // já logado = já conhece o app (quem instalou antes da v20.0 não vê o passo a passo do nada)
+  if(visto || AUTH.logado || PAGINA_SEM_GRUPO || document.querySelector('.profile-overlay')) return;
+  abrirTour();
+}, 2500);
 
 /* ---------- GERENCIAR USUÁRIOS (só admin) ---------- */
 // a lista de e-mails NÃO vem no doGet público de propósito — ela é buscada por POST
@@ -4711,10 +4882,12 @@ async function renderUsuarios(){
       .join('');
     const pendente = !u.jogadorId;
     const jogadorSolicitado = aguardandoAprovacao ? getPlayer(u.jogadorIdPendente) : null;
+    const querEntrar = !u.jogadorId && !!u.pedidoEntrada; // 🙋 v20.0
     return `
     <div class="usuario-row ${pendente ? 'usuario-pendente' : ''}" data-email="${escapeHtml(u.email)}">
       <div class="usuario-email">
-        ${escapeHtml(u.email)} ${pendente && !aguardandoAprovacao ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
+        ${escapeHtml(u.email)} ${pendente && !aguardandoAprovacao && !querEntrar ? '<span class="usuario-pendente-tag">pendente</span>' : ''}
+        ${querEntrar ? '<span class="usuario-pendente-tag">🙋 quer jogar</span>' : ''}
         ${aguardandoAprovacao ? `<span class="usuario-pendente-tag">aguardando aprovação: ${escapeHtml(jogadorSolicitado ? jogadorSolicitado.nome : '?')}</span>` : ''}
         <div class="usuario-sub">${escapeHtml(u.nome || 'sem nome')}${u.criadoEm ? ' · entrou em ' + escapeHtml(formatDate(u.criadoEm)) : ''} · visto ${escapeHtml(tempoDesde(u.ultimoAcesso, agoraMs))}</div>
       </div>
@@ -4738,6 +4911,13 @@ async function renderUsuarios(){
         <button class="btn" data-aprovar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">✅ Aprovar</button>
         <button class="btn secondary" data-rejeitar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Rejeitar</button>
       ` : ''}
+      ${querEntrar ? `
+        <div class="usuario-entrada">
+          <span>🙋 Novo jogador:</span>
+          <input class="usuario-entrada-nome" value="${escapeHtml(u.pedidoEntrada)}" aria-label="Nome do jogador novo" maxlength="60">
+          <button class="btn" data-aprovar-entrada="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">✅ Criar jogador e aprovar</button>
+          <button class="btn secondary" data-rejeitar-vinculo="${escapeHtml(u.email)}" style="padding:7px 14px;font-size:12px;">Recusar</button>
+        </div>` : ''}
       ${souAdmin ? `<button class="icon-btn" data-remover-usuario="${escapeHtml(u.email)}" title="Remover este usuário" aria-label="Remover usuário">✕</button>` : ''}
     </div>`;
   }).join('');
@@ -4798,6 +4978,25 @@ async function renderUsuarios(){
     });
   });
 
+  // 🙋 pedido de entrada (v20.0): cria o jogador com o nome (dá pra corrigir antes) e já vincula a conta
+  list.querySelectorAll('[data-aprovar-entrada]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const email = btn.dataset.aprovarEntrada;
+      const nome = btn.closest('.usuario-row').querySelector('.usuario-entrada-nome').value.trim();
+      if(nome.length < 2){ mostrarToast('Escreva o nome do jogador.', 'erro'); return; }
+      const cred = await requireAuth('aprovarEntrada');
+      if(!cred) return;
+      ULTIMA_RESPOSTA_POST = null;
+      const ok = await postAction('aprovarEntrada', { email, nome }, cred);
+      if(!ok) return;
+      const id = ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.jogadorId;
+      if(id && !DATA.players.some(p=> p.id === id)) DATA.players.push({ id, nome, apelido:'', foto:'', estrelas:0, sexo:'', porte:'' });
+      mostrarToast(nome + ' entrou no grupo! 🎉', 'sucesso');
+      renderUsuarios();
+      renderPlayers();
+    });
+  });
+
   list.querySelectorAll('[data-rejeitar-vinculo]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const email = btn.dataset.rejeitarVinculo;
@@ -4827,7 +5026,7 @@ async function atualizarAvisoUsuariosPendentes(){
   }
   const usuarios = await carregarUsuarios(true); // automático: sem pop-up (ver carregarUsuarios)
   if(!usuarios) return;
-  const pendentes = usuarios.filter(u => !u.jogadorId && u.jogadorIdPendente).length;
+  const pendentes = usuarios.filter(u => !u.jogadorId && (u.jogadorIdPendente || u.pedidoEntrada)).length;
   [navBadge, maisBadge].forEach(el=>{
     if(!el) return;
     el.textContent = String(pendentes);
@@ -4836,8 +5035,8 @@ async function atualizarAvisoUsuariosPendentes(){
   if(banner){
     if(pendentes > 0){
       document.getElementById('usuarios-pendentes-texto').textContent = pendentes === 1
-        ? 'Há 1 pedido de vínculo aguardando sua aprovação.'
-        : 'Há ' + pendentes + ' pedidos de vínculo aguardando sua aprovação.';
+        ? 'Há 1 pedido (vínculo de conta ou entrada no grupo) aguardando sua aprovação.'
+        : 'Há ' + pendentes + ' pedidos (vínculo de conta ou entrada no grupo) aguardando sua aprovação.';
       banner.style.display = 'block';
     } else {
       banner.style.display = 'none';
@@ -5180,15 +5379,25 @@ async function renderMeuPerfil(){
         </div>`;
       return;
     }
+    if(AUTH.pedidoEntrada){
+      container.innerHTML = `
+        <div class="empty">
+          🙋 Seu pedido pra jogar como <strong>${escapeHtml(AUTH.pedidoEntrada)}</strong> está com o organizador.
+          Assim que ele aprovar, seu cadastro aparece aqui.
+        </div>`;
+      return;
+    }
     container.innerHTML = `
       <div class="empty">
         Você ainda não vinculou sua conta a um jogador cadastrado.
         <br><br>
-        <button class="btn" id="meuperfil-vincular-btn">Vincular agora</button>
+        <button class="btn" id="meuperfil-vincular-btn">Já sou do grupo: vincular</button>
+        <button class="btn secondary" id="meuperfil-novo-btn">🙋 Sou novo, quero jogar</button>
       </div>`;
     document.getElementById('meuperfil-vincular-btn').addEventListener('click', ()=>{
       perguntarVinculoJogador(null); // sem sugestão pronta: abre direto no modo "escolher da lista"
     });
+    document.getElementById('meuperfil-novo-btn').addEventListener('click', abrirPedidoEntrada);
     return;
   }
   const player = getPlayer(AUTH.jogadorId);
@@ -5260,6 +5469,11 @@ async function renderMeuPerfil(){
     <div style="margin:14px 0;">
       <input type="file" id="meuperfil-foto-input" accept="image/*" style="display:none;">
       <button class="btn secondary" id="meuperfil-trocar-foto-btn">📷 Trocar minha foto</button>
+      <div class="meuperfil-aniv" style="margin-top:12px;">
+        <span>🎂 Meu aniversário:</span>
+        ${aniversarioCamposHtml('meuperfil', player.aniversario || '')}
+        <button class="btn secondary" id="meuperfil-aniv-btn" style="padding:6px 12px;font-size:12px;">Salvar</button>
+      </div>
       <p style="font-size:11px;color:var(--muted);margin-top:6px;">
         Use uma foto do seu rosto, de frente — ela aparece em todo o app. A foto antiga é apagada automaticamente.
         O nome do cadastro não pode ser alterado por aqui; fale com o administrador se precisar corrigir.
@@ -5347,6 +5561,21 @@ async function renderMeuPerfil(){
       <div>Juntos no mesmo time: ${c.juntos} rodada${c.juntos===1?'':'s'}${c.juntos ? `, ${c.titulosJuntos} título${c.titulosJuntos===1?'':'s'} (${Math.round(c.titulosJuntos / c.juntos * 100)}%)` : ''}.</div>`;
   });
 
+  // 🎂 o próprio jogador salva o aniversário dele (mesma exceção da foto no backend)
+  const anivBtn = document.getElementById('meuperfil-aniv-btn');
+  if(anivBtn) anivBtn.addEventListener('click', async ()=>{
+    const aniversario = lerAniversario('meuperfil');
+    if(aniversario === null){ mostrarToast('Escolha o dia e o mês (ou deixe os dois em branco).', 'erro'); return; }
+    const p = getPlayer(AUTH.jogadorId);
+    if(!p) return;
+    const cred = await requireAuth('updatePlayer', p.id);
+    if(!cred) return;
+    const ok = await postAction('updatePlayer', { player: { ...p, aniversario } }, cred);
+    if(!ok) return;
+    p.aniversario = aniversario;
+    mostrarToast(aniversario ? '🎂 Aniversário salvo: ' + formatarAniversario(aniversario) + '.' : 'Aniversário apagado.', 'sucesso');
+    renderCartoesInicio();
+  });
   const titulosEl = document.getElementById('meuperfil-titulos-clicavel');
   if(titulosEl) titulosEl.addEventListener('click', ()=>{
     const datasCampeao = stats.rounds.filter(r=>r.isWinner).map(r=>r.data);
@@ -6359,6 +6588,34 @@ function labelPorte(p){
   return info ? `${info.valor} (${info.faixa})` : '';
 }
 document.getElementById('new-player-porte-wrap').innerHTML = porteSeletorHtml('new-player', '');
+
+/* ---------- 🎂 aniversário e 🤝 quem trouxe (v20.0) — campos dos formulários ---------- */
+const MESES_ANIV = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+// dois <select> (dia e mês) — "prefixo" monta os ids: <prefixo>-aniv-dia e <prefixo>-aniv-mes
+function aniversarioCamposHtml(prefixo, valor){
+  const [m, d] = aniversarioValido(valor) ? valor.split('-') : ['', ''];
+  const dias = Array.from({ length: 31 }, (_, i)=> String(i + 1).padStart(2, '0'))
+    .map(x=> `<option value="${x}"${x === d ? ' selected' : ''}>${Number(x)}</option>`).join('');
+  const meses = MESES_ANIV.map((nome, i)=>{ const x = String(i + 1).padStart(2, '0'); return `<option value="${x}"${x === m ? ' selected' : ''}>${nome}</option>`; }).join('');
+  return `<div class="aniv-campos">
+    <select id="${prefixo}-aniv-dia" aria-label="Dia do aniversário"><option value="">Dia</option>${dias}</select>
+    <select id="${prefixo}-aniv-mes" aria-label="Mês do aniversário"><option value="">Mês</option>${meses}</select>
+  </div>`;
+}
+// 'MM-DD', '' se não escolheu os dois, ou null se a data não existe (31/04)
+function lerAniversario(prefixo){
+  const d = (document.getElementById(prefixo + '-aniv-dia') || {}).value || '';
+  const m = (document.getElementById(prefixo + '-aniv-mes') || {}).value || '';
+  if(!d && !m) return '';
+  if(!d || !m) return null;
+  const maxDia = [31,29,31,30,31,30,31,31,30,31,30,31][Number(m) - 1];
+  return Number(d) <= maxDia ? m + '-' + d : null;
+}
+// lista de jogadores pra "Quem trouxe?" (sem o próprio)
+function opcoesRecrutadorHtml(valor, semId){
+  return '<option value="">— ninguém / não sei —</option>' + sortByName(DATA.players).filter(p=> p.id !== semId)
+    .map(p=> `<option value="${escapeHtml(p.id)}"${p.id === valor ? ' selected' : ''}>${escapeHtml(p.apelido || p.nome)}</option>`).join('');
+}
 wirePorteSeletor('new-player');
 wireStarsPicker('rodada-guest-stars');
 
@@ -6472,11 +6729,15 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
       : 'A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. Jogador será salvo sem foto.';
     mostrarToast(msg, 'erro');
   }
+  const aniversario = lerAniversario('new-player');
+  if(aniversario === null){ mostrarToast('Escolha o dia e o mês do aniversário (ou deixe os dois em branco).', 'erro'); addBtn.disabled = false; addBtn.textContent = 'Adicionar'; return; }
+  const recrutadoPor = document.getElementById('new-player-recrutador').value || '';
   const newPlayer = {
     id: uid(), nome: name, apelido: nickInput.value.trim(), foto,
     estrelas: parseFloat(starsEl.dataset.value) || 0,
     sexo: genderSelect.value || '',
-    porte: document.getElementById('new-player-porte-seletor').dataset.value || ''
+    porte: document.getElementById('new-player-porte-seletor').dataset.value || '',
+    ...(aniversario ? { aniversario } : {}), ...(recrutadoPor ? { recrutadoPor } : {})
   };
   DATA.players.push(newPlayer);
   const ok = await postAction('addPlayer', {player: newPlayer}, cred);
@@ -6491,6 +6752,7 @@ document.getElementById('add-player-btn').addEventListener('click', async ()=>{
   starsEl.querySelectorAll('button').forEach(b=>b.classList.remove('filled','half'));
   document.getElementById('new-player-porte-wrap').innerHTML = porteSeletorHtml('new-player', '');
   wirePorteSeletor('new-player');
+  document.getElementById('new-player-aniv-wrap').innerHTML = aniversarioCamposHtml('new-player', '');
   document.getElementById('new-player-preview').style.display='none';
   renderPlayers();
 });
@@ -6883,6 +7145,12 @@ async function reativarJogadorRemovido(id){
 }
 
 function renderPlayers(){
+  const selRecrutador = document.getElementById('new-player-recrutador');
+  if(selRecrutador) selRecrutador.innerHTML = opcoesRecrutadorHtml(selRecrutador.value, '');
+  // montado aqui (e não no carregamento do script): aniversarioCamposHtml usa constantes declaradas mais abaixo no
+  // arquivo, e chamá-la antes delas derrubava o resto do script (erro de "antes da inicialização")
+  const anivWrap = document.getElementById('new-player-aniv-wrap');
+  if(anivWrap && !anivWrap.firstChild) anivWrap.innerHTML = aniversarioCamposHtml('new-player', '');
   renderJogadoresRemovidos();
   renderSumidos();
   renderConvidadosFrequentes();
@@ -7219,6 +7487,47 @@ function listarFaltas(checkins, hojeIso){
     .sort((a,b)=> b.faltas.length - a.faltas.length || b.faltas[0].data.localeCompare(a.faltas[0].data));
 }
 // </sumidos-retro>
+
+// <aniversario-puro>
+/* 🎂 Aniversário e 🤝 Recrutador (v20.0) — PURAS (testadas em tests/aniversario-recrutador.test.js).
+   Aniversário: só dia e mês ('MM-DD'); 29/02 comemora em 28/02 nos anos que não são bissextos.
+   Recrutador: quem trouxe (campo recrutadoPor do cadastro) pelo menos um jogador que já jogou RECRUTADO_MIN_DATAS
+   datas (virou da casa). Rodadas = as oficiais, já sem quem levou 🚫 falta. */
+const RECRUTADO_MIN_DATAS = 3;
+const FORMATO_ANIVERSARIO = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+function aniversarioValido(v){ return FORMATO_ANIVERSARIO.test(String(v || '')); }
+function formatarAniversario(v){ if(!aniversarioValido(v)) return ''; const [m, d] = v.split('-'); return d + '/' + m; }
+function anoBissexto(a){ return (a % 4 === 0 && a % 100 !== 0) || a % 400 === 0; }
+// o 'MM-DD' em que o aniversário cai naquele ano (29/02 -> 28/02 fora do bissexto)
+function aniversarioNoAno(v, ano){ return (v === '02-29' && !anoBissexto(ano)) ? '02-28' : v; }
+function aniversariantesDoDia(jogadores, hojeIso){
+  const ano = Number(hojeIso.slice(0, 4)), mmdd = hojeIso.slice(5, 10);
+  return (jogadores || []).filter(p=> aniversarioValido(p.aniversario) && aniversarioNoAno(p.aniversario, ano) === mmdd);
+}
+// aniversários dos próximos "dias" dias (sem o de hoje), do mais perto pro mais longe: [{ jogador, data:'aaaa-mm-dd', emDias }]
+function proximosAniversarios(jogadores, hojeIso, dias){
+  const base = Date.parse(hojeIso + 'T12:00:00Z');
+  const out = [];
+  for(let i = 1; i <= dias; i++){
+    const dia = new Date(base + i * 86400000).toISOString().slice(0, 10);
+    aniversariantesDoDia(jogadores, dia).forEach(p=> out.push({ jogador: p, data: dia, emDias: i }));
+  }
+  return out;
+}
+// { idDeQuemTrouxe: quantos viraram da casa }
+function computeRecrutadores(jogadores, rodadas){
+  const datas = {};
+  (rodadas || []).forEach(r=> r.times.forEach(t=> (t.playerIds || []).forEach(id=>{ (datas[id] || (datas[id] = new Set())).add(r.data); })));
+  const out = {};
+  (jogadores || []).forEach(p=>{
+    const quem = p.recrutadoPor;
+    if(!quem || quem === p.id) return;
+    if((datas[p.id] ? datas[p.id].size : 0) < RECRUTADO_MIN_DATAS) return;
+    out[quem] = (out[quem] || 0) + 1;
+  });
+  return out;
+}
+// </aniversario-puro>
 
 // <convidados-puro>
 /* 🌱 Convidados frequentes (v19.9) — PURA (testada em tests/convidados-frequentes.test.js). O convidado é a porta de
@@ -7601,6 +7910,14 @@ function editPlayerRowHtml(p){
             <label>Porte (opcional)</label>
             <div id="edit-porte-wrap-${p.id}"></div>
           </div>
+          <div class="field-group" style="margin-top:10px;">
+            <label>🎂 Aniversário (opcional)</label>
+            ${aniversarioCamposHtml('edit-' + p.id, p.aniversario || '')}
+          </div>
+          <div class="field-group" style="margin-top:10px;">
+            <label>🤝 Quem trouxe? (opcional)</label>
+            <select id="edit-recrutador-${p.id}">${opcoesRecrutadorHtml(p.recrutadoPor || '', p.id)}</select>
+          </div>
         </div>
       </div>
       <div style="display:flex;gap:6px;">
@@ -7667,6 +7984,8 @@ function wireEditPlayerRow(){
       alert('O nome não pode ficar vazio.');
       return;
     }
+    const novoAniversario = lerAniversario('edit-' + pid);
+    if(novoAniversario === null){ mostrarToast('Escolha o dia e o mês do aniversário (ou deixe os dois em branco).', 'erro'); return; }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando...';
     const novaEstrelas = parseFloat(starsEl.dataset.value) || 0;
@@ -7679,13 +7998,15 @@ function wireEditPlayerRow(){
       console.error('Falha no upload da foto', e);
       mostrarToast('A foto não pôde ser enviada: ' + (e && e.message ? e.message : 'erro desconhecido') + '. As outras alterações serão salvas mesmo assim.', 'erro');
     }
-    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte, sexo: player.sexo };
+    const anterior = { estrelas: player.estrelas, foto: player.foto, nome: player.nome, apelido: player.apelido, porte: player.porte, sexo: player.sexo, aniversario: player.aniversario, recrutadoPor: player.recrutadoPor };
     player.estrelas = novaEstrelas;
     player.foto = novaFoto;
     player.nome = novoNome;
     player.apelido = novoApelido;
     player.porte = document.getElementById('edit-'+pid+'-porte-seletor').dataset.value || '';
     player.sexo = document.getElementById('edit-gender-'+pid).value || '';
+    player.aniversario = novoAniversario; // '' = apagar (o backend só mexe quando a chave vem)
+    player.recrutadoPor = document.getElementById('edit-recrutador-'+pid).value || '';
     const ok = await postAction('updatePlayer', {player: player}, cred);
     if(!ok){
       player.estrelas = anterior.estrelas; // desfaz se não salvou
@@ -7694,6 +8015,8 @@ function wireEditPlayerRow(){
       player.apelido = anterior.apelido;
       player.porte = anterior.porte;
       player.sexo = anterior.sexo;
+      player.aniversario = anterior.aniversario;
+      player.recrutadoPor = anterior.recrutadoPor;
     }
     EDITING_PLAYER_ID = null;
     renderPlayers();
@@ -8746,7 +9069,11 @@ function computeBadges(){
   const craque = new Set(eleitos.craque.ids), murcha = new Set(eleitos.murcha.ids);
   const dataCraque = eleitos.craque.data, dataMurcha = eleitos.murcha.data;
 
-  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador, furao, craque, murcha, dataCraque, dataMurcha };
+  // 🎂 ANIVERSARIANTE (só no dia) e 🤝 RECRUTADOR (trouxe gente que virou da casa) — v20.0
+  const aniversario = new Set(aniversariantesDoDia(DATA.players, hojeLocalIso()).map(p=> p.id));
+  const recrutador = computeRecrutadores(DATA.players, roundsOficiais());
+
+  return { top1, paneleiro, mochila, grudento, rip, cabecaDeChave, aposentado, staffAdmin, staffOrganizador, furao, craque, murcha, dataCraque, dataMurcha, aniversario, recrutador };
 }
 
 // ícone ANTES do nome (diferente dos badges, que vêm depois) — indica que esse
@@ -8767,6 +9094,8 @@ function badgeIconsHtml(pid, badges){
   if(badges.craque && badges.craque.has(pid)) html += `<span class="badge-icon" title="CRAQUE — eleito pelos jogadores na última votação (${formatDate(badges.dataCraque).slice(0,5)})">🏅</span>`;
   if(badges.murcha && badges.murcha.has(pid)) html += `<span class="badge-icon" title="BOLA MURCHA — eleito de brincadeira pelos amigos na última votação (${formatDate(badges.dataMurcha).slice(0,5)}). Zoeira de resenha, sem ofensa: na próxima tem revanche!">🎈</span>`;
   if(badges.furao && badges.furao.has(pid)) html += `<span class="badge-icon" title="FURÃO — confirmou e não apareceu ${FALTAS_PARA_EMBLEMA} vezes ou mais nos últimos ${FALTAS_JANELA_DIAS} dias">🏃</span>`;
+  if(badges.aniversario && badges.aniversario.has(pid)) html += `<span class="badge-icon" title="ANIVERSARIANTE — hoje é aniversário! Manda os parabéns 🎉">🎂</span>`;
+  if(badges.recrutador && badges.recrutador[pid]) html += `<span class="badge-icon" title="RECRUTADOR — trouxe ${badges.recrutador[pid]} jogador${badges.recrutador[pid] === 1 ? '' : 'es'} que ${badges.recrutador[pid] === 1 ? 'virou' : 'viraram'} da casa">🤝</span>`;
   if(badges.cabecaDeChave.has(pid)) html += `<span class="badge-icon" title="CABEÇA DE CHAVE — nota máxima (5 estrelas)">👑</span>`;
   if(badges.staffAdmin && badges.staffAdmin.has(pid)) html += `<span class="badge-icon" title="ADMIN">🎖️</span>`;
   else if(badges.staffOrganizador && badges.staffOrganizador.has(pid)) html += `<span class="badge-icon" title="ORGANIZADOR">🎖️</span>`;
@@ -9613,6 +9942,7 @@ function renderAll(){
   atualizarBadgeAoVivo();
   atualizarAlertaRascunhos();
   atualizarAvisosAmistosos();
+  renderCartoesInicio();
   renderVotacaoCard();
   const boasVindas = document.getElementById('grupo-boas-vindas');
   if(boasVindas) boasVindas.style.display = (GRUPO_ATUAL && temPermissao('addPlayer') && !DATA.players.length) ? '' : 'none';

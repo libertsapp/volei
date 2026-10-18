@@ -38,7 +38,7 @@ if (!fs.existsSync(caminhoGs)) {
     const {
       restorePlayer, moverCheckin, salvarJogo2, removerJogo2, enviarNotificacao,
       convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
-      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, salvarFaltas, cobrarPagamento, ...resto
+      travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar, aceitarTermos, salvarLogo, salvarFaltas, cobrarPagamento, solicitarEntrada, aprovarEntrada, ...resto
     } = PERMISSOES;
     assert.deepEqual(resto, doGs);
     assert.deepEqual(restorePlayer, ['organizador', 'admin']);
@@ -50,6 +50,9 @@ if (!fs.existsSync(caminhoGs)) {
     assert.deepEqual(salvarLogo, ['admin']);
     assert.deepEqual(salvarFaltas, ['organizador', 'admin']);
     assert.deepEqual(cobrarPagamento, ['organizador', 'admin']);
+    // 🙋 Quero jogar (v20.0): só existe no backend novo
+    assert.deepEqual(solicitarEntrada, ['jogador', 'organizador', 'admin']);
+    assert.deepEqual(aprovarEntrada, ['organizador', 'admin']);
     for (const acao of [convidarGrupo, responderConvite, cancelarAmistoso, recadoAmistoso, confirmarEscalado, desconfirmarEscalado,
       travarEscalacao, destravarEscalacao, lancarPlacar, confirmarPlacar, contestarPlacar]) assert.deepEqual(acao, ['organizador', 'admin']);
   });

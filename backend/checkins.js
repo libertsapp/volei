@@ -6,7 +6,7 @@
 import { texto } from './mapeadores.js';
 import { aposAdicionarCheckin, aposRemoverCheckin } from './financeiro.js';
 import { mapearConfig } from './mapeadores.js';
-import { dentroPorJogo, avisarQuemEntrouNaLista } from './avisos-push.js';
+import { dentroPorJogo, avisarQuemEntrouNaLista, avisarUltimasVagas } from './avisos-push.js';
 
 // nome de check-in maior que isto não é nome: corta (o app usa nomes curtos) para um login qualquer do Google não encher o banco
 const MAX_NOME = 120;
@@ -57,6 +57,7 @@ export async function addCheckin(deps, c) {
     estrelas: Number(c.estrelas) || 0, sexo: texto(c.sexo) || null, estrelas_ajustadas: nota, jogo
   });
   await aposAdicionarCheckin(deps, c.data); // quem tem crédito de um dia sem jogo já aparece pago
+  await avisarUltimasVagas(deps, texto(c.data), jogo); // 🔥 v20.0: bônus, nunca quebra o check-in
   return { status: 'ok' };
 }
 

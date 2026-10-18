@@ -19,13 +19,22 @@ export const porOrdem = (a, b) => {
   return x === y ? 0 : (x < y ? -1 : 1);
 };
 
+// v20.0: aniversario ('MM-DD', só dia e mês) e recrutadoPor (id de quem trouxe o jogador pro grupo) só aparecem
+// quando preenchidos — a resposta de quem não usa fica idêntica à de antes (testes de paridade com o .gs)
+function extrasDoJogador(j) {
+  return {
+    ...(texto(j.aniversario) ? { aniversario: texto(j.aniversario) } : {}),
+    ...(texto(j.recrutado_por) ? { recrutadoPor: texto(j.recrutado_por) } : {})
+  };
+}
+
 export function mapearJogadores(jogadores) {
   return jogadores
     .filter((j) => !j.convidado && !j.removido)
     .slice().sort(porOrdem)
     .map((j) => ({
       id: texto(j.id), nome: texto(j.nome), apelido: texto(j.apelido), foto: texto(j.foto),
-      estrelas: numero(j.estrelas), sexo: texto(j.sexo), porte: texto(j.porte)
+      estrelas: numero(j.estrelas), sexo: texto(j.sexo), porte: texto(j.porte), ...extrasDoJogador(j)
     }));
 }
 
@@ -37,7 +46,7 @@ export function mapearJogadoresRemovidos(jogadores) {
     .slice().sort(porOrdem)
     .map((j) => ({
       id: texto(j.id), nome: texto(j.nome), apelido: texto(j.apelido), foto: texto(j.foto),
-      estrelas: numero(j.estrelas), sexo: texto(j.sexo), porte: texto(j.porte)
+      estrelas: numero(j.estrelas), sexo: texto(j.sexo), porte: texto(j.porte), ...extrasDoJogador(j)
     }));
 }
 

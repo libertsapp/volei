@@ -4,6 +4,7 @@
 import { mapearJogadores, texto, porOrdem } from './mapeadores.js';
 import { conferirChaveMestra, MSG_MUITAS_TENTATIVAS } from './limitador.js';
 import { criarSessao, validarSessao, encerrarSessao, MSG_SESSAO_EXPIRADA } from './sessoes.js';
+import { enviarParaOrganizadores } from './notificacoes.js';
 
 const PERFIS = ['admin', 'organizador', 'jogador'];
 export const normalizarEmail = (v) => texto(v).trim().toLowerCase();
@@ -27,7 +28,9 @@ export async function lerUsuarios(repo) {
     criadoEm: dataSaoPaulo(u.criado_em),
     jogadorIdPendente: texto(u.jogador_id_pendente),
     termosVersao: texto(u.termos_versao),
-    ultimoAcesso: u.ultimo_acesso ? new Date(u.ultimo_acesso).toISOString() : ''
+    ultimoAcesso: u.ultimo_acesso ? new Date(u.ultimo_acesso).toISOString() : '',
+    // 🙋 pedido de entrada (v20.0): nome de quem ainda não tem cadastro e pediu pra jogar; só aparece quando existe
+    ...(texto(u.pedido_entrada) ? { pedidoEntrada: texto(u.pedido_entrada) } : {})
   }));
 }
 
@@ -58,6 +61,7 @@ async function gravar(repo, relogio, u) {
   const atual = brutos.find((x) => normalizarEmail(x.email) === email);
   const pendente = ('jogadorIdPendente' in u) ? texto(u.jogadorIdPendente) : (atual ? texto(atual.jogador_id_pendente) : '');
   const linha = { nome: texto(u.nome), perfil, jogador_id: texto(u.jogadorId) || null, jogador_id_pendente: pendente || null };
+  if (atual && texto(atual.pedido_entrada) && texto(u.jogadorId)) linha.pedido_entrada = null; // virou jogador: pedido resolvido
   if (atual) {
     await repo.gravarUsuario({ ...linha, email: atual.email });
   } else {
@@ -125,8 +129,9 @@ export async function loginGoogle({ repo, relogio, verificarToken, avisar = () =
     return {
       status: 'ok', email: existente.email, nome: token.nome || existente.nome,
       perfil: existente.perfil || 'jogador', jogadorId: existente.jogadorId, jogadorIdPendente: existente.jogadorIdPendente,
+      ...(existente.pedidoEntrada ? { pedidoEntrada: existente.pedidoEntrada } : {}),
       // já vinculado OU já com pedido em análise: não repete a sugestão de vínculo
-      sugestao: (existente.jogadorId || existente.jogadorIdPendente) ? null : await sugerirJogador(repo, token.nome),
+      sugestao: (existente.jogadorId || existente.jogadorIdPendente || existente.pedidoEntrada) ? null : await sugerirJogador(repo, token.nome),
       primeiroLogin: false, totalUsuarios: usuarios.length, termosVersao: existente.termosVersao,
       ...(await sessaoOuNada({ repo, relogio, avisar }, existente.email)) // o Google provou quem é: a partir daqui vale a sessão do app
     };
@@ -159,7 +164,7 @@ export async function listarUsuarios({ repo }, perfilDeQuemPediu) {
   // o aceite dos termos é assunto de cada conta: não vai na lista (nem para o admin)
   const usuarios = (await lerUsuarios(repo)).map(({ termosVersao, ...u }) => u);
   if (perfilDeQuemPediu === 'admin') return { usuarios };
-  return { usuarios: usuarios.map((u) => ({ email: u.email, nome: u.nome, jogadorId: u.jogadorId, criadoEm: u.criadoEm, jogadorIdPendente: u.jogadorIdPendente, ultimoAcesso: u.ultimoAcesso })) };
+  return { usuarios: usuarios.map((u) => ({ email: u.email, nome: u.nome, jogadorId: u.jogadorId, criadoEm: u.criadoEm, jogadorIdPendente: u.jogadorIdPendente, ultimoAcesso: u.ultimoAcesso, ...(u.pedidoEntrada ? { pedidoEntrada: u.pedidoEntrada } : {}) })) };
 }
 
 export async function salvarUsuario({ repo, relogio }, u) {
@@ -207,7 +212,8 @@ export async function removerUsuario({ repo }, email) {
 
 // Pedido de vínculo entre a conta logada e um jogador: NÃO vincula na hora, fica pendente até alguém aprovar.
 // Só mexe na linha do PRÓPRIO e-mail autenticado (por isso recebe o "auth" do porteiro, nunca um e-mail do cliente).
-export async function solicitarVinculo({ repo, relogio }, auth, jogadorId) {
+export async function solicitarVinculo(deps, auth, jogadorId) {
+  const { repo, relogio } = deps;
   if (!auth.email) return { error: 'Essa ação precisa de login com conta Google (a chave mestra não identifica uma pessoa).' };
   const alvo = texto(jogadorId);
 
@@ -226,7 +232,47 @@ export async function solicitarVinculo({ repo, relogio }, auth, jogadorId) {
   if (jaPendente) return { error: 'Já existe outro pedido de vínculo pendente pra esse jogador. Fale com o administrador.' };
 
   await gravar(repo, relogio, { email: auth.email, nome: auth.nome, perfil: auth.perfil, jogadorIdPendente: alvo });
+  const pj = jogadores.find((p) => p.id === alvo);
+  await avisarOrganizadores(deps, '🔗 Pedido de vínculo', (auth.nome || auth.email) + ' pediu pra ligar a conta a ' + (pj ? pj.nome : 'um jogador') + '. Aprove em Contas.');
   return { status: 'ok', jogadorIdPendente: alvo };
+}
+
+// bônus: o aviso nunca quebra o pedido
+async function avisarOrganizadores(deps, titulo, corpo) {
+  try { if (typeof deps.enviarPush === 'function') await enviarParaOrganizadores(deps, { titulo, corpo }); }
+  catch (e) { try { if (typeof deps.avisar === 'function') deps.avisar('avisarOrganizadores: ' + (e && e.message ? e.message : e)); } catch { /* nada */ } }
+}
+
+// 🙋 "Quero jogar" (v20.0): quem entrou com Google e ainda NÃO tem cadastro de jogador pede pra entrar no grupo com o
+// nome que quer usar. Fica na conta (coluna pedido_entrada) até um organizador aprovar (aprovarEntrada cria o jogador e
+// já vincula) ou recusar (rejeitarVinculo). Nome vazio = desistir do pedido.
+const NOME_ENTRADA = { min: 2, max: 60 };
+export async function solicitarEntrada(deps, auth, nome) {
+  const { repo } = deps;
+  if (!auth.email) return { error: 'Essa ação precisa de login com conta Google.' };
+  const n = texto(nome).replace(/\s+/g, ' ').trim();
+  const atual = (await repo.lerUsuarios()).find((x) => normalizarEmail(x.email) === normalizarEmail(auth.email));
+  if (!atual) return { error: 'Usuário não encontrado. Entre de novo com sua conta Google.' };
+  if (texto(atual.jogador_id)) return { error: 'Sua conta já está ligada a um jogador.' };
+  if (n && (n.length < NOME_ENTRADA.min || n.length > NOME_ENTRADA.max)) return { error: 'Escreva seu nome (de 2 a 60 letras).' };
+  await repo.gravarUsuario({ email: atual.email, pedido_entrada: n || null });
+  if (n) await avisarOrganizadores(deps, '🙋 Pedido pra jogar', n + ' quer entrar no grupo. Aprove em Contas.');
+  return { status: 'ok', pedidoEntrada: n };
+}
+
+// organizador/admin aprova o pedido de entrada: cria o jogador com o nome pedido (dá pra corrigir) e já vincula a conta
+export async function aprovarEntrada(deps, email, nomeCorrigido) {
+  const { repo, relogio } = deps;
+  const alvo = normalizarEmail(email);
+  const atual = (await lerUsuarios(repo)).find((u) => u.email === alvo);
+  if (!atual) return { error: 'Usuário não encontrado.' };
+  if (!atual.pedidoEntrada) return { error: 'Essa conta não tem pedido de entrada.' };
+  if (atual.jogadorId) return { error: 'Essa conta já está ligada a um jogador.' };
+  const nome = texto(nomeCorrigido).replace(/\s+/g, ' ').trim() || atual.pedidoEntrada;
+  const id = (deps.gerarId ? deps.gerarId() : Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+  await repo.inserirJogador({ id, nome: nome.slice(0, 60), apelido: null, foto: null, estrelas: 0, sexo: null, porte: null });
+  await gravar(repo, relogio, { email: atual.email, nome: atual.nome, perfil: atual.perfil, jogadorId: id, jogadorIdPendente: '' });
+  return { status: 'ok', jogadorId: id };
 }
 
 // Admin ou organizador confirma um pedido pendente (pode corrigir para outro jogador). Nunca mexe no cargo.
@@ -245,6 +291,7 @@ export async function rejeitarVinculo({ repo, relogio }, email) {
   const atual = (await lerUsuarios(repo)).find((u) => u.email === alvo);
   if (!atual) return { error: 'Usuário não encontrado.' };
   await gravar(repo, relogio, { email: atual.email, nome: atual.nome, perfil: atual.perfil, jogadorIdPendente: '' });
+  if (atual.pedidoEntrada) await repo.gravarUsuario({ email: atual.email, pedido_entrada: null }); // recusa o 🙋 também
   return { status: 'ok' };
 }
 
@@ -270,7 +317,7 @@ export async function minhaConta({ repo, relogio, avisar }, body) {
   await registrarAcesso({ repo, relogio, avisar }, s.email);
   const u = (await lerUsuarios(repo)).find((x) => x.email === s.email);
   if (!u) return { error: MSG_SESSAO_EXPIRADA };
-  return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, termosVersao: u.termosVersao, sessaoExpiraEm: s.expiraEm };
+  return { status: 'ok', email: u.email, nome: u.nome, perfil: u.perfil || 'jogador', jogadorId: u.jogadorId, jogadorIdPendente: u.jogadorIdPendente, ...(u.pedidoEntrada ? { pedidoEntrada: u.pedidoEntrada } : {}), termosVersao: u.termosVersao, sessaoExpiraEm: s.expiraEm };
 }
 // sair nunca "falha" para quem chama: se a sessão já não existe, o objetivo (não estar logado) já foi atingido
 export async function sair({ repo }, body) {
