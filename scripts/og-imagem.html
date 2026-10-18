@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- Modelo da imagem de prévia do link (WhatsApp, Instagram, Telegram), 1200×630. Não vai pro ar: é aberto no Chrome
-     headless e vira PNG. Parâmetros na URL: ?titulo=&frase=&endereco=&selo=&cor=&cor2=
+     headless e vira PNG. Parâmetros na URL: ?titulo=&frase=&endereco=&selo=&cor=&cor2=&cor3= (cor3 = gomos da bola)
      Gerar (Git Bash, na raiz do repo):
        "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --hide-scrollbars --force-device-scale-factor=1 \
          --virtual-time-budget=4000 --window-size=1200,630 --screenshot="C:\...\og-terca.png" \
@@ -10,7 +10,7 @@
 <meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@500;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --cor:#ffd700; --cor2:#00f3ff; }
+  :root{ --cor:#ffd700; --cor2:#00f3ff; --cor3:#4d7cff; }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{width:1200px;height:630px;overflow:hidden;}
   body{
@@ -42,8 +42,8 @@
     <defs><clipPath id="dentro"><circle cx="100" cy="100" r="92"/></clipPath></defs>
     <circle cx="100" cy="100" r="92" fill="var(--cor)"/>
     <g clip-path="url(#dentro)">
-      <path d="M100 100 C 98 62 122 30 168 22 L 210 10 L 210 120 C 168 128 128 122 100 100 Z" fill="#4d7cff"/>
-      <path d="M100 100 C 70 118 52 150 52 198 L -10 210 L -10 120 C 30 100 70 92 100 100 Z" fill="#4d7cff"/>
+      <path d="M100 100 C 98 62 122 30 168 22 L 210 10 L 210 120 C 168 128 128 122 100 100 Z" fill="var(--cor3)"/>
+      <path d="M100 100 C 70 118 52 150 52 198 L -10 210 L -10 120 C 30 100 70 92 100 100 Z" fill="var(--cor3)"/>
       <g fill="none" stroke="#0b1530" stroke-width="5" stroke-linecap="round">
         <path d="M100 100 C 98 62 122 30 168 22"/>
         <path d="M100 100 C 128 122 168 128 210 120"/>
@@ -69,6 +69,7 @@
   if(q.get('endereco')) document.getElementById('endereco').innerHTML = '<span>↗</span> ' + q.get('endereco').replace(/[<>&]/g, '');
   if(q.get('cor')) document.documentElement.style.setProperty('--cor', q.get('cor'));
   if(q.get('cor2')) document.documentElement.style.setProperty('--cor2', q.get('cor2'));
+  if(q.get('cor3')) document.documentElement.style.setProperty('--cor3', q.get('cor3'));
 </script>
 </body>
 </html>
