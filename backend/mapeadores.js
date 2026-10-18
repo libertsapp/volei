@@ -82,6 +82,7 @@ export function mapearConfig(linhas) {
     checkinJogo2: null // { data, horario, vagas, travado } quando o 2º jogo existe
   };
   const jogo2 = {};
+  const replays = {};
   for (const { chave, valor } of linhas) {
     if (chave === 'estrelasVisiveis') s.estrelasVisiveis = String(valor).toUpperCase() === 'TRUE';
     if (chave === 'checkinDataAberta') s.checkinDataAberta = texto(valor);
@@ -92,11 +93,17 @@ export function mapearConfig(linhas) {
     if (chave === 'contadorAcessos') s.contadorAcessos = Number(valor) || 0;
     // logo do grupo (v18.3): só aparece quando existe — sem logo a resposta fica idêntica à de antes (o app mostra o padrão)
     if (chave === 'logoUrl' && texto(valor)) s.logoUrl = texto(valor);
+    // 🎥 replays do RegistraAí (v20.2): mesma ideia do logo — sem configuração a resposta fica idêntica à de antes
+    if (chave === 'replaysArena') replays.arena = texto(valor);
+    if (chave === 'replaysQuadra') replays.quadra = texto(valor);
+    if (chave === 'replaysArenaNome') replays.arenaNome = texto(valor);
+    if (chave === 'replaysQuadraNome') replays.quadraNome = texto(valor);
     if (chave === 'checkinJogo2Data') jogo2.data = texto(valor);
     if (chave === 'checkinJogo2Horario') jogo2.horario = texto(valor);
     if (chave === 'checkinJogo2Vagas') jogo2.vagas = Number(valor) || 16;
     if (chave === 'checkinJogo2Travado') jogo2.travado = String(valor).toUpperCase() === 'TRUE';
   }
+  if (replays.arena && replays.quadra) s.replays = { arena: replays.arena, quadra: replays.quadra, arenaNome: replays.arenaNome || '', quadraNome: replays.quadraNome || '' };
   if (jogo2.data) s.checkinJogo2 = { data: jogo2.data, horario: jogo2.horario || '21:00', vagas: jogo2.vagas || 16, travado: !!jogo2.travado };
   return s;
 }

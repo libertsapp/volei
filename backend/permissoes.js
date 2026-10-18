@@ -13,6 +13,7 @@ export const PERMISSOES = {
   removeRound:      ['admin'],
   saveSettings:       ['admin'],
   salvarLogo:         ['admin'], // logo do grupo (v18.3): só admin troca
+  salvarReplays:      ['admin'], // 🎥 replays do RegistraAí (v20.2): só admin escolhe arena e quadra
   saveCheckinSettings: ['organizador', 'admin'],
   listarUsuarios:   ['organizador', 'admin'],
   salvarUsuario:    ['admin'],

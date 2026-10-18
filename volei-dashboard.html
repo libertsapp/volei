@@ -378,6 +378,27 @@
   .inicio-cartao-texto{font-size:13px;color:var(--chalk-dim);line-height:1.5;margin:0;}
   .inicio-cartao-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
   .aniv-avatares{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;}
+  /* 🎥 replays do RegistraAí (v20.2): miniaturas em grade; o vídeo toca direto do armazenamento deles */
+  .replays-desc{color:var(--muted);font-size:13px;margin:-8px 0 14px;line-height:1.5;}
+  .replays-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px;}
+  .replays-toolbar .fin-campo{flex:1;min-width:180px;}
+  .replays-jogo-titulo{font-weight:700;font-size:14px;margin:16px 0 8px;}
+  .replays-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .replays-grade.replays-grade-mini{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 2px;}
+  .replay-item{position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:#000;cursor:pointer;aspect-ratio:16/9;color:#fff;}
+  .replay-item img{width:100%;height:100%;object-fit:cover;display:block;}
+  .replay-item .replay-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;
+    background:linear-gradient(transparent 55%,rgba(0,0,0,.65));}
+  .replay-item .replay-hora{position:absolute;left:6px;bottom:4px;font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;}
+  .replays-grade-mini .replay-item .replay-play{font-size:0;} /* miniatura pequena: só o horário, o ▶ cobria o número */
+  .replays-grade-mini .replay-item .replay-hora{font-size:10px;}
+  .replays-player-card{max-width:760px;padding:18px;}
+  .replays-player-card video{width:100%;max-height:70vh;border-radius:10px;background:#000;display:block;}
+  .replays-player-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  .replays-player-erro{font-size:13px;color:var(--chalk-dim);margin:10px 0 0;}
+  .config-replays-linha{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .config-replays-linha input,.config-replays-linha select{flex:1;min-width:0;}
   .meuperfil-aniv{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 14px;font-size:13px;}
   .usuario-entrada{display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;margin-top:6px;}
   .usuario-entrada input{flex:1;min-width:140px;}
@@ -2006,6 +2027,7 @@
       <button data-view="rodada" id="nav-rodada-btn" style="display:none;">Nova rodada</button>
       <button data-view="usuarios" id="nav-usuarios-btn" style="display:none;">Contas <svg class="icone-google" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span class="badge-count" id="nav-usuarios-badge" style="display:none;"></span></button>
       <button data-view="placar">Placar 🔢</button>
+      <button data-view="replays" id="nav-replays-btn" style="display:none;">Replays 🎥</button>
       <button data-view="aovivo">Ao Vivo 🔴<span class="badge-count" id="nav-aovivo-badge" style="display:none;"></span></button>
       <button data-view="financeiro" id="nav-financeiro-btn" style="display:none;">Financeiro 💲</button>
       <button data-view="info" title="Info — como o app funciona" aria-label="Info">ℹ️</button>
@@ -2055,6 +2077,7 @@
         <button class="mais-item" data-view="rodada" id="mais-rodada-btn" style="display:none;"><span class="mais-item-icon">📝</span>Nova rodada</button>
         <button class="mais-item" data-view="usuarios" id="mais-usuarios-btn" style="display:none;"><span class="mais-item-icon"><svg class="icone-google" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg></span>Contas<span class="badge-count" id="mais-usuarios-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="placar"><span class="mais-item-icon">🔢</span>Placar</button>
+        <button class="mais-item" data-view="replays" id="mais-replays-btn" style="display:none;"><span class="mais-item-icon">🎥</span>Replays</button>
         <button class="mais-item" data-view="aovivo"><span class="mais-item-icon">🔴</span>Ao Vivo<span class="badge-count" id="mais-aovivo-badge" style="display:none;"></span></button>
         <button class="mais-item" data-view="financeiro" id="mais-financeiro-btn" style="display:none;"><span class="mais-item-icon">💲</span>Financeiro</button>
         <button class="mais-item" data-view="info"><span class="mais-item-icon">ℹ️</span>Info</button>
@@ -2111,6 +2134,8 @@
       <!-- 🎂 aniversário do dia e 🙋 "Quero jogar" (v20.0): renderCartoesInicio -->
       <div id="aniversario-card" class="inicio-cartao" style="display:none;"></div>
       <div id="quero-jogar-card" class="inicio-cartao" style="display:none;"></div>
+      <!-- 🎥 replays do último jogo (v20.2): renderReplaysCard; fica até o próximo jogo -->
+      <div id="replays-card" class="inicio-cartao" style="display:none;"></div>
       <!-- amistosos: um aviso pro organizador (tem algo pra responder) e um pra todos (amistoso marcado) — ver atualizarAvisosAmistosos -->
       <div id="amistosos-alerta" class="rascunho-alerta" style="display:none;" role="button" tabindex="0" title="Toque para responder">
         <span class="ponto-rascunho" aria-hidden="true"></span>
@@ -2630,6 +2655,16 @@
       <div id="aovivo-list"></div>
     </section>
 
+    <section id="view-replays">
+      <h2 class="section-title">🎥 Replays</h2>
+      <p class="replays-desc" id="replays-desc"></p>
+      <div class="replays-toolbar">
+        <label class="fin-campo">Dia<select id="replays-dia"></select></label>
+        <button type="button" class="btn secondary" id="replays-dia-inteiro" aria-pressed="false">Ver o dia inteiro</button>
+      </div>
+      <div id="replays-lista"></div>
+    </section>
+
     <section id="view-info">
       <h2 class="section-title">Informações</h2>
 
@@ -2644,6 +2679,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>18/10/2026 — v20.2: 🎥 Replays do RegistraAí no app</summary>
+          <div>
+            <p style="line-height:1.6;">Os vídeos que o <strong>RegistraAí</strong> grava na quadra agora aparecem no app: em <strong>Mais → 🎥 Replays</strong> (escolha o dia; por padrão só os clipes do início do jogo até 2 horas depois) e num cartão no Início com os replays do último jogo, que fica até o próximo. Toque na miniatura pra assistir ou compartilhar. O admin liga na ⚙️ engrenagem, colando o link da arena e escolhendo a quadra. Os vídeos não ficam guardados no app: eles tocam direto do RegistraAí, que os mantém por algumas semanas.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>18/10/2026 — v20.1: Resultado da votação por 24 horas no Início</summary>
           <div>
             <p style="line-height:1.6;">O cartão com o resultado do Craque e do Bola Murcha agora fica <strong>24 horas</strong> no Início depois que a votação fecha (antes eram 3 dias). Os emblemas 🏅 e 🎈 continuam com os eleitos até a próxima votação, e o resultado segue no Histórico.</p>
@@ -3216,7 +3258,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.1">v20.1</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.2">v20.2</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -3258,6 +3300,7 @@ const PERMISSOES_UI = {
   ping:               ['jogador','organizador','admin'],
   uploadPhoto:        ['jogador','organizador','admin'],
   salvarLogo:         ['admin'],
+  salvarReplays:      ['admin'],
   aceitarTermos:      ['jogador','organizador','admin'],
   addPlayer:          ['organizador','admin'],
   updatePlayer:       ['organizador','admin'],
@@ -6443,6 +6486,7 @@ document.getElementById('nav').addEventListener('click', (e)=>{
   if(btn.dataset.view==='usuarios') renderUsuarios();
   if(btn.dataset.view==='financeiro') renderFinanceiro();
   if(btn.dataset.view==='meuperfil') renderMeuPerfil();
+  if(btn.dataset.view==='replays') renderReplays();
   if(btn.dataset.view==='aovivo'){ renderAoVivo(); iniciarPollingAoVivo(); } else { pararPollingAoVivo(); if(document.body.classList.contains('aovivo-fs')) sairTelaCheiaAoVivo(); }
   closeMobileMenu(); // ao escolher uma opção no celular, fecha o menu suspenso
   atualizarBarraInferior(btn.dataset.view); // mantém a barra de baixo sincronizada com a tela atual
@@ -9951,6 +9995,7 @@ function renderAll(){
   atualizarAvisosAmistosos();
   renderCartoesInicio();
   renderVotacaoCard();
+  atualizarReplaysUI();
   const boasVindas = document.getElementById('grupo-boas-vindas');
   if(boasVindas) boasVindas.style.display = (GRUPO_ATUAL && temPermissao('addPlayer') && !DATA.players.length) ? '' : 'none';
 }
@@ -12916,6 +12961,349 @@ async function enviarLogo(payload){
   return true;
 }
 
+// <replays-puro>
+/* 🎥 Replays (v20.2), parte pura: os vídeos vêm da API pública do RegistraAí e tocam direto do armazenamento deles
+   (nada passa pelo nosso servidor nem fica guardado). Aqui fica o que dá pra testar sem rede: ler o link da arena,
+   saber qual foi o último jogo, a janela "do início até 2h depois" e separar os clipes por jogo.
+   "var" de propósito: o resto do app pode chamar essas funções antes de o script chegar nesta linha (TDZ). */
+var REPLAYS_ID = /^[0-9a-f]{24}$/;
+var REPLAYS_JANELA_MIN = 120; // os clipes de um jogo: do horário de início até 2 horas depois
+var REPLAYS_URL_VIDEO = /^https:\/\/[^\s"'()<>\\]+\.mp4(\?[^\s"'()<>\\]*)?$/;
+var REPLAYS_URL_IMAGEM = /^https:\/\/[^\s"'()<>\\]+$/;
+// aceita o link inteiro (https://registraai.com.br/?a=<id>) ou só o identificador; qualquer outra coisa vira ''
+function replaysArenaDoLink(txt){
+  const t = String(txt || '').trim();
+  const m = /[?&]a=([0-9a-fA-F]{24})(?![0-9a-zA-Z])/.exec(t);
+  if(m) return m[1].toLowerCase();
+  return REPLAYS_ID.test(t.toLowerCase()) ? t.toLowerCase() : '';
+}
+function replaysMinutos(hhmm){
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ''));
+  if(!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+// horários de início conhecidos numa data: os das rodadas lançadas (e rascunhos) e os do check-in aberto nessa data;
+// sem nenhum, o horário padrão do check-in (é quase sempre o mesmo toda semana)
+function replaysHorariosDoDia(rodadas, settings, data){
+  const hs = new Set();
+  (rodadas || []).forEach(r=>{ if(r && r.data === data && replaysMinutos(r.horario) !== null) hs.add(r.horario.slice(0, 5)); });
+  const st = settings || {};
+  if(st.checkinDataAberta === data){
+    if(replaysMinutos(st.checkinHorario) !== null) hs.add(st.checkinHorario.slice(0, 5));
+    if(st.checkinJogo2 && st.checkinJogo2.data === data && replaysMinutos(st.checkinJogo2.horario) !== null) hs.add(st.checkinJogo2.horario.slice(0, 5));
+  }
+  if(!hs.size) hs.add(replaysMinutos(st.checkinHorario) !== null ? st.checkinHorario.slice(0, 5) : '20:00');
+  return [...hs].sort();
+}
+// o último dia de jogo que JÁ COMEÇOU (o cartão do Início fica com ele até o próximo jogo começar)
+function replaysUltimoJogo(rodadas, settings, agoraMs){
+  const datas = new Set();
+  (rodadas || []).forEach(r=>{ if(r && /^\d{4}-\d{2}-\d{2}$/.test(r.data || '')) datas.add(r.data); });
+  const st = settings || {};
+  if(/^\d{4}-\d{2}-\d{2}$/.test(st.checkinDataAberta || '')) datas.add(st.checkinDataAberta);
+  let melhor = null;
+  datas.forEach(data=>{
+    const horarios = replaysHorariosDoDia(rodadas, st, data);
+    if(Date.parse(data + 'T' + horarios[0] + ':00-03:00') > agoraMs) return; // ainda não começou
+    if(!melhor || data > melhor.data) melhor = { data, horarios };
+  });
+  return melhor;
+}
+function replaysJanelas(horarios){
+  return [...new Set((horarios || []).filter(h=> replaysMinutos(h) !== null).map(h=> h.slice(0, 5)))].sort()
+    .map((h, i)=> ({ numero: i + 1, horario: h, ini: replaysMinutos(h), fim: replaysMinutos(h) + REPLAYS_JANELA_MIN }));
+}
+// as horas (do dia) que o RegistraAí precisa devolver pra cobrir as janelas; só as que existem gravadas
+function replaysHorasParaBuscar(janelas, disponiveis){
+  const tem = new Set((disponiveis || []).map(Number));
+  const horas = new Set();
+  (janelas || []).forEach(j=>{ for(let h = Math.floor(j.ini / 60); h <= Math.floor(Math.min(j.fim, 1439) / 60); h++) if(tem.has(h)) horas.add(h); });
+  return [...horas].sort((a, b)=> a - b);
+}
+function replaysVideoValido(v){
+  return !!v && typeof v.video === 'string' && REPLAYS_URL_VIDEO.test(v.video) && replaysMinutos(v.label) !== null;
+}
+// separa os clipes (válidos, sem repetir) por jogo, em ordem de horário. Dois jogos que se sobrepõem: o clipe vai pro
+// jogo que começou por último antes dele. diaInteiro (ou sem janelas) = um grupo só, sem filtrar horário.
+function replaysSepararPorJogo(videos, janelas, diaInteiro){
+  const vistos = new Set();
+  const lista = (videos || []).filter(v=>{
+    if(!replaysVideoValido(v)) return false;
+    const k = v.hash || v.video;
+    if(vistos.has(k)) return false;
+    vistos.add(k);
+    return true;
+  }).map(v=> ({
+    video: v.video, hash: String(v.hash || ''), label: String(v.label),
+    hora: String(v.label).slice(0, 5), minuto: replaysMinutos(v.label),
+    thumb: (typeof v.thumb === 'string' && REPLAYS_URL_IMAGEM.test(v.thumb)) ? v.thumb : ''
+  })).sort((a, b)=> a.minuto - b.minuto || a.label.localeCompare(b.label));
+  const js = janelas || [];
+  if(diaInteiro || !js.length) return lista.length ? [{ numero: 0, horario: '', videos: lista }] : [];
+  const grupos = js.map(j=> ({ numero: j.numero, horario: j.horario, videos: [] }));
+  lista.forEach(v=>{
+    let idx = -1;
+    js.forEach((j, i)=>{ if(v.minuto >= j.ini && v.minuto < j.fim) idx = i; });
+    if(idx > -1) grupos[idx].videos.push(v);
+  });
+  return grupos.filter(g=> g.videos.length);
+}
+// </replays-puro>
+
+/* ---------- 🎥 REPLAYS (v20.2) ----------
+   Liga o RegistraAí ao app: o admin escolhe arena e quadra na ⚙️ engrenagem (ação salvarReplays); a tela Replays
+   (menu Mais) e o cartão do Início chamam a API pública deles direto do navegador. As respostas ficam só na memória
+   da página (alguns minutos), pra não repetir chamada a cada troca de aba. */
+var REPLAYS_API = 'https://registraai.com.br/api';
+var REPLAYS_CACHE = {};
+var REPLAYS_CACHE_MS = 3 * 60 * 1000;
+var REPLAYS_DIA_INTEIRO = false;
+function replaysConfig(){
+  const c = SETTINGS && SETTINGS.replays;
+  return (c && REPLAYS_ID.test(c.arena || '') && REPLAYS_ID.test(c.quadra || '')) ? c : null;
+}
+async function replaysApi(caminho){
+  const agora = Date.now();
+  const em = REPLAYS_CACHE[caminho];
+  if(em && agora - em.quando < REPLAYS_CACHE_MS) return em.promessa;
+  const promessa = fetch(REPLAYS_API + caminho).then(r=>{
+    if(!r.ok) throw new Error('RegistraAí respondeu ' + r.status);
+    return r.json();
+  }).then(j=> (j && j.content) || null);
+  REPLAYS_CACHE[caminho] = { quando: agora, promessa };
+  promessa.catch(()=>{ delete REPLAYS_CACHE[caminho]; }); // falhou: a próxima tentativa busca de novo
+  return promessa;
+}
+// todos os clipes da quadra configurada num dia, só das horas pedidas (null = todas as horas gravadas)
+async function replaysBuscarVideos(cfg, data, janelas){
+  const a = encodeURIComponent(cfg.arena), q = encodeURIComponent(cfg.quadra), d = encodeURIComponent(data);
+  const conteudo = await replaysApi('/quadras?a=' + a + '&d=' + d);
+  const disponiveis = (conteudo && conteudo.horarios && conteudo.horarios[cfg.quadra]) || [];
+  const horas = janelas ? replaysHorasParaBuscar(janelas, disponiveis) : disponiveis.map(Number).filter(h=> h >= 0 && h <= 23);
+  const listas = await Promise.all(horas.map(h=> replaysApi('/videos?a=' + a + '&d=' + d + '&q=' + q + '&t=' + h)
+    .then(c=> (c && Array.isArray(c.videos)) ? c.videos : [])));
+  return [].concat(...listas);
+}
+function replaysItemHtml(v){
+  return `<button type="button" class="replay-item" data-replay-video="${escapeHtml(v.video)}" data-replay-label="${escapeHtml(v.label)}" aria-label="Ver o replay das ${escapeHtml(v.hora)}">
+    ${v.thumb ? `<img src="${escapeHtml(v.thumb)}" alt="" loading="lazy">` : ''}
+    <span class="replay-play" aria-hidden="true">▶</span><span class="replay-hora">${escapeHtml(v.hora)}</span>
+  </button>`;
+}
+function atualizarReplaysUI(){
+  const ligado = !!replaysConfig();
+  ['nav-replays-btn', 'mais-replays-btn'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = ligado ? '' : 'none';
+  });
+  const tela = document.getElementById('view-replays');
+  if(!ligado && tela && tela.classList.contains('active')) abrirTelaVia('dashboard');
+  renderReplaysCard();
+}
+var REPLAYS_CARD_PEDIDO = 0;
+async function renderReplaysCard(){
+  const card = document.getElementById('replays-card');
+  if(!card) return;
+  const cfg = replaysConfig();
+  const jogo = cfg && replaysUltimoJogo(DATA.rounds, SETTINGS, Date.now());
+  if(!jogo){ card.style.display = 'none'; return; }
+  const pedido = ++REPLAYS_CARD_PEDIDO;
+  let grupos;
+  try {
+    const janelas = replaysJanelas(jogo.horarios);
+    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, jogo.data, janelas), janelas, false);
+  } catch(e){ grupos = []; } // RegistraAí fora do ar: o cartão só não aparece
+  if(pedido !== REPLAYS_CARD_PEDIDO) return; // chegou uma resposta mais nova
+  const todos = [].concat(...grupos.map(g=> g.videos));
+  if(!todos.length){ card.style.display = 'none'; return; }
+  const ultimos = todos.slice(-4);
+  card.innerHTML = `<p class="inicio-cartao-titulo">🎥 Replays do vôlei de ${diaDaSemanaCurto(jogo.data)} (${formatDate(jogo.data).slice(0, 5)})</p>
+    <p class="inicio-cartao-texto">${todos.length === 1 ? '1 vídeo' : todos.length + ' vídeos'} da ${escapeHtml(cfg.quadraNome || 'quadra')} gravados pelo RegistraAí.</p>
+    <div class="replays-grade replays-grade-mini">${ultimos.map(replaysItemHtml).join('')}</div>
+    <div class="inicio-cartao-acoes"><button type="button" class="btn" data-replays-ver-todos="${escapeHtml(jogo.data)}">Ver todos ›</button></div>`;
+  card.style.display = '';
+}
+var REPLAYS_DIA_ESCOLHIDO = '';
+var REPLAYS_LISTA_PEDIDO = 0;
+async function renderReplays(){
+  const cfg = replaysConfig();
+  const desc = document.getElementById('replays-desc');
+  const sel = document.getElementById('replays-dia');
+  const lista = document.getElementById('replays-lista');
+  if(!cfg || !lista) return;
+  desc.textContent = 'Vídeos da ' + (cfg.arenaNome || 'arena') + ' · ' + (cfg.quadraNome || 'quadra') + ', gravados pelo RegistraAí. Eles ficam no site deles por algumas semanas; o app só mostra.';
+  const btnInteiro = document.getElementById('replays-dia-inteiro');
+  btnInteiro.setAttribute('aria-pressed', String(REPLAYS_DIA_INTEIRO));
+  btnInteiro.textContent = REPLAYS_DIA_INTEIRO ? 'Só o horário do jogo' : 'Ver o dia inteiro';
+  const pedido = ++REPLAYS_LISTA_PEDIDO;
+  lista.innerHTML = '<div class="empty"><i class="ti ti-loader"></i>Carregando os vídeos…</div>';
+  let dias = [];
+  try {
+    const c = await replaysApi('/dias?a=' + encodeURIComponent(cfg.arena));
+    dias = ((c && c.days) || []).filter(d=> d && /^\d{4}-\d{2}-\d{2}$/.test(d.data || ''));
+  } catch(e){
+    if(pedido === REPLAYS_LISTA_PEDIDO) lista.innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i>Não deu pra falar com o RegistraAí agora. Tente de novo daqui a pouco.</div>';
+    return;
+  }
+  if(pedido !== REPLAYS_LISTA_PEDIDO) return;
+  if(!dias.length){ sel.innerHTML = ''; lista.innerHTML = '<div class="empty"><i class="ti ti-video-off"></i>O RegistraAí ainda não tem gravações dessa arena.</div>'; return; }
+  const ultimo = replaysUltimoJogo(DATA.rounds, SETTINGS, Date.now());
+  const diasDeJogo = new Set(DATA.rounds.map(r=> r.data).concat(SETTINGS.checkinDataAberta || []));
+  if(!dias.some(d=> d.data === REPLAYS_DIA_ESCOLHIDO)){
+    REPLAYS_DIA_ESCOLHIDO = (ultimo && dias.some(d=> d.data === ultimo.data)) ? ultimo.data
+      : ((dias.find(d=> diasDeJogo.has(d.data)) || dias[0]).data);
+  }
+  sel.innerHTML = dias.map(d=> `<option value="${escapeHtml(d.data)}"${d.data === REPLAYS_DIA_ESCOLHIDO ? ' selected' : ''}>${diasDeJogo.has(d.data) ? '🏐 ' : ''}${escapeHtml(d.description || formatDate(d.data))}</option>`).join('');
+  const data = REPLAYS_DIA_ESCOLHIDO;
+  const janelas = replaysJanelas(replaysHorariosDoDia(DATA.rounds, SETTINGS, data));
+  let grupos;
+  try {
+    grupos = replaysSepararPorJogo(await replaysBuscarVideos(cfg, data, REPLAYS_DIA_INTEIRO ? null : janelas), janelas, REPLAYS_DIA_INTEIRO);
+  } catch(e){
+    if(pedido === REPLAYS_LISTA_PEDIDO) lista.innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i>Não deu pra falar com o RegistraAí agora. Tente de novo daqui a pouco.</div>';
+    return;
+  }
+  if(pedido !== REPLAYS_LISTA_PEDIDO) return;
+  if(!grupos.length){
+    const faixa = janelas.map(j=> j.horario).join(' e ');
+    lista.innerHTML = `<div class="empty"><i class="ti ti-video-off"></i>${REPLAYS_DIA_INTEIRO ? 'Nenhum vídeo dessa quadra nesse dia.' : 'Nenhum vídeo dessa quadra entre o início do jogo (' + escapeHtml(faixa) + ') e 2 horas depois. Toque em "Ver o dia inteiro" pra ver todos os horários.'}</div>`;
+    return;
+  }
+  const varios = grupos.length > 1;
+  lista.innerHTML = grupos.map(g=> `${g.horario ? `<p class="replays-jogo-titulo">${varios ? g.numero + 'º jogo · ' : 'Jogo das '}${escapeHtml(g.horario)} · ${g.videos.length === 1 ? '1 vídeo' : g.videos.length + ' vídeos'}</p>` : `<p class="replays-jogo-titulo">${g.videos.length === 1 ? '1 vídeo' : g.videos.length + ' vídeos'} no dia</p>`}
+    <div class="replays-grade">${g.videos.map(replaysItemHtml).join('')}</div>`).join('');
+}
+document.getElementById('replays-dia').addEventListener('change', (e)=>{ REPLAYS_DIA_ESCOLHIDO = e.target.value; renderReplays(); });
+document.getElementById('replays-dia-inteiro').addEventListener('click', ()=>{ REPLAYS_DIA_INTEIRO = !REPLAYS_DIA_INTEIRO; renderReplays(); });
+// tocar uma miniatura (na tela ou no cartão do Início) abre o vídeo; "Ver todos" do cartão abre a tela naquele dia
+document.addEventListener('click', (e)=>{
+  const ver = e.target.closest('[data-replays-ver-todos]');
+  if(ver){ REPLAYS_DIA_ESCOLHIDO = ver.dataset.replaysVerTodos; REPLAYS_DIA_INTEIRO = false; abrirTelaVia('replays'); return; }
+  const item = e.target.closest('[data-replay-video]');
+  if(item) abrirReplay(item.dataset.replayVideo, item.dataset.replayLabel);
+});
+function abrirReplay(url, label){
+  if(!REPLAYS_URL_VIDEO.test(url || '') || document.getElementById('replay-overlay')) return;
+  const ov = document.createElement('div');
+  ov.id = 'replay-overlay';
+  ov.className = 'profile-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Replay');
+  ov.innerHTML = `<div class="profile-card replays-player-card">
+    <button type="button" class="profile-close" data-replay-fechar aria-label="Fechar">✕</button>
+    <p class="password-title">🎥 Replay · ${escapeHtml(label || '')}</p>
+    <video controls playsinline autoplay preload="metadata" src="${escapeHtml(url)}"></video>
+    <p class="replays-player-erro" hidden>Não deu pra tocar aqui. Toque em "Abrir vídeo" pra ver no navegador.</p>
+    <div class="replays-player-acoes">
+      <button type="button" class="btn" data-replay-compartilhar>Compartilhar</button>
+      <button type="button" class="btn secondary" data-replay-abrir>Abrir vídeo</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const video = ov.querySelector('video');
+  video.addEventListener('error', ()=>{ ov.querySelector('.replays-player-erro').hidden = false; });
+  const fechar = ()=>{ video.pause(); video.removeAttribute('src'); video.load(); ov.remove(); document.removeEventListener('keydown', esc); };
+  const esc = (e)=>{ if(e.key === 'Escape') fechar(); };
+  document.addEventListener('keydown', esc);
+  ov.addEventListener('click', async (e)=>{
+    if(e.target === ov || e.target.closest('[data-replay-fechar]')){ fechar(); return; }
+    // os estilos de botão do app só valem para <button>: o botão abre o .mp4 numa aba (saída pro iPhone que não toca aqui)
+    if(e.target.closest('[data-replay-abrir]')){ window.open(url, '_blank', 'noopener'); return; }
+    if(e.target.closest('[data-replay-compartilhar]')){
+      const texto = '🎥 Replay do vôlei (' + (label || '') + ')';
+      if(navigator.share){
+        try { await navigator.share({ title: texto, text: texto, url }); } catch(err){ /* cancelou */ }
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(texto + '\n' + url), '_blank', 'noopener');
+      }
+    }
+  });
+}
+// ⚙️ engrenagem (só admin): colar o link da arena, buscar as quadras dela e escolher uma
+async function replaysQuadrasDaArena(arena){
+  const a = encodeURIComponent(arena);
+  const [arenas, diasC] = await Promise.all([replaysApi('/arenas'), replaysApi('/dias?a=' + a)]);
+  const info = (Array.isArray(arenas) ? arenas : []).find(x=> x && x.hash === arena);
+  const dias = ((diasC && diasC.days) || []).slice(0, 5); // as quadras quase nunca mudam; 5 dias cobrem uma quadra parada
+  const porHash = new Map();
+  const conteudos = await Promise.all(dias.map(d=> replaysApi('/quadras?a=' + a + '&d=' + encodeURIComponent(d.data)).catch(()=> null)));
+  conteudos.forEach(c=> ((c && c.quadras) || []).forEach(q=>{ if(q && REPLAYS_ID.test(q.hash || '') && !porHash.has(q.hash)) porHash.set(q.hash, String(q.description || 'Quadra')); }));
+  return { arenaNome: info ? String(info.name || '') : '', quadras: [...porHash].map(([hash, nome])=> ({ hash, nome })).sort((x, y)=> x.nome.localeCompare(y.nome, 'pt-BR', { numeric: true })) };
+}
+async function enviarReplays(payload){
+  const cred = await requireAuth('salvarReplays');
+  if(!cred) return false;
+  ULTIMA_RESPOSTA_POST = null;
+  const ok = await postAction('salvarReplays', payload, cred);
+  if(!ok) return false;
+  const r = ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.replays;
+  if(r) SETTINGS.replays = r; else delete SETTINGS.replays;
+  REPLAYS_DIA_ESCOLHIDO = '';
+  atualizarReplaysUI();
+  return true;
+}
+function configReplaysHtml(){
+  const c = replaysConfig();
+  return `<div class="config-secao" id="config-replays-secao">
+      <div class="config-rotulo">🎥 Replays (RegistraAí) <span class="config-nota">só admin · aparece para todos</span></div>
+      <div class="config-nota" id="config-replays-atual" style="margin:0;">${c
+        ? 'Ligado: ' + escapeHtml(c.arenaNome || 'arena') + ' · ' + escapeHtml(c.quadraNome || 'quadra')
+        : 'Desligado. Cole o link da arena no RegistraAí (o que abre a página de vídeos dela).'}</div>
+      <div class="config-replays-linha">
+        <input type="url" id="config-replays-link" placeholder="https://registraai.com.br/?a=..." aria-label="Link da arena no RegistraAí" value="${c ? 'https://registraai.com.br/?a=' + escapeHtml(c.arena) : ''}">
+        <button type="button" class="btn secondary" id="config-replays-buscar">Buscar quadras</button>
+      </div>
+      <div class="config-replays-linha" id="config-replays-escolha" hidden>
+        <select id="config-replays-quadra" aria-label="Quadra"></select>
+        <button type="button" class="btn" id="config-replays-salvar">Salvar</button>
+      </div>
+      ${c ? '<div class="config-replays-linha"><button type="button" class="btn secondary" id="config-replays-desligar">Desligar replays</button></div>' : ''}
+      <p class="config-nota">Os vídeos não ficam guardados no app: ele mostra os que o RegistraAí gravou nessa quadra, do início do jogo até 2 horas depois.</p>
+    </div>`;
+}
+function ligarConfigReplays(ov){
+  const secao = ov.querySelector('#config-replays-secao');
+  if(!secao) return;
+  let arenaAtual = '', arenaNome = '';
+  secao.addEventListener('click', async (e)=>{
+    if(e.target.closest('#config-replays-buscar')){
+      const arena = replaysArenaDoLink(ov.querySelector('#config-replays-link').value);
+      if(!arena){ mostrarToast('Link inválido. Cole o link da arena no RegistraAí (ele tem "?a=" no final).', 'erro'); return; }
+      const btn = e.target.closest('#config-replays-buscar');
+      btn.disabled = true; btn.textContent = 'Buscando…';
+      try {
+        const r = await replaysQuadrasDaArena(arena);
+        if(!r.quadras.length){ mostrarToast('Não achei quadras com vídeo nessa arena.', 'erro'); return; }
+        arenaAtual = arena; arenaNome = r.arenaNome;
+        const atual = replaysConfig();
+        ov.querySelector('#config-replays-quadra').innerHTML = r.quadras.map(q=> `<option value="${escapeHtml(q.hash)}"${atual && atual.quadra === q.hash ? ' selected' : ''}>${escapeHtml(q.nome)}</option>`).join('');
+        ov.querySelector('#config-replays-escolha').hidden = false;
+        ov.querySelector('#config-replays-atual').textContent = 'Arena: ' + (arenaNome || 'encontrada') + '. Escolha a quadra e salve.';
+      } catch(err){
+        mostrarToast('Não deu pra falar com o RegistraAí agora. Tente de novo.', 'erro');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Buscar quadras';
+      }
+      return;
+    }
+    if(e.target.closest('#config-replays-salvar')){
+      const sel = ov.querySelector('#config-replays-quadra');
+      const opt = sel.options[sel.selectedIndex];
+      if(!arenaAtual || !opt) return;
+      if(await enviarReplays({ arena: arenaAtual, quadra: opt.value, arenaNome, quadraNome: opt.textContent })){
+        mostrarToast('Replays ligados: ' + (arenaNome || 'arena') + ' · ' + opt.textContent, 'sucesso');
+        ov.remove();
+      }
+      return;
+    }
+    if(e.target.closest('#config-replays-desligar') && await enviarReplays({ remover: true })){
+      mostrarToast('Replays desligados.', 'sucesso');
+      ov.remove();
+    }
+  });
+}
+
 /* ---------- ⚙️ CONFIGURAÇÕES (v18.3) ----------
    Junta o que antes eram botões soltos no cabeçalho: a cor do tema (de cada aparelho, qualquer um) e o logo do grupo
    (só admin vê essa parte). */
@@ -12950,8 +13338,10 @@ function abrirConfiguracoes(){
       </div>
       <p class="config-nota">A imagem é recortada em quadrado (pelo centro) e reduzida antes de enviar.</p>
     </div>` : ''}
+    ${AUTH.logado && podePerfil('salvarReplays', AUTH.perfil) ? configReplaysHtml() : ''}
   </div>`;
   document.body.appendChild(ov);
+  ligarConfigReplays(ov);
   const atualizarPrevia = ()=>{
     const pv = ov.querySelector('#config-logo-previa');
     if(!pv) return;
