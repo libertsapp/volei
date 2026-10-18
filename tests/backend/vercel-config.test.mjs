@@ -8,8 +8,9 @@ import { t, fim } from './executor.mjs';
 
 const cfg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', '..', 'vercel.json'), 'utf8'));
 
-t('build continua montando só o app do Terça (index.html) e o sw.js', () => {
-  assert.equal(cfg.buildCommand, 'rm -rf publicar && mkdir publicar && cp volei-dashboard.html publicar/index.html && cp sw.js publicar/sw.js');
+t('build monta o app do Terça (index.html), o sw.js e troca a prévia do link pela dos grupos', () => {
+  // v19.9: no fim, a prévia do link vira a genérica dos grupos (scripts/og-grupos.js) e a imagem dela vai junto
+  assert.equal(cfg.buildCommand, 'rm -rf publicar && mkdir publicar && cp volei-dashboard.html publicar/index.html && cp sw.js publicar/sw.js && node scripts/og-grupos.js publicar');
   assert.equal(cfg.outputDirectory, 'publicar');
 });
 
