@@ -406,6 +406,7 @@
   .replays-player-erro{font-size:13px;color:var(--chalk-dim);margin:10px 0 0;}
   .config-replays-linha{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .config-replays-linha input,.config-replays-linha select{flex:1;min-width:0;}
+  .config-replays-linha[hidden]{display:none;} /* o display:flex acima vencia o atributo hidden: "Salvar" aparecia antes de buscar */
   .meuperfil-aniv{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 14px;font-size:13px;}
   .usuario-entrada{display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;margin-top:6px;}
   .usuario-entrada input{flex:1;min-width:140px;}
@@ -2688,6 +2689,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>30/10/2026 — v20.6: "Último jogo" na engrenagem</summary>
+          <div>
+            <p style="line-height:1.6;">Na ⚙️ engrenagem, na parte de Replays, apareceu a linha <strong>Último jogo</strong> com o seletor de quadra e a opção <strong>🚫 Sem RegistraAí</strong> — o mesmo do cartão do Início, num lugar mais fácil de achar.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>30/10/2026 — v20.5: Jogo sem RegistraAí</summary>
           <div>
             <p style="line-height:1.6;">Quando o jogo for num lugar sem câmera do RegistraAí, o organizador marca <strong>🚫 Sem RegistraAí</strong> no seletor "Quadra do jogo" do cartão de replays no Início (ou na tela Replays). Aquele dia para de mostrar vídeos (que seriam de outras pessoas) e o link da arena continua salvo — não precisa apagar e colar de novo. O mesmo seletor também troca a quadra do jogo.</p>
@@ -3288,7 +3296,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.5">v20.5</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.6">v20.6</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -13159,7 +13167,7 @@ async function replaysListaQuadras(cfg, data){
 // seletor "Quadra do jogo" do cartão do Início (organizador/admin): as quadras + 🚫 Sem RegistraAí (v20.5)
 function replaysSeletorDoDiaHtml(data, quadras, dia){
   return `<label class="replays-card-marcar">Quadra do jogo
-    <select data-replays-card-quadra="${escapeHtml(data)}" aria-label="Quadra do jogo desse dia">
+    <select data-replays-card-quadra="${escapeHtml(data)}" data-atual="${escapeHtml(dia.sem ? 'sem' : dia.quadra)}" aria-label="Quadra do jogo desse dia">
       ${quadras.map(q=> `<option value="${escapeHtml(q.hash)}"${!dia.sem && q.hash === dia.quadra ? ' selected' : ''}>${escapeHtml(q.nome)}</option>`).join('')}
       <option value="sem"${dia.sem ? ' selected' : ''}>🚫 Sem RegistraAí</option>
     </select></label>`;
@@ -13221,8 +13229,11 @@ document.addEventListener('change', async (e)=>{
   if(!sel) return;
   const opt = sel.options[sel.selectedIndex];
   sel.disabled = true;
-  await replaysMarcarDia(sel.dataset.replaysCardQuadra, sel.value, opt ? opt.textContent : '');
-  renderReplaysCard(); // deu certo: mostra o novo estado; falhou: volta o seletor pro que estava
+  const ok = await replaysMarcarDia(sel.dataset.replaysCardQuadra, sel.value, opt ? opt.textContent : '');
+  // o seletor da ⚙️ engrenagem continua na tela depois de gravar: destrava e, se falhou, volta pro valor de antes
+  sel.disabled = false;
+  if(ok) sel.dataset.atual = sel.value; else sel.value = sel.dataset.atual || sel.value;
+  renderReplaysCard(); // o cartão do Início é redesenhado com o estado novo (ou com o antigo, se falhou)
   if(document.getElementById('view-replays').classList.contains('active')) renderReplays();
 });
 var REPLAYS_DIA_ESCOLHIDO = '';
@@ -13456,13 +13467,26 @@ function configReplaysHtml(){
         <select id="config-replays-quadra" aria-label="Quadra"></select>
         <button type="button" class="btn" id="config-replays-salvar">Salvar</button>
       </div>
+      <div id="config-replays-ultimo"></div>
       ${c ? '<div class="config-replays-linha"><button type="button" class="btn secondary" id="config-replays-desligar">Desligar replays</button></div>' : ''}
-      <p class="config-nota">Os vídeos não ficam guardados no app: ele mostra os que o RegistraAí gravou na quadra, do início do jogo até 2 horas depois. Esta é a quadra padrão; num dia em que o jogo for em outra quadra (ou num lugar sem RegistraAí), o organizador marca no cartão do Início ou na tela Replays, sem precisar apagar o link.</p>
+      <p class="config-nota">Os vídeos não ficam guardados no app: ele mostra os que o RegistraAí gravou na quadra, do início do jogo até 2 horas depois. Esta é a quadra padrão; se o último jogo foi em outra quadra ou num lugar sem câmera, troque em "Último jogo" acima (também dá no cartão do Início ou na tela Replays), sem precisar apagar o link.</p>
     </div>`;
+}
+// ⚙️ (v20.6): "Último jogo — terça 27/10: [quadra ▾ / 🚫 Sem RegistraAí]" — o mesmo seletor do cartão do Início
+async function preencherConfigUltimoJogo(ov){
+  const alvo = ov.querySelector('#config-replays-ultimo');
+  const cfg = replaysConfig();
+  const jogo = cfg && replaysUltimoJogo(DATA.rounds, SETTINGS, Date.now());
+  if(!alvo || !jogo || !temPermissao('salvarQuadraDoDia')) return;
+  const quadras = await replaysListaQuadras(cfg, jogo.data);
+  if(!document.body.contains(alvo)) return; // fecharam a engrenagem enquanto buscava
+  alvo.innerHTML = `<div class="config-rotulo" style="margin:14px 0 0;">Último jogo — ${diaDaSemanaCurto(jogo.data)} ${formatDate(jogo.data).slice(0, 5)}</div>
+    ${replaysSeletorDoDiaHtml(jogo.data, quadras, replaysQuadraDoDia(cfg, jogo.data))}`;
 }
 function ligarConfigReplays(ov){
   const secao = ov.querySelector('#config-replays-secao');
   if(!secao) return;
+  preencherConfigUltimoJogo(ov);
   let arenaAtual = '', arenaNome = '';
   secao.addEventListener('click', async (e)=>{
     if(e.target.closest('#config-replays-buscar')){
