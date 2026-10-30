@@ -840,6 +840,20 @@
   .config-nota{color:var(--muted);font-size:12px;font-weight:400;margin:8px 0 0;}
   .config-rotulo .config-nota{margin:0 0 0 6px;}
   .config-cores{display:flex;gap:10px;flex-wrap:wrap;}
+  /* área que expande na ⚙️ (v21.0): o resumo vira o título clicável, com a setinha girando */
+  .config-expansivel > summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;list-style:none;}
+  .config-expansivel > summary::-webkit-details-marker{display:none;}
+  .config-expansivel > summary .config-rotulo{margin:0;}
+  .config-expansivel > summary::after{content:'▸';margin-left:auto;color:var(--muted);transition:transform .2s;}
+  .config-expansivel[open] > summary::after{transform:rotate(90deg);}
+  .config-frase-linha{display:flex;gap:8px;align-items:flex-start;margin-top:8px;}
+  .config-frase-linha textarea{flex:1;min-width:0;resize:vertical;font:inherit;font-size:13px;line-height:1.4;}
+  .config-frases-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  /* janela do 🎉 cartão de parabéns (v21.0): mesma cara da retrospectiva + a frase editável */
+  .parabens-frase{display:block;margin:12px 0 0;font-size:12px;color:var(--muted);text-align:left;}
+  .parabens-frase textarea{display:block;width:100%;margin-top:4px;resize:vertical;font:inherit;font-size:14px;line-height:1.4;}
+  .parabens-frase textarea, .config-frase-linha textarea{background:var(--court-navy-3);color:var(--chalk);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;box-sizing:border-box;}
   .config-logo-linha{display:flex;align-items:center;gap:14px;}
   .config-logo-previa{width:64px;height:64px;border-radius:50%;flex-shrink:0;border:2px solid var(--chalk);
     background:conic-gradient(var(--ball-yellow) 0 25%, var(--ball-blue) 0 50%, var(--ball-yellow) 0 75%, var(--ball-blue) 0);}
@@ -2695,6 +2709,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>30/10/2026 — v21.0: 🎉 Cartão de parabéns</summary>
+          <div>
+            <p style="line-height:1.6;">No cartão de aniversários do Início, cada aniversariante da semana ganhou o botão <strong>🎉 Cartão de parabéns</strong>: uma imagem colorida de festa (no formato de status) com a foto, o nome, a data e uma frase sorteada, pronta pra compartilhar ou baixar. Dá pra trocar a frase (🔀 Outra frase) ou escrever uma só pra aquele cartão. Organizadores e admins editam a lista de frases do grupo na ⚙️ engrenagem, em "🎂 Frases de aniversário".</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>30/10/2026 — v20.9: Cores dos balões</summary>
           <div>
             <p style="line-height:1.6;">Correção: os balões do aniversariante apareciam quase transparentes, sem cor, em algumas telas. Agora aparecem coloridos em todas.</p>
@@ -3323,7 +3344,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.9">v20.9</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.0">v21.0</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -3367,6 +3388,7 @@ const PERMISSOES_UI = {
   salvarLogo:         ['admin'],
   salvarReplays:      ['admin'],
   salvarQuadraDoDia:  ['organizador','admin'],
+  salvarFrasesAniversario: ['organizador','admin'],
   aceitarTermos:      ['jogador','organizador','admin'],
   addPlayer:          ['organizador','admin'],
   updatePlayer:       ['organizador','admin'],
@@ -4806,7 +4828,9 @@ function renderCartoesInicio(){
     const hoje = hojeLocalIso();
     const doDia = aniversariantesDoDia(DATA.players, hoje);
     const proximos = proximosAniversarios(DATA.players, hoje, 7);
-    if(!doDia.length && !proximos.length){ aniv.style.display = 'none'; }
+    // 🎉 v21.0: a semana (domingo a sábado) também conta — quem fez aniversário na segunda ainda ganha o cartão de parabéns
+    const semana = aniversariosDaSemana(DATA.players, hoje);
+    if(!doDia.length && !proximos.length && !semana.length){ aniv.style.display = 'none'; }
     else {
       const nomes = doDia.map(p=> escapeHtml(p.apelido || p.nome));
       const lista = nomes.length <= 1 ? nomes.join('') : nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
@@ -4816,7 +4840,10 @@ function renderCartoesInicio(){
         ? `<p class="inicio-cartao-titulo">🎂 Hoje é aniversário de ${lista}!</p>
            <div class="aniv-avatares">${doDia.map(p=> `<span class="clickable-name" data-open-profile="${escapeHtml(p.id)}">${avatarHtml(p,'sm')}</span>`).join('')}</div>
            <p class="inicio-cartao-texto">Manda os parabéns no grupo 🎉${prox ? ' · Próximos: ' + prox : ''}</p>`
-        : `<p class="inicio-cartao-texto">🎂 Aniversários da semana: ${prox}</p>`;
+        : `<p class="inicio-cartao-texto">🎂 Aniversários da semana: ${prox || semana.map(x=> escapeHtml(x.jogador.apelido || x.jogador.nome) + ' (' + formatDate(x.data).slice(0, 5) + ')').join(', ')}</p>`;
+      if(semana.length){
+        aniv.innerHTML += `<div class="inicio-cartao-acoes">${semana.map(x=> `<button type="button" class="btn secondary" data-parabens="${escapeHtml(x.jogador.id)}" data-parabens-data="${escapeHtml(x.data)}">🎉 Cartão de parabéns${semana.length > 1 ? ' · ' + escapeHtml(x.jogador.apelido || String(x.jogador.nome || '').split(' ')[0]) : ''}</button>`).join('')}</div>`;
+      }
       aniv.style.display = '';
     }
   }
@@ -7672,12 +7699,16 @@ function proximosAniversarios(jogadores, hojeIso, dias){
 // 🥳 aniversariantes da SEMANA de hojeIso (domingo a sábado) — ganham o chapeuzinho de festa na foto (v20.7).
 // A semana inteira, não "os próximos 7 dias": quem fez aniversário na segunda continua com o chapéu até sábado.
 function aniversariantesDaSemana(jogadores, hojeIso){
+  return aniversariosDaSemana(jogadores, hojeIso).map(x=> x.jogador);
+}
+// a mesma semana com a data em que cada aniversário cai: [{ jogador, data:'aaaa-mm-dd' }] em ordem de data (v21.0)
+function aniversariosDaSemana(jogadores, hojeIso){
   const base = Date.parse(hojeIso + 'T12:00:00Z');
   const domingo = base - new Date(base).getUTCDay() * 86400000;
   const out = [];
   for(let i = 0; i < 7; i++){
     const dia = new Date(domingo + i * 86400000).toISOString().slice(0, 10);
-    aniversariantesDoDia(jogadores, dia).forEach(p=>{ if(!out.includes(p)) out.push(p); });
+    aniversariantesDoDia(jogadores, dia).forEach(p=>{ if(!out.some(x=> x.jogador === p)) out.push({ jogador: p, data: dia }); });
   }
   return out;
 }
@@ -13603,12 +13634,310 @@ function ligarConfigReplays(ov){
   });
 }
 
+// <parabens-puro>
+/* 🎉 Cartão de parabéns (v21.0), parte pura: as frases (padrão ou as do grupo), o sorteio sem repetir a anterior, a troca
+   de {nome}/{grupo} e a quebra da frase em linhas (a medida do texto vem de fora, pra testar sem canvas).
+   "var" de propósito: o resto do app pode chamar estas funções antes de o script chegar nesta linha (TDZ). */
+var FRASES_ANIVERSARIO_PADRAO = [
+  'Parabéns, {nome}! Que seu ano seja só de ponto de saque 🏐🎉',
+  'Hoje o levantamento é pra você, {nome}! Feliz aniversário! 🎂',
+  'Feliz aniversário, {nome}! Mais um ano de cortadas, risadas e areia no pé 🏖️',
+  '{nome} marcou +1 no placar da vida! Parabéns! 🎈',
+  'Parabéns, {nome}! Que a vida te dê muitos sets ganhos e poucas bolas murchas 😂',
+  'Hoje a quadra é toda sua, {nome}! Feliz aniversário 🥳',
+  'Feliz aniversário, {nome}! Saúde, alegria e um bloqueio que ninguém passa 🙌',
+  'Mais um ano de {grupo} com você, {nome}! Parabéns! 💛'
+];
+function frasesDoGrupo(settings){
+  const l = settings && Array.isArray(settings.frasesAniversario) ? settings.frasesAniversario.filter(f=> typeof f === 'string' && f.trim()) : [];
+  return l.length ? l : FRASES_ANIVERSARIO_PADRAO.slice();
+}
+function montarFrase(modelo, nome, grupo){
+  return String(modelo || '').split('{nome}').join(nome || '').split('{grupo}').join(grupo || '');
+}
+// sorteia uma frase diferente da anterior (quando há mais de uma)
+function sortearFrase(lista, anterior, aleatorio){
+  const rnd = aleatorio || Math.random;
+  const opcoes = (lista || []).length > 1 ? lista.filter(f=> f !== anterior) : (lista || []);
+  return opcoes.length ? opcoes[Math.floor(rnd() * opcoes.length) % opcoes.length] : '';
+}
+// quebra em linhas que cabem em maxLarg (medir(texto) = largura); palavra maior que a linha fica sozinha nela
+function quebrarLinhas(texto, maxLarg, medir){
+  const linhas = [];
+  let atual = '';
+  String(texto || '').split(/\s+/).filter(Boolean).forEach(p=>{
+    const tentativa = atual ? atual + ' ' + p : p;
+    if(!atual || medir(tentativa) <= maxLarg) atual = tentativa;
+    else { linhas.push(atual); atual = p; }
+  });
+  if(atual) linhas.push(atual);
+  return linhas;
+}
+// </parabens-puro>
+
+/* ---------- 🎉 CARTÃO DE PARABÉNS (v21.0) ----------
+   Imagem 1080×1920 (status/story) do aniversariante, com cara de festa: degradê rosa/roxo/laranja, confete, balões, a foto
+   num círculo dourado, o nome, a data e a frase. Mesma mecânica da 🎁 Retrospectiva (canvas → arquivo → Compartilhar ou
+   Baixar). O confete é "aleatório" com semente (id + data): editar a frase redesenha sem o confete pular de lugar. */
+function parabensSemente(texto){
+  let h = 1779033703;
+  for(let i = 0; i < texto.length; i++){ h = Math.imul(h ^ texto.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return ()=>{ h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+function parabensBalao(ctx, x, y, rx, ry, cor, sombra){
+  ctx.fillStyle = sombra; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(40,20,40,.55)'; ctx.stroke();
+  ctx.fillStyle = cor; ctx.beginPath(); ctx.ellipse(x - rx*0.12, y - ry*0.12, rx*0.82, ry*0.82, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(x - rx*0.4, y - ry*0.42, rx*0.16, ry*0.26, -0.35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = sombra; ctx.beginPath(); ctx.moveTo(x - 9, y + ry + 12); ctx.lineTo(x + 9, y + ry + 12); ctx.lineTo(x, y + ry - 2); ctx.closePath(); ctx.fill();
+}
+function parabensCacho(ctx, bx, by, escala, espelho){
+  const s = escala, m = espelho ? -1 : 1;
+  const nos = [[0, -150, '#f4e04d', '#d9b92a'], [-70*m, -95, '#ff6a45', '#d9482c'], [70*m, -85, '#3fe0dc', '#1fb3b0']];
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
+  nos.forEach(([dx, dy])=>{ ctx.beginPath(); ctx.moveTo(bx + dx*s, by + (dy + 75)*s); ctx.quadraticCurveTo(bx + dx*s*0.4, by + 120*s, bx, by + 190*s); ctx.stroke(); });
+  nos.forEach(([dx, dy, cor, sombra])=> parabensBalao(ctx, bx + dx*s, by + dy*s, 62*s, 76*s, cor, sombra));
+}
+async function desenharCartaoParabens(player, dataIso, frase){
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  try{
+    await Promise.all(["40px Anton", "600 40px 'Work Sans'", "800 40px 'Work Sans'", "40px 'Space Mono'"].map(f=> document.fonts.load(f)));
+  }catch(e){ /* sem as fontes, o navegador usa a padrão */ }
+  const foto = await retroCarregarImagem(player.foto);
+  const rnd = parabensSemente(String(player.id) + dataIso);
+
+  // fundo de festa + brilho atrás da foto + raios de luz
+  const fundo = ctx.createLinearGradient(0, 0, W, H);
+  fundo.addColorStop(0, '#ff4fa3'); fundo.addColorStop(0.5, '#8a3ffc'); fundo.addColorStop(1, '#ff8a3d');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.translate(W/2, 820);
+  for(let i = 0; i < 18; i++){
+    ctx.rotate(Math.PI*2/18);
+    ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.03)';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1400); ctx.lineTo(90, -1400); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  const brilho = ctx.createRadialGradient(W/2, 820, 60, W/2, 820, 520);
+  brilho.addColorStop(0, 'rgba(255,240,180,.55)'); brilho.addColorStop(1, 'rgba(255,240,180,0)');
+  ctx.fillStyle = brilho; ctx.fillRect(0, 200, W, 1300);
+
+  // confete
+  const cores = ['#ffd84a', '#3fe0dc', '#ff6a45', '#ffffff', '#7cff6b', '#ff9de2', '#ffe9a8'];
+  for(let i = 0; i < 190; i++){
+    const x = rnd() * W, y = rnd() * H, t = 10 + rnd() * 18;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rnd() * Math.PI);
+    ctx.globalAlpha = 0.65 + rnd() * 0.35;
+    ctx.fillStyle = cores[Math.floor(rnd() * cores.length)];
+    if(rnd() < 0.35){ ctx.beginPath(); ctx.arc(0, 0, t/2.4, 0, Math.PI*2); ctx.fill(); }
+    else ctx.fillRect(-t/2, -t/5, t, t/2.5);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // balões dos dois lados da foto (no alto encostavam no título)
+  parabensCacho(ctx, 150, 860, 1, false);
+  parabensCacho(ctx, W - 150, 880, 0.9, true);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(60,0,60,.45)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6;
+  ctx.fillStyle = '#ffffff';
+  retroTexto(ctx, 'FELIZ', W/2, 250, 600, 130, "{t} Anton, sans-serif");
+  ctx.fillStyle = '#ffd84a';
+  retroTexto(ctx, 'ANIVERSÁRIO', W/2, 410, 700, 150, "{t} Anton, sans-serif");
+  ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  retroTexto(ctx, nomeDoApp(), W/2, 480, 700, 40, "600 {t} 'Work Sans', sans-serif");
+
+  // foto num círculo dourado (ou a inicial)
+  const cx = W/2, cy = 820, raio = 230;
+  ctx.shadowColor = 'rgba(60,0,60,.5)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(cx, cy, raio + 22, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, raio + 8, 0, Math.PI*2); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI*2); ctx.closePath();
+  ctx.fillStyle = '#5a2ab8'; ctx.fill();
+  if(foto){
+    ctx.clip();
+    const lado = Math.min(foto.width, foto.height);
+    ctx.drawImage(foto, (foto.width-lado)/2, (foto.height-lado)/2, lado, lado, cx-raio, cy-raio, raio*2, raio*2);
+  } else {
+    ctx.fillStyle = '#ffd84a'; ctx.textBaseline = 'middle';
+    ctx.font = "240px Anton, sans-serif";
+    ctx.fillText((player.apelido || player.nome || '?').charAt(0).toUpperCase(), cx, cy + 10);
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.restore();
+
+  // nome e data
+  ctx.shadowColor = 'rgba(60,0,60,.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
+  ctx.fillStyle = '#ffffff';
+  retroTexto(ctx, String(player.apelido || player.nome || '').toUpperCase(), W/2, 1200, 940, 120, "{t} Anton, sans-serif");
+  ctx.fillStyle = '#fff3b0';
+  const [, mes, dia] = dataIso.split('-').map(Number);
+  retroTexto(ctx, '🎂 ' + dia + ' de ' + RETRO_MESES[mes - 1], W/2, 1280, 900, 52, "600 {t} 'Work Sans', sans-serif");
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+  // a frase numa caixa clara, no maior tamanho que couber em até 4 linhas
+  const caixa = { x: 80, y: 1350, w: 920, h: 380 };
+  ctx.fillStyle = 'rgba(255,255,255,.17)'; ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(caixa.x, caixa.y, caixa.w, caixa.h, 44); else ctx.rect(caixa.x, caixa.y, caixa.w, caixa.h);
+  ctx.fill(); ctx.stroke();
+  let tam = 64, linhas = [];
+  for(; tam >= 34; tam -= 4){
+    ctx.font = "800 " + tam + "px 'Work Sans', sans-serif";
+    linhas = quebrarLinhas(frase, caixa.w - 100, (t)=> ctx.measureText(t).width);
+    if(linhas.length * tam * 1.25 <= caixa.h - 60 && linhas.every(l=> ctx.measureText(l).width <= caixa.w - 60)) break;
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(60,0,60,.35)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+  const alturaTexto = linhas.length * tam * 1.25;
+  linhas.forEach((l, i)=> ctx.fillText(l, W/2, caixa.y + (caixa.h - alturaTexto)/2 + tam * 1.25 * i + tam * 0.95));
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1850, 900, 30, "{t} 'Space Mono', monospace");
+  return canvas;
+}
+async function abrirCartaoParabens(playerId, dataIso){
+  const player = DATA.players.find(p=> p.id === playerId);
+  if(!player || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso || '') || document.getElementById('parabens-overlay')) return;
+  const lista = frasesDoGrupo(SETTINGS);
+  const nomeCurto = player.apelido || String(player.nome || '').split(' ')[0];
+  let modelo = sortearFrase(lista, '');
+  let frase = montarFrase(modelo, nomeCurto, nomeDoApp());
+  let url = '', arquivo = null, versao = 0;
+  const nomeArquivo = 'parabens-' + String(nomeCurto).toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.png';
+  const montar = async ()=>{
+    const minha = ++versao;
+    const canvas = await desenharCartaoParabens(player, dataIso, frase);
+    const blob = await new Promise((res)=> canvas.toBlob(res, 'image/png'));
+    if(minha !== versao || !blob) return !!blob; // chegou uma versão mais nova da frase
+    if(url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(blob);
+    arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+    const img = document.querySelector('#parabens-overlay .retro-imagem');
+    if(img) img.src = url;
+    return true;
+  };
+  mostrarCarregando('Montando o cartão de parabéns...');
+  let ok = false;
+  try{ ok = await montar(); }
+  catch(e){ console.error('Falha ao montar o cartão de parabéns', e); }
+  finally{ esconderCarregando(); }
+  if(!ok){ mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
+  const overlay = document.createElement('div');
+  overlay.id = 'parabens-overlay';
+  overlay.className = 'profile-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Cartão de parabéns');
+  overlay.innerHTML = `
+    <div class="profile-card retro-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <img class="retro-imagem" src="${url}" alt="Cartão de parabéns de ${escapeHtml(player.apelido || player.nome)}">
+      <label class="parabens-frase">Frase do cartão (dá pra editar; só vale pra este cartão)
+        <textarea rows="3" maxlength="160" data-acao="frase">${escapeHtml(frase)}</textarea>
+      </label>
+      <div class="retro-acoes">
+        <button type="button" class="btn secondary" data-acao="outra">🔀 Outra frase</button>
+        ${podeCompartilhar ? '<button type="button" class="btn" data-acao="compartilhar">📤 Compartilhar</button>' : ''}
+        <button type="button" class="btn ${podeCompartilhar ? 'secondary' : ''}" data-acao="baixar">⬇️ Baixar imagem</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const campo = overlay.querySelector('[data-acao="frase"]');
+  let espera = null;
+  campo.addEventListener('input', ()=>{
+    clearTimeout(espera);
+    espera = setTimeout(()=>{ frase = campo.value.replace(/\s+/g, ' ').trim(); montar(); }, 400); // redesenha quando a pessoa para de digitar
+  });
+  const fechar = ()=>{ clearTimeout(espera); versao++; overlay.remove(); if(url) URL.revokeObjectURL(url); };
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
+    if(e.target.closest('[data-acao="outra"]')){
+      modelo = sortearFrase(lista, modelo);
+      frase = montarFrase(modelo, nomeCurto, nomeDoApp());
+      campo.value = frase;
+      montar();
+    }
+    if(e.target.closest('[data-acao="compartilhar"]') && arquivo){
+      navigator.share({ files: [arquivo], text: '🎂 Parabéns, ' + nomeCurto + '! ' + linkDoApp(CTX_GRUPO) }).catch(()=>{}); // cancelado: ignora
+    }
+    if(e.target.closest('[data-acao="baixar"]')){
+      const a = document.createElement('a');
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+}
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-parabens]');
+  if(b) abrirCartaoParabens(b.dataset.parabens, b.dataset.parabensData);
+});
+// ⚙️ (organizador/admin): a lista de frases do grupo, numa área que expande logo abaixo das cores
+function configFrasesHtml(){
+  return `<details class="config-secao config-expansivel" id="config-frases">
+      <summary><span class="config-rotulo">🎂 Frases de aniversário</span><span class="config-nota" style="margin:0;">organizadores e admins</span></summary>
+      <p class="config-nota">O cartão de parabéns sorteia uma destas frases. Use {nome} onde entra o nome do aniversariante e {grupo} pro nome do grupo.</p>
+      <div id="config-frases-lista"></div>
+      <div class="config-frases-acoes">
+        <button type="button" class="btn secondary" id="config-frases-adicionar">+ Adicionar frase</button>
+      </div>
+      <div class="config-frases-acoes">
+        <button type="button" class="btn" id="config-frases-salvar">Salvar frases</button>
+        <button type="button" class="btn secondary" id="config-frases-padrao">Voltar às frases padrão</button>
+      </div>
+    </details>`;
+}
+function ligarConfigFrases(ov){
+  const secao = ov.querySelector('#config-frases');
+  if(!secao) return;
+  const lista = secao.querySelector('#config-frases-lista');
+  const linhaHtml = (f)=> `<div class="config-frase-linha"><textarea rows="3" maxlength="160" aria-label="Frase de aniversário">${escapeHtml(f)}</textarea><button type="button" class="btn secondary" data-frase-remover aria-label="Apagar esta frase">✕</button></div>`;
+  const preencher = ()=>{ lista.innerHTML = frasesDoGrupo(SETTINGS).map(linhaHtml).join(''); };
+  preencher();
+  const salvar = async (payload, aviso)=>{
+    const cred = await requireAuth('salvarFrasesAniversario');
+    if(!cred) return;
+    ULTIMA_RESPOSTA_POST = null;
+    if(!await postAction('salvarFrasesAniversario', payload, cred)) return;
+    const f = ULTIMA_RESPOSTA_POST && ULTIMA_RESPOSTA_POST.frasesAniversario;
+    if(Array.isArray(f) && f.length) SETTINGS.frasesAniversario = f; else delete SETTINGS.frasesAniversario;
+    preencher();
+    mostrarToast(aviso, 'sucesso');
+  };
+  secao.addEventListener('click', async (e)=>{
+    const remover = e.target.closest('[data-frase-remover]');
+    if(remover){ remover.closest('.config-frase-linha').remove(); return; }
+    if(e.target.closest('#config-frases-adicionar')){
+      if(lista.querySelectorAll('textarea').length >= 20){ mostrarToast('No máximo 20 frases.', 'erro'); return; }
+      lista.insertAdjacentHTML('beforeend', linhaHtml('Parabéns, {nome}! '));
+      lista.lastElementChild.querySelector('textarea').focus();
+      return;
+    }
+    if(e.target.closest('#config-frases-salvar')){
+      const frases = [...lista.querySelectorAll('textarea')].map(t=> t.value.trim()).filter(Boolean);
+      if(!frases.length){ mostrarToast('Escreva pelo menos uma frase (ou volte às padrão).', 'erro'); return; }
+      await salvar({ frases }, 'Frases de aniversário salvas.');
+      return;
+    }
+    if(e.target.closest('#config-frases-padrao')) await salvar({ remover: true }, 'Voltou às frases padrão.');
+  });
+}
+
 /* ---------- ⚙️ CONFIGURAÇÕES (v18.3) ----------
    Junta o que antes eram botões soltos no cabeçalho: a cor do tema (de cada aparelho, qualquer um) e o logo do grupo
    (só admin vê essa parte). */
 function abrirConfiguracoes(){
   if(document.getElementById('config-overlay')) return;
   const admin = AUTH.logado && podePerfil('salvarLogo', AUTH.perfil);
+  const podeFrases = AUTH.logado && podePerfil('salvarFrasesAniversario', AUTH.perfil);
   const atual = localStorage.getItem('volei-paleta') || 'neon';
   const ov = document.createElement('div');
   ov.id = 'config-overlay';
@@ -13625,6 +13954,7 @@ function abrirConfiguracoes(){
         `<button type="button" class="paleta-swatch${p.id === atual ? ' ativo' : ''}" data-paleta-id="${p.id}" style="background:${p.cor};" title="${p.nome}" aria-label="${p.nome}" aria-pressed="${p.id === atual}"></button>`
       ).join('')}</div>
     </div>
+    ${podeFrases ? configFrasesHtml() : ''}
     ${admin ? `<div class="config-secao" id="config-logo-secao">
       <div class="config-rotulo">Logo do grupo <span class="config-nota">só admin · aparece para todos</span></div>
       <div class="config-logo-linha">
@@ -13641,6 +13971,7 @@ function abrirConfiguracoes(){
   </div>`;
   document.body.appendChild(ov);
   ligarConfigReplays(ov);
+  ligarConfigFrases(ov);
   const atualizarPrevia = ()=>{
     const pv = ov.querySelector('#config-logo-previa');
     if(!pv) return;
