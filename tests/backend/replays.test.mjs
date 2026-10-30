@@ -141,6 +141,40 @@ await ta('quadra do dia: JSON estragado no banco não derruba a leitura', async 
   assert.deepEqual((await h.get()).settings.replays.dias, { '2026-10-06': { quadra: Q2, nome: 'Quadra 2' } });
 });
 
+// ---------- v20.5: dia sem RegistraAí ----------
+await ta('dia sem RegistraAí: organizador marca, volta na leitura e o link continua salvo', async () => {
+  const { h } = await ligado();
+  const r = await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', semRegistraai: true, quadra: Q2, idToken: 'tok-b' });
+  assert.equal(r.status, 'ok');
+  const s = (await h.get()).settings.replays;
+  assert.deepEqual(s.dias, { '2026-10-27': { sem: true } }); // a quadra mandada junto é ignorada
+  assert.equal(s.arena, ARENA);
+  assert.equal(s.quadra, QUADRA);
+});
+
+await ta('dia sem RegistraAí: marcar uma quadra depois troca a marcação; quadra vazia limpa', async () => {
+  const { h } = await ligado();
+  await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', semRegistraai: true, idToken: 'tok-a' });
+  await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', quadra: Q2, nome: 'Quadra 2', idToken: 'tok-a' });
+  assert.deepEqual((await h.get()).settings.replays.dias, { '2026-10-27': { quadra: Q2, nome: 'Quadra 2' } });
+  await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', semRegistraai: true, idToken: 'tok-a' });
+  await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', quadra: '', idToken: 'tok-a' });
+  assert.equal('dias' in (await h.get()).settings.replays, false);
+});
+
+await ta('dia sem RegistraAí: só true de verdade conta ("true" em texto não marca); jogador recusado', async () => {
+  const { h } = await ligado();
+  assert.ok((await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', semRegistraai: 'true', idToken: 'tok-a' })).status);
+  assert.equal('dias' in (await h.get()).settings.replays, false);
+  assert.ok((await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-27', semRegistraai: true, idToken: 'tok-c' })).error);
+});
+
+await ta('dia sem RegistraAí: no banco, { sem: "sim" } é descartado e { sem: true } passa', async () => {
+  const { h, repo } = await ligado();
+  await repo.gravarConfig([{ chave: 'replaysDias', valor: JSON.stringify({ '2026-10-20': { sem: 'sim' }, '2026-10-27': { sem: true, quadra: 'lixo' } }) }]);
+  assert.deepEqual((await h.get()).settings.replays.dias, { '2026-10-27': { sem: true } });
+});
+
 await ta('desligar os replays limpa também as quadras dos dias', async () => {
   const { h, repo } = await ligado();
   await h.post({ action: 'salvarQuadraDoDia', data: '2026-10-13', quadra: Q2, idToken: 'tok-a' });

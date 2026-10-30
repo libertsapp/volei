@@ -98,10 +98,17 @@ t('vídeo de fora: só https terminando em .mp4, sem aspas/espaço; miniatura ru
 t('quadra do dia (v20.3): a marcada naquele dia; sem marcação (ou marcação estragada), a padrão', () => {
   const Q1 = '6973973ef60a9f8fabaa7946', Q2 = '6973976bf60a9f8fabaa7947';
   const cfg = { arena: A, quadra: Q1, quadraNome: 'Quadra 1', dias: { '2026-10-13': { quadra: Q2, nome: 'Quadra 2' }, '2026-10-06': { quadra: 'x' } } };
-  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-13'), { quadra: Q2, nome: 'Quadra 2', marcada: true });
-  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-20'), { quadra: Q1, nome: 'Quadra 1', marcada: false });
-  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-06'), { quadra: Q1, nome: 'Quadra 1', marcada: false });
-  assert.deepEqual(R.replaysQuadraDoDia({ arena: A, quadra: Q1 }, '2026-10-13'), { quadra: Q1, nome: '', marcada: false });
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-13'), { quadra: Q2, nome: 'Quadra 2', marcada: true, sem: false });
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-20'), { quadra: Q1, nome: 'Quadra 1', marcada: false, sem: false });
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-06'), { quadra: Q1, nome: 'Quadra 1', marcada: false, sem: false });
+  assert.deepEqual(R.replaysQuadraDoDia({ arena: A, quadra: Q1 }, '2026-10-13'), { quadra: Q1, nome: '', marcada: false, sem: false });
+});
+t('dia sem RegistraAí (v20.5): marcado e sem; a quadra padrão continua disponível só pra olhar', () => {
+  const Q1 = '6973973ef60a9f8fabaa7946';
+  const cfg = { arena: A, quadra: Q1, quadraNome: 'Quadra 1', dias: { '2026-10-27': { sem: true }, '2026-10-20': { sem: 'sim' } } };
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-27'), { quadra: Q1, nome: 'Quadra 1', marcada: true, sem: true });
+  // só true de verdade: "sim" não vale e o dia fica com a quadra padrão
+  assert.deepEqual(R.replaysQuadraDoDia(cfg, '2026-10-20'), { quadra: Q1, nome: 'Quadra 1', marcada: false, sem: false });
 });
 // simulação: 200 dias aleatórios — nenhum clipe fora de todas as janelas aparece, nenhum some, nenhum repete
 t('simulação: 200 dias aleatórios respeitam a janela', () => {

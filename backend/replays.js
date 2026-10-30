@@ -37,18 +37,22 @@ export async function salvarReplays(deps, body) {
   return { status: 'ok', replays: { arena, quadra, arenaNome, quadraNome } };
 }
 
-// organizador/admin marca em qual quadra o jogo de um dia foi (quadra vazia = volta à quadra padrão naquele dia)
+// organizador/admin marca em qual quadra o jogo de um dia foi (quadra vazia = volta à quadra padrão naquele dia).
+// semRegistraai (v20.5): o jogo daquele dia foi num lugar sem câmera do RegistraAí — o link da arena continua salvo,
+// só aquele dia deixa de mostrar vídeos (senão o Início mostraria os jogos de OUTRAS pessoas na quadra padrão)
 export async function salvarQuadraDoDia(deps, body) {
   const b = body || {};
   const data = texto(b.data).trim();
-  const quadra = texto(b.quadra).trim().toLowerCase();
+  const sem = b.semRegistraai === true;
+  const quadra = sem ? '' : texto(b.quadra).trim().toLowerCase();
   if (!DATA_ISO.test(data)) return { error: 'Data inválida.' };
   if (quadra && !ID_REGISTRAAI.test(quadra)) return { error: 'Quadra inválida.' };
   const linhas = await deps.repo.lerConfig();
   const valor = (k) => texto((linhas.find((c) => c.chave === k) || {}).valor);
   if (!valor('replaysArena')) return { error: 'Os replays não estão ligados. O admin liga na ⚙️ engrenagem.' };
   const dias = lerDias(valor('replaysDias'));
-  if (quadra) dias[data] = { quadra, nome: texto(b.nome).trim().slice(0, LIMITE_NOME) };
+  if (sem) dias[data] = { sem: true };
+  else if (quadra) dias[data] = { quadra, nome: texto(b.nome).trim().slice(0, LIMITE_NOME) };
   else delete dias[data];
   const recentes = Object.keys(dias).sort().reverse().slice(0, LIMITE_DIAS);
   const guardar = {};
@@ -64,7 +68,9 @@ export function lerDias(json) {
   const dias = {};
   if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return dias;
   for (const [d, v] of Object.entries(bruto)) {
-    if (DATA_ISO.test(d) && v && ID_REGISTRAAI.test(texto(v.quadra))) dias[d] = { quadra: texto(v.quadra), nome: texto(v.nome) };
+    if (!DATA_ISO.test(d) || !v) continue;
+    if (v.sem === true) dias[d] = { sem: true };
+    else if (ID_REGISTRAAI.test(texto(v.quadra))) dias[d] = { quadra: texto(v.quadra), nome: texto(v.nome) };
   }
   return dias;
 }
