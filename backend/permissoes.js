@@ -15,6 +15,7 @@ export const PERMISSOES = {
   salvarLogo:         ['admin'], // logo do grupo (v18.3): só admin troca
   salvarReplays:      ['admin'], // 🎥 replays do RegistraAí (v20.2): só admin escolhe arena e quadra
   salvarQuadraDoDia:  ['organizador', 'admin'], // v20.3: em qual quadra foi o jogo de cada dia
+  salvarFrasesAniversario: ['organizador', 'admin'], // v21.0: frases sorteadas no cartão de parabéns
   saveCheckinSettings: ['organizador', 'admin'],
   listarUsuarios:   ['organizador', 'admin'],
   salvarUsuario:    ['admin'],

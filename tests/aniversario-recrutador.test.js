@@ -7,7 +7,7 @@ const html = fs.readFileSync(process.env.HTML_ARQUIVO || path.join(__dirname, '.
 const ini = html.indexOf('// <aniversario-puro>');
 const fim = html.indexOf('// </aniversario-puro>');
 assert.ok(ini > -1 && fim > ini, 'bloco <aniversario-puro> não encontrado');
-const F = new Function(html.slice(ini, fim) + '; return { aniversarioValido, formatarAniversario, aniversariantesDoDia, aniversariantesDaSemana, proximosAniversarios, computeRecrutadores, RECRUTADO_MIN_DATAS };')();
+const F = new Function(html.slice(ini, fim) + '; return { aniversarioValido, formatarAniversario, aniversariantesDoDia, aniversariantesDaSemana, aniversariosDaSemana, proximosAniversarios, computeRecrutadores, RECRUTADO_MIN_DATAS };')();
 
 let ok = 0;
 const caso = (nome, fn) => { fn(); ok++; console.log('ok    -', nome); };
@@ -30,6 +30,13 @@ caso('🥳 aniversariantes da semana (v20.7): domingo a sábado, inclusive quem 
   assert.deepEqual(F.aniversariantesDaSemana(js, '2026-10-31').map((p) => p.id).sort(), ['dom', 'hoje', 'sab']);
   // domingo seguinte: semana nova
   assert.deepEqual(F.aniversariantesDaSemana(js, '2026-11-01').map((p) => p.id), ['depois']);
+});
+
+caso('🎉 aniversários da semana com a data em que cada um cai (v21.0), inclusive na virada do ano', () => {
+  const js = [J('dom', { aniversario: '10-25' }), J('sab', { aniversario: '10-31' }), J('fora', { aniversario: '11-01' })];
+  assert.deepEqual(F.aniversariosDaSemana(js, '2026-10-30').map((x) => [x.jogador.id, x.data]), [['dom', '2026-10-25'], ['sab', '2026-10-31']]);
+  const ano = [J('reveillon', { aniversario: '01-02' }), J('natal', { aniversario: '12-27' })];
+  assert.deepEqual(F.aniversariosDaSemana(ano, '2026-12-31').map((x) => [x.jogador.id, x.data]), [['natal', '2026-12-27'], ['reveillon', '2027-01-02']]);
 });
 
 caso('🥳 semana na virada do ano e 29/02 fora do bissexto', () => {

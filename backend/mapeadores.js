@@ -4,6 +4,7 @@
 // em apps-script-codigo.gs.
 // (import circular com replays.js de propósito: lerDias só roda quando a leitura acontece, depois dos dois módulos carregados)
 import { lerDias } from './replays.js';
+import { lerFrases } from './frases-aniversario.js';
 
 export const CHECKIN_MENSAGEM_PADRAO = 'Vôlei {diaSemana} {data} às {horario} horas, quem animar coloca o nome abaixo o mais rápido possível blz pessoal.\nOs {vagas} primeiros a enviarem o nome estarão no jogo';
 
@@ -101,6 +102,8 @@ export function mapearConfig(linhas) {
     if (chave === 'replaysArenaNome') replays.arenaNome = texto(valor);
     if (chave === 'replaysQuadraNome') replays.quadraNome = texto(valor);
     if (chave === 'replaysDias') replays.dias = lerDias(texto(valor));
+    // 🎂 frases do cartão de parabéns (v21.0): só aparece quando o grupo editou (sem ela, o app usa as padrão)
+    if (chave === 'frasesAniversario') { const f = lerFrases(texto(valor)); if (f.length) s.frasesAniversario = f; }
     if (chave === 'checkinJogo2Data') jogo2.data = texto(valor);
     if (chave === 'checkinJogo2Horario') jogo2.horario = texto(valor);
     if (chave === 'checkinJogo2Vagas') jogo2.vagas = Number(valor) || 16;
