@@ -107,5 +107,21 @@ t('dois jogos no dia mais recente: jogou um, a sequência não zera', ()=>{
   assert.equal(seq(r,'a'), 2);
 });
 
+// 🥳 v20.7: chapeuzinho do aniversariante da semana
+{
+  const { jogadorCardHtml } = S([]);
+  const base = { id: 'p1', nome: 'Ana', foto: '', metricas: null };
+  const com = jogadorCardHtml({ ...base, festa: true }, { variante: 'lista' });
+  const sem = jogadorCardHtml({ ...base, festa: false }, { variante: 'lista' });
+  const semCampo = jogadorCardHtml(base, { variante: 'lista' }); // sem o app por perto (teste): sem chapéu, sem erro
+  try {
+    assert.match(com, /<div class="jc-avatar-bloco"><div class="jc-anel">.*?<\/div><span class="jc-festa" role="img" aria-label="Aniversariante da semana"><svg/);
+    assert.ok(!sem.includes('jc-festa') && !semCampo.includes('jc-festa'));
+    // nos três tamanhos de cartão
+    for (const variante of ['perfil', 'reduzido']) assert.ok(jogadorCardHtml({ ...base, festa: true }, { variante }).includes('jc-festa'), variante);
+    console.log('ok    - chapeuzinho: aparece com festa:true (nos 3 cartões), some com false e sem o campo');
+  } catch (e) { falhas++; console.log('FALHA - chapeuzinho\n       ', e.message); }
+}
+
 console.log(falhas ? `\n${falhas} falha(s)` : '\nTudo certo');
 process.exit(falhas ? 1 : 0);
