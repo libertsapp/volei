@@ -2695,6 +2695,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>30/10/2026 — v20.9: Cores dos balões</summary>
+          <div>
+            <p style="line-height:1.6;">Correção: os balões do aniversariante apareciam quase transparentes, sem cor, em algumas telas. Agora aparecem coloridos em todas.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>30/10/2026 — v20.8: 🎈 Balões no aniversariante</summary>
           <div>
             <p style="line-height:1.6;">O chapeuzinho de festa virou um <strong>cachinho de balões</strong> (laranja, amarelo e azul, com lacinho) em cima da foto de quem faz aniversário na semana.</p>
@@ -3316,7 +3323,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.8">v20.8</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 20.9">v20.9</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -6914,21 +6921,18 @@ function jcFormatarMedia(vitorias, partidas){ return (vitorias / partidas).toFix
 function jcMetricaHtml(icone, cor, rotulo, valorHtml){
   return `<div class="jc-metrica"><i class="ti ${icone} jc-metrica-icone ${cor}"></i><div class="jc-metrica-txt"><span class="jc-rotulo">${rotulo}</span>${valorHtml}</div></div>`;
 }
-// 🎈 cachinho de balões do aniversariante (cores fixas de festa, iguais no claro e no escuro); "var" pra não cair em zona morta
+// 🎈 cachinho de balões do aniversariante (cores fixas de festa, iguais no claro e no escuro); "var" pra não cair em zona morta.
+// SEM degradê/<defs> de propósito (v20.9): o desenho se repete em muitos cartões e um url(#id) aponta pro PRIMEIRO da
+// página — se esse estiver numa tela escondida (display:none), o Chrome não pinta e os balões ficavam transparentes
 var JC_BALOES_SVG = '<svg viewBox="0 0 44 60" aria-hidden="true" focusable="false">'
-  + '<defs>'
-  + '<radialGradient id="jcBalaoAm" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff7a8"/><stop offset=".55" stop-color="#f4e04d"/><stop offset="1" stop-color="#d9b92a"/></radialGradient>'
-  + '<radialGradient id="jcBalaoLa" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#ff9d80"/><stop offset=".55" stop-color="#ff6a45"/><stop offset="1" stop-color="#d9482c"/></radialGradient>'
-  + '<radialGradient id="jcBalaoAz" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#a6fffb"/><stop offset=".55" stop-color="#3fe0dc"/><stop offset="1" stop-color="#1fb3b0"/></radialGradient>'
-  + '</defs>'
   // fios (atrás dos balões), todos indo pro laço
   + '<path d="M22 27 C20 36 23 44 21 52 M13 34 C15 42 19 47 21 52 M31 35 C27 42 23 47 21 52" fill="none" stroke="#c7cfdd" stroke-width="1.1"/>'
   // amarelo atrás, laranja e azul na frente
-  + '<ellipse cx="22" cy="14" rx="9" ry="11" fill="url(#jcBalaoAm)" stroke="#2a2a2a" stroke-width="1"/>'
+  + '<ellipse cx="22" cy="14" rx="9" ry="11" fill="#d9b92a" stroke="#2a2a2a" stroke-width="1"/><ellipse cx="20.9" cy="12.7" rx="7.4" ry="9.3" fill="#f4e04d"/>'
   + '<path d="M20.4 27 L23.6 27 L22 24.8 Z" fill="#d9b92a" stroke="#2a2a2a" stroke-width=".7" stroke-linejoin="round"/>'
-  + '<ellipse cx="13" cy="22.5" rx="8.6" ry="10.2" fill="url(#jcBalaoLa)" stroke="#2a2a2a" stroke-width="1"/>'
+  + '<ellipse cx="13" cy="22.5" rx="8.6" ry="10.2" fill="#d9482c" stroke="#2a2a2a" stroke-width="1"/><ellipse cx="11.9" cy="21.3" rx="7" ry="8.5" fill="#ff6a45"/>'
   + '<path d="M11.4 34.5 L14.6 34.5 L13 32.5 Z" fill="#d9482c" stroke="#2a2a2a" stroke-width=".7" stroke-linejoin="round"/>'
-  + '<ellipse cx="31" cy="23.5" rx="8.6" ry="10.2" fill="url(#jcBalaoAz)" stroke="#2a2a2a" stroke-width="1"/>'
+  + '<ellipse cx="31" cy="23.5" rx="8.6" ry="10.2" fill="#1fb3b0" stroke="#2a2a2a" stroke-width="1"/><ellipse cx="29.9" cy="22.3" rx="7" ry="8.5" fill="#3fe0dc"/>'
   + '<path d="M29.4 35.5 L32.6 35.5 L31 33.5 Z" fill="#1fb3b0" stroke="#2a2a2a" stroke-width=".7" stroke-linejoin="round"/>'
   // brilhos
   + '<ellipse cx="18.6" cy="9.6" rx="1.6" ry="2.8" fill="#fff" opacity=".75" transform="rotate(-20 18.6 9.6)"/>'
