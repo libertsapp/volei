@@ -763,6 +763,8 @@
     filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));vertical-align:middle;
     padding:2px;
   }
+  /* desenho do Bola Murcha (v21.2, no lugar do 🎈): acompanha o tamanho da letra como um emoji */
+  .ic-murcha{display:inline-block;width:1.35em;height:1.3em;vertical-align:-0.3em;}
   .info-icon{
     display:inline-flex;align-items:center;justify-content:center;
     width:14px;height:14px;border-radius:50%;border:1px solid var(--muted);
@@ -2709,6 +2711,20 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>30/10/2026 — v21.3: Troféus no cartão do resultado</summary>
+          <div>
+            <p style="line-height:1.6;">O 📸 cartão do resultado da votação ganhou troféus no fundo: o troféu dourado no bloco do Craque e o "troféu da bola murcha" (o pedestal com a bola murcha no lugar da taça) no bloco do Bola Murcha.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
+          <summary>30/10/2026 — v21.2: Novo emblema do Bola Murcha e cartão do resultado</summary>
+          <div>
+            <p style="line-height:1.6;">O emblema do <strong>Bola Murcha</strong> virou uma bola de vôlei murcha soltando ar (o balão ficava igual aos do aniversariante). E o aviso com o resultado da votação no Início ganhou o botão <strong>📸 Cartão do resultado</strong>: uma imagem com o 🏅 Craque e o Bola Murcha do dia, com fotos e votos, pronta pra compartilhar ou baixar.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>30/10/2026 — v21.0: 🎉 Cartão de parabéns</summary>
           <div>
             <p style="line-height:1.6;">No cartão de aniversários do Início, cada aniversariante da semana ganhou o botão <strong>🎉 Cartão de parabéns</strong>: uma imagem colorida de festa (no formato de status) com a foto, o nome, a data e uma frase sorteada, pronta pra compartilhar ou baixar. Dá pra trocar a frase (🔀 Outra frase) ou escrever uma só pra aquele cartão. Organizadores e admins editam a lista de frases do grupo na ⚙️ engrenagem, em "🎂 Frases de aniversário".</p>
@@ -3344,7 +3360,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.0">v21.0</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.3">v21.3</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -5505,6 +5521,213 @@ async function abrirCartaoCampeao(roundId){
     }
   });
 }
+
+/* ---------- 📸 Cartão do resultado da votação (v21.2) ----------
+   Imagem 1080×1350 (feed e status) com o 🏅 Craque e o Bola Murcha do dia: fotos, nomes e votos. Mesmo desenho do
+   📸 cartão do campeão (cores fixas do tema escuro; dourado = cor do grupo). O desenho do Bola Murcha entra no canvas
+   como imagem (SVG em data:), que não "contamina" o canvas. */
+// troféus do fundo do cartão (v21.3): o dourado do Craque e o "troféu da bola murcha" (pedestal com a bola murcha
+// no lugar da taça). Entram no canvas como imagem, igual ao desenho do Bola Murcha.
+function imagemDeSvg(svg){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=> resolve(img);
+    img.onerror = ()=> resolve(null);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+function svgTrofeuCraque(){
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="240" viewBox="0 0 100 120">'
+    + '<path d="M24 14 C10 14 6 22 8 32 C10 42 20 48 30 49" fill="none" stroke="#ffd700" stroke-width="6"/>'
+    + '<path d="M76 14 C90 14 94 22 92 32 C90 42 80 48 70 49" fill="none" stroke="#ffd700" stroke-width="6"/>'
+    + '<path d="M22 8 H78 V30 C78 52 64 64 50 66 C36 64 22 52 22 30 Z" fill="#ffd700"/>'
+    + '<path d="M30 12 V30 C30 44 38 54 46 58" fill="none" stroke="#fff4b0" stroke-width="4" stroke-linecap="round" opacity=".8"/>'
+    + '<path d="M50 20 L54 30 L65 30 L56 37 L59 48 L50 41 L41 48 L44 37 L35 30 L46 30 Z" fill="#c99a00"/>'
+    + '<rect x="44" y="64" width="12" height="18" fill="#e0b400"/>'
+    + '<path d="M34 82 H66 L70 94 H30 Z" fill="#ffd700"/>'
+    + '<rect x="24" y="94" width="52" height="14" rx="3" fill="#c99a00"/>'
+    + '</svg>';
+}
+function svgTrofeuMurcha(){
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="240" viewBox="0 0 100 120">'
+    + '<path d="M38 58 H62 L58 66 H42 Z" fill="#9fb8d9"/>'
+    + '<rect x="44" y="64" width="12" height="18" fill="#7f9cc4"/>'
+    + '<path d="M34 82 H66 L70 94 H30 Z" fill="#9fb8d9"/>'
+    + '<rect x="24" y="94" width="52" height="14" rx="3" fill="#6f8bb3"/>'
+    + svgBolaMurcha('tm', 'x="6" y="4" width="88" height="60"')
+    + '</svg>';
+}
+function imagemBolaMurcha(){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=> resolve(img);
+    img.onerror = ()=> resolve(null);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgBolaMurcha('bm', 'xmlns="http://www.w3.org/2000/svg" width="320" height="300"'));
+  });
+}
+// fotos (círculo com anel na cor dada), nome embaixo; centralizadas em cy. Devolve o raio usado.
+async function votacaoLinhaDeFotos(ctx, ids, cy, raioMax, cor, W){
+  const jogadores = ids.map(id=> getPlayer(id) || { nome: '?' });
+  const fotos = await Promise.all(jogadores.map(p=> retroCarregarImagem(p.foto)));
+  const n = jogadores.length;
+  const passo = Math.min(300, (W - 200) / n);
+  const raio = Math.min(raioMax, Math.floor(passo / 2) - 22);
+  jogadores.forEach((p, i)=>{
+    const cx = W/2 + (i - (n - 1) / 2) * passo;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI*2); ctx.closePath();
+    ctx.fillStyle = '#101b33'; ctx.fill();
+    if(fotos[i]){
+      ctx.clip();
+      const f = fotos[i], lado = Math.min(f.width, f.height);
+      ctx.drawImage(f, (f.width-lado)/2, (f.height-lado)/2, lado, lado, cx-raio, cy-raio, raio*2, raio*2);
+    } else {
+      ctx.fillStyle = cor; ctx.textBaseline = 'middle';
+      ctx.font = Math.round(raio * 1.1) + "px Anton, sans-serif";
+      ctx.fillText(nomeNoCartao(p).charAt(0).toUpperCase(), cx, cy + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+    ctx.lineWidth = 8; ctx.strokeStyle = cor;
+    ctx.beginPath(); ctx.arc(cx, cy, raio + 5, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#f4f1e6';
+    retroTexto(ctx, nomeNoCartao(p).toUpperCase(), cx, cy + raio + 54, passo - 16, Math.min(46, Math.round(raio * 0.44)), "{t} Anton, sans-serif");
+  });
+  return raio;
+}
+async function desenharCartaoVotacao(v){
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const OURO = GRUPO_ATUAL && /^#[0-9a-f]{6}$/i.test(GRUPO_ATUAL.cor || '') ? GRUPO_ATUAL.cor : '#ffd700';
+  const NEON = '#00f3ff', GIZ = '#f4f1e6', GIZ2 = '#b9c0d6', APAGADO = '#7c88ac', AZUL = '#6fb2ff';
+  try{
+    await Promise.all(["40px Anton", "600 40px 'Work Sans'", "italic 600 40px 'Work Sans'", "40px 'Space Mono'"].map(f=> document.fonts.load(f)));
+  }catch(e){ /* sem as fontes, o navegador usa a padrão */ }
+  const [desenhoMurcha, trofeuCraque, trofeuMurcha] = await Promise.all([imagemBolaMurcha(), imagemDeSvg(svgTrofeuCraque()), imagemDeSvg(svgTrofeuMurcha())]);
+  // troféu de marca d'água nos dois lados de um bloco (o da direita espelhado), atrás das fotos
+  const marcaDagua = (img, yTopo)=>{
+    if(!img) return;
+    ctx.save(); ctx.globalAlpha = 0.2;
+    ctx.drawImage(img, 116, yTopo, 190, 228);
+    ctx.translate(W, 0); ctx.scale(-1, 1);
+    ctx.drawImage(img, 116, yTopo, 190, 228);
+    ctx.restore();
+  };
+  const r = v.resultado || {};
+
+  // fundo: quadra à noite; brilho dourado em cima (Craque) e azul embaixo (Bola Murcha)
+  const fundo = ctx.createLinearGradient(0, 0, 0, H);
+  fundo.addColorStop(0, '#16264a'); fundo.addColorStop(1, '#050a18');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
+  [[560, 'rgba(255,215,0,0.15)'], [1030, 'rgba(111,178,255,0.13)']].forEach(([y, cor])=>{
+    const b = ctx.createRadialGradient(W/2, y, 40, W/2, y, 480);
+    b.addColorStop(0, cor); b.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = b; ctx.fillRect(0, 0, W, H);
+  });
+  ctx.strokeStyle = 'rgba(244,241,230,0.06)'; ctx.lineWidth = 6;
+  ctx.strokeRect(50, 50, W-100, H-100);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = NEON;
+  retroTexto(ctx, '🗳️ RESULTADO DA VOTAÇÃO', W/2, 160, 940, 64, "{t} Anton, sans-serif");
+  ctx.fillStyle = OURO;
+  retroTexto(ctx, (diaDaSemanaCurto(v.data) + ' · ' + formatDate(v.data)).toUpperCase(), W/2, 258, 940, 86, "{t} Anton, sans-serif");
+  ctx.fillStyle = GIZ2;
+  retroTexto(ctx, nomeDoApp() + ' · ' + v.votantes + ' votaram', W/2, 314, 940, 36, "600 {t} 'Work Sans', sans-serif");
+
+  const caixa = (y, h, cor)=>{
+    ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.strokeStyle = cor; ctx.lineWidth = 3;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(90, y, W - 180, h, 34); else ctx.rect(90, y, W - 180, h);
+    ctx.fill(); ctx.stroke();
+  };
+  const votos = (n)=> n + ' voto' + (n === 1 ? '' : 's');
+
+  // 🏅 Craque
+  caixa(352, 440, 'rgba(255,215,0,0.45)');
+  marcaDagua(trofeuCraque, 470);
+  ctx.fillStyle = OURO;
+  retroTexto(ctx, '🏅 CRAQUE DO DIA', W/2, 428, 800, 54, "{t} Anton, sans-serif");
+  if(r.craque && r.craque.ids.length){
+    const raio = await votacaoLinhaDeFotos(ctx, r.craque.ids, 572, 100, OURO, W);
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, votos(r.craque.votos), W/2, 572 + raio + 102, 700, 34, "600 {t} 'Work Sans', sans-serif");
+  } else {
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, 'Ninguém votou no Craque', W/2, 600, 800, 40, "600 {t} 'Work Sans', sans-serif");
+  }
+
+  // Bola Murcha: o desenho ao lado do título
+  caixa(822, 434, 'rgba(111,178,255,0.45)');
+  marcaDagua(trofeuMurcha, 930);
+  ctx.font = "54px Anton, sans-serif";
+  const titulo = 'BOLA MURCHA DO DIA';
+  const larg = ctx.measureText(titulo).width, ladoDesenho = 86;
+  const xTitulo = W/2 + (ladoDesenho + 14) / 2;
+  if(desenhoMurcha) ctx.drawImage(desenhoMurcha, xTitulo - larg/2 - ladoDesenho - 14, 836, ladoDesenho, ladoDesenho * 300 / 320);
+  ctx.fillStyle = AZUL;
+  ctx.fillText(titulo, xTitulo, 888);
+  if(r.murcha && r.murcha.ids.length){
+    const raio = await votacaoLinhaDeFotos(ctx, r.murcha.ids, 1004, 80, AZUL, W);
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, votos(r.murcha.votos), W/2, 1004 + raio + 90, 700, 32, "600 {t} 'Work Sans', sans-serif");
+  } else {
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, 'Ninguém votou no Bola Murcha', W/2, 1040, 800, 40, "600 {t} 'Work Sans', sans-serif");
+  }
+  ctx.fillStyle = GIZ;
+  retroTexto(ctx, 'Fica nosso carinho, nosso abraço e o apoio psicológico… 😂', W/2, 1228, W - 260, 30, "italic 600 {t} 'Work Sans', sans-serif");
+
+  ctx.fillStyle = APAGADO;
+  retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1292, 900, 30, "{t} 'Space Mono', monospace");
+  return canvas;
+}
+async function abrirCartaoVotacao(data){
+  const v = VOTACOES.find(x=> x.data === data && !x.aberta && x.resultado);
+  if(!v || document.getElementById('cartao-votacao-overlay')) return;
+  mostrarCarregando('Montando a imagem...');
+  let canvas;
+  try{ canvas = await desenharCartaoVotacao(v); }
+  catch(e){ console.error('Falha ao montar o cartão da votação', e); mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  finally{ esconderCarregando(); }
+  const blob = await new Promise((res)=> canvas.toBlob(res, 'image/png'));
+  if(!blob){ mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  const nomeArquivo = 'votacao-' + v.data + '.png';
+  const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+  const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
+  const overlay = document.createElement('div');
+  overlay.id = 'cartao-votacao-overlay';
+  overlay.className = 'profile-overlay';
+  overlay.innerHTML = `
+    <div class="profile-card retro-card">
+      <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
+      <img class="retro-imagem" style="aspect-ratio:4/5;" src="${url}" alt="Craque e Bola Murcha de ${escapeHtml(formatDate(v.data))}">
+      <div class="retro-acoes">
+        ${podeCompartilhar ? '<button type="button" class="btn" data-acao="compartilhar">📤 Compartilhar</button>' : ''}
+        <button type="button" class="btn ${podeCompartilhar ? 'secondary' : ''}" data-acao="baixar">⬇️ Baixar imagem</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const fechar = ()=>{ overlay.remove(); URL.revokeObjectURL(url); };
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
+    if(e.target.closest('[data-acao="compartilhar"]')){
+      navigator.share({ files: [arquivo], text: '🗳️ Craque e Bola Murcha do vôlei de ' + formatDate(v.data) + ' 🏐 ' + linkDoApp(CTX_GRUPO) }).catch(()=>{}); // cancelado: ignora
+    }
+    if(e.target.closest('[data-acao="baixar"]')){
+      const a = document.createElement('a');
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+}
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-cartao-votacao]');
+  if(b) abrirCartaoVotacao(b.dataset.cartaoVotacao);
+});
 
 async function renderMeuPerfil(){
   const container = document.getElementById('meuperfil-content');
@@ -9280,6 +9503,31 @@ function temContaVinculada(pid){
   return PERFIS_PUBLICOS.some(u=> u.jogadorId === pid);
 }
 
+/* Bola Murcha (v21.2): a bola de vôlei desabada soltando ar pelo rasgo, no lugar do 🎈 (que ficou igual aos balões do
+   aniversariante). O recorte dos gomos usa um id ÚNICO por desenho: url(#id) aponta pro primeiro id da página, e se esse
+   estivesse numa tela escondida o Chrome não pintaria (o mesmo bug dos balões na v20.9). */
+var BOLA_MURCHA_N = 0;
+function svgBolaMurcha(id, atributos){
+  const corpo = 'M7 50 C5 42 9 35 16 31 C19 29.5 22 30 24 28 C27 25 31 24.5 36 25 C46 26 56 32 58 42 C59.5 50 55 55 46 56 C36 57.5 20 57 12 55 C9 54 7.5 52 7 50 Z';
+  const branco = '#f4f6f9', nuvem = '#dfe4ea';
+  return `<svg ${atributos} viewBox="-2 0 64 60">`
+    + `<defs><clipPath id="${id}"><path d="${corpo}"/></clipPath></defs>`
+    + `<ellipse cx="33" cy="56.5" rx="27" ry="3.6" fill="#000" opacity=".3"/>`
+    + `<path d="${corpo}" fill="${branco}"/>`
+    + `<g clip-path="url(#${id})">`
+    + `<path d="M6 31 C19 35 29 45 31 62" stroke="#ffcf3f" stroke-width="13" fill="none"/><path d="M6 31 C19 35 29 45 31 62" stroke="${branco}" stroke-width="1.6" fill="none"/>`
+    + `<path d="M47 18 C39 30 38 46 45 62" stroke="#2f6fd6" stroke-width="13" fill="none"/><path d="M47 18 C39 30 38 46 45 62" stroke="${branco}" stroke-width="1.6" fill="none"/>`
+    + `<ellipse cx="44" cy="53" rx="32" ry="12" fill="#1b2340" opacity=".16"/></g>`
+    + `<path d="M15.5 32.5 L18.5 29.2 L18.6 32 L21.6 29.3 L21.9 32.4 L24.5 30.4" fill="none" stroke="#3a2a2a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`
+    + `<path d="M19.5 30.5 L10 17 L16.5 14 Z" fill="${nuvem}"/>`
+    + `<circle cx="9.5" cy="11.5" r="7.5" fill="${nuvem}"/><circle cx="17" cy="8.5" r="5.8" fill="${nuvem}"/><circle cx="16" cy="15" r="5.2" fill="${nuvem}"/>`
+    + `<circle cx="4" cy="17" r="4.6" fill="${nuvem}"/><circle cx="3.5" cy="9" r="3.6" fill="${nuvem}"/><circle cx="11.5" cy="8" r="4" fill="#eef1f5"/>`
+    + `<circle cx="24" cy="4.5" r="1.6" fill="${nuvem}"/><circle cx="1.5" cy="24" r="1.6" fill="${nuvem}"/><circle cx="22.5" cy="16" r="1.2" fill="${nuvem}"/>`
+    + `</svg>`;
+}
+function iconeBolaMurcha(){
+  return svgBolaMurcha('bolaMurcha' + (++BOLA_MURCHA_N), 'class="ic-murcha" role="img" aria-label="Bola Murcha" focusable="false"');
+}
 function badgeIconsHtml(pid, badges){
   if(!pid || !badges) return '';
   let html = '';
@@ -9290,7 +9538,7 @@ function badgeIconsHtml(pid, badges){
   if(badges.rip.has(pid)) html += `<span class="badge-icon" title="RIP — mais de 60 dias sem aparecer numa rodada">👻</span>`;
   if(badges.aposentado.has(pid)) html += `<span class="badge-icon" title="DEFUNTO — mais de 100 dias sem aparecer numa rodada">🪦</span>`;
   if(badges.craque && badges.craque.has(pid)) html += `<span class="badge-icon" title="CRAQUE — eleito pelos jogadores na última votação (${formatDate(badges.dataCraque).slice(0,5)})">🏅</span>`;
-  if(badges.murcha && badges.murcha.has(pid)) html += `<span class="badge-icon" title="BOLA MURCHA — eleito de brincadeira pelos amigos na última votação (${formatDate(badges.dataMurcha).slice(0,5)}). Zoeira de resenha, sem ofensa: na próxima tem revanche!">🎈</span>`;
+  if(badges.murcha && badges.murcha.has(pid)) html += `<span class="badge-icon" title="BOLA MURCHA — eleito de brincadeira pelos amigos na última votação (${formatDate(badges.dataMurcha).slice(0,5)}). Zoeira de resenha, sem ofensa: na próxima tem revanche!">${iconeBolaMurcha()}</span>`;
   if(badges.furao && badges.furao.has(pid)) html += `<span class="badge-icon" title="FURÃO — confirmou e não apareceu ${FALTAS_PARA_EMBLEMA} vezes ou mais nos últimos ${FALTAS_JANELA_DIAS} dias">🏃</span>`;
   if(badges.aniversario && badges.aniversario.has(pid)) html += `<span class="badge-icon" title="ANIVERSARIANTE — hoje é aniversário! Manda os parabéns 🎉">🎂</span>`;
   if(badges.recrutador && badges.recrutador[pid]) html += `<span class="badge-icon" title="RECRUTADOR — trouxe ${badges.recrutador[pid]} jogador${badges.recrutador[pid] === 1 ? '' : 'es'} que ${badges.recrutador[pid] === 1 ? 'virou' : 'viraram'} da casa">🤝</span>`;
@@ -10245,7 +10493,7 @@ function htmlResultadoVotacao(v){
   const parte = (cat, icone, rotulo)=> r[cat] && r[cat].ids.length
     ? `<span>${icone} <strong>${rotulo}:</strong> ${escapeHtml(nomesDosIds(r[cat].ids))} (${r[cat].votos} voto${r[cat].votos===1?'':'s'})</span>`
     : `<span style="color:var(--muted);">${icone} ${rotulo}: ninguém votou</span>`;
-  return parte('craque', '🏅', 'Craque') + parte('murcha', '🎈', 'Bola Murcha');
+  return parte('craque', '🏅', 'Craque') + parte('murcha', iconeBolaMurcha(), 'Bola Murcha');
 }
 
 function renderVotacaoCard(){
@@ -10262,7 +10510,7 @@ function renderVotacaoCard(){
     if(podeVotar){
       corpo = `<div class="votacao-linha">
         <div class="votacao-meu">${jaVotou
-          ? `Seu voto: 🏅 ${escapeHtml(meu.craque ? nomesDosIds([meu.craque]) : '—')} · 🎈 ${escapeHtml(meu.murcha ? nomesDosIds([meu.murcha]) : '—')}`
+          ? `Seu voto: 🏅 ${escapeHtml(meu.craque ? nomesDosIds([meu.craque]) : '—')} · ${iconeBolaMurcha()} ${escapeHtml(meu.murcha ? nomesDosIds([meu.murcha]) : '—')}`
           : 'Quem jogou vota (voto secreto). O resultado sai quando a votação fechar.'}</div>
         <button type="button" class="btn" id="votacao-votar-btn">${jaVotou ? 'Mudar voto' : 'Votar'}</button>
       </div>`;
@@ -10290,7 +10538,8 @@ function renderVotacaoCard(){
       <p class="votacao-titulo">🗳️ Resultado da votação</p>
       <div class="votacao-sub">Vôlei de ${diaDaSemanaCurto(fechada.data)} (${formatDate(fechada.data).slice(0,5)}) · ${fechada.votantes} votaram</div>
       <div class="votacao-resultado">${htmlResultadoVotacao(fechada)}</div>
-      <p class="votacao-intuito" style="margin:10px 0 0;">😄 Parabéns ao Craque! Ao Bola Murcha, fica nosso carinho, nosso abraço e o apoio psicológico… 😂</p>`;
+      <p class="votacao-intuito" style="margin:10px 0 0;">😄 Parabéns ao Craque! Ao Bola Murcha, fica nosso carinho, nosso abraço e o apoio psicológico… 😂</p>
+      <div class="inicio-cartao-acoes"><button type="button" class="btn secondary" data-cartao-votacao="${escapeHtml(fechada.data)}">📸 Cartão do resultado</button></div>`;
     card.style.display = '';
     return;
   }
@@ -10342,7 +10591,7 @@ function abrirVotacao(v){
       <div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Voto secreto. Dá pra mudar até a votação fechar (${textoFaltaFechar(v.fechaEm, Date.now())}).</div>
       <p class="votacao-intuito-caixa">${VOTACAO_INTUITO}</p>
       <div class="voto-grupo"><p class="voto-grupo-titulo">🏅 Craque do dia <span style="font-weight:400;color:var(--muted);font-size:12px;">— quem mais brilhou</span></p>${opcoes('craque')}</div>
-      <div class="voto-grupo"><p class="voto-grupo-titulo">🎈 Bola Murcha do dia <span style="font-weight:400;color:var(--muted);font-size:12px;">— na zoeira, quem não estava num dia inspirado</span></p>${opcoes('murcha')}</div>
+      <div class="voto-grupo"><p class="voto-grupo-titulo">${iconeBolaMurcha()} Bola Murcha do dia <span style="font-weight:400;color:var(--muted);font-size:12px;">— na zoeira, quem não estava num dia inspirado</span></p>${opcoes('murcha')}</div>
       <div class="acoes-linha">
         <button class="btn" data-acao="salvar">Salvar voto</button>
         <button class="btn secondary" data-acao="fechar">Cancelar</button>
