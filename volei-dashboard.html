@@ -2044,7 +2044,7 @@
   /* Top 10 de fotos: 4º em diante em cartões; a barra de progresso ocupa a linha de baixo da tag */
   .leaderboard-cartoes{display:flex;flex-direction:column;gap:8px;}
   /* ===== 🎄 Tema de Natal (v21.7) =====
-     Liga sozinho de 1º/12 a 6/1 (classe tema-natal no <html>, ver periodoNatal). Tudo decorativo: pointer-events:none e
+     Liga sozinho de 1º a 25/12 (classe tema-natal no <html>, ver temaDoPeriodo). Tudo decorativo: pointer-events:none e
      posição absoluta/fixa, pra não empurrar nada nem roubar toque. O gorro é SVG em data: no CSS (cores sólidas, sem
      url(#id) — o mesmo cuidado dos balões da v20.9). */
   :root{--natal-gorro:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 36'%3E%3Cpath d='M7 27 C9 15 17 6 27 5 C33 4.5 37 8 37.5 13 C34 10.5 30 10.5 28.5 13 C31 17 33 22 34 27 Z' fill='%23d6283a' stroke='%238e1020' stroke-width='1'/%3E%3Cpath d='M12 24 C14 15 20 9 26 8' fill='none' stroke='%23ff6b78' stroke-width='2' stroke-linecap='round' opacity='.7'/%3E%3Ccircle cx='37' cy='15' r='4.2' fill='%23fff' stroke='%23c9d3e3' stroke-width='.8'/%3E%3Crect x='3' y='25' width='34' height='8' rx='4' fill='%23fff' stroke='%23c9d3e3' stroke-width='.8'/%3E%3C/svg%3E");--natal-fio:#3b4a6b;--natal-neve:#ffffff;}
@@ -2080,8 +2080,23 @@
     pointer-events:none;background:var(--natal-gorro) no-repeat center/contain;transform:rotate(14deg);}
   .natal-card{border-color:color-mix(in srgb, #d6283a 55%, var(--line));
     background:linear-gradient(135deg, color-mix(in srgb, #d6283a 14%, transparent), color-mix(in srgb, #2fd36b 10%, transparent)), var(--glass-bg);}
+  /* 🎆 Réveillon (v21.9, de 26/12 a 1/1): a neve vira confete (retângulos girando, cor em --cf) e sem gorro */
+  html.tema-reveillon .natal-neve i{border-radius:1px;height:calc(var(--s) * 2);background:var(--cf);opacity:.9;animation-name:reveillon-cair;}
+  @keyframes reveillon-cair{to{transform:translate(var(--v), 44vh) rotate(540deg);}}
+  /* fogos só em 31/12 e 1/1: três estouros em sequência no topo do Início, cada um com 12 faíscas saindo do centro */
+  .reveillon-fogos{display:none;position:fixed;left:0;right:0;top:0;height:42vh;overflow:hidden;pointer-events:none;z-index:5;}
+  body:has(#view-dashboard.active) .reveillon-fogos{display:block;}
+  .reveillon-fogos b{position:absolute;left:var(--x);top:var(--y);width:0;height:0;}
+  .reveillon-fogos i{position:absolute;left:-2px;top:-2px;width:4px;height:4px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c);
+    opacity:0;animation:fogos-estourar 3.3s ease-out infinite;animation-delay:var(--d);}
+  @keyframes fogos-estourar{
+    0%{opacity:0;transform:rotate(var(--a)) translateX(0);}
+    8%{opacity:1;}
+    45%{opacity:0;transform:rotate(var(--a)) translateX(46px);}
+    100%{opacity:0;transform:rotate(var(--a)) translateX(46px);}
+  }
   @media (prefers-reduced-motion: reduce){
-    .natal-neve{display:none !important;}
+    .natal-neve, .reveillon-fogos{display:none !important;}
     .natal-luzes i{animation:none;}
   }
   .jc-linha-tags .jc-barra{flex:1 1 100%;height:6px;margin-top:2px;}
@@ -2766,9 +2781,16 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>31/10/2026 — v21.9: 🎆 Réveillon</summary>
+          <div>
+            <p style="line-height:1.6;">Depois do Natal (de 26/12 a 1/1) o app vira Réveillon: confete no lugar da neve, pisca-pisca dourado, fogos no topo do Início na virada (31/12 e 1/1) e o cartão <strong>📸 Feliz 2027</strong> com os números do ano — dias de vôlei, jogadores, quem mais foi campeão e quem mais jogou. Em 2 de janeiro tudo volta ao normal.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>31/10/2026 — v21.7: 🎄 Tema de Natal</summary>
           <div>
-            <p style="line-height:1.6;">De 1º de dezembro a 6 de janeiro o app entra no clima: pisca-pisca no topo, neve leve no Início, gorro de Papai Noel no logo e nos campeões da semana, e o cartão <strong>🎄 Árvore do grupo</strong> — as fotos de todo mundo que jogou no ano formando um pinheiro, pra compartilhar.</p>
+            <p style="line-height:1.6;">De 1º a 25 de dezembro o app entra no clima: pisca-pisca no topo, neve leve no Início, gorro de Papai Noel no logo e nos campeões da semana, e o cartão <strong>🎄 Árvore do grupo</strong> — as fotos de todo mundo que jogou no ano formando um pinheiro, pra compartilhar.</p>
           </div>
         </details>
 
@@ -3443,7 +3465,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.7">v21.7</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.9">v21.9</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -4925,8 +4947,16 @@ function renderCartoesInicio(){
   const natal = document.getElementById('natal-card');
   if(natal){
     const ano = anoDaArvore(hojeLocalIso());
-    const quantos = TEMA_NATAL ? jogadoresDaArvore(roundsOficiais(), ano).length : 0;
+    const tema = TEMA_FESTAS.tema;
+    const quantos = tema ? jogadoresDaArvore(roundsOficiais(), ano).length : 0;
     if(!quantos){ natal.style.display = 'none'; }
+    else if(tema === 'reveillon'){
+      const dias = numerosDoAno(roundsOficiais(), ano).dias;
+      natal.innerHTML = `<p class="inicio-cartao-titulo">🎆 Feliz ${ano + 1}, ${escapeHtml(nomeDoApp())}!</p>
+        <p class="inicio-cartao-texto">Fechamos ${ano} com ${dias} ${dias === 1 ? 'dia' : 'dias'} de vôlei e ${quantos} ${quantos === 1 ? 'jogador' : 'jogadores'}. Manda o cartão no grupo!</p>
+        <div class="inicio-cartao-acoes"><button type="button" class="btn" data-ano-novo="${ano}">📸 Cartão Feliz ${ano + 1}</button></div>`;
+      natal.style.display = '';
+    }
     else {
       natal.innerHTML = `<p class="inicio-cartao-titulo">🎄 Feliz Natal, ${escapeHtml(nomeDoApp())}!</p>
         <p class="inicio-cartao-texto">Montamos a árvore do grupo com ${quantos === 1 ? 'quem jogou' : 'os ' + quantos + ' que jogaram'} em ${ano}. Manda no grupo!</p>
@@ -5631,16 +5661,25 @@ async function abrirCartaoCampeao(roundId){
 }
 
 // <natal-puro>
-// 🎄 Tema de Natal (v21.7): liga sozinho de 1º/12 a 6/1 (Dia de Reis). "forcar" vem do ?natal=1 / ?natal=0 da URL
-// (pra testar fora da época ou desligar num aparelho).
-function periodoNatal(hojeIso, forcar){
-  if(forcar === '1') return true;
-  if(forcar === '0') return false;
+// 🎄 Temas de fim de ano: Natal de 1º a 25/12 (v21.7) e Réveillon de 26/12 a 1/1 (v21.9); depois o app volta ao normal.
+// "forcar" vem do ?natal= da URL, pra testar fora da época ou desligar num aparelho: 1 ou natal, reveillon, fogos
+// (réveillon com os fogos da virada) e 0 (desliga).
+function temaDoPeriodo(hojeIso, forcar){
+  if(forcar === '0') return '';
+  if(forcar === '1' || forcar === 'natal') return 'natal';
+  if(forcar === 'reveillon' || forcar === 'fogos') return 'reveillon';
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(hojeIso || '');
-  if(!m) return false;
-  return +m[2] === 12 || (+m[2] === 1 && +m[3] <= 6);
+  if(!m) return '';
+  if(+m[2] === 12) return +m[3] <= 25 ? 'natal' : 'reveillon';
+  return (+m[2] === 1 && +m[3] === 1) ? 'reveillon' : '';
 }
-// em janeiro a árvore ainda é a do ano que acabou
+// 🎆 fogos só na virada: 31/12 e 1/1
+function temFogos(hojeIso, forcar){
+  if(forcar === 'fogos') return true;
+  if(forcar) return false;
+  return /-(12-31|01-01)$/.test(hojeIso || '');
+}
+// o ano que está acabando (em 1º de janeiro, o que acabou de acabar) — o da árvore e o do cartão de Ano Novo
 function anoDaArvore(hojeIso){
   const ano = +String(hojeIso).slice(0, 4);
   return String(hojeIso).slice(5, 7) === '01' ? ano - 1 : ano;
@@ -5657,6 +5696,31 @@ function jogadoresDaArvore(rounds, ano){
   return Object.keys(jogos).map(id=> ({ id, jogos: jogos[id] }))
     .sort((a, b)=> b.jogos - a.jogos || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
+// números do ano pro cartão de Ano Novo: dias de jogo, quantos jogaram (sem convidado), quem mais foi campeão
+// (títulos = vezes no time vencedor) e quem mais jogou; empate no topo = todos os empatados, em ordem de id
+function numerosDoAno(rounds, ano){
+  const doAno = (rounds || []).filter(r=> String(r.data || '').startsWith(ano + '-'));
+  const titulos = {};
+  doAno.forEach(r=> (r.vencedores || []).forEach(i=>{
+    const t = (r.times || [])[i];
+    new Set((t && t.playerIds) || []).forEach(id=>{
+      if(typeof id === 'string' && !id.startsWith('convidado:')) titulos[id] = (titulos[id] || 0) + 1;
+    });
+  }));
+  const topo = (mapa)=>{
+    const max = Math.max(0, ...Object.values(mapa));
+    return max ? { ids: Object.keys(mapa).filter(id=> mapa[id] === max).sort(), total: max } : null;
+  };
+  const jogaram = jogadoresDaArvore(doAno, ano);
+  const jogos = {};
+  jogaram.forEach(x=>{ jogos[x.id] = x.jogos; });
+  return {
+    dias: new Set(doAno.map(r=> r.data)).size,
+    jogadores: jogaram.length,
+    campeao: topo(titulos),
+    presente: topo(jogos),
+  };
+}
 // fileiras da árvore: o maior triângulo 1, 2, 3... que cabe; quem sobra alarga as fileiras de baixo (uma a mais em cada),
 // em vez de ficar uma foto sozinha pendurada embaixo
 function fileirasDaArvore(n){
@@ -5667,16 +5731,19 @@ function fileirasDaArvore(n){
   return fileiras;
 }
 // </natal-puro>
-var TEMA_NATAL = (function(){
+var TEMA_FESTAS = (function(){
   let forcar = null;
   try{ forcar = new URLSearchParams(location.search).get('natal'); }catch(e){}
-  return periodoNatal(hojeLocalIso(), forcar);
+  const hoje = hojeLocalIso();
+  return { tema: temaDoPeriodo(hoje, forcar), fogos: temFogos(hoje, forcar) };
 })();
-// pisca-pisca e neve entram uma vez só (fora de qualquer render); o gorro e o cartão leem a classe/TEMA_NATAL
-(function ligarTemaNatal(){
-  if(!TEMA_NATAL) return;
-  document.documentElement.classList.add('tema-natal');
-  const cores = ['#ff3b4a', 'var(--ball-yellow)', '#2fd36b', 'var(--accent)'];
+// pisca-pisca, neve/confete e fogos entram uma vez só (fora de qualquer render); o gorro e o cartão leem a classe/TEMA_FESTAS
+(function ligarTemaFestas(){
+  if(!TEMA_FESTAS.tema) return;
+  const reveillon = TEMA_FESTAS.tema === 'reveillon';
+  document.documentElement.classList.add(reveillon ? 'tema-reveillon' : 'tema-natal');
+  const cores = reveillon ? ['#ffd700', '#ffffff', '#ffb627', '#c9d3e3'] : ['#ff3b4a', 'var(--ball-yellow)', '#2fd36b', 'var(--accent)'];
+  const confete = ['#ffd700', '#e8edf5', '#ff5fa2', '#4fd8ff'];
   const luzes = document.createElement('div');
   luzes.className = 'natal-luzes';
   luzes.setAttribute('aria-hidden', 'true');
@@ -5689,9 +5756,16 @@ var TEMA_NATAL = (function(){
   // posições fixas (não aleatórias): a neve fica igual em toda abertura e não "pula" a cada render
   neve.innerHTML = Array.from({ length: 22 }, (_, i)=>{
     const x = (i * 37 + 11) % 100, t = 7 + (i * 5) % 6, d = -((i * 1.9) % t), s = 3 + (i * 7) % 4, v = ((i % 5) - 2) * 12;
-    return `<i style="--x:${x}%;--t:${t}s;--d:${d.toFixed(1)}s;--s:${s}px;--v:${v}px"></i>`;
+    return `<i style="--x:${x}%;--t:${t}s;--d:${d.toFixed(1)}s;--s:${s}px;--v:${v}px;--cf:${confete[i % confete.length]}"></i>`;
   }).join('');
   document.body.appendChild(neve);
+  if(!TEMA_FESTAS.fogos) return;
+  const fogos = document.createElement('div');
+  fogos.className = 'reveillon-fogos';
+  fogos.setAttribute('aria-hidden', 'true');
+  fogos.innerHTML = [['18%', '14%', '#ffd700', 0], ['78%', '10%', '#ff5fa2', 1.1], ['50%', '24%', '#4fd8ff', 2.2]].map(([x, y, c, d])=>
+    `<b style="--x:${x};--y:${y};--c:${c};--d:${d}s">${Array.from({ length: 12 }, (_, i)=> `<i style="--a:${i * 30}deg"></i>`).join('')}</b>`).join('');
+  document.body.appendChild(fogos);
 })();
 // a imagem: 1080×1920 (status), as fotos de quem jogou no ano formando um pinheiro, com a bola de vôlei de estrela
 async function desenharArvoreNatal(ano){
@@ -5803,19 +5877,140 @@ async function desenharArvoreNatal(ano){
   retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1850, 900, 30, "{t} 'Space Mono', monospace");
   return canvas;
 }
+// 🎆 cartão de Ano Novo (v21.9): 1080×1920, "FELIZ 2027" com fogos e os números do ano que acabou
+async function desenharCartaoAnoNovo(ano){
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const OURO = '#ffd700', PRATA = '#e8edf5', ROSA = '#ff5fa2', CIANO = '#4fd8ff', GIZ = '#f4f1e6', GIZ2 = '#b9c0d6', APAGADO = '#7c88ac';
+  try{
+    await Promise.all(["40px Anton", "600 40px 'Work Sans'", "40px 'Space Mono'"].map(f=> document.fonts.load(f)));
+  }catch(e){ /* sem as fontes, o navegador usa a padrão */ }
+  const n = numerosDoAno(roundsOficiais(), ano);
+  const destaques = [
+    { titulo: 'MAIS TÍTULOS', dado: n.campeao, unidade: ['título', 'títulos'] },
+    { titulo: 'MAIS PRESENTE', dado: n.presente, unidade: ['jogo', 'jogos'] },
+  ];
+  // a foto de cada destaque é a do 1º empatado; os nomes de todos vão no texto
+  const fotos = await Promise.all(destaques.map(d=> retroCarregarImagem(d.dado && (getPlayer(d.dado.ids[0]) || {}).foto)));
+
+  // fundo: noite com fogos (sequência fixa: a imagem sai igual toda vez) e confete
+  const fundo = ctx.createLinearGradient(0, 0, 0, H);
+  fundo.addColorStop(0, '#0c1633'); fundo.addColorStop(1, '#03050d');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
+  let semente = 11;
+  const aleatorio = ()=> (semente = (semente * 16807) % 2147483647) / 2147483647;
+  [[200, 230, OURO], [880, 180, ROSA], [540, 90, CIANO], [150, 1770, CIANO], [930, 1760, OURO]].forEach(([x, y, cor])=>{
+    ctx.strokeStyle = cor; ctx.lineCap = 'round';
+    for(let i = 0; i < 18; i++){
+      const a = i * Math.PI / 9, r0 = 22 + aleatorio() * 10, r1 = 95 + aleatorio() * 45;
+      ctx.globalAlpha = 0.35 + aleatorio() * 0.35; ctx.lineWidth = 3 + aleatorio() * 3;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1); ctx.stroke();
+    }
+  });
+  [OURO, PRATA, ROSA, CIANO].forEach(cor=>{
+    ctx.fillStyle = cor;
+    for(let i = 0; i < 30; i++){
+      ctx.globalAlpha = 0.25 + aleatorio() * 0.5;
+      ctx.save(); ctx.translate(aleatorio() * W, aleatorio() * H); ctx.rotate(aleatorio() * Math.PI);
+      ctx.fillRect(-5, -10, 10, 20); ctx.restore();
+    }
+  });
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(244,241,230,0.06)'; ctx.lineWidth = 6;
+  ctx.strokeRect(50, 50, W-100, H-100);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = GIZ;
+  retroTexto(ctx, 'FELIZ', W/2, 380, 940, 130, "{t} Anton, sans-serif");
+  ctx.save(); ctx.shadowColor = 'rgba(255,215,0,0.55)'; ctx.shadowBlur = 40; ctx.fillStyle = OURO;
+  retroTexto(ctx, String(ano + 1), W/2, 640, 940, 290, "{t} Anton, sans-serif");
+  ctx.restore();
+  ctx.fillStyle = GIZ2;
+  retroTexto(ctx, nomeDoApp(), W/2, 720, 940, 46, "600 {t} 'Work Sans', sans-serif");
+  ctx.fillStyle = CIANO;
+  retroTexto(ctx, ano + ' EM NÚMEROS', W/2, 840, 940, 50, "{t} Anton, sans-serif");
+
+  const caixa = (x, y, w, h)=>{
+    ctx.fillStyle = 'rgba(14,24,52,0.92)'; ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(x, y, w, h, 28); else ctx.rect(x, y, w, h);
+    ctx.fill(); ctx.stroke();
+  };
+  // linha 1: dias de jogo e jogadores
+  [[n.dias, n.dias === 1 ? 'DIA DE VÔLEI' : 'DIAS DE VÔLEI'], [n.jogadores, n.jogadores === 1 ? 'JOGADOR' : 'JOGADORES']].forEach(([num, rotulo], i)=>{
+    const x = 110 + i * 450;
+    caixa(x, 880, 410, 210);
+    ctx.fillStyle = OURO;
+    retroTexto(ctx, String(num), x + 205, 1010, 360, 110, "{t} Anton, sans-serif");
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, rotulo, x + 205, 1060, 360, 34, "600 {t} 'Work Sans', sans-serif");
+  });
+  // linha 2: os destaques, com foto
+  destaques.forEach((d, i)=>{
+    const x = 110 + i * 450, cx = x + 205, cy = 1265, raio = 88;
+    caixa(x, 1120, 410, 420);
+    ctx.fillStyle = CIANO;
+    retroTexto(ctx, d.titulo, cx, 1165, 360, 34, "{t} Anton, sans-serif");
+    if(!d.dado){
+      ctx.fillStyle = APAGADO;
+      retroTexto(ctx, '—', cx, cy + 20, 360, 80, "{t} Anton, sans-serif");
+      return;
+    }
+    const p = getPlayer(d.dado.ids[0]) || { nome: '?' };
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI*2); ctx.closePath();
+    ctx.fillStyle = '#101b33'; ctx.fill();
+    if(fotos[i]){
+      ctx.clip();
+      const lado = Math.min(fotos[i].width, fotos[i].height);
+      ctx.drawImage(fotos[i], (fotos[i].width-lado)/2, (fotos[i].height-lado)/2, lado, lado, cx-raio, cy-raio, raio*2, raio*2);
+    } else {
+      ctx.fillStyle = OURO; ctx.textBaseline = 'middle';
+      ctx.font = Math.round(raio * 1.1) + "px Anton, sans-serif";
+      textoCentrado(ctx, nomeNoCartao(p).charAt(0).toUpperCase(), cx, cy + 4);
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+    ctx.lineWidth = 7; ctx.strokeStyle = OURO;
+    ctx.beginPath(); ctx.arc(cx, cy, raio + 4, 0, Math.PI*2); ctx.stroke();
+    const nomes = d.dado.ids.map(id=> nomeNoCartao(getPlayer(id))).slice(0, 3);
+    ctx.fillStyle = GIZ;
+    retroTexto(ctx, (nomes.join(', ') + (d.dado.ids.length > 3 ? '...' : '')).toUpperCase(), cx, 1428, 370, 46, "{t} Anton, sans-serif");
+    ctx.fillStyle = GIZ2;
+    retroTexto(ctx, d.dado.total + ' ' + d.unidade[d.dado.total === 1 ? 0 : 1], cx, 1490, 360, 36, "600 {t} 'Work Sans', sans-serif");
+  });
+
+  ctx.fillStyle = GIZ;
+  retroTexto(ctx, 'Até o primeiro jogo de ' + (ano + 1) + '!', W/2, 1700, 940, 50, "600 {t} 'Work Sans', sans-serif");
+  ctx.fillStyle = APAGADO;
+  retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1850, 900, 30, "{t} 'Space Mono', monospace");
+  return canvas;
+}
 document.addEventListener('click', (e)=>{
   const b = e.target.closest('[data-arvore-natal]');
-  if(b) abrirArvoreNatal(+b.dataset.arvoreNatal);
+  if(b){
+    const ano = +b.dataset.arvoreNatal;
+    abrirImagemFestas(()=> desenharArvoreNatal(ano), 'Montando a árvore...', 'arvore-de-natal-' + ano + '.png',
+      'Árvore de Natal do grupo com as fotos de quem jogou em ' + ano, '🎄 Feliz Natal do ' + nomeDoApp() + '! 🏐 ' + linkDoApp(CTX_GRUPO));
+  }
+  const a = e.target.closest('[data-ano-novo]');
+  if(a){
+    const ano = +a.dataset.anoNovo;
+    abrirImagemFestas(()=> desenharCartaoAnoNovo(ano), 'Montando o cartão...', 'feliz-' + (ano + 1) + '.png',
+      'Cartão de Feliz ' + (ano + 1) + ' com os números de ' + ano, '🎆 Feliz ' + (ano + 1) + ' do ' + nomeDoApp() + '! 🏐 ' + linkDoApp(CTX_GRUPO));
+  }
 });
-async function abrirArvoreNatal(ano){
-  mostrarCarregando('Montando a árvore...');
+// janela das imagens de fim de ano (árvore e Ano Novo): mostra, compartilha e baixa
+async function abrirImagemFestas(montar, aviso, nomeArquivo, alt, textoCompartilhar){
+  mostrarCarregando(aviso);
   let canvas;
-  try{ canvas = await desenharArvoreNatal(ano); }
-  catch(e){ console.error('Falha ao montar a árvore de Natal', e); mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
+  try{ canvas = await montar(); }
+  catch(e){ console.error('Falha ao montar a imagem de fim de ano', e); mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
   finally{ esconderCarregando(); }
   const blob = await new Promise((res)=> canvas.toBlob(res, 'image/png'));
   if(!blob){ mostrarToast('Não foi possível montar a imagem.', 'erro'); return; }
-  const nomeArquivo = 'arvore-de-natal-' + ano + '.png';
   const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
   const url = URL.createObjectURL(blob);
   const podeCompartilhar = !!(navigator.canShare && navigator.canShare({ files: [arquivo] }));
@@ -5824,7 +6019,7 @@ async function abrirArvoreNatal(ano){
   overlay.innerHTML = `
     <div class="profile-card retro-card">
       <button class="profile-close" data-acao="fechar" aria-label="Fechar">✕</button>
-      <img class="retro-imagem" src="${url}" alt="Árvore de Natal do grupo com as fotos de quem jogou em ${ano}">
+      <img class="retro-imagem" src="${url}" alt="${escapeHtml(alt)}">
       <div class="retro-acoes">
         ${podeCompartilhar ? '<button type="button" class="btn" data-acao="compartilhar">📤 Compartilhar</button>' : ''}
         <button type="button" class="btn ${podeCompartilhar ? 'secondary' : ''}" data-acao="baixar">⬇️ Baixar imagem</button>
@@ -5835,7 +6030,7 @@ async function abrirArvoreNatal(ano){
   overlay.addEventListener('click', (e)=>{
     if(e.target === overlay || e.target.closest('[data-acao="fechar"]')) return fechar();
     if(e.target.closest('[data-acao="compartilhar"]')){
-      navigator.share({ files: [arquivo], text: '🎄 Feliz Natal do ' + nomeDoApp() + '! 🏐 ' + linkDoApp(CTX_GRUPO) }).catch(()=>{}); // cancelado: ignora
+      navigator.share({ files: [arquivo], text: textoCompartilhar }).catch(()=>{}); // cancelado: ignora
     }
     if(e.target.closest('[data-acao="baixar"]')){
       const a = document.createElement('a');
