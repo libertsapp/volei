@@ -1949,6 +1949,11 @@
     color:transparent;-webkit-text-stroke:1.5px color-mix(in srgb, var(--accent) 55%, transparent);opacity:.5;
   }
   body.light-mode .sb-placa-num{opacity:.35;}
+  /* 📸 cartão do campeão no quadro do Início (v21.6): o mesmo botão do Histórico, no canto do rótulo (ou de cada placa) */
+  .sb-cartao-btn{margin-left:auto;flex:none;background:transparent;border:1px solid var(--line);border-radius:10px;
+    padding:4px 8px;font-size:16px;line-height:1;letter-spacing:0;cursor:pointer;}
+  .sb-cartao-btn:hover{border-color:var(--ball-yellow);}
+  .sb-cartao-placa{position:absolute;top:10px;right:10px;z-index:1;}
   .sb-placa-tag{
     position:relative;display:inline-block;margin:0 0 12px;padding:3px 12px;border-radius:999px;
     font-family:'Work Sans',sans-serif;font-size:12px;font-weight:600;color:var(--accent);
@@ -2718,6 +2723,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>31/10/2026 — v21.6: 📸 Cartão dos campeões no Início</summary>
+          <div>
+            <p style="line-height:1.6;">O quadro de campeões do Início ganhou o botão <strong>📸</strong> (o mesmo do Histórico): abre a imagem dos campeões da rodada pra compartilhar ou baixar. Em dia de dois jogos, cada jogo tem o seu.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>31/10/2026 — v21.5: Ajustar estrelas cabendo no celular</summary>
           <div>
             <p style="line-height:1.6;">Correção: no celular, a tela "⭐ Ajustar estrelas deste check-in" ficava mais larga que a janela e cortava o começo dos nomes. Agora a tabela cabe na tela, e nome comprido quebra a linha.</p>
@@ -3381,7 +3393,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.5">v21.5</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.6">v21.6</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -5511,6 +5523,10 @@ async function desenharCartaoCampeao(r){
   retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1280, 900, 30, "{t} 'Space Mono', monospace");
   return canvas;
 }
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-cartao-campeao]');
+  if(b){ e.stopPropagation(); abrirCartaoCampeao(b.dataset.cartaoCampeao); }
+});
 async function abrirCartaoCampeao(roundId){
   const r = roundsOficiais().find(x=> x.id === roundId);
   if(!r) return;
@@ -9251,6 +9267,7 @@ function quadroRodadaDuplaHtml(jogos, rotulo){
     return `<div class="sb-placa" role="group" aria-label="${i + 1}º jogo">
       <span class="sb-placa-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
       <p class="sb-placa-tag">${i + 1}º jogo</p>
+      ${campeoes.length ? `<button type="button" class="sb-cartao-btn sb-cartao-placa" data-cartao-campeao="${escapeHtml(r.id)}" title="Imagem dos campeões do ${i + 1}º jogo para compartilhar" aria-label="Imagem dos campeões do ${i + 1}º jogo para compartilhar">📸</button>` : ''}
       ${corpo}
     </div>`;
   };
@@ -9346,7 +9363,7 @@ function renderDashboard(){
     hero.innerHTML = `
       <div class="scoreboard">
         <div>
-          <p class="sb-label">${rotuloCampeao}</p>
+          <p class="sb-label">${rotuloCampeao}<button type="button" class="sb-cartao-btn" data-cartao-campeao="${escapeHtml(lastRound.id)}" title="Imagem dos campeões para compartilhar" aria-label="Imagem dos campeões para compartilhar">📸</button></p>
           <p class="sb-date"><i class="ti ti-calendar-check" aria-hidden="true"></i>${formatDate(lastRound.data)} · ${timesCampeoes[0].vitorias||0} vitória(s) de partida</p>
           ${corpoCampeoesHtml}
         </div>
