@@ -597,6 +597,13 @@
   /* nota ajustada só pro check-in do dia — vermelho em vez de amarelo, pra diferenciar
      de cara da nota normal do cadastro (mesmo picker, cor muda conforme o valor diverge) */
   .stars-picker.ajustada button.filled{color:var(--danger);}
+  /* v21.5: a tabela de ajustar estrelas do check-in tem que caber na janela do celular — passava uns pixels (no iPhone,
+     bem mais: botão do Safari é maior) e a rolagem lateral abria deslocada, cortando o começo dos nomes */
+  .ajuste-estrelas th, .ajuste-estrelas td{padding:8px 4px;}
+  .ajuste-estrelas th{letter-spacing:.5px;}
+  .ajuste-estrelas td:first-child{overflow-wrap:anywhere;}
+  .ajuste-estrelas .stars-picker{gap:0;justify-content:center;}
+  .ajuste-estrelas .stars-picker button{-webkit-appearance:none;appearance:none;min-width:0;padding:2px 1px;font-size:19px;}
   .stars-picker.ajustada button.half{
     background-image:linear-gradient(90deg, var(--danger) 50%, var(--line) 50%);
   }
@@ -2711,6 +2718,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>31/10/2026 — v21.5: Ajustar estrelas cabendo no celular</summary>
+          <div>
+            <p style="line-height:1.6;">Correção: no celular, a tela "⭐ Ajustar estrelas deste check-in" ficava mais larga que a janela e cortava o começo dos nomes. Agora a tabela cabe na tela, e nome comprido quebra a linha.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>31/10/2026 — v21.4: Títulos dos cartões centralizados</summary>
           <div>
             <p style="line-height:1.6;">Correção: em alguns celulares o título do 📸 cartão do resultado da votação saía deslocado, começando no meio da imagem. Agora os textos de todos os cartões (resultado, campeão, parabéns e retrospectiva) ficam centralizados em qualquer aparelho.</p>
@@ -3367,7 +3381,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.4">v21.4</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.5">v21.5</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -10007,9 +10021,9 @@ function abrirAjustarEstrelasCheckin(){
       <div style="color:var(--muted);font-size:12px;margin-bottom:14px;">
         Vale só pro sorteio de ${formatDate(data)} — não muda o cadastro do jogador.
       </div>
-      <div style="overflow-x:auto;">
+      <div class="ajuste-estrelas" style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Jogador</th><th class="num">Cadastro</th><th class="num">Ajustada</th></tr></thead>
+          <thead><tr><th>Jogador</th><th class="num" title="Estrelas do cadastro">Cad.</th><th class="num">Ajustada</th></tr></thead>
           <tbody>
             ${todos.map(c=>{
               const atual = Number(c.estrelas) || 0;
