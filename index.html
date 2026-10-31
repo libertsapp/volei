@@ -2711,6 +2711,13 @@
         </p>
 
         <details class="dash-accordion" open>
+          <summary>31/10/2026 — v21.4: Títulos dos cartões centralizados</summary>
+          <div>
+            <p style="line-height:1.6;">Correção: em alguns celulares o título do 📸 cartão do resultado da votação saía deslocado, começando no meio da imagem. Agora os textos de todos os cartões (resultado, campeão, parabéns e retrospectiva) ficam centralizados em qualquer aparelho.</p>
+          </div>
+        </details>
+
+        <details class="dash-accordion">
           <summary>30/10/2026 — v21.3: Troféus no cartão do resultado</summary>
           <div>
             <p style="line-height:1.6;">O 📸 cartão do resultado da votação ganhou troféus no fundo: o troféu dourado no bloco do Craque e o "troféu da bola murcha" (o pedestal com a bola murcha no lugar da taça) no bloco do Bola Murcha.</p>
@@ -3360,7 +3367,7 @@
   <footer class="app-footer">
     <div class="footer-line"><span class="footer-link-discreto" id="termos-link" role="button" tabindex="0">Termos de uso</span><span class="footer-sep" aria-hidden="true">·</span><span class="footer-link-discreto" id="report-bug-btn" role="button" tabindex="0">Enviar sugestão ou problema</span></div>
     <!-- data-versao: os apps instalados procuram o número de versão neste atributo do HTML publicado pra saber se há versão nova (checarVersaoNova) -->
-    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.3">v21.3</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
+    <div class="footer-line footer-meta">© 2026 <a href="https://www.instagram.com/helenovilela/" target="_blank" rel="noopener noreferrer" class="footer-link">Heleno Vilela</a><span class="footer-sep" aria-hidden="true">·</span><span id="footer-versao" data-versao="Ver.: 21.4">v21.4</span><span class="footer-sep" aria-hidden="true">·</span><span id="visit-counter"></span></div>
   </footer>
 </div>
 
@@ -5230,7 +5237,16 @@ function retroCarregarImagem(url){
 function retroTexto(ctx, texto, x, y, maxLarg, tamanho, fonte){
   let t = tamanho;
   do { ctx.font = fonte.replace('{t}', t + 'px'); t -= 2; } while(ctx.measureText(texto).width > maxLarg && t > 12);
-  ctx.fillText(texto, x, y);
+  if(ctx.textAlign === 'center') textoCentrado(ctx, texto, x, y); else ctx.fillText(texto, x, y);
+}
+// v21.4: centraliza "na mão" (mede e escreve a partir da esquerda). Em alguns celulares o textAlign='center' do canvas
+// errava com emoji (o título do cartão da votação saía começando no meio); medir e posicionar não depende disso.
+function textoCentrado(ctx, texto, x, y){
+  const alinhamento = ctx.textAlign;
+  const largura = ctx.measureText(texto).width;
+  ctx.textAlign = 'left';
+  ctx.fillText(texto, x - largura / 2, y);
+  ctx.textAlign = alinhamento;
 }
 async function desenharRetrospectiva(player, r){
   const W = 1080, H = 1920;
@@ -5323,7 +5339,7 @@ async function desenharRetrospectiva(player, r){
   const maisLarga = Math.max(...frases.map(f=> ctx.measureText(f).width));
   if(maisLarga > 920) tamFrase = Math.max(24, Math.floor(40 * 920 / maisLarga));
   ctx.font = "600 " + tamFrase + "px 'Work Sans', sans-serif";
-  frases.slice(0, 5).forEach((f, i)=> ctx.fillText(f, W/2, 1530 + i * 66));
+  frases.slice(0, 5).forEach((f, i)=> textoCentrado(ctx, f, W/2, 1530 + i * 66));
 
   ctx.fillStyle = APAGADO;
   retroTexto(ctx, linkDoApp(CTX_GRUPO).replace('https://', ''), W/2, 1850, 900, 30, "{t} 'Space Mono', monospace");
@@ -5421,7 +5437,7 @@ async function desenharCartaoCampeao(r){
   if(v && !v.aberta && v.resultado && v.resultado.craque && v.resultado.craque.ids.length){
     linhaCraque = '🏅 Craque do dia: ' + v.resultado.craque.ids.map(id=> nomeNoCartao(getPlayer(id))).join(', ');
   } else if(v && v.aberta){
-    linhaCraque = '🗳️ Votação do Craque aberta no app';
+    linhaCraque = '🏅 Votação do Craque aberta no app';
   }
   const fimFotos = linhaCraque ? 1010 : 1110;
 
@@ -5631,7 +5647,7 @@ async function desenharCartaoVotacao(v){
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = NEON;
-  retroTexto(ctx, '🗳️ RESULTADO DA VOTAÇÃO', W/2, 160, 940, 64, "{t} Anton, sans-serif");
+  retroTexto(ctx, 'RESULTADO DA VOTAÇÃO', W/2, 160, 940, 64, "{t} Anton, sans-serif");
   ctx.fillStyle = OURO;
   retroTexto(ctx, (diaDaSemanaCurto(v.data) + ' · ' + formatDate(v.data)).toUpperCase(), W/2, 258, 940, 86, "{t} Anton, sans-serif");
   ctx.fillStyle = GIZ2;
@@ -5668,7 +5684,7 @@ async function desenharCartaoVotacao(v){
   const xTitulo = W/2 + (ladoDesenho + 14) / 2;
   if(desenhoMurcha) ctx.drawImage(desenhoMurcha, xTitulo - larg/2 - ladoDesenho - 14, 836, ladoDesenho, ladoDesenho * 300 / 320);
   ctx.fillStyle = AZUL;
-  ctx.fillText(titulo, xTitulo, 888);
+  textoCentrado(ctx, titulo, xTitulo, 888);
   if(r.murcha && r.murcha.ids.length){
     const raio = await votacaoLinhaDeFotos(ctx, r.murcha.ids, 1004, 80, AZUL, W);
     ctx.fillStyle = GIZ2;
@@ -14045,7 +14061,7 @@ async function desenharCartaoParabens(player, dataIso, frase){
   ctx.fillStyle = '#ffffff';
   ctx.shadowColor = 'rgba(60,0,60,.35)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
   const alturaTexto = linhas.length * tam * 1.25;
-  linhas.forEach((l, i)=> ctx.fillText(l, W/2, caixa.y + (caixa.h - alturaTexto)/2 + tam * 1.25 * i + tam * 0.95));
+  linhas.forEach((l, i)=> textoCentrado(ctx, l, W/2, caixa.y + (caixa.h - alturaTexto)/2 + tam * 1.25 * i + tam * 0.95));
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
   ctx.fillStyle = 'rgba(255,255,255,.85)';
