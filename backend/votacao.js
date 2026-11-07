@@ -1,6 +1,6 @@
 // Votação do Craque e do Bola Murcha (v19.1). Decisões do grupo (2026-10-17):
 //   - uma votação por DIA de jogo (num dia com dois jogos, vale quem jogou qualquer um deles);
-//   - abre quando a rodada oficial do dia é salva e fecha HORAS_VOTACAO (12; eram 24 até 2026-10-31) horas depois;
+//   - abre quando a rodada oficial do dia é salva e fecha HORAS_VOTACAO (16; foram 24 até 2026-10-31 e 12 até 2026-11-07) horas depois;
 //   - vota só quem jogou naquele dia, pela conta vinculada (vínculo APROVADO) ao jogador; um voto por jogador em cada
 //     categoria (votar de novo troca o voto); ninguém vota em si mesmo nem na mesma pessoa pras duas categorias;
 //   - votos secretos: o GET público só traz quantas pessoas votaram enquanto está aberta, e o resultado (quem venceu e
@@ -13,7 +13,7 @@ import { lerUsuarios } from './usuarios.js';
 import { enviarParaJogadores } from './notificacoes.js';
 import { diaEData } from './avisos-push.js';
 
-export const HORAS_VOTACAO = 12; // 2026-10-31: o grupo pediu 12h (eram 24)
+export const HORAS_VOTACAO = 16; // 2026-11-07: o grupo pediu 16h (eram 12; antes de 2026-10-31, 24)
 export const CATEGORIAS = ['craque', 'murcha'];
 const MAX_DIAS_PARA_ABRIR = 2; // editar rodada antiga (de semanas atrás) não abre votação pra ela
 

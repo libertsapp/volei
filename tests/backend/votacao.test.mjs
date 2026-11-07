@@ -33,18 +33,18 @@ function ambiente() {
 const como = (email, extra) => ({ idToken: email, data: DATA, ...extra });
 const bloco = async (d) => lerBlocoVotacao(d, await d.repo.lerTudo());
 
-await ta('rodada oficial salva abre a votação de 12h e avisa só quem jogou', async () => {
+await ta('rodada oficial salva abre a votação de 16h e avisa só quem jogou', async () => {
   const { d, enviados } = ambiente();
   for (const id of ['ana', 'eva', 'fora']) await inscreverPush(d, { endpoint: 'https://p/' + id, keys: { p256dh: 'k', auth: 'a' } }, id + '@x.com');
   await addRound(d, rodada('r1', ['ana', 'bia'], ['caio', 'duda']));
   const [v] = await bloco(d);
   assert.equal(v.data, DATA);
   assert.equal(v.aberta, true);
-  assert.equal(Date.parse(v.fechaEm) - Date.parse(v.abreEm), 12 * 3600000);
+  assert.equal(Date.parse(v.fechaEm) - Date.parse(v.abreEm), 16 * 3600000);
   assert.deepEqual(enviados.map((e) => e.para), ['ana@x.com']); // eva e "fora" não jogaram
   assert.equal(enviados[0].titulo, '🗳️ Votação aberta!');
   assert.match(enviados[0].corpo, /terça \(13\/10\)/);
-  assert.match(enviados[0].corpo, /Você tem 12h pra votar/);
+  assert.match(enviados[0].corpo, /Você tem 16h pra votar/);
 });
 
 await ta('rascunho não abre; o 2º jogo do dia (ou salvar de novo) não reabre nem reavisa', async () => {
